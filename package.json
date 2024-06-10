@@ -1,6 +1,6 @@
 {
-  "name": "osubot2",
-  "version": "1.22.0",
+  "name": "osubot2-telegram",
+  "version": "0.1.0",
   "description": "",
   "main": "index.ts",
   "scripts": {
@@ -12,21 +12,20 @@
   "license": "GPL-3.0-or-later",
   "repository": {
     "type": "git",
-    "url": "https://github.com/OctoDumb/osubot"
+    "url": "https://github.com/Airkek/osubot-telegram"
   },
   "bugs": {
-    "url": "https://github.com/OctoDumb/osubot/issues"
+    "url": "https://github.com/Airkek/osubot-telegram/issues"
   },
-  "homepage": "https://github.com/OctoDumb/osubot#readme",
+  "homepage": "https://github.com/Airkek/osubot-telegram#readme",
   "dependencies": {
     "axios": "^0.19.1",
     "eventemitter3": "^4.0.7",
+    "grammy": "^1.24.1",
     "int64-buffer": "^0.99.1007",
     "leb": "^0.3.0",
-    "middleware-io": "^2.1.0",
     "querystring": "^0.2.0",
-    "sqlite3": "^4.2.0",
-    "vk-io": "^4.4.0"
+    "sqlite3": "^4.2.0"
   },
   "devDependencies": {
     "@types/sqlite3": "^3.1.6",

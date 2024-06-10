@@ -1,4 +1,4 @@
-import { Command } from "./Command";
+import { Command, UnifiedMessageContext } from "./Command";
 import Bot from "./Bot";
 import { MessageContext } from "vk-io";
 
@@ -28,7 +28,7 @@ export class Module implements ICommandsModule {
             this.commands.push(command);
     }
 
-    checkContext(ctx: MessageContext): {command: Command, map?: number} {
+    checkContext(ctx: UnifiedMessageContext): {command: Command, map?: number} {
         if(!ctx.hasText)
             return null;
         // var args = ctx.text.split(" ");

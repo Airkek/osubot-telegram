@@ -12,9 +12,7 @@ export default class RippleLeaderboard extends Command {
             if(!chat)
                 return ctx.reply("Сначала отправьте карту!");
             try {
-                let { profiles } = await self.module.bot.vk.api.messages.getConversationMembers({
-                    peer_id: ctx.peerId
-                });
+                let profiles = await ctx.getChatMembers();
                 let users: IDatabaseUser[] = [];
                 for(let i = 0; i < profiles.length; i++) {
                     let profile = profiles[i];

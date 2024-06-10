@@ -1,13 +1,13 @@
-import { VK, MessageContext, DocumentAttachment } from 'vk-io';
 import { Module } from './Module';
 import Database from './Database';
 import Bancho from './modules/Bancho';
-import { Command } from './Command';
+import { Command, UnifiedMessageContext } from './Command';
 import { APICollection } from './API';
 import { Templates, ITemplates } from './templates';
 import Maps from './Maps';
 import { ReplayParser } from './Replay';
 import * as axios from 'axios';
+import { Bot as TG, GrammyError, HttpError} from 'grammy'
 import News from './News';
 import Admin from './modules/Admin';
 import Main from './modules/Main';
@@ -27,11 +27,10 @@ import IgnoreList from './Ignore';
 import Sakuru from './modules/Sakuru';
 
 interface IBotConfig {
-    vk?: {
+    tg?: {
         token: string,
-        id: number,
         owner: number
-    },
+    }
     tokens?: {
         bancho: string,
         ripple: string
@@ -44,7 +43,7 @@ interface IBotConfig {
 
 export default class Bot {
     config: IBotConfig;
-    vk: VK;
+    tg: TG;
     modules: Module[];
     database: Database;
     api: APICollection;
@@ -62,10 +61,7 @@ export default class Bot {
     constructor(config: IBotConfig) {
         this.config = config;
 
-        this.vk = new VK({
-            token: config.vk.token,
-            pollingGroupId: config.vk.id
-        });
+        this.tg = new TG(config.tg.token);
         this.modules = [];
 
         this.registerModule([
@@ -81,7 +77,7 @@ export default class Bot {
             new Main(this)
         ]);
 
-        this.database = new Database(this.vk);
+        this.database = new Database(this.tg, this.config.tg.owner);
 
         this.initDB();
 
@@ -91,13 +87,28 @@ export default class Bot {
 
         this.maps = new Maps(this);
 
-        this.vk.updates.on("message", async (ctx) => {
+        this.tg.catch((err) => {
+            const ctx = err.ctx;
+            console.error(`Error while handling update ${ctx.update.update_id}:`);
+            const e = err.error;
+            if (e instanceof GrammyError) {
+              console.error("Error in request:", e.description);
+            } else if (e instanceof HttpError) {
+              console.error("Could not contact Telegram:", e);
+            } else {
+              console.error("Unknown error:", e);
+            }
+          });
+
+        this.tg.on("message", async (context) => {
+            var ctx = new UnifiedMessageContext(context, this.tg);
             if(ctx.isGroup || ctx.isFromGroup || ctx.isEvent || this.ignored.isIgnored(ctx.senderId))
                 return;
             this.totalMessages++;
             let replayDoc = this.checkReplay(ctx);
             let hasMap = this.checkMap(ctx);
             if(replayDoc) {
+                return; // TODO: telegram-support: download replay 
                 if(this.disabled.includes(ctx.peerId)) return;
                 try {
                     let { data: file } = await axios.default.get(replayDoc.url, {
@@ -170,18 +181,18 @@ export default class Bot {
 
         this.v2 = new BanchoV2();
 
-        this.v2.data.on('osuupdate', update => {
-            let changesString = [];
-            for(let ch in update.changes) {
-                changesString.push(`${ch} [${update.changes[ch]}]`);
-            }
-            this.news.notify({
-                message: `🔔 Новое обновление osu! (${update.version})${update.majors ? `\n❗ Есть важные изменения! (${update.majors})` : ""}
-                ${changesString.join("\n")}
-                https://osu.ppy.sh/home/changelog/stable40/${update.version}`,
-                type: 'osuupdate'
-            });
-        });
+        // this.v2.data.on('osuupdate', update => {
+        //     let changesString = [];
+        //     for(let ch in update.changes) {
+        //         changesString.push(`${ch} [${update.changes[ch]}]`);
+        //     }
+        //     this.news.notify({
+        //         message: `🔔 Новое обновление osu! (${update.version})${update.majors ? `\n❗ Есть важные изменения! (${update.majors})` : ""}
+        //         ${changesString.join("\n")}
+        //         https://osu.ppy.sh/home/changelog/stable40/${update.version}`,
+        //         type: 'osuupdate'
+        //     });
+        // });
 
         this.v2.data.on('newranked', async mapset => {
             let modes = [];
@@ -221,6 +232,7 @@ export default class Bot {
             });
         });
 
+        /*
         this.v2.data.on('osunews', async news => {
             let attachment = (await this.vk.upload.messagePhoto({
                 source: {
@@ -233,7 +245,7 @@ export default class Bot {
                 attachment,
                 type: 'osunews'
             });
-        });
+        });*/
     }
 
     registerModule(module: Module | Module[]) {
@@ -252,7 +264,7 @@ export default class Bot {
     }
 
     async start() {
-        await this.vk.updates.start();
+        await this.tg.start()
         await this.v2.login(
             this.config.osu.username,
             this.config.osu.password
@@ -263,17 +275,21 @@ export default class Bot {
     }
 
     async stop() {
-        await this.vk.updates.stop();
+        await this.tg.stop()
         console.log('Stopped');
     }
 
-    checkReplay(ctx: MessageContext): DocumentAttachment {
+    checkReplay(ctx: UnifiedMessageContext): any {
         if(!ctx.hasAttachments("doc"))
             return null;
-        return ctx.getAttachments("doc").filter(doc => doc.extension == "osr")[0];
+        const replays = ctx.getAttachments("doc").filter(doc => doc.file_name.endsWith(".osr"));
+        if (replays.length == 0) {
+            return null;
+        }
+        return replays[0];
     }
 
-    checkMap(ctx: MessageContext): number {
+    checkMap(ctx: UnifiedMessageContext): number {
         let hasMap = IsMap(ctx.text);
         let hasAtt = ctx.hasAttachments("link");
         if(hasMap)

@@ -3,6 +3,7 @@ import { MessageContext } from "vk-io";
 import { APIBeatmap, ICommandArgs } from "./Types";
 import Util from "./Util";
 import Mods from "./pp/Mods";
+import { UnifiedMessageContext } from "./Command";
 
 interface Chat {
     id: number;
@@ -31,7 +32,7 @@ export default class Maps {
         this.chats[index].map = map;
     }
 
-    async sendMap(beatmapId: number, ctx: MessageContext) {
+    async sendMap(beatmapId: number, ctx: UnifiedMessageContext) {
         let map = await this.bot.api.bancho.getBeatmap(beatmapId);
         let cover = await this.bot.database.covers.getCover(map.id.set);
         ctx.reply(this.bot.templates.Beatmap(map), {
@@ -40,7 +41,7 @@ export default class Maps {
         this.setMap(ctx.peerId, map);
     }
 
-    async stats(ctx: MessageContext) {
+    async stats(ctx: UnifiedMessageContext) {
         let args = Util.parseArgs(ctx.text.split(" ").splice(1))
         let chat = this.getChat(ctx.peerId);
         if(!chat)

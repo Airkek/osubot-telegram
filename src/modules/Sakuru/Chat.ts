@@ -7,9 +7,7 @@ export default class SakuruChat extends Command {
         super(["chat", "срфе"], module, async (ctx, self, args) => {
             if(ctx.isChat) {
                 try {
-                    let members = (await self.module.bot.vk.api.messages.getConversationMembers({
-                        peer_id: ctx.peerId
-                    })).profiles;
+                    let members = await ctx.getChatMembers();
                     let users = [];
                     for(let i = 0; i < members.length; i++) {
                         let u = await self.module.bot.database.servers.sakuru.getUserStats(members[i].id, args.mode || 0);
@@ -36,9 +34,7 @@ export default class SakuruChat extends Command {
                 if(isNaN(id))
                     return ctx.reply("Некорректный ID!");
                 try {
-                    let members = (await self.module.bot.vk.api.messages.getConversationMembers({
-                        peer_id: id + 2000000000
-                    })).profiles;
+                    let members = await ctx.getChatMembers();
                     let users = [];
                     for(let i = 0; i < members.length; i++) {
                         let u = await self.module.bot.database.servers.sakuru.getUserStats(members[i].id, args.mode || 0);

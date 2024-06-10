@@ -1,6 +1,6 @@
 import { IBeatmapStats, HitCounts, ICommandArgs, IHits, PPArgs, CalcArgs } from "./Types";
 import { ICalcStats, OsuStats, TaikoStats, CatchStats, ManiaStats } from "./pp/Stats";
-import { Keyboard, KeyboardBuilder } from "vk-io";
+import { InlineKeyboard } from "grammy";
 
 interface Err {
     e: string,
@@ -259,26 +259,9 @@ export default {
                 return 'скоров';
         }
     },
-    createKeyboard(rows: IKBButton[][]): KeyboardBuilder {
-        let keyboard = Keyboard.builder().inline(true);
-
-        for(let i = 0; i < rows.length; i++) {
-            let row = rows[i];
-            for(let j = 0; j < row.length; j++) {
-                let button = row[j];
-                keyboard.textButton({
-                    label: button.text,
-                    payload: {
-                        osubot: true,
-                        command: button.command
-                    },
-                    color: Keyboard.SECONDARY_COLOR
-                });
-            }
-            keyboard.row();
-        }
-
-        return keyboard;
+    createKeyboard(rows: IKBButton[][]): InlineKeyboard {
+        const buttonRows = rows.map(row => row.map(button => InlineKeyboard.text(button.text, button.command)))
+        return InlineKeyboard.from(buttonRows);
     },
     getModeArg(mode: number) {
         return ['-std', '-taiko', '-ctb', '-mania'][mode];

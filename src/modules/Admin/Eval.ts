@@ -12,6 +12,6 @@ export default class EvalCommand extends Command {
             }
         });
 
-        this.permission = (ctx) => ctx.senderId == module.bot.config.vk.owner;
+        this.permission = (ctx) => ctx.senderId == module.bot.config.tg.owner;
     }
 }

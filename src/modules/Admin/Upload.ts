@@ -18,6 +18,6 @@ export default class UploadCommand extends Command {
             ctx.reply("Файл успешно загружен!");
         });
 
-        this.permission = (ctx) => ctx.senderId == module.bot.config.vk.owner;
+        this.permission = (ctx) => ctx.senderId == module.bot.config.tg.owner;
     }
 }

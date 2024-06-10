@@ -8,14 +8,8 @@ export default class NewsCommand extends Command {
         super(["news", "туцы"], module, async (ctx, self, args) => {
 
             if(ctx.isChat) {
-                try {
-                    let chat = (await self.module.bot.vk.api.messages.getConversationMembers({
-                        peer_id: ctx.peerId
-                    }));
-    
-                    let user = chat.items.find(m => m.member_id == ctx.senderId);
-    
-                    if(!user.is_admin)
+                try {    
+                    if(!(await ctx.isAdmin()))
                         return ctx.reply("Вы не можете управлять рассылкой!");
                     
                     if(!args.string[0])

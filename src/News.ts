@@ -47,29 +47,30 @@ export default class News {
     }
     
     async notify(options: INotifyOptions) {
-        let ids = [];
-        for(let i = 1; i <= this.limit; i++)
-            ids.push(2000000000 + i);
-        ids = ids.filter(id => this.chatAllowed(id, options.type));
-        while(ids.length) {
-            try {
-                let code = ids.splice(0, this.step).map(id => `API.messages.send(${JSON.stringify({peer_id: id, message: options.message, random_id: Math.ceil(Math.random() * 1e9), attachment: options.attachment || "", dont_parse_links: 1})});`).join("\n");
-                await this.bot.vk.api.execute({ code });
-            } catch(e) {}
-        }
-        let rawUsers = (await this.bot.vk.api.execute({ code: 'var i = 0;\nvar users = [];\nwhile(i < 25) {\nvar u = API.messages.getConversations({"count": 200, "offset": 200 * i}).items@.conversation@.peer@.id;\nusers.push(u);\ni = i + 1;\nif(u.length < 200) {\ni = 25;\n}\n}\nreturn users;' })).response;
-        let users = [];
-        for(let i = 0; i < rawUsers.length; i++) {
-            users.push(...rawUsers[i]);
-        }
-        users = users.filter(u => this.userAllowed(u, options.type));
-        while(users.length) {
-            try {
-                let code = users.splice(0, this.step).map(id => `API.messages.send(${JSON.stringify({peer_id: id, message: options.message, random_id: Math.ceil(Math.random() * 1e9), attachment: options.attachment || "", dont_parse_links: 1})});`).join("\n");
-                await this.bot.vk.api.execute({ code });
-            } catch(e) {}
-        }
-        return true;
+        return; // TODO: telegram-support: rewrite for telegram
+        // let ids = [];
+        // for(let i = 1; i <= this.limit; i++)
+        //     ids.push(2000000000 + i);
+        // ids = ids.filter(id => this.chatAllowed(id, options.type));
+        // while(ids.length) {
+        //     try {
+        //         let code = ids.splice(0, this.step).map(id => `API.messages.send(${JSON.stringify({peer_id: id, message: options.message, random_id: Math.ceil(Math.random() * 1e9), attachment: options.attachment || "", dont_parse_links: 1})});`).join("\n");
+        //         await this.bot.vk.api.execute({ code });
+        //     } catch(e) {}
+        // }
+        // let rawUsers = (await this.bot.vk.api.execute({ code: 'var i = 0;\nvar users = [];\nwhile(i < 25) {\nvar u = API.messages.getConversations({"count": 200, "offset": 200 * i}).items@.conversation@.peer@.id;\nusers.push(u);\ni = i + 1;\nif(u.length < 200) {\ni = 25;\n}\n}\nreturn users;' })).response;
+        // let users = [];
+        // for(let i = 0; i < rawUsers.length; i++) {
+        //     users.push(...rawUsers[i]);
+        // }
+        // users = users.filter(u => this.userAllowed(u, options.type));
+        // while(users.length) {
+        //     try {
+        //         let code = users.splice(0, this.step).map(id => `API.messages.send(${JSON.stringify({peer_id: id, message: options.message, random_id: Math.ceil(Math.random() * 1e9), attachment: options.attachment || "", dont_parse_links: 1})});`).join("\n");
+        //         await this.bot.vk.api.execute({ code });
+        //     } catch(e) {}
+        // }
+        // return true;
     }
 
     getChatRules(id: number): INewsRule {

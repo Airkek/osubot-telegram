@@ -1,8 +1,9 @@
 import sqlite from 'sqlite3';
-import { VK, MessageContext } from 'vk-io';
+import { Bot as TG, InputFile } from 'grammy'
 import axios from 'axios';
 import util from './Util';
 import { APIUser, IDatabaseUser, IDatabaseUserStats } from './Types';
+import { UnifiedMessageContext } from './Command';
 
 class DatabaseServer {
     table: String;
@@ -82,15 +83,9 @@ class DatabaseCovers {
 
     async addCover(id: Number): Promise<string> {
         try {
-            let { data: cover } = await axios.get(`https://assets.ppy.sh/beatmaps/${id}/covers/raw.jpg`, {
-                responseType: "arraybuffer"
-            });
-
-            let photo = await this.db.vk.upload.messagePhoto({
-                source: {
-                    value: Buffer.from(cover)
-                }
-            });
+            let file = new InputFile(new URL(`https://assets.ppy.sh/beatmaps/${id}/covers/raw.jpg`))
+            let send = await this.db.tg.api.sendPhoto(this.db.owner, file);
+            let photo = send.photo[0].file_id;
 
             await this.db.run("INSERT INTO covers (id, attachment) VALUES (?, ?)", [id, photo.toString()]);
 
@@ -124,7 +119,7 @@ class DatabaseErrors {
         this.db = db;
     }
 
-    async addError(prefix: String, ctx: MessageContext, error: String): Promise<String> {
+    async addError(prefix: String, ctx: UnifiedMessageContext, error: String): Promise<String> {
         let code = `${prefix}.${util.hash()}`;
         let check = this.getError(code);
         if(!check)
@@ -164,8 +159,9 @@ export default class Database {
     covers: DatabaseCovers;
     errors: DatabaseErrors;
     db: sqlite.Database;
-    vk: VK;
-    constructor(vk: VK) {
+    tg: TG;
+    owner: number
+    constructor(tg: TG, owner: number) {
         this.servers = {
             bancho: new DatabaseServer("bancho", this),
             gatari: new DatabaseServer("gatari", this),
@@ -183,7 +179,8 @@ export default class Database {
 
         this.db = new sqlite.Database("osu.db");
 
-        this.vk = vk;
+        this.tg = tg;
+        this.owner = owner; 
     }
 
     async get(stmt: string, opts: any[] = []): Promise<any> {

@@ -10,9 +10,7 @@ export default class DisableCommand extends Command {
                 return ctx.reply("Данная команда только для чатов!")
 
             try {
-                let { items } = (await self.module.bot.vk.api.messages.getConversationMembers({
-                    peer_id: ctx.peerId
-                }));
+                let items = await ctx.getChatMembers();
                 let user = items.find(m => m.member_id == ctx.senderId);
 
                 if(!user.is_admin)
