@@ -1,4 +1,5 @@
 import IAPI from './base';
+import * as fs from 'fs'
 import * as axios from 'axios';
 import qs from 'querystring';
 import { APIUser, APITopScore, APIBeatmap, APIRecentScore, HitCounts, APIScore, IDatabaseUser, LeaderboardScore, LeaderboardResponse, IDatabaseUserStats } from '../Types';
@@ -221,9 +222,21 @@ export default class BanchoAPI implements IAPI {
         let { data } = await this.api.get(`/get_beatmaps?${qs.stringify(opts)}`);
         if(!data[0])
             throw "Beatmap not found";
+
         let beatmap = new APIBeatmap(data[0], this);
         if(mods)
             beatmap.stats.modify(new Mods(mods));
+
+        const folderPath = 'beatmap_cache';
+        if (!fs.existsSync(folderPath)) {
+            fs.mkdirSync(folderPath);
+        }
+        const filePath = `beatmap_cache/${id}.osu`;
+        if (!fs.existsSync(filePath)) {
+            const response = await axios.default.get(`https://osu.ppy.sh/osu/${beatmap.id.map}`, { responseType: 'arraybuffer' })
+            const buffer = Buffer.from(response.data, 'binary');
+            fs.writeFileSync(filePath, buffer);
+        }
         return beatmap;
     }
 

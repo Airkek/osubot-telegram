@@ -25,6 +25,7 @@
     "int64-buffer": "^0.99.1007",
     "leb": "^0.3.0",
     "querystring": "^0.2.0",
+    "rosu-pp-js": "^1.0.2",
     "sqlite3": "^5.1.7"
   },
   "devDependencies": {

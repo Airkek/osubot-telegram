@@ -8,7 +8,7 @@ Telegram: https://t.me/osulegacybot
 - [X] all basic commands (nick/user/recent/top)
 - [ ] chat leaderboard
 - [ ] inline keyboard
-- [ ] update calculator to new formula 
+- [X] update calculator to new formula 
 - [ ] make find command works 
 - [ ] move help to telegraph
 - [ ] fix updates notify

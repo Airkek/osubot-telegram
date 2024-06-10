@@ -1,5 +1,6 @@
 /build
 /node_modules
+/beatmap_cache
 osu.db
 osu.db-journal
 config.json

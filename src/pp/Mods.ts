@@ -141,8 +141,14 @@ type Mod = "Nomod" | "NoFail" | "Easy" | "TouchDevice" | "Hidden" | "HardRock" |
 
 export default class Mods {
     mods: number[];
+	flags: number;
     constructor(m: number | string) {
-        this.mods = typeof m == "string" ? this.fromString(m) : this.parse(m);
+		if (typeof m == "string") {
+			this.flags = this.fromString(m);
+		} else {
+			this.flags = m;
+		}
+		this.mods = this.parse(this.flags);
     }
 
     parse(m: number): number[] {
@@ -154,7 +160,7 @@ export default class Mods {
         return r;
 	}
 
-    fromString(string: string): number[] {
+    fromString(string: string): number {
         let offset = 0;
         let buf = "";
         let m = 0;
@@ -167,7 +173,7 @@ export default class Mods {
             }
             offset++;
         }
-        return this.parse(m);
+		return m;
     }
 
     toString(): string {

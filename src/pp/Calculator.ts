@@ -1,5 +1,6 @@
 import { APITopScore, APIBeatmap, APIRecentScore, APIScore, CalcArgs } from '../Types';
 import { ICalcStats } from './Stats';
+import * as rosu from 'rosu-pp-js'
 import Mods from './Mods';
 import { Replay } from '../Replay';
 
@@ -21,7 +22,7 @@ interface IPPCalculator {
     mods: Mods,
     stats: ICalcStats,
     calculate(score: APITopScore | APIRecentScore | APIScore | Replay | CalcArgs): IPP,
-    PP(score: APITopScore | APIRecentScore | APIScore | Replay | CalcArgs): ModePP
+    PP(score: APITopScore | APIRecentScore | APIScore | Replay | CalcArgs, rmap: rosu.Beatmap): IPP
 }
 
 export {
