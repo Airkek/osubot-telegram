@@ -1,6 +1,5 @@
 import { Command, UnifiedMessageContext } from "./Command";
 import Bot from "./Bot";
-import { MessageContext } from "vk-io";
 
 interface ICommandsModule {
     name: String,

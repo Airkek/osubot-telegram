@@ -1,5 +1,4 @@
 import Bot from "./Bot";
-import { MessageContext } from "vk-io";
 import { APIBeatmap, ICommandArgs } from "./Types";
 import Util from "./Util";
 import Mods from "./pp/Mods";
