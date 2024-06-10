@@ -1,16 +1,17 @@
 # osubot
 Port of OctoDumb's [osubot-old](https://github.com/OctoDumb/osubot-old) to telegram
 
+# Try it out!
+Telegram: https://t.me/osulegacybot
+
 ## port TODO:
 - [X] all basic commands (nick/user/recent/top)
 - [ ] chat leaderboard
 - [ ] inline keyboard
-- [ ] update pp 
-- [ ] correct find command 
-- [ ] help on telegraph
-
-# Try it out!
-Telegram: https://t.me/osulegacybot
+- [ ] update calculator to new formula 
+- [ ] make find command works 
+- [ ] move help to telegraph
+- [ ] fix updates notify
 
 ## How to run:
 
