@@ -79,6 +79,10 @@ export class UnifiedMessageContext {
             let opts: any = {
                 disable_web_page_preview: true
             }
+
+            if (options?.dont_parse_links === false) {
+                opts.disable_web_page_preview = false;
+            }
             if (replyTo !== undefined) {
                 opts['reply_parameters'] = {
                     message_id: replyTo

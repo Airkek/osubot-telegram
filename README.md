@@ -10,7 +10,7 @@ Telegram: https://t.me/osulegacybot
 - [X] inline keyboard
 - [X] update calculator to new formula 
 - [X] make find command works 
-- [ ] move help to telegraph
+- [X] move help to telegraph
 - [ ] fix updates notify
 
 ## How to run:
