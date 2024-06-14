@@ -116,6 +116,8 @@ export default class Bot {
                     check.command.process(ctx);
                 }
             }
+
+            await context.answerCallbackQuery();
         });
 
         this.tg.on("message", async (context) => {
