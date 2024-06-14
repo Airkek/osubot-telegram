@@ -264,14 +264,15 @@ export default class Bot {
     }
 
     async start() {
-        await this.tg.start()
         await this.v2.login(
             this.config.osu.username,
             this.config.osu.password
         )
+        console.log(this.v2.logged ? 'Logged in' : 'Failed to login')
         this.v2.startUpdates();
         this.startTime = Date.now();
         console.log('Started');
+        await this.tg.start()
     }
 
     async stop() {

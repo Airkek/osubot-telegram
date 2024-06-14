@@ -1,3 +1,5 @@
+import { Mod as V2Mod, ModsEnum } from 'osu-web.js'
+
 enum ModsBitwise {
     Nomod = 0,
     NoFail = 1 << 0,
@@ -142,11 +144,15 @@ type Mod = "Nomod" | "NoFail" | "Easy" | "TouchDevice" | "Hidden" | "HardRock" |
 export default class Mods {
     mods: number[];
 	flags: number;
-    constructor(m: number | string) {
+	modsv2: V2Mod[];
+    constructor(m: number | string | V2Mod[]) {
 		if (typeof m == "string") {
 			this.flags = this.fromString(m);
-		} else {
+		} else if (typeof m == "number") {
 			this.flags = m;
+		} else {
+			this.modsv2 = m;
+			this.flags = this.fromMods(m);
 		}
 		this.mods = this.parse(this.flags);
     }
@@ -158,6 +164,18 @@ export default class Mods {
                 r.push(1 << i);
         }
         return r;
+	}
+
+	fromMods(mods: V2Mod[]): number {
+		let flags = 0;
+		for (let mod of mods) {
+			let int = ModsEnum[mod];
+			if (int != undefined) {
+				flags |= ModsEnum[mod];
+			}
+		}
+
+		return flags;
 	}
 
     fromString(string: string): number {
@@ -177,6 +195,15 @@ export default class Mods {
     }
 
     toString(): string {
+		if (this.modsv2) {
+			let str = this.modsv2.join(" +");
+			console.log(str);
+			if(str.length == 0)
+				return '';
+			else
+				return '+' + str;
+
+		}
         let tempMods = this.sum();
         if(this.sum() & ModsBitwise.Nightcore)
             tempMods -= ModsBitwise.DoubleTime;

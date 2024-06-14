@@ -3,11 +3,44 @@ import qs from "querystring";
 import { EventEmitter } from "eventemitter3";
 import { APIV2Events } from "../Events";
 import BanchoV2Data from "./BanchoV2Data";
-import { V2ChangelogArguments, V2BeatmapsetsArguments, V2ChangelogResponse, V2Beatmapset, V2News } from "../Types";
+import { Client, UserScore } from 'osu-web.js';
+import { V2ChangelogArguments, V2BeatmapsetsArguments, V2ChangelogResponse, V2Beatmapset, V2News, APIRecentScore, HitCounts } from "../Types";
+import Mods from "../pp/Mods";
+import Util from "../Util";
 
 interface IAPIData {
     lastBuild: number;
     lastRanked: number;
+}
+
+class V2RecentScore implements APIRecentScore {
+    beatmapId: number;
+    score: number;
+    combo: number;
+    counts: HitCounts;
+    mods: Mods;
+    rank: string;
+    mode: number;
+    constructor(data: UserScore) {
+        this.beatmapId = data.beatmap.id;
+        this.score = data.score;
+        this.combo = data.max_combo;
+        this.counts = new HitCounts({
+            300: data.statistics.count_300,
+            100: data.statistics.count_100,
+            50: data.statistics.count_50,
+            miss: data.statistics.count_miss,
+            katu: data.statistics.count_katu,
+            geki: data.statistics.count_geki
+        }, data.mode_int);
+        this.mods = new Mods(data.mods);
+        this.rank = data.rank;
+        this.mode = data.mode_int;
+    }
+
+    accuracy() {
+        return Util.accuracy(this.counts);
+    }
 }
 
 class BanchoAPIV2 {
@@ -109,6 +142,28 @@ class BanchoAPIV2 {
                 version: map.version
             }))
         }));
+    }
+
+    async getRecentScores(uid: number, mode: number): Promise<APIRecentScore> {
+        let ruleset = "osu";
+        switch (mode) {
+            case 0: ruleset = "osu"; break;
+            case 1: ruleset = "taiko"; break;
+            case 2: ruleset = "fruits"; break;
+            case 3: ruleset = "mania"; break;
+        }
+        let data = await this.request(`/users/${uid}/scores/recent`, { 
+            mode: ruleset, 
+            include_fails: true,
+            limit: 1
+        });
+
+        if (data[0]) {
+            let score = data[0];
+            return new V2RecentScore(score);
+        } else {
+            throw "No recent scores";
+        }
     }
 
     async getNews(): Promise<V2News> {

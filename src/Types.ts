@@ -315,7 +315,6 @@ class TrackTopScore {
 }
 
 interface APIRecentScore {
-    api: IAPI;
     beatmapId: number;
     score: number;
     combo: number;
