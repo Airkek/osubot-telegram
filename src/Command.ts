@@ -54,11 +54,12 @@ export class UnifiedMessageContext {
         this.tgCtx = ctx;
         this.tg = tg;
 
-        this.text = ctx.message.text ? ctx.message.text : ctx.message.caption;
+        let isMessage = ctx.message !== undefined; 
+        this.text = isMessage ? (ctx.message.text ? ctx.message.text : ctx.message.caption) : undefined;
         this.hasText = this.text !== undefined;
-        this.hasMessagePayload = false;
-        this.messagePayload = null;
-        this.hasReplyMessage = ctx.message.reply_to_message !== undefined;
+        this.messagePayload = ctx.callbackQuery?.data;
+        this.hasMessagePayload = this.messagePayload !== undefined;
+        this.hasReplyMessage = ctx.message?.reply_to_message !== undefined;
         this.replyMessage = this.hasReplyMessage ? new ReplyToMessage(ctx) : null;
         this.hasForwards = false; // in telegram we cant forward message as attachment, for compatibility only
         this.forwards = [];
@@ -99,8 +100,10 @@ export class UnifiedMessageContext {
             }
         }
 
+        let callbackReplyTo = this.tgCtx.callbackQuery?.from.username ? `@${this.tgCtx.callbackQuery.from.username}` : this.tgCtx.callbackQuery?.from.first_name;
+
         this.reply = (text: string, options?: SendOptions) => {
-            this.send(text, options, this.tgCtx.message.message_id);
+            this.send(isMessage ? text : callbackReplyTo + ",\n" + text, options, isMessage ? this.tgCtx.message.message_id : undefined);
         };
 
         this.hasAttachments = (type: string) => {
@@ -152,10 +155,10 @@ export class Command {
     public process(ctx: UnifiedMessageContext) {
         if(!this.permission(ctx)) return;
         this.uses++;
-        if(ctx.hasMessagePayload && ctx.messagePayload.osubot)
+        if(ctx.hasMessagePayload)
             this.function(
                 ctx, this,
-                Util.parseArgs(ctx.messagePayload.command.split(" ").slice(2))
+                Util.parseArgs(ctx.messagePayload.split(" ").slice(2))
             );
         else
             this.function(

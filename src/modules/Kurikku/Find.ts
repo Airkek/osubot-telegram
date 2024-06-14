@@ -11,7 +11,7 @@ export default class KurikkuFind extends Command {
                 let users = await self.module.bot.database.servers.kurikku.findByUserId(u.id);
                 if(!users[0])
                     return ctx.reply("Не найдено пользователей с таким ником!");
-                ctx.reply(`[Server: ${self.module.name}]\nПользователи с ником ${u.nickname}:\n${users.map(us => `https://vk.com/id${us.id}`).join("\n")}`);
+                ctx.reply(`[Server: ${self.module.name}]\nПользователи с ником ${u.nickname}:\n${users.map(us => `tg://user?id=${us.id}`).join("\n")}`);
             } catch(e) {
                 ctx.reply("Ошибка");
             }

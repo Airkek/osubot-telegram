@@ -197,7 +197,6 @@ export default class Mods {
     toString(): string {
 		if (this.modsv2) {
 			let str = this.modsv2.join(" +");
-			console.log(str);
 			if(str.length == 0)
 				return '';
 			else

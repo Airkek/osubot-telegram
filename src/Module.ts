@@ -28,12 +28,7 @@ export class Module implements ICommandsModule {
     }
 
     checkContext(ctx: UnifiedMessageContext): {command: Command, map?: number} {
-        if(!ctx.hasText)
-            return null;
-        // var args = ctx.text.split(" ");
-        var args = ctx.hasMessagePayload ?
-            ctx.messagePayload.osubot ? ctx.messagePayload.command.split(" ") :
-            ctx.text.split(" ") : ctx.text.split(" ");
+        var args = ctx.hasMessagePayload ? ctx.messagePayload.split(" ") : ctx.text.split(" ");
         let map: number;
         if(args[0].startsWith("{map")) {
             map = Number(args[0].split("}")[0].slice(4));

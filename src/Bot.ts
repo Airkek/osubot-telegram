@@ -100,6 +100,24 @@ export default class Bot {
             }
           });
 
+        this.tg.on("callback_query:data", async (context) => { 
+            var ctx = new UnifiedMessageContext(context, this.tg);
+            for(let module of this.modules) {
+                let check = module.checkContext(ctx);
+                if(check) {
+                    if(check.map) {
+                        let chat = this.maps.getChat(ctx.peerId);
+                        if(!chat || chat.map.id.map != check.map) {
+                            let map = await this.api.bancho.getBeatmap(check.map);
+                            this.maps.setMap(ctx.peerId, map);
+                        }
+                    }
+                    if(this.disabled.includes(ctx.peerId) && check.command.disables) return;
+                    check.command.process(ctx);
+                }
+            }
+        });
+
         this.tg.on("message", async (context) => {
             var ctx = new UnifiedMessageContext(context, this.tg);
             if(ctx.isGroup || ctx.isFromGroup || ctx.isEvent || this.ignored.isIgnored(ctx.senderId))
