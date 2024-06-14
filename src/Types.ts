@@ -196,7 +196,6 @@ interface APIUser {
 }
 
 interface APITopScore {
-    api: IAPI;
     beatmapId: number;
     score: number;
     combo: number;

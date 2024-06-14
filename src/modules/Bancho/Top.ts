@@ -22,7 +22,7 @@ export default class BanchoTop extends Command {
                 self.module.bot.database.servers.bancho.updateInfo(user, mode);
                 let status = self.module.bot.donaters.status("bancho", user.id);
                 if(args.apx) {
-                    let top = await self.module.bot.api.bancho.getUserTop(dbUser.nickname, mode, 100);
+                    let top = await self.module.bot.v2.getTopScores(user.id, mode, 100);
                     if(args.mods) {
                         let mods = new Mods(args.mods);
                         top = top.filter(score => score.mods.sum() == mods.sum());
@@ -44,7 +44,7 @@ export default class BanchoTop extends Command {
                         attachment: cover
                     });
                 } else if(args.more) {
-                    let top = await self.module.bot.api.bancho.getUserTop(dbUser.nickname, mode, 100);
+                    let top = await self.module.bot.v2.getTopScores(user.id, mode, 100);
                     if(args.mods) {
                         let mods = new Mods(args.mods);
                         top = top.filter(score => score.mods.sum() == mods.sum());
@@ -53,7 +53,7 @@ export default class BanchoTop extends Command {
                     let amount = top.filter(t => t.pp > args.more).length;
                     ctx.reply(`[Server: ${self.module.name}]\nУ игрока ${user.nickname} ${amount ? amount : 'нет'}${amount == 100 ? '+' : ''} ${Util.scoreNum(amount)} выше ${args.more}pp`);
                 } else if(args.place) {
-                    let score = (await self.module.bot.api.bancho.getUserTop(dbUser.nickname, mode, args.place))[args.place - 1];
+                    let score = (await self.module.bot.v2.getTopScores(user.id, mode, args.place))[args.place - 1];
                     let map = await self.module.bot.api.bancho.getBeatmap(score.beatmapId, mode, score.mods.diff());
                     let cover = await self.module.bot.database.covers.getCover(map.id.set);
                     let calc = new BanchoPP(map, score.mods);
@@ -73,7 +73,7 @@ export default class BanchoTop extends Command {
                     });
                     self.module.bot.maps.setMap(ctx.peerId, map);
                 } else {
-                    let top = await self.module.bot.api.bancho.getUserTop(dbUser.nickname, mode, 100);
+                    let top = await self.module.bot.v2.getTopScores(user.id, mode, 100);
                     if(args.mods) {
                         let mods = new Mods(args.mods);
                         top = top.filter(score => score.mods.sum() == mods.sum());

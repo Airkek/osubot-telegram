@@ -4,7 +4,7 @@ import { EventEmitter } from "eventemitter3";
 import { APIV2Events } from "../Events";
 import BanchoV2Data from "./BanchoV2Data";
 import { Client, UserScore } from 'osu-web.js';
-import { V2ChangelogArguments, V2BeatmapsetsArguments, V2ChangelogResponse, V2Beatmapset, V2News, APIRecentScore, HitCounts } from "../Types";
+import { V2ChangelogArguments, V2BeatmapsetsArguments, V2ChangelogResponse, V2Beatmapset, V2News, APIRecentScore, APITopScore, HitCounts } from "../Types";
 import Mods from "../pp/Mods";
 import Util from "../Util";
 
@@ -36,6 +36,40 @@ class V2RecentScore implements APIRecentScore {
         this.mods = new Mods(data.mods);
         this.rank = data.rank;
         this.mode = data.mode_int;
+    }
+
+    accuracy() {
+        return Util.accuracy(this.counts);
+    }
+}
+
+class V2TopScore implements APITopScore {
+    beatmapId: number;
+    score: number;
+    combo: number;
+    counts: HitCounts;
+    mods: Mods;
+    rank: string;
+    mode: number;
+    pp: number;
+    date: Date;
+    constructor(data: UserScore) {
+        this.beatmapId = data.beatmap.id;
+        this.score = data.score;
+        this.combo = data.max_combo;
+        this.counts = new HitCounts({
+            300: data.statistics.count_300,
+            100: data.statistics.count_100,
+            50: data.statistics.count_50,
+            miss: data.statistics.count_miss,
+            katu: data.statistics.count_katu,
+            geki: data.statistics.count_geki
+        }, data.mode_int);
+        this.mods = new Mods(data.mods);
+        this.rank = data.rank;
+        this.mode = data.mode_int;
+        this.date = new Date(data.created_at);
+        this.pp = data.pp;
     }
 
     accuracy() {
@@ -163,6 +197,27 @@ class BanchoAPIV2 {
             return new V2RecentScore(score);
         } else {
             throw "No recent scores";
+        }
+    }
+
+    async getTopScores(uid: number, mode: number = 0, limit: number = 3): Promise<APITopScore[]> {
+        let ruleset = "osu";
+        switch (mode) {
+            case 0: ruleset = "osu"; break;
+            case 1: ruleset = "taiko"; break;
+            case 2: ruleset = "fruits"; break;
+            case 3: ruleset = "mania"; break;
+        }
+        let data = await this.request(`/users/${uid}/scores/recent`, { 
+            mode: ruleset, 
+            include_fails: true,
+            limit
+        });
+
+        if (data[0]) {
+            return data.map(s => new V2TopScore(s));
+        } else {
+            throw "No top scores";
         }
     }
 
