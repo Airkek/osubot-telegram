@@ -208,7 +208,7 @@ class BanchoAPIV2 {
             case 2: ruleset = "fruits"; break;
             case 3: ruleset = "mania"; break;
         }
-        let data = await this.request(`/users/${uid}/scores/recent`, { 
+        let data = await this.request(`/users/${uid}/scores/best`, { 
             mode: ruleset, 
             include_fails: true,
             limit
