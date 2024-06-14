@@ -6,7 +6,7 @@ Telegram: https://t.me/osulegacybot
 
 ## port TODO:
 - [X] all basic commands (nick/user/recent/top)
-- [ ] chat leaderboard
+- [X] chat leaderboard
 - [X] inline keyboard
 - [X] update calculator to new formula 
 - [X] make find command works 

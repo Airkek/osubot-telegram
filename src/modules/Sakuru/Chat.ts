@@ -7,10 +7,10 @@ export default class SakuruChat extends Command {
         super(["chat", "срфе"], module, async (ctx, self, args) => {
             if(ctx.isChat) {
                 try {
-                    let members = await ctx.getChatMembers();
+                    let members = await self.module.bot.database.chats.getChatUsers(ctx.chatId);
                     let users = [];
                     for(let i = 0; i < members.length; i++) {
-                        let u = await self.module.bot.database.servers.sakuru.getUserStats(members[i].id, args.mode || 0);
+                        let u = await self.module.bot.database.servers.sakuru.getUserStats(members[i], args.mode || 0);
                         if(u.id && !users.some(uu => uu.id == u.id)) {
                             users.push(u);
                         }
@@ -34,10 +34,10 @@ export default class SakuruChat extends Command {
                 if(isNaN(id))
                     return ctx.reply("Некорректный ID!");
                 try {
-                    let members = await ctx.getChatMembers();
+                    let members = await self.module.bot.database.chats.getChatUsers(ctx.chatId);
                     let users = [];
                     for(let i = 0; i < members.length; i++) {
-                        let u = await self.module.bot.database.servers.sakuru.getUserStats(members[i].id, args.mode || 0);
+                        let u = await self.module.bot.database.servers.sakuru.getUserStats(members[i], args.mode || 0);
                         if(u.id && !users.some(uu => uu.id == u.id)) {
                             users.push(u);
                         }

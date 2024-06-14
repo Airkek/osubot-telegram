@@ -107,6 +107,31 @@ class DatabaseCovers {
     }
 }
 
+class DatabaseUsersToChat {
+    db: Database;
+    constructor(db: Database) {
+        this.db = db;
+    }
+
+    async userJoined(userId: number, chatId: number): Promise<void> {
+        await this.db.run("INSERT INTO users_to_chat (user, chat) VALUES (?, ?)", [userId, chatId])
+    }
+
+    async userLeft(userId: number, chatId: number): Promise<void> {
+        await this.db.run("DELETE FROM users_to_chat WHERE user = ? AND chat = ?", [userId, chatId])
+    }
+
+    async getChatUsers(chatId: Number): Promise<number[]> {
+        let users = await this.db.all("SELECT * FROM users_to_chat WHERE chat = ?", [chatId]);
+        return users.map(u => u.user);
+    }
+
+    async isUserInChat(userId: number, chatId: number): Promise<boolean> {
+        let user = await this.db.get("SELECT * FROM users_to_chat WHERE user = ? AND chat = ?", [userId, chatId]);
+        return user.user ? true : false;
+    }
+}
+
 interface IDatabaseError {
     code: String,
     info: String,
@@ -158,6 +183,8 @@ export default class Database {
     servers: IServersList;
     covers: DatabaseCovers;
     errors: DatabaseErrors;
+    chats: DatabaseUsersToChat;
+
     db: sqlite.Database;
     tg: TG;
     owner: number
@@ -176,6 +203,8 @@ export default class Database {
         this.covers = new DatabaseCovers(this);
         
         this.errors = new DatabaseErrors(this);
+
+        this.chats = new DatabaseUsersToChat(this);
 
         this.db = new sqlite.Database("osu.db");
 

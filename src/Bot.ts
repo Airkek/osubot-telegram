@@ -100,6 +100,16 @@ export default class Bot {
             }
           });
 
+        this.tg.on("message:new_chat_members", async (context) => {
+            for (let user of context.message.new_chat_members) {
+                this.database.chats.userJoined(user.id, context.chat.id);
+            }
+        })
+
+        this.tg.on("message:left_chat_member", async (context) => {
+            this.database.chats.userLeft(context.message.left_chat_member.id, context.chat.id);
+        })
+
         this.tg.on("callback_query:data", async (context) => { 
             var ctx = new UnifiedMessageContext(context, this.tg);
             for(let module of this.modules) {
@@ -170,6 +180,13 @@ export default class Bot {
                     for(let module of this.modules) {
                         let check = module.checkContext(ctx);
                         if(check) {
+                            if (ctx.isChat) {
+                                let inChat = await this.database.chats.isUserInChat(ctx.senderId, ctx.chatId);
+                                if (!inChat) {
+                                    await this.database.chats.userJoined(ctx.senderId, ctx.chatId);
+                                }
+                            }
+                            
                             if(check.map) {
                                 let chat = this.maps.getChat(ctx.peerId);
                                 if(!chat || chat.map.id.map != check.map) {
@@ -281,6 +298,7 @@ export default class Bot {
         }
         this.database.run("CREATE TABLE IF NOT EXISTS covers (id INTEGER, attachment TEXT)");
         this.database.run("CREATE TABLE IF NOT EXISTS errors (code TEXT, info TEXT, error TEXT)");
+        this.database.run(`CREATE TABLE IF NOT EXISTS users_to_chat (user INTEGER, chat INTEGER)`);
     }
 
     async start() {

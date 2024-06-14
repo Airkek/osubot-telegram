@@ -10,10 +10,7 @@ export default class DisableCommand extends Command {
                 return ctx.reply("Данная команда только для чатов!")
 
             try {
-                let items = await ctx.getChatMembers();
-                let user = items.find(m => m.member_id == ctx.senderId);
-
-                if(!user.is_admin)
+                if(!ctx.isAdmin)
                     return;
 
                 let isDisabled = self.module.bot.disabled.includes(ctx.peerId);

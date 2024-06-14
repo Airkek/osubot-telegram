@@ -48,7 +48,6 @@ export class UnifiedMessageContext {
     isAdmin: () => Promise<boolean>;
     hasAttachments: (type: string) => boolean;
     getAttachments: (type: string) => Array<any>; 
-    getChatMembers: () => Promise<Array<any>>
 
     constructor(ctx: Context, tg: Bot) {
         this.tgCtx = ctx;
@@ -63,7 +62,7 @@ export class UnifiedMessageContext {
         this.replyMessage = this.hasReplyMessage ? new ReplyToMessage(ctx) : null;
         this.hasForwards = false; // in telegram we cant forward message as attachment, for compatibility only
         this.forwards = [];
-        this.isChat = ctx.chat.type == "supergroup";
+        this.isChat = ctx.chat.type == "supergroup" || ctx.chat.type == "group";
         this.senderId = ctx.from.id;
         this.peerId = ctx.chat.id;
         this.chatId = ctx.chat.id;
@@ -87,9 +86,6 @@ export class UnifiedMessageContext {
             }
             if (options?.keyboard !== undefined) {
                 opts['reply_markup'] = options.keyboard
-            }
-            if (options?.disable_mentions) {
-                // TODO: telegram-support: handle this
             }
 
             if (options?.attachment !== undefined && options.attachment.length != 0) {
@@ -126,10 +122,6 @@ export class UnifiedMessageContext {
                 default:
                     return [];
             }
-        }
-
-        this.getChatMembers = async () => {
-            return []; // TODO: telegram-support: implement members fetching
         }
 
     }

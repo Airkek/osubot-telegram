@@ -12,11 +12,11 @@ export default class SakuruLeaderboard extends Command {
             if(!chat)
                 return ctx.reply("Сначала отправьте карту!");
             try {
-                let profiles = await ctx.getChatMembers();
+                let profiles = await self.module.bot.database.chats.getChatUsers(ctx.chatId);
                 let users: IDatabaseUser[] = [];
                 for(let i = 0; i < profiles.length; i++) {
                     let profile = profiles[i];
-                    let user = await self.module.bot.database.servers.sakuru.getUser(profile.id);
+                    let user = await self.module.bot.database.servers.sakuru.getUser(profile);
                     if(user.id && !users.some(u => u.uid == user.uid))
                         users.push(user);
                 }
