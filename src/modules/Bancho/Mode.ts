@@ -3,7 +3,7 @@ import { Module } from '../../Module';
 
 export default class BanchoMode extends Command {
     constructor(module: Module) {
-        super(["m", "mode", "ь", "ьщву"], module, async (ctx, self, args) => {
+        super(["mode", "m", "ь", "ьщву"], module, async (ctx, self, args) => {
             if(!args.full[0])
                 return ctx.reply("Не указан режим!");
             let m = parseInt(args.full[0]);

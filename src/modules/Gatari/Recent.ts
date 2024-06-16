@@ -5,7 +5,7 @@ import Util from "../../Util";
 
 export default class GatariRecent extends Command {
     constructor(module: Module) {
-        super(["r", "rp", "recent", "к", "кз", "кусуте"], module, async (ctx, self, args) => {
+        super(["recent", "r", "rp", "к", "кз", "кусуте"], module, async (ctx, self, args) => {
             let dbUser = await self.module.bot.database.servers.gatari.getUser(ctx.senderId);
             if(ctx.hasReplyMessage)
                 dbUser.nickname = (await self.module.bot.database.servers.gatari.getUser(ctx.replyMessage.senderId)).nickname;

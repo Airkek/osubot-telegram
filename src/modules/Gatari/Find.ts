@@ -4,7 +4,7 @@ import Util from "../../Util";
 
 export default class GatariFind extends Command {
     constructor(module: Module) {
-        super(["f", "find", "а", "аштв"], module, async (ctx, self, args) => {
+        super(["find", "f", "а", "аштв"], module, async (ctx, self, args) => {
             if(!args.nickname[0])
                 return ctx.reply("Укажите ник!");
             try {

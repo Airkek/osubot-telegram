@@ -5,7 +5,7 @@ import BanchoPP from "../../pp/bancho";
 
 export default class AkatsukiTop extends Command {
     constructor(module: Module) {
-        super(["t", "top", "е", "ещз"], module, async (ctx, self, args) => {
+        super(["top", "t", "е", "ещз"], module, async (ctx, self, args) => {
             let dbUser = await self.module.bot.database.servers.akatsuki.getUser(ctx.senderId);
             if(ctx.hasReplyMessage)
                 dbUser.nickname = (await self.module.bot.database.servers.akatsuki.getUser(ctx.replyMessage.senderId)).nickname;

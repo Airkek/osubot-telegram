@@ -6,7 +6,7 @@ import Mods from '../../pp/Mods';
 
 export default class BanchoTop extends Command {
     constructor(module: Module) {
-        super(["t", "top", "е", "ещз"], module, async (ctx, self, args) => {
+        super(["top", "t", "е", "ещз"], module, async (ctx, self, args) => {
             let dbUser = await self.module.bot.database.servers.bancho.getUser(ctx.senderId);
             if(ctx.hasReplyMessage)
                 dbUser.nickname = (await self.module.bot.database.servers.bancho.getUser(ctx.replyMessage.senderId)).nickname;

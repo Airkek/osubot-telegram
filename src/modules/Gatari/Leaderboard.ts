@@ -4,7 +4,7 @@ import { IDatabaseUser } from "../../Types";
 
 export default class GatariLeaderboard extends Command {
     constructor(module: Module) {
-        super(["lb", "leaderboard", "ди", "дуфвукищфкв"], module, async (ctx, self, args) => {
+        super(["leaderboard", "lb", "ди", "дуфвукищфкв"], module, async (ctx, self, args) => {
             if(!ctx.isChat)
                 return ctx.reply("Эту команду можно использовать только в беседах!");
             let chat = self.module.bot.maps.getChat(ctx.peerId);

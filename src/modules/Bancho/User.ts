@@ -5,7 +5,7 @@ import Util from "../../Util";
 
 export default class BanchoUser extends Command {
     constructor(module: Module) {
-        super(["u", "user", "г", "гыук"], module, async (ctx, self, args) => {
+        super(["user", "u", "г", "гыук"], module, async (ctx, self, args) => {
             let dbUser = await self.module.bot.database.servers.bancho.getUser(ctx.senderId);
             if(ctx.hasReplyMessage)
                 dbUser.nickname = (await self.module.bot.database.servers.bancho.getUser(ctx.replyMessage.senderId)).nickname;

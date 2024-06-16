@@ -3,7 +3,7 @@ import { Module } from "../../Module";
 
 export default class RippleNick extends Command {
     constructor(module: Module) {
-        super(["n", "nick", "т", "тшсл"], module, async (ctx, self, args) => {
+        super(["nick", "n", "т", "тшсл"], module, async (ctx, self, args) => {
             if(!args.nickname[0])
                 return ctx.reply("Не указан ник!")
             try {

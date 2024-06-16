@@ -6,7 +6,7 @@ import Util from "../../Util";
 
 export default class RippleCompare extends Command {
     constructor(module: Module) {
-        super(["c", "compare", "с", "сщьзфку"], module, async (ctx, self, args) => {
+        super(["compare", "c", "с", "сщьзфку"], module, async (ctx, self, args) => {
             let dbUser = await self.module.bot.database.servers.ripple.getUser(ctx.senderId);
             if(ctx.hasReplyMessage)
                 dbUser.nickname = (await self.module.bot.database.servers.ripple.getUser(ctx.replyMessage.senderId)).nickname;

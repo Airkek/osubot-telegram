@@ -5,7 +5,7 @@ import Util from "../../Util";
 
 export default class RippleRecent extends Command {
     constructor(module: Module) {
-        super(["r", "rp", "recent", "к", "кз", "кусуте"], module, async (ctx, self, args) => {
+        super(["recent", "r", "rp", "к", "кз", "кусуте"], module, async (ctx, self, args) => {
             let dbUser = await self.module.bot.database.servers.ripple.getUser(ctx.senderId);
             if(ctx.hasReplyMessage)
                 dbUser.nickname = (await self.module.bot.database.servers.ripple.getUser(ctx.replyMessage.senderId)).nickname;

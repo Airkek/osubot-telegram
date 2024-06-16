@@ -5,7 +5,7 @@ import BanchoPP from "../../pp/bancho";
 
 export default class RippleTop extends Command {
     constructor(module: Module) {
-        super(["t", "top", "е", "ещз"], module, async (ctx, self, args) => {
+        super(["top", "t", "е", "ещз"], module, async (ctx, self, args) => {
             let dbUser = await self.module.bot.database.servers.ripple.getUser(ctx.senderId);
             if(ctx.hasReplyMessage)
                 dbUser.nickname = (await self.module.bot.database.servers.ripple.getUser(ctx.replyMessage.senderId)).nickname;
