@@ -56,7 +56,8 @@ export class Bot {
     startTime: number;
     totalMessages: number;
     version: string;
-    secret: string
+    secret: string;
+    basicOverride: (cmd: string, override: string) => void;
     constructor(config: IBotConfig, secret: string) {
         this.config = config;
         this.secret = secret;
@@ -106,6 +107,33 @@ export class Bot {
         this.tg.on("message:left_chat_member", async (context) => {
             this.database.chats.userLeft(context.message.left_chat_member.id, context.chat.id);
         })
+
+        this.basicOverride = (cmd, override) => {
+
+        }
+
+        this.basicOverride = (cmd, override) => {
+            this.tg.command(cmd, async (context) => {
+                context.message.text = override;
+                var ctx = new UnifiedMessageContext(context, this.tg);
+                for(let module of this.modules) {
+                    let check = module.checkContext(ctx);
+                    if(check) {
+                        check.command.process(ctx);
+                    }
+                }
+            })
+        }
+
+        this.basicOverride("start", "osu help");
+        this.basicOverride("help", "osu help");
+        this.basicOverride("user", "s u");
+        this.basicOverride("recent", "s r");
+        this.basicOverride("top_scores", "s t");
+        this.basicOverride("chat_leaderboard", "s chat");
+        this.basicOverride("chat_leaderboard_mania", "s chat -mania");
+        this.basicOverride("chat_leaderboard_taiko", "s chat -taiko");
+        this.basicOverride("chat_leaderboard_fruits", "s chat -ctb");
 
         this.tg.on("callback_query:data", async (context) => { 
             var ctx = new UnifiedMessageContext(context, this.tg);
