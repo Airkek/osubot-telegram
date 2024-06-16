@@ -218,18 +218,18 @@ export default class Bot {
 
         this.v2 = new BanchoV2();
 
-        // this.v2.data.on('osuupdate', update => {
-        //     let changesString = [];
-        //     for(let ch in update.changes) {
-        //         changesString.push(`${ch} [${update.changes[ch]}]`);
-        //     }
-        //     this.news.notify({
-        //         message: `🔔 Новое обновление osu! (${update.version})${update.majors ? `\n❗ Есть важные изменения! (${update.majors})` : ""}
-        //         ${changesString.join("\n")}
-        //         https://osu.ppy.sh/home/changelog/stable40/${update.version}`,
-        //         type: 'osuupdate'
-        //     });
-        // });
+        this.v2.data.on('osuupdate', update => {
+            let changesString = [];
+            for(let ch in update.changes) {
+                changesString.push(`${ch} [${update.changes[ch]}]`);
+            }
+            this.news.notify({
+                message: `🔔 Новое обновление osu! (${update.version})${update.majors ? `\n❗ Есть важные изменения! (${update.majors})` : ""}
+                ${changesString.join("\n")}
+                https://osu.ppy.sh/home/changelog/stable40/${update.version}`,
+                type: 'osuupdate'
+            });
+        });
 
         this.v2.data.on('newranked', async mapset => {
             let modes = [];
@@ -269,20 +269,14 @@ export default class Bot {
             });
         });
 
-        /*
+        
         this.v2.data.on('osunews', async news => {
-            let attachment = (await this.vk.upload.messagePhoto({
-                source: {
-                    value: news.image
-                }
-            })).toString();
-
             this.news.notify({
                 message: `Новость на сайте osu!\n${news.title}\nот ${news.author}\n\n${news.link}`,
-                attachment,
+                photo: news.image,
                 type: 'osunews'
             });
-        });*/
+        });
     }
 
     registerModule(module: Module | Module[]) {
@@ -307,7 +301,7 @@ export default class Bot {
             this.config.osu.password
         )
         console.log(this.v2.logged ? 'Logged in' : 'Failed to login')
-        this.v2.startUpdates();
+        //this.v2.startUpdates();
         this.startTime = Date.now();
         console.log('Started');
         await this.tg.start()

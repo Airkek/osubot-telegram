@@ -14,6 +14,7 @@ interface INewsRule {
 
 interface INotifyOptions {
     message?: string;
+    photo?: string;
     attachment?: string;
     type: string;
 }
