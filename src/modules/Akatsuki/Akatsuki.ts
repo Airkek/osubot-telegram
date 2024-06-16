@@ -14,7 +14,7 @@ export default class Akatsuki extends Module {
         
         this.name = "Akatsuki";
 
-        this.link = "https://akatsuki.pw";
+        this.link = "https://akatsuki.gg";
 
         this.registerCommand([
             new AkatsukiNick(this),

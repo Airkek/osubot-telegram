@@ -10,7 +10,7 @@ export default class AkatsukiRelax extends Module {
         
         this.name = "Akatsuki!Relax";
 
-        this.link = "https://akatsuki.pw";
+        this.link = "https://akatsuki.gg";
 
         this.registerCommand([
             new AkatsukiRelaxUser(this),

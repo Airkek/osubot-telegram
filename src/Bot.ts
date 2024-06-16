@@ -19,13 +19,10 @@ import Ripple from './modules/Ripple';
 import Donaters from './Donaters';
 import Akatsuki from './modules/Akatsuki';
 import AkatsukiRelax from './modules/AkatsukiRelax';
-import Enjuu from './modules/Enjuu';
 import OsuTrackAPI from './Track';
-import Kurikku from './modules/Kurikku';
 import BanchoV2 from "./api/BanchoV2";
 import Util from './Util';
 import IgnoreList from './Ignore';
-import Sakuru from './modules/Sakuru';
 
 export interface IBotConfig {
     tg?: {
@@ -73,9 +70,6 @@ export class Bot {
             new Ripple(this),
             new Akatsuki(this),
             new AkatsukiRelax(this),
-            new Enjuu(this),
-            new Kurikku(this),
-            new Sakuru(this),
             new Admin(this),
             new Main(this)
         ]);

@@ -111,7 +111,7 @@ export default class AkatsukiAPI implements IAPI {
     constructor(bot: Bot) {
         this.bot = bot;
         this.api = axios.default.create({
-            baseURL: "https://akatsuki.pw/api/v1",
+            baseURL: "https://akatsuki.gg/api/v1",
             timeout: 3000
         });
     }
