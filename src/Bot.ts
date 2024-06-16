@@ -8,6 +8,7 @@ import Maps from './Maps';
 import { ReplayParser } from './Replay';
 import * as axios from 'axios';
 import { Bot as TG, GrammyError, HttpError} from 'grammy'
+import * as secrets from 'secrets-js';
 import News from './News';
 import Admin from './modules/Admin';
 import Main from './modules/Main';
@@ -26,22 +27,22 @@ import Util from './Util';
 import IgnoreList from './Ignore';
 import Sakuru from './modules/Sakuru';
 
-interface IBotConfig {
+export interface IBotConfig {
     tg?: {
         token: string,
         owner: number
     }
     tokens?: {
-        bancho: string,
-        ripple: string
+        bancho: string
     },
     osu?: {
         username: string,
-        password: string
+        password: string,
+        passwordEncrypted?: boolean
     }
 }
 
-export default class Bot {
+export class Bot {
     config: IBotConfig;
     tg: TG;
     modules: Module[];
@@ -58,8 +59,10 @@ export default class Bot {
     startTime: number;
     totalMessages: number;
     version: string;
-    constructor(config: IBotConfig) {
+    secret: string
+    constructor(config: IBotConfig, secret: string) {
         this.config = config;
+        this.secret = secret;
 
         this.tg = new TG(config.tg.token);
         this.modules = [];
@@ -298,7 +301,7 @@ export default class Bot {
     async start() {
         await this.v2.login(
             this.config.osu.username,
-            this.config.osu.password
+            secrets.decode(this.secret, this.config.osu.password)
         )
         console.log(this.v2.logged ? 'Logged in' : 'Failed to login')
         //this.v2.startUpdates();

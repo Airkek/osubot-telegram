@@ -1,6 +1,6 @@
 import { Module } from "../../Module";
 
-import Bot from "../../Bot";
+import { Bot } from "../../Bot";
 import RippleUser from "./User";
 import RippleTop from "./Top";
 import RippleRecent from "./Recent";

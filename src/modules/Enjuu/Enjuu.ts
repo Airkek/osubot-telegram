@@ -1,5 +1,5 @@
 import { Module } from "../../Module";
-import Bot from "../../Bot";
+import { Bot } from "../../Bot";
 import EnjuuUser from "./User";
 import EnjuuTop from "./Top";
 import EnjuuNick from "./Nick";

@@ -1,4 +1,4 @@
-import Bot from "../../Bot";
+import { Bot } from "../../Bot";
 import { Module } from "../../Module";
 import SakuruChat from "./Chat";
 import SakuruCompare from "./Compare";

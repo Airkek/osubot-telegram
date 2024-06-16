@@ -1,5 +1,5 @@
 import { Module } from "../../Module";
-import Bot from "../../Bot";
+import { Bot } from "../../Bot";
 import AkatsukiRelaxUser from "./User";
 import AkatsukiRelaxTop from "./Top";
 import AkatsukiRelaxRecent from "./Recent";

@@ -19,6 +19,7 @@ Telegram: https://t.me/osulegacybot
 - [X] lazer support for bancho top plays
 - [X] calculate pp using latest formula (by using rosu-pp.js)
 - [X] save osu api v2 credentials locally (do not authorize every run)
+- [X] encrypt osu password in config.json
 
 
 ## How to run:
@@ -41,15 +42,15 @@ npm i
 {
     "tg": {
         "token": "Your bot token",
-        "owner": 5435325 // Your ID
+        "owner": 5435325 // Your telegram ID
     },
     "tokens": {
-        "bancho": "Bancho token",
-        "ripple": "Ripple token (useless atm)"
+        "bancho": "Bancho token"
     },
     "osu": {
         "username": "Your osu! username",
-        "password": "Your osu! password"
+        "password": "Your osu! password", // will be encrypted after first launch
+        "password_encrypted": false // will be changed to true after first launch
     }
 }
 ```

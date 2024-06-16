@@ -1,4 +1,4 @@
-import Bot from './Bot';
+import { Bot } from "./Bot"
 import IAPI from './api/base';
 
 import BanchoAPI from './api/Bancho';

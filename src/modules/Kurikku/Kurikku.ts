@@ -1,6 +1,6 @@
 import { Module } from "../../Module";
 
-import Bot from "../../Bot";
+import { Bot } from "../../Bot";
 import KurikkuUser from "./User";
 import KurikkuTop from "./Top";
 import KurikkuRecent from "./Recent";

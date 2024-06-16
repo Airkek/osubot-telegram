@@ -1,6 +1,6 @@
 import { Module } from "../../Module";
 
-import Bot from "../../Bot";
+import { Bot } from "../../Bot";
 import GatariUser from "./User";
 import GatariNick from "./Nick";
 import GatariMode from "./Mode";

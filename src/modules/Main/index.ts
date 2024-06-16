@@ -1,5 +1,5 @@
 import { Module } from '../../Module';
-import Bot from '../../Bot';
+import { Bot } from "../../Bot";
 import NewsCommand from './News';
 import HelpCommand from './Help';
 import UptimeCommand from './Uptime';

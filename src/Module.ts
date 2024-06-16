@@ -1,5 +1,5 @@
 import { Command, UnifiedMessageContext } from "./Command";
-import Bot from "./Bot";
+import { Bot } from "./Bot"
 
 interface ICommandsModule {
     name: String,

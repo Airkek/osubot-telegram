@@ -1,6 +1,6 @@
 import * as axios from 'axios';
 import { APIUser, APITopScore, APIBeatmap, APIRecentScore, APIScore, IDatabaseUser, LeaderboardResponse } from '../Types';
-import Bot from '../Bot';
+import { Bot } from "../Bot"
 
 export default interface IAPI {
     token?: String,

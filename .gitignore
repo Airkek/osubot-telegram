@@ -10,5 +10,7 @@ ignore_list.json
 news_forbidden.json
 news_rules.json
 donaters.json
+secret
+start.sh
 
 **/*test.ts

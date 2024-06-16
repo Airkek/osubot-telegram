@@ -27,6 +27,7 @@
     "osu-web.js": "^2.4.0",
     "querystring": "^0.2.0",
     "rosu-pp-js": "^1.0.2",
+    "secrets-js": "^0.9.2",
     "sqlite3": "^5.1.7"
   },
   "devDependencies": {

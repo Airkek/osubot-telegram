@@ -1,6 +1,6 @@
 import { Module } from "../../Module";
 
-import Bot from "../../Bot";
+import { Bot } from "../../Bot";
 import BanchoUser from "./User";
 import BanchoNick from "./Nick";
 import BanchoMode from "./Mode";

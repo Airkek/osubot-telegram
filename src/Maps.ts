@@ -1,4 +1,4 @@
-import Bot from "./Bot";
+import { Bot } from "./Bot"
 import { APIBeatmap, ICommandArgs } from "./Types";
 import Util from "./Util";
 import Mods from "./pp/Mods";

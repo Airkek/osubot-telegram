@@ -6,7 +6,7 @@ import { APIUser, APITopScore, APIBeatmap, APIRecentScore, HitCounts, APIScore, 
 import Mods from '../pp/Mods';
 import Util from '../Util';
 import { isNullOrUndefined, isNull } from 'util';
-import Bot from '../Bot';
+import { Bot } from "../Bot"
 
 class BanchoUser implements APIUser {
     api: IAPI;

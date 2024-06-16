@@ -91,7 +91,7 @@ class BanchoAPIV2 {
     refresh_token?: string;
     auth_data_path: string;
     constructor() {
-        this.auth_data_path = "osu_v2_auth_data.json";
+        this.auth_data_path = "./osu_v2_auth_data.json";
         this.api = axios.default.create({
             baseURL: "https://osu.ppy.sh/api/v2",
             timeout: 1e4
@@ -109,7 +109,7 @@ class BanchoAPIV2 {
             token: this.token,
             refresh_token: this.refresh_token
         };
-        fs.writeFileSync("osu_v2_auth_data.json", JSON.stringify(authData));
+        fs.writeFileSync(this.auth_data_path, JSON.stringify(authData));
         
     }
 

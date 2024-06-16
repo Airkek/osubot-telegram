@@ -1,6 +1,6 @@
 import * as axios from "axios";
 import { IAPI } from "../API";
-import Bot from "../Bot";
+import { Bot } from "../Bot"
 import Mods from "../pp/Mods";
 import { APIBeatmap, APIRecentScore, APIScore, APITopScore, APIUser, HitCounts, IDatabaseUser, LeaderboardResponse, LeaderboardScore } from "../Types";
 import Util from "../Util";

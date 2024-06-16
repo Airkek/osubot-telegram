@@ -5,7 +5,7 @@ import qs from "querystring";
 import Util from "../Util";
 import Mods from "../pp/Mods";
 import { isNullOrUndefined } from "util";
-import Bot from "../Bot";
+import { Bot } from "../Bot"
 
 class EnjuuUser implements APIUser {
     api: IAPI;

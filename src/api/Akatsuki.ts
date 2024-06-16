@@ -4,7 +4,7 @@ import qs from "querystring";
 import { APIUser, APITopScore, HitCounts, Mode, APIRecentScore } from "../Types";
 import Mods from "../pp/Mods";
 import Util from "../Util";
-import Bot from "../Bot";
+import { Bot } from "../Bot"
 
 class AkatsukiUser implements APIUser {
     api: IAPI;
