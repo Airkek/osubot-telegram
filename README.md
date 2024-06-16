@@ -20,6 +20,7 @@ Telegram: https://t.me/osulegacybot
 - [X] calculate pp using latest formula (by using rosu-pp.js)
 - [X] save osu api v2 credentials locally (do not authorize every run)
 - [X] encrypt osu password in config.json
+- [X] removed dead servers (r.i.p: kurikku, vudek, enjuu, sakuru)
 
 
 ## How to run:
