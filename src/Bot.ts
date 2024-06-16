@@ -169,6 +169,7 @@ export class Bot {
                     });
                     this.maps.setMap(ctx.peerId, map);
                 } catch(e) {
+                    console.log(e)
                     ctx.reply("Произошла ошибка при обработке реплея!");
                 }
             } else if(hasMap) {

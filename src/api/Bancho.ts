@@ -231,7 +231,7 @@ export default class BanchoAPI implements IAPI {
         if (!fs.existsSync(folderPath)) {
             fs.mkdirSync(folderPath);
         }
-        const filePath = `beatmap_cache/${id}.osu`;
+        const filePath = `beatmap_cache/${beatmap.id.map}.osu`;
         if (!fs.existsSync(filePath)) {
             const response = await axios.default.get(`https://osu.ppy.sh/osu/${beatmap.id.map}`, { responseType: 'arraybuffer' })
             const buffer = Buffer.from(response.data, 'binary');
