@@ -12,7 +12,7 @@ export default class TopCmdsCommand extends Command {
                 });
             });
             commands = commands.sort((a,b) => b.uses - a.uses).filter(c => c.uses != 0).splice(0, 5);
-            ctx.send(`Топ команд:\n${commands.map(c => `[${c.module.name}] ${Array.isArray(c.name) ? c.name[c.name.length - 1] : c.name} - ${c.uses} использований`).join("\n")}`);
+            ctx.send(`Топ команд:\n${commands.map(c => `[${c.module.name}] ${Array.isArray(c.name) ? c.name[0] : c.name} - ${c.uses} использований`).join("\n")}`);
         });
     }
 }
