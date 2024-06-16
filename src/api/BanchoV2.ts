@@ -194,7 +194,12 @@ class BanchoAPIV2 {
 
     startUpdates() {
         setInterval(async() => {
-            await this.data.fetch();
+            try {
+                await this.data.fetch();
+            } catch (e) {
+                console.log("Failed to fetch osu news data");
+                console.log(e);
+            }
         }, 15e3);
     }
 
