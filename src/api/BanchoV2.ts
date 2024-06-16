@@ -7,10 +7,16 @@ import { Client, UserScore } from 'osu-web.js';
 import { V2ChangelogArguments, V2BeatmapsetsArguments, V2ChangelogResponse, V2Beatmapset, V2News, APIRecentScore, APITopScore, HitCounts } from "../Types";
 import Mods from "../pp/Mods";
 import Util from "../Util";
+import * as fs from "fs";
 
 interface IAPIData {
     lastBuild: number;
     lastRanked: number;
+}
+
+interface IOsuV2AuthDataConfig {
+    token: string,
+    refresh_token: string
 }
 
 class V2RecentScore implements APIRecentScore {
@@ -83,7 +89,9 @@ class BanchoAPIV2 {
     logged: number;
     token?: string;
     refresh_token?: string;
+    auth_data_path: string;
     constructor() {
+        this.auth_data_path = "osu_v2_auth_data.json";
         this.api = axios.default.create({
             baseURL: "https://osu.ppy.sh/api/v2",
             timeout: 1e4
@@ -93,7 +101,48 @@ class BanchoAPIV2 {
         this.data = new BanchoV2Data(this);
     }
 
+    saveAuthData() {
+        if (this.logged != 1 && this.logged != 2) {
+            return;
+        }
+        const authData: IOsuV2AuthDataConfig = {
+            token: this.token,
+            refresh_token: this.refresh_token
+        };
+        fs.writeFileSync("osu_v2_auth_data.json", JSON.stringify(authData));
+        
+    }
+
+    loadAuthData() {
+        if (fs.existsSync(this.auth_data_path)) {
+            const authData: IOsuV2AuthDataConfig = JSON.parse(fs.readFileSync(this.auth_data_path, "utf8"));
+            this.token = authData.token;
+            this.refresh_token = authData.refresh_token;
+            this.logged = 2;
+        }
+    }
+
     async login(username: string, password: string) {
+        this.loadAuthData();
+        if (this.logged == 2) {
+            let err = "unknown error"
+            try {
+                let me = await this.request('/me');
+                if (me.username.toLowerCase() == username.toLowerCase()) {
+                    this.logged = 1;
+                    console.debug("Auth restored from file");
+                    return;
+                } else {
+                    this.logged = 0;
+                    err = "wrong username";
+                }
+            } catch {
+                err = "expired token";
+            }
+
+            console.debug("Auth restore from file failed: " + err);
+        }
+
         let { data } = await axios.default.post(`https://osu.ppy.sh/oauth/token`, {
             username,
             password,
@@ -106,7 +155,8 @@ class BanchoAPIV2 {
             return this.logged = -1;
         this.token = data.access_token;
         this.refresh_token = data.refresh_token;
-        return this.logged = 1;
+        this.logged = 1;
+        return this.saveAuthData();
     }
 
     async request(method: string, query?: {[key: string]: any}) {
@@ -127,7 +177,7 @@ class BanchoAPIV2 {
     }
 
     async refresh() {
-        if(this.logged != 1)
+        if(this.logged != 1 && this.logged != 2)
             throw "Not logged in";
         let { data } = await axios.default.post(`https://osu.ppy.sh/oauth/token`, {
             client_id: 5,
@@ -138,6 +188,7 @@ class BanchoAPIV2 {
         });
         this.token = data.access_token;
         this.refresh_token = data.refresh_token;
+        this.saveAuthData();
         return true;
     }
 

@@ -18,7 +18,7 @@ Telegram: https://t.me/osulegacybot
 - [X] lazer support for bancho recent plays
 - [X] lazer support for bancho top plays
 - [X] calculate pp using latest formula (by using rosu-pp.js)
-- [ ] save osu api v2 credentials locally (do not authorize every run)
+- [X] save osu api v2 credentials locally (do not authorize every run)
 
 
 ## How to run:

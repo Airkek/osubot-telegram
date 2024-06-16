@@ -4,6 +4,7 @@
 osu.db
 osu.db-journal
 config.json
+osu_v2_auth_data.json
 package-lock.json
 ignore_list.json
 news_forbidden.json
