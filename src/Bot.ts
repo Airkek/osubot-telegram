@@ -135,15 +135,15 @@ export default class Bot {
             if(ctx.isGroup || ctx.isFromGroup || ctx.isEvent || this.ignored.isIgnored(ctx.senderId))
                 return;
             this.totalMessages++;
-            let replayDoc = this.checkReplay(ctx);
+            let replayDoc = await this.checkReplay(ctx);
             let hasMap = this.checkMap(ctx);
-            if(replayDoc) {
-                return; // TODO: telegram-support: download replay 
+            if(replayDoc && replayDoc.file_path) {
                 if(this.disabled.includes(ctx.peerId)) return;
                 try {
-                    let { data: file } = await axios.default.get(replayDoc.url, {
+                    let { data: file } = await axios.default.get(`https://api.telegram.org/file/bot${this.tg.token}/${replayDoc.file_path}`, {
                         responseType: "arraybuffer"
                     });
+
                     let parser = new ReplayParser(file);
                     let replay = parser.getReplay();
                     let map = await this.api.bancho.getBeatmap(replay.beatmapHash);
@@ -312,14 +312,16 @@ export default class Bot {
         console.log('Stopped');
     }
 
-    checkReplay(ctx: UnifiedMessageContext): any {
+    async checkReplay(ctx: UnifiedMessageContext): Promise<import("@grammyjs/types/message.js").File> {
         if(!ctx.hasAttachments("doc"))
             return null;
         const replays = ctx.getAttachments("doc").filter(doc => doc.file_name.endsWith(".osr"));
         if (replays.length == 0) {
             return null;
         }
-        return replays[0];
+
+
+        return await ctx.tgCtx.getFile();
     }
 
     checkMap(ctx: UnifiedMessageContext): number {
