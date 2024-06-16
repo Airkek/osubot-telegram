@@ -6,12 +6,20 @@ Telegram: https://t.me/osulegacybot
 
 ## port TODO:
 - [X] all basic commands (nick/user/recent/top)
+- [X] replay file info
 - [X] chat leaderboard
 - [X] inline keyboard
 - [X] update calculator to new formula 
 - [X] make find command works 
 - [X] move help to telegraph
-- [ ] fix updates notify
+- [ ] updates notify
+
+# additional features:
+- [X] lazer support for bancho recent plays
+- [X] lazer support for bancho top plays
+- [X] calculate pp using latest formula (by using rosu-pp.js)
+- [ ] save osu api v2 credentials locally (do not authorize every run)
+
 
 ## How to run:
 
