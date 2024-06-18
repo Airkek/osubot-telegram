@@ -3,20 +3,33 @@ import qs from "querystring";
 import { EventEmitter } from "eventemitter3";
 import { APIV2Events } from "../Events";
 import BanchoV2Data from "./BanchoV2Data";
-import { Client, UserScore } from 'osu-web.js';
-import { V2ChangelogArguments, V2BeatmapsetsArguments, V2ChangelogResponse, V2Beatmapset, V2News, APIRecentScore, APITopScore, HitCounts } from "../Types";
+import { V2ChangelogArguments, V2BeatmapsetsArguments, V2ChangelogResponse, V2Beatmapset, V2Mod, V2News, APIRecentScore, APITopScore, HitCounts } from "../Types";
 import Mods from "../pp/Mods";
 import Util from "../Util";
 import * as fs from "fs";
 
-interface IAPIData {
-    lastBuild: number;
-    lastRanked: number;
-}
+interface Score {
+    mods: V2Mod[],
+    statistics: {
+        great: number,
+        ok: number,
+        miss: number,
+        meh: number
 
-interface IOsuV2AuthDataConfig {
-    token: string,
-    refresh_token: string
+        //mania:
+        perfect?: number, // geki
+        good?: number // katu
+    },
+    ruleset_id: number,
+    ended_at: string,
+    pp?: any,
+    rank: string,
+    total_score: number,
+    legacy_total_score: number,
+    max_combo: number,
+    beatmap: {
+        id: number
+    }
 }
 
 class V2RecentScore implements APIRecentScore {
@@ -27,21 +40,21 @@ class V2RecentScore implements APIRecentScore {
     mods: Mods;
     rank: string;
     mode: number;
-    constructor(data: UserScore) {
+    constructor(data: Score) {
         this.beatmapId = data.beatmap.id;
-        this.score = data.score;
+        this.score = data.total_score || data.legacy_total_score;
         this.combo = data.max_combo;
         this.counts = new HitCounts({
-            300: data.statistics.count_300,
-            100: data.statistics.count_100,
-            50: data.statistics.count_50,
-            miss: data.statistics.count_miss,
-            katu: data.statistics.count_katu,
-            geki: data.statistics.count_geki
-        }, data.mode_int);
-        this.mods = new Mods(data.mods);
+            300: data.statistics.great || 0,
+            100: data.statistics.ok || 0,
+            50: data.statistics.meh || 0,
+            miss: data.statistics.miss || 0,
+            katu: data.statistics.good || 0,
+            geki: data.statistics.perfect || 0
+        }, data.ruleset_id);
+        this.mods = new Mods(data.mods as V2Mod[]);
         this.rank = data.rank;
-        this.mode = data.mode_int;
+        this.mode = data.ruleset_id;
     }
 
     accuracy() {
@@ -59,22 +72,22 @@ class V2TopScore implements APITopScore {
     mode: number;
     pp: number;
     date: Date;
-    constructor(data: UserScore) {
+    constructor(data: Score) {
         this.beatmapId = data.beatmap.id;
-        this.score = data.score;
+        this.score = data.total_score || data.legacy_total_score;
         this.combo = data.max_combo;
         this.counts = new HitCounts({
-            300: data.statistics.count_300,
-            100: data.statistics.count_100,
-            50: data.statistics.count_50,
-            miss: data.statistics.count_miss,
-            katu: data.statistics.count_katu,
-            geki: data.statistics.count_geki
-        }, data.mode_int);
-        this.mods = new Mods(data.mods);
+            300: data.statistics.great || 0,
+            100: data.statistics.ok || 0,
+            50: data.statistics.meh || 0,
+            miss: data.statistics.miss || 0,
+            katu: data.statistics.good || 0,
+            geki: data.statistics.perfect || 0
+        }, data.ruleset_id);
+        this.mods = new Mods(data.mods as V2Mod[]);
         this.rank = data.rank;
-        this.mode = data.mode_int;
-        this.date = new Date(data.created_at);
+        this.mode = data.ruleset_id;
+        this.date = new Date(data.ended_at);
         this.pp = data.pp;
     }
 
@@ -88,10 +101,9 @@ class BanchoAPIV2 {
     data: BanchoV2Data;
     logged: number;
     token?: string;
-    refresh_token?: string;
-    auth_data_path: string;
+    app_id: number;
+    client_secret: string;
     constructor() {
-        this.auth_data_path = "./osu_v2_auth_data.json";
         this.api = axios.default.create({
             baseURL: "https://osu.ppy.sh/api/v2",
             timeout: 1e4
@@ -101,69 +113,27 @@ class BanchoAPIV2 {
         this.data = new BanchoV2Data(this);
     }
 
-    saveAuthData() {
-        if (this.logged != 1 && this.logged != 2) {
-            return;
-        }
-        const authData: IOsuV2AuthDataConfig = {
-            token: this.token,
-            refresh_token: this.refresh_token
-        };
-        fs.writeFileSync(this.auth_data_path, JSON.stringify(authData));
-        
-    }
-
-    loadAuthData() {
-        if (fs.existsSync(this.auth_data_path)) {
-            const authData: IOsuV2AuthDataConfig = JSON.parse(fs.readFileSync(this.auth_data_path, "utf8"));
-            this.token = authData.token;
-            this.refresh_token = authData.refresh_token;
-            this.logged = 2;
-        }
-    }
-
-    async login(username: string, password: string) {
-        this.loadAuthData();
-        if (this.logged == 2) {
-            let err = "unknown error"
-            try {
-                let me = await this.request('/me');
-                if (me.username.toLowerCase() == username.toLowerCase()) {
-                    this.logged = 1;
-                    console.debug("Auth restored from file");
-                    return;
-                } else {
-                    this.logged = 0;
-                    err = "wrong username";
-                }
-            } catch {
-                err = "expired token";
-            }
-
-            console.debug("Auth restore from file failed: " + err);
-        }
-
+    async login(client_id: number, client_secret: string) {
         let { data } = await axios.default.post(`https://osu.ppy.sh/oauth/token`, {
-            username,
-            password,
-            grant_type: "password",
-            client_id: 5,
-            client_secret: "FGc9GAtyHzeQDshWP5Ah7dega8hJACAJpQtw6OXk",
-            scope: "*"
+            grant_type: "client_credentials",
+            client_id: client_id,
+            client_secret,
+            scope: "identify public"
         });
         if(!data.access_token)
             return this.logged = -1;
         this.token = data.access_token;
-        this.refresh_token = data.refresh_token;
+        this.app_id = client_id;
+        this.client_secret = client_secret;
         this.logged = 1;
-        return this.saveAuthData();
     }
 
     async request(method: string, query?: {[key: string]: any}) {
         try {
             let { data } = await this.api.get(`${method}${query ? `?${qs.stringify(query)}` : ''}`, {
                 headers: {
-                    'Authorization': `Bearer ${this.token}`
+                    'Authorization': `Bearer ${this.token}`,
+                    'x-api-version': '20240529'
                 }
             });
             return data;
@@ -177,19 +147,9 @@ class BanchoAPIV2 {
     }
 
     async refresh() {
-        if(this.logged != 1 && this.logged != 2)
+        if(this.logged != 1)
             throw "Not logged in";
-        let { data } = await axios.default.post(`https://osu.ppy.sh/oauth/token`, {
-            client_id: 5,
-            client_secret: "FGc9GAtyHzeQDshWP5Ah7dega8hJACAJpQtw6OXk",
-            grant_type: "refresh_token",
-            refresh_token: this.refresh_token,
-            scope: "*"
-        });
-        this.token = data.access_token;
-        this.refresh_token = data.refresh_token;
-        this.saveAuthData();
-        return true;
+        return await this.login(this.app_id, this.client_secret);
     }
 
     startUpdates() {

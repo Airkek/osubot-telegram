@@ -8,7 +8,6 @@ import Maps from './Maps';
 import { ReplayParser } from './Replay';
 import * as axios from 'axios';
 import { Bot as TG, GrammyError, HttpError} from 'grammy'
-import * as secrets from 'secrets-js';
 import News from './News';
 import Admin from './modules/Admin';
 import Main from './modules/Main';
@@ -30,12 +29,9 @@ export interface IBotConfig {
         owner: number
     }
     tokens?: {
-        bancho: string
-    },
-    osu?: {
-        username: string,
-        password: string,
-        passwordEncrypted?: boolean
+        bancho_v1: string,
+        bancho_v2_app_id: number,
+        bancho_v2_secret: string
     }
 }
 
@@ -56,11 +52,9 @@ export class Bot {
     startTime: number;
     totalMessages: number;
     version: string;
-    secret: string;
     basicOverride: (cmd: string, override: string) => void;
-    constructor(config: IBotConfig, secret: string) {
+    constructor(config: IBotConfig) {
         this.config = config;
-        this.secret = secret;
 
         this.tg = new TG(config.tg.token);
         this.modules = [];
@@ -323,8 +317,8 @@ export class Bot {
 
     async start() {
         await this.v2.login(
-            this.config.osu.username,
-            secrets.decode(this.secret, this.config.osu.password)
+            this.config.tokens.bancho_v2_app_id,
+            this.config.tokens.bancho_v2_secret
         )
         console.log(this.v2.logged ? 'Logged in' : 'Failed to login')
         //this.v2.startUpdates();

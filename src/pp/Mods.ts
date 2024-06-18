@@ -1,4 +1,4 @@
-import { Mod as V2Mod, ModsEnum } from 'osu-web.js'
+import { V2Mod } from "../Types";
 
 enum ModsBitwise {
     Nomod = 0,
@@ -169,9 +169,9 @@ export default class Mods {
 	fromMods(mods: V2Mod[]): number {
 		let flags = 0;
 		for (let mod of mods) {
-			let int = ModsEnum[mod];
-			if (int != undefined) {
-				flags |= ModsEnum[mod];
+			let fullName = ModsAcronyms[mod.acronym];
+			if (!fullName || !ModsBitwise[fullName]) {
+				flags |= ModsBitwise[mod.acronym]
 			}
 		}
 
@@ -196,7 +196,12 @@ export default class Mods {
 
     toString(): string {
 		if (this.modsv2) {
-			let str = this.modsv2.join(" +");
+			let str = this.modsv2.map(m => {
+				if (m.settings?.speed_change !== undefined) {
+					return m.acronym + 'x' + m.settings.speed_change;
+				}
+				return m.acronym;
+			}).join(" +");
 			if(str.length == 0)
 				return '';
 			else

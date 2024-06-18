@@ -1,35 +1,19 @@
 import {Bot, IBotConfig} from './src/Bot';
 import fs from "fs";
-import * as secrets from 'secrets-js';
-
-function makeid(length) {
-    let result = '';
-    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    const charactersLength = characters.length;
-    let counter = 0;
-    while (counter < length) {
-        result += characters.charAt(Math.floor(Math.random() * charactersLength));
-        counter += 1;
-    }
-    return result;
-}
-
 var config: IBotConfig = {};
 
 if (fs.existsSync("./config.json")) {
     config = JSON.parse(fs.readFileSync("./config.json").toString());
 } else {
     config = {
-        osu: {
-            username: "osu username",
-            password: "osu password"
-        },
         tg: {
             token: "telegram_token",
             owner: 0
         },
         tokens: {
-            bancho: "bancho_api_v1_token"
+            bancho_v1: "bancho_api_v1_token",
+            bancho_v2_app_id: 123,
+            bancho_v2_secret: "bancho_api_v2_secret",
         },
     };
     fs.writeFileSync("./config.json", JSON.stringify(config, null, 2));
@@ -38,20 +22,6 @@ if (fs.existsSync("./config.json")) {
 }
 
 
-var secret = ""
-if (fs.existsSync("./secret")) {
-    secret = fs.readFileSync("./secret").toString();
-} else {
-    secret = makeid(32);
-    fs.writeFileSync("./secret", secret);
-}
-
-if (!config.osu.passwordEncrypted) {
-    config.osu.passwordEncrypted = true;
-    config.osu.password = secrets.encode(secret, config.osu.password);
-    fs.writeFileSync("./config.json", JSON.stringify(config, null, 2));
-}
-
-var bot: Bot = new Bot(config, secret);
+var bot: Bot = new Bot(config);
 
 bot.start();

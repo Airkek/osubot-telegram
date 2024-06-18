@@ -147,7 +147,7 @@ export default class BanchoAPI implements IAPI {
     api: axios.AxiosInstance;
     constructor(bot: Bot) {
         this.bot = bot;
-        this.token = bot.config.tokens.bancho;
+        this.token = bot.config.tokens.bancho_v1;
         this.api = axios.default.create({
             baseURL: "https://osu.ppy.sh/api",
             timeout: 3000

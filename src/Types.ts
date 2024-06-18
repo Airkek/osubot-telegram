@@ -412,6 +412,13 @@ interface V2News {
     date: Date;
 }
 
+interface V2Mod {
+    acronym: string
+    settings?: {
+        speed_change?: number
+    }
+}
+
 export {
     APIUser,
     APITopScore,
@@ -442,6 +449,7 @@ export {
 
     V2ChangelogArguments,
     V2BeatmapsetsArguments,
+    V2Mod,
     
     V2ChangelogResponse,
     V2Beatmapset,
