@@ -12,7 +12,7 @@ export default class AbstractNick extends Command {
                 if (user.mode) {
                     await self.module.db.setMode(ctx.senderId, user.mode)
                 }
-                ctx.reply(`[Server: ${self.module.name}]\nУстановлен ник: ${args.nickname.join(" ")}`);
+                ctx.reply(`[Server: ${self.module.name}]\nУстановлен ник: ${user.nickname}`);
             } catch(err) {
                 ctx.reply("Такого пользователя не существует!");
             }

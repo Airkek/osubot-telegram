@@ -3,30 +3,43 @@ import { Module } from '../../Module';
 import Util from '../../Util';
 import BanchoPP from '../../pp/bancho';
 import Mods from '../../pp/Mods';
+import { APIUser, IDatabaseUser } from '../../Types';
 
 export default class AbstractTop extends Command {
     ignoreDbUpdate: boolean;
 
     constructor(module: Module, ignoreDbUpdate: boolean = false) {
         super(["top", "t", "е", "ещз"], module, async (ctx, self, args) => {
-            let dbUser = await self.module.db.getUser(ctx.senderId);
-            if(ctx.hasReplyMessage)
-                dbUser.nickname = (await self.module.db.getUser(ctx.replyMessage.senderId)).nickname;
-            if(ctx.hasForwards)
-                dbUser.nickname = (await self.module.db.getUser(ctx.forwards[0].senderId)).nickname;
-            if(args.nickname[0])
-                dbUser.nickname = args.nickname.join(" ");
-            if(!dbUser.nickname)
-                return ctx.reply(`Не указан ник!\nПривяжите через ${module.prefix[0]} nick <ник>`);
-            let mode = args.mode === null ? dbUser.mode || 0 : args.mode;
+            let user: APIUser = undefined;
+            let dbUser: IDatabaseUser = undefined;
+            if (args.nickname[0]) {
+                user = await self.module.api.getUser(args.nickname.join(" "));
+            } else {
+                if(ctx.hasReplyMessage) {
+                    dbUser = await self.module.db.getUser(ctx.replyMessage.senderId);
+
+                    if(!dbUser.nickname) {
+                        return ctx.reply(`У этого пользователя не указан ник!\nПривяжите через ${module.prefix[0]} nick <ник>`);
+                    }                    
+                } else {
+                    dbUser = await self.module.db.getUser(ctx.senderId);
+
+                    if(!dbUser.nickname) {
+                        return ctx.reply(`Не указан ник!\nПривяжите через ${module.prefix[0]} nick <ник>`);
+                    }
+                }
+
+                user = await self.module.api.getUserById(dbUser.uid);
+            }
+            
+            let mode = args.mode === null ? dbUser?.mode || 0 : args.mode;
             try {
-                let user = await self.module.api.getUser(dbUser.nickname, mode);
                 if (!this.ignoreDbUpdate) {
                     self.module.db.updateInfo(user, mode);
                 }
                 let status = self.module.bot.donaters.status(self.module.statusGetter, user.id);
                 if(args.apx) {
-                    let top = await self.module.api.getUserTop(user.nickname, mode, 100);
+                    let top = await self.module.api.getUserTopById(user.id, mode, 100);
                     if(args.mods) {
                         let mods = new Mods(args.mods);
                         top = top.filter(score => score.mods.sum() == mods.sum());
@@ -48,7 +61,7 @@ export default class AbstractTop extends Command {
                         attachment: cover
                     });
                 } else if(args.more) {
-                    let top = await self.module.api.getUserTop(user.nickname, mode, 100);
+                    let top = await self.module.api.getUserTopById(user.id, mode, 100);
                     if(args.mods) {
                         let mods = new Mods(args.mods);
                         top = top.filter(score => score.mods.sum() == mods.sum());
@@ -57,7 +70,7 @@ export default class AbstractTop extends Command {
                     let amount = top.filter(t => t.pp > args.more).length;
                     ctx.reply(`[Server: ${self.module.name}]\nУ игрока ${user.nickname} ${amount ? amount : 'нет'}${amount == 100 ? '+' : ''} ${Util.scoreNum(amount)} выше ${args.more}pp`);
                 } else if(args.place) {
-                    let score = (await self.module.api.getUserTop(user.nickname, mode, args.place))[args.place - 1];
+                    let score = (await self.module.api.getUserTopById(user.id, mode, args.place))[args.place - 1];
                     let map = await self.module.bot.api.v2.getBeatmap(score.beatmapId, mode, score.mods.diff());
                     let cover = await self.module.bot.database.covers.getCover(map.id.set);
                     let calc = new BanchoPP(map, score.mods);
@@ -78,7 +91,7 @@ export default class AbstractTop extends Command {
                     });
                     self.module.bot.maps.setMap(ctx.peerId, map);
                 } else {
-                    let top = await self.module.api.getUserTop(user.nickname, mode, 100);
+                    let top = await self.module.api.getUserTopById(user.id, mode, 100);
                     if(args.mods) {
                         let mods = new Mods(args.mods);
                         top = top.filter(score => score.mods.sum() == mods.sum());

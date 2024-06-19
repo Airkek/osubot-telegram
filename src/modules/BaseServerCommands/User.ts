@@ -2,24 +2,37 @@ import axios from "axios";
 import { Command } from "../../Command";
 import { Module } from "../../Module";
 import Util from "../../Util";
+import { APIUser, IDatabaseUser } from "../../Types";
 
 export default class AbstractUser extends Command {
     ignoreDbUpdate: boolean;
 
     constructor(module: Module, ignoreDbUpdate: boolean = false) {
         super(["user", "u", "г", "гыук"], module, async (ctx, self, args) => {
-            let dbUser = await self.module.db.getUser(ctx.senderId);
-            if(ctx.hasReplyMessage)
-                dbUser.nickname = (await self.module.db.getUser(ctx.replyMessage.senderId)).nickname;
-            if(ctx.hasForwards)
-                dbUser.nickname = (await self.module.db.getUser(ctx.forwards[0].senderId)).nickname;
-            if(args.nickname[0])
-                dbUser.nickname = args.nickname.join(" ");
-            if(!dbUser.nickname)
-                return ctx.reply(`Не указан ник!\nПривяжите через ${module.prefix[0]} nick <ник>`);
-            let mode = args.mode === null ? dbUser.mode || 0 : args.mode;
+            let user: APIUser = undefined;
+            let dbUser: IDatabaseUser = undefined;
+            if (args.nickname[0]) {
+                user = await self.module.api.getUser(args.nickname.join(" "));
+            } else {
+                if(ctx.hasReplyMessage) {
+                    dbUser = await self.module.db.getUser(ctx.replyMessage.senderId);
+
+                    if(!dbUser.nickname) {
+                        return ctx.reply(`У этого пользователя не указан ник!\nПривяжите через ${module.prefix[0]} nick <ник>`);
+                    }                    
+                } else {
+                    dbUser = await self.module.db.getUser(ctx.senderId);
+
+                    if(!dbUser.nickname) {
+                        return ctx.reply(`Не указан ник!\nПривяжите через ${module.prefix[0]} nick <ник>`);
+                    }
+                }
+
+                user = await self.module.api.getUserById(dbUser.uid);
+            }
+            
+            let mode = args.mode === null ? dbUser?.mode || 0 : args.mode;
             try {
-                let user = await self.module.api.getUser(dbUser.nickname, mode);
                 let status = self.module.bot.donaters.status(self.module.statusGetter, user.id);
                 if (!this.ignoreDbUpdate) {
                     self.module.db.updateInfo(user, mode);

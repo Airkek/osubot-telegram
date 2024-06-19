@@ -126,6 +126,16 @@ export default class AkatsukiRelaxAPI implements IAPI {
         }
     }
 
+    async getUserById(id: number, mode?: number): Promise<APIUser> {
+        try {
+            let { data } = await this.api.get(`/users/full?${qs.stringify({ id })}`);
+            let m = ["std","taiko","ctb","mania"][mode];
+            return new AkatsukiRelaxUser(data, m, this);
+        } catch(e) {
+            throw e || "User not found";
+        }
+    }
+
     async getUserTop(nickname: string, mode: number = 0, limit: number = 3): Promise<APIScore[]> {
         try {
             let { data } = await this.api.get(`/users/scores/best?${qs.stringify({name: nickname, mode: mode, l: limit, rx: 1})}`);
@@ -137,9 +147,31 @@ export default class AkatsukiRelaxAPI implements IAPI {
         }
     }
 
+    async getUserTopById(id: number, mode: number = 0, limit: number = 3): Promise<APIScore[]> {
+        try {
+            let { data } = await this.api.get(`/users/scores/best?${qs.stringify({ id, mode: mode, l: limit, rx: 1})}`);
+            if(data.code != 200 || !data.scores)
+                throw data.message || undefined;
+            return data.scores.map(score => new AkatsukiRelaxScore(score, mode, this));
+        } catch (e) {
+            throw e || "No scores";
+        }
+    }
+
     async getUserRecent(nickname: string, mode: number = 0): Promise<APIRecentScore> {
         try {
             let { data } = await this.api.get(`/users/scores/recent?${qs.stringify({name: nickname, mode: mode, l: 1, rx: 1})}`);
+            if(data.code != 200 || !data.scores)
+                throw data.message || undefined
+            return new AkatsukiRelaxRecentScore(data.scores[0], mode, this);
+        } catch(e) {
+            throw e || "No scores"
+        }
+    }
+
+    async getUserRecentById(id: number, mode?: number, limit?: number): Promise<APIRecentScore> {
+        try {
+            let { data } = await this.api.get(`/users/scores/recent?${qs.stringify({ id, mode: mode, l: limit, rx: 1})}`);
             if(data.code != 200 || !data.scores)
                 throw data.message || undefined
             return new AkatsukiRelaxRecentScore(data.scores[0], mode, this);

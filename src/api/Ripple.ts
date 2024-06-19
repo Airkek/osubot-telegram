@@ -117,7 +117,18 @@ export default class RippleAPI implements IAPI {
 
     async getUser(nickname: string, mode: number = 0): Promise<APIUser> {
         try {
-            let { data } = await this.api.get(`/get_user?${qs.stringify({u: nickname, m: mode})}`);
+            let { data } = await this.api.get(`/get_user?${qs.stringify({u: nickname, m: mode, type: "string"})}`);
+            if(!data[0])
+                throw "User not found";
+            return new RippleUser(data[0], this);
+        } catch(e) {
+            throw e;
+        }
+    }
+
+    async getUserById(id: number, mode: number = 0): Promise<APIUser> {
+        try {
+            let { data } = await this.api.get(`/get_user?${qs.stringify({u: id, m: mode})}`);
             if(!data[0])
                 throw "User not found";
             return new RippleUser(data[0], this);
@@ -128,7 +139,16 @@ export default class RippleAPI implements IAPI {
 
     async getUserTop(nickname: string, mode: number = 0, limit: number = 3): Promise<APIScore[]> {
         try {
-            let { data } = await this.api.get(`/get_user_best?${qs.stringify({u: nickname, m: mode, limit: limit})}`);
+            let { data } = await this.api.get(`/get_user_best?${qs.stringify({u: nickname, m: mode, limit: limit, type: "string"})}`);
+            return data.map(s => new RippleScore(s, mode));
+        } catch(e) {
+            throw e;
+        }
+    }
+
+    async getUserTopById(id: number, mode: number = 0, limit: number = 3): Promise<APIScore[]> {
+        try {
+            let { data } = await this.api.get(`/get_user_best?${qs.stringify({u: id, m: mode, limit: limit})}`);
             return data.map(s => new RippleScore(s, mode));
         } catch(e) {
             throw e;
@@ -137,7 +157,19 @@ export default class RippleAPI implements IAPI {
 
     async getUserRecent(nickname: string, mode: number = 0): Promise<APIRecentScore> {
         try {
-            let { data } = await this.api.get(`/get_user_recent?${qs.stringify({u: nickname, m: mode, limit: 1})}`);
+            let { data } = await this.api.get(`/get_user_recent?${qs.stringify({u: nickname, m: mode, limit: 1, type: "string"})}`);
+            if(data[0])
+                return new RippleRecentScore(data[0], mode, this);
+            else
+                throw "No recent scores";
+        } catch(e) {
+            throw e;
+        }
+    }
+
+    async getUserRecentById(id: number, mode: number = 0): Promise<APIRecentScore> {
+        try {
+            let { data } = await this.api.get(`/get_user_recent?${qs.stringify({u: id, m: mode, limit: 1})}`);
             if(data[0])
                 return new RippleRecentScore(data[0], mode, this);
             else
@@ -150,6 +182,26 @@ export default class RippleAPI implements IAPI {
     async getScore(nickname: string, beatmapId: number, mode: number = 0, mods: number = null): Promise<APIScore> {
         let opts = {
             u: nickname,
+            b: beatmapId,
+            m: mode,
+            type: "string"
+        };
+        try {
+            let { data } = await this.api.get(`/get_scores?${qs.stringify(opts)}`);
+            if(!isNullOrUndefined(mods))
+                data = data.filter(p => p.enabled_mods == mods);
+            if(!data[0])
+                throw "No scores found";
+            data[0].beatmap_id = beatmapId;
+            return new RippleScore(data[0], mode);
+        } catch(e) {
+            throw e || "Unknown API error";
+        }
+    }
+
+    async getScoreByUid(uid: number, beatmapId: number, mode: number = 0, mods: number = null): Promise<APIScore> {
+        let opts = {
+            u: uid,
             b: beatmapId,
             m: mode
         };
@@ -175,7 +227,7 @@ export default class RippleAPI implements IAPI {
                 try {
                     let usrs = users.splice(0, 5);
                     let usPromise = usrs.map(
-                        u => this.getScore(u.nickname, beatmapId, mode, mods)
+                        u => this.getScoreByUid(u.uid, beatmapId, mode, mods)
                     );  
                     let s: APIScore[] = (await Promise.all(usPromise.map(
                             (p) => p.catch(e => e)

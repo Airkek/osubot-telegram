@@ -1,21 +1,37 @@
 import { Command } from "../../Command";
 import { Module } from "../../Module";
 import Calculator from '../../pp/bancho';
+import { APIUser, IDatabaseUser } from "../../Types";
 import Util from "../../Util";
 
 export default class AbstractRecent extends Command {
     constructor(module: Module) {
         super(["recent", "r", "rp", "к", "кз", "кусуте"], module, async (ctx, self, args) => {
-            let dbUser = await self.module.db.getUser(ctx.senderId);
-            if(ctx.hasReplyMessage)
-                dbUser.nickname = (await self.module.db.getUser(ctx.replyMessage.senderId)).nickname;
-            if(ctx.hasForwards)
-                dbUser.nickname = (await self.module.db.getUser(ctx.forwards[0].senderId)).nickname;
-            if(!dbUser.nickname && !args.nickname[0])
-                return ctx.reply(`Не указан ник!\nПривяжите через ${module.prefix[0]} nick <ник>`);
-            let mode = args.mode === null ? dbUser.mode || 0 : args.mode;
+            let userId: number = null;
+            let dbUser: IDatabaseUser = undefined;
+            if (args.nickname[0]) {
+                userId = (await self.module.api.getUser(args.nickname.join(" "))).id;
+            } else {
+                if(ctx.hasReplyMessage) {
+                    dbUser = await self.module.db.getUser(ctx.replyMessage.senderId);
+
+                    if(!dbUser.nickname) {
+                        return ctx.reply(`У этого пользователя не указан ник!\nПривяжите через ${module.prefix[0]} nick <ник>`);
+                    }                    
+                } else {
+                    dbUser = await self.module.db.getUser(ctx.senderId);
+
+                    if(!dbUser.nickname) {
+                        return ctx.reply(`Не указан ник!\nПривяжите через ${module.prefix[0]} nick <ник>`);
+                    }
+                }
+
+                userId = dbUser.uid;
+            }
+            
+            let mode = args.mode === null ? dbUser?.mode || 0 : args.mode;
             try {
-                let recent = await self.module.api.getUserRecent(dbUser.nickname, mode, 1);
+                let recent = await self.module.api.getUserRecentById(userId, mode, 1);
                 let map = await self.module.bot.api.v2.getBeatmap(recent.beatmapId, recent.mode, recent.mods.diff());
                 let cover = await self.module.bot.database.covers.getCover(map.id.set);
                 let calc = new Calculator(map, recent.mods);
