@@ -5,10 +5,9 @@ import BanchoPP from "../pp/bancho";
 
 export default function(leaderboard: LeaderboardResponse, server: string, getStatus: (server: string, id: number) => string): string {
     if(!leaderboard.scores[0])
-        return `[Server: ${server}]\nНи у кого нет скоров на этой карте!`;
+        return `Ни у кого нет скоров на этой карте!`;
     let map = leaderboard.map;
-    return `[Server: ${server}]
-Топ беседы на карте:
+    return `Топ беседы на карте:
 ${map.artist} - ${map.title} [${map.version}] by ${map.creator.nickname}\n` + leaderboard.scores/* .slice(0, 10) */.map((lbscore, i) => {
         let pp = lbscore.score.pp;
         return `#${i+1} ${lbscore.user.nickname} ${getStatus(server.toLowerCase(), lbscore.user.uid)} | ${lbscore.score.score} | ${Util.formatCombo(lbscore.score.combo, map.combo)} | ${Util.round(lbscore.score.accuracy() * 100, 2)}% | ${lbscore.score.counts.miss} misses | ${Util.round(pp, 2)}pp ${lbscore.score.mods} | ${Util.formatDate(lbscore.score.date, true)}`;

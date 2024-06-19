@@ -1,16 +1,17 @@
 import { Command } from '../../Command';
 import { Module } from '../../Module';
+import { ServerCommand } from './BasicServerCommand';
 
-export default class AbstractMode extends Command {
+export default class AbstractMode extends ServerCommand {
     constructor(module: Module) {
-        super(["mode", "m", "ь", "ьщву"], module, async (ctx, self, args) => {
-            if(!args.full[0])
-                return ctx.reply(`Не указан режим!\nИспользование: ${self.module.prefix[0]} mode <mode>\nДоступные моды:\n0 - osu!\n1 - Taiko\n2 - Fruits\n3 - Mania`);
-            let m = parseInt(args.full[0]);
+        super(["mode", "m", "ь", "ьщву"], module, async (self) => {
+            if(!self.args.full[0])
+                return self.reply(`Не указан режим!\nИспользование: ${self.module.prefix[0]} mode <mode>\nДоступные моды:\n0 - osu!\n1 - Taiko\n2 - Fruits\n3 - Mania`);
+            let m = parseInt(self.args.full[0]);
             if(isNaN(m) || m > 3 || m < 0)
-                return ctx.reply("Некорректный режим!\nДоступные моды:\n0 - osu!\n1 - Taiko\n2 - Fruits\n3 - Mania");
-            await self.module.db.setMode(ctx.senderId, m);
-            ctx.reply(`[Server: ${self.module.name}]\nРежим установлен!`);
+                return self.reply("Некорректный режим!\nДоступные моды:\n0 - osu!\n1 - Taiko\n2 - Fruits\n3 - Mania");
+            await self.module.db.setMode(self.ctx.senderId, m);
+            self.reply(`Режим установлен!`);
         });
     }
 }
