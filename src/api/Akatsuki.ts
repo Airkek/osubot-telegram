@@ -1,7 +1,7 @@
 import { IAPI } from "../API";
 import * as axios from "axios";
 import qs from "querystring";
-import { APIUser, APITopScore, HitCounts, Mode, APIRecentScore } from "../Types";
+import { APIUser, HitCounts, Mode, APIRecentScore, APIScore } from "../Types";
 import Mods from "../pp/Mods";
 import Util from "../Util";
 import { Bot } from "../Bot"
@@ -37,7 +37,7 @@ class AkatsukiUser implements APIUser {
     }
 }
 
-class AkatsukiTopScore implements APITopScore {
+class AkatsukiScore implements APIScore {
     api: IAPI;
     beatmapId: number;
     score: number;
@@ -126,12 +126,12 @@ export default class AkatsukiAPI implements IAPI {
         }
     }
 
-    async getUserTop(nickname: string, mode: number = 0, limit: number = 3): Promise<APITopScore[]> {
+    async getUserTop(nickname: string, mode: number = 0, limit: number = 3): Promise<APIScore[]> {
         try {
             let { data } = await this.api.get(`/users/scores/best?${qs.stringify({name: nickname, mode: mode, l: limit, rx: 0})}`);
             if(data.code != 200 || !data.scores)
                 throw data.message || undefined;
-            return data.scores.map(score => new AkatsukiTopScore(score, mode, this));
+            return data.scores.map(score => new AkatsukiScore(score, mode, this));
         } catch (e) {
             throw e || "No scores";
         }

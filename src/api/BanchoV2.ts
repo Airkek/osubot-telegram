@@ -3,7 +3,7 @@ import qs from "querystring";
 import { EventEmitter } from "eventemitter3";
 import { APIV2Events } from "../Events";
 import BanchoV2Data from "./BanchoV2Data";
-import { V2ChangelogArguments, V2BeatmapsetsArguments, V2ChangelogResponse, V2Beatmapset, V2Mod, V2News, APIRecentScore, APITopScore, HitCounts, APIBeatmap, APIScore, APIUser, IDatabaseUser, LeaderboardResponse, IBeatmapObjects, IBeatmapStars, BeatmapStatus, LeaderboardScore } from "../Types";
+import { V2ChangelogArguments, V2BeatmapsetsArguments, V2ChangelogResponse, V2Beatmapset, V2Mod, V2News, APIRecentScore, HitCounts, APIBeatmap, APIScore, APIUser, IDatabaseUser, LeaderboardResponse, IBeatmapObjects, IBeatmapStars, BeatmapStatus, LeaderboardScore } from "../Types";
 import Mods from "../pp/Mods";
 import Util from "../Util";
 import * as fs from "fs";
@@ -251,7 +251,7 @@ class V2RecentScore implements APIRecentScore {
     }
 }
 
-class V2TopScore implements APITopScore {
+class V2Score implements APIScore {
     beatmapId: number;
     score: number;
     combo: number;
@@ -451,7 +451,7 @@ class BanchoAPIV2 implements IAPI {
         return await this.getUserRecentById(user.id, mode, limit);
     }
 
-    async getUserTop(nickname: string, mode?: number, limit?: number): Promise<APITopScore[]> {
+    async getUserTop(nickname: string, mode?: number, limit?: number): Promise<APIScore[]> {
         let user = await this.getUser(nickname);
         return await this.getUserTopById(user.id, mode, limit);
     }
@@ -586,7 +586,7 @@ class BanchoAPIV2 implements IAPI {
         }
     }
 
-    async getUserTopById(uid: number, mode: number = 0, limit: number = 3): Promise<APITopScore[]> {
+    async getUserTopById(uid: number, mode: number = 0, limit: number = 3): Promise<APIScore[]> {
         let data = await this.get(`/users/${uid}/scores/best`, { 
             mode: getRuleset(mode), 
             include_fails: true,
@@ -594,7 +594,7 @@ class BanchoAPIV2 implements IAPI {
         });
 
         if (data[0]) {
-            return data.map(s => new V2TopScore(s));
+            return data.map(s => new V2Score(s));
         } else {
             throw "No top scores";
         }
@@ -610,7 +610,7 @@ class BanchoAPIV2 implements IAPI {
             throw "No scores found";
         }
     
-        return new V2TopScore(data.score);
+        return new V2Score(data.score);
     }
 
     async getNews(): Promise<V2News> {

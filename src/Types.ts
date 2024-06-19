@@ -193,19 +193,6 @@ interface APIUser {
     level: number;
 }
 
-interface APITopScore {
-    beatmapId: number;
-    score: number;
-    combo: number;
-    counts: HitCounts;
-    mods: Mods;
-    rank: string;
-    pp: number;
-    mode: number;
-    date: Date;
-    accuracy(): number;
-}
-
 interface APIScore {
     beatmapId: number;
     score: number;
@@ -417,7 +404,6 @@ interface V2Mod {
 
 export {
     APIUser,
-    APITopScore,
     APIScore,
     APIBeatmap,
     APIRecentScore,

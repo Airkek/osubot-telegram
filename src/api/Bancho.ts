@@ -2,144 +2,10 @@ import IAPI from './base';
 import * as fs from 'fs'
 import * as axios from 'axios';
 import qs from 'querystring';
-import { APIUser, APITopScore, APIBeatmap, APIRecentScore, HitCounts, APIScore, IDatabaseUser, LeaderboardScore, LeaderboardResponse, IDatabaseUserStats } from '../Types';
+import { APIUser, APIBeatmap, APIRecentScore, HitCounts, APIScore, IDatabaseUser, LeaderboardScore, LeaderboardResponse, IDatabaseUserStats } from '../Types';
 import Mods from '../pp/Mods';
 import Util from '../Util';
-import { isNullOrUndefined, isNull } from 'util';
 import { Bot } from "../Bot"
-
-class BanchoUser implements APIUser {
-    api: IAPI;
-    id: number;
-    nickname: string;
-    playcount: number;
-    playtime: number;
-    pp: number;
-    rank: {
-        total: number,
-        country: number
-    };
-    country: string;
-    accuracy: number;
-    level: number;
-    constructor(data: any, api: IAPI) {
-        this.api = api;
-        this.id = Number(data.user_id);
-        this.nickname = data.username;
-        this.playcount = Number(data.playcount);
-        this.playtime = Number(data.total_seconds_played);
-        this.pp = Number(data.pp_raw);
-        this.rank = {
-            total: Number(data.pp_rank),
-            country: Number(data.pp_country_rank)
-        };
-        this.country = data.country;
-        this.accuracy = Number(data.accuracy);
-        this.level = Number(data.level);
-    }
-}
-
-class BanchoTopScore implements APITopScore {
-    api: IAPI;
-    beatmapId: number;
-    score: number;
-    combo: number;
-    counts: HitCounts;
-    mods: Mods;
-    rank: string;
-    pp: number;
-    mode: number;
-    date: Date;
-    constructor(data: any, mode: number, api: IAPI) {
-        this.api = api;
-        this.beatmapId = Number(data.beatmap_id);
-        this.score = Number(data.score);
-        this.combo = Number(data.maxcombo);
-        this.counts = new HitCounts({
-            300: Number(data.count300),
-            100: Number(data.count100),
-            50: Number(data.count50),
-            miss: Number(data.countmiss),
-            katu: Number(data.countkatu),
-            geki: Number(data.countgeki)
-        }, mode);
-        this.mods = new Mods(Number(data.enabled_mods));
-        this.rank = data.rank.replace('X', 'SS');
-        this.pp = Number(data.pp);
-        this.mode = mode;
-        this.date = new Date(data.date);
-    }
-
-    accuracy() {
-        return Util.accuracy(this.counts);
-    }
-}
-
-class BanchoRecentScore implements APIRecentScore {
-    api: IAPI;
-    beatmapId: number;
-    score: number;
-    combo: number;
-    counts: HitCounts;
-    mods: Mods;
-    rank: string;
-    mode: number;
-    constructor(data: any, mode: number, api: IAPI) {
-        this.api = api;
-        this.beatmapId = Number(data.beatmap_id);
-        this.score = Number(data.score);
-        this.combo = Number(data.maxcombo);
-        this.counts = new HitCounts({
-            300: Number(data.count300),
-            100: Number(data.count100),
-            50: Number(data.count50),
-            katu: Number(data.countkatu),
-            geki: Number(data.countgeki),
-            miss: Number(data.countmiss)
-        }, mode);
-        this.mods = new Mods(Number(data.enabled_mods));
-        this.rank = data.rank.replace('X', 'SS');
-        this.mode = mode;
-    }
-
-    accuracy() {
-        return Util.accuracy(this.counts);
-    }
-}
-
-class BanchoScore implements APIScore {
-    api: IAPI;
-    beatmapId: number;
-    score: number;
-    combo: number;
-    counts: HitCounts;
-    mods: Mods;
-    mode: number;
-    rank: string;
-    date: Date;
-    constructor(data: any, mode: number, id: number, api: IAPI) {
-        this.api = api;
-        this.beatmapId = id;
-        this.score = Number(data.score);
-        this.combo = Number(data.maxcombo);
-        this.counts = new HitCounts({
-            300: Number(data.count300),
-            100: Number(data.count100),
-            50: Number(data.count50),
-            katu: Number(data.countkatu),
-            geki: Number(data.countgeki),
-            miss: Number(data.countmiss)
-        }, mode);
-        this.mods = new Mods(Number(data.enabled_mods));
-        this.rank = data.rank.replace('X', 'SS');
-        this.mode = mode;
-        this.date = new Date(data.date);
-    }
-
-    accuracy() {
-        return Util.accuracy(this.counts);
-    }
-}
 
 export default class BanchoAPI implements IAPI {
     bot: Bot;
@@ -164,7 +30,7 @@ export default class BanchoAPI implements IAPI {
     /**
      * @deprecated The method should not be used
      */
-    async getUserTop(nickname: string, mode: number = 0, limit: number = 3): Promise<APITopScore[]> {
+    async getUserTop(nickname: string, mode: number = 0, limit: number = 3): Promise<APIScore[]> {
         throw "Bancho api V1 deprecated";
     }
 

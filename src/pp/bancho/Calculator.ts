@@ -3,7 +3,7 @@ import * as rosu from "rosu-pp-js";
 import * as axios from 'axios';
 import * as fs from "fs";
 import Mods from '../Mods';
-import { APITopScore, APIRecentScore, APIBeatmap, HitCounts, APIScore, CalcArgs } from '../../Types';
+import { APIRecentScore, APIBeatmap, HitCounts, APIScore, CalcArgs } from '../../Types';
 import { ICalcStats } from '../Stats';
 import Util from '../../Util';
 import { Replay } from '../../Replay';
@@ -42,7 +42,7 @@ class BanchoPP implements ICalc {
             this.speedMultiplier *= 0.75;
     }
 
-    calculate(score: APITopScore | APIRecentScore | APIScore | Replay | CalcArgs): IPP {
+    calculate(score: APIScore | APIRecentScore | APIScore | Replay | CalcArgs): IPP {
         if(this.mods.has("Relax") || this.mods.has("Relax2") || this.mods.has("Autoplay"))
             return {pp: 0, fc: 0, ss: 0};
 
@@ -50,7 +50,7 @@ class BanchoPP implements ICalc {
         return this.PP(score, map);
     }
 
-    PP(score: APITopScore | APIRecentScore | APIScore | Replay | CalcArgs, rmap: rosu.Beatmap) {
+    PP(score: APIScore | APIRecentScore | APIScore | Replay | CalcArgs, rmap: rosu.Beatmap) {
         switch(score.mode) {
             case 1:
                 rmap.convert(rosu.GameMode.Taiko)

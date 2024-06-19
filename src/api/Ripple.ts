@@ -1,6 +1,6 @@
 import IAPI from "./base";
 import * as axios from "axios";
-import { APIUser, APITopScore, HitCounts, APIRecentScore, APIScore, IDatabaseUser, LeaderboardResponse, APIBeatmap, LeaderboardScore, IDatabaseUserStats } from "../Types";
+import { APIUser, HitCounts, APIRecentScore, APIScore, IDatabaseUser, LeaderboardResponse, APIBeatmap, LeaderboardScore, IDatabaseUserStats } from "../Types";
 import qs from "querystring";
 import Util from "../Util";
 import Mods from "../pp/Mods";
@@ -38,42 +38,6 @@ class RippleUser implements APIUser {
     }
 }
 
-class RippleTopScore implements APITopScore {
-    api: IAPI;
-    beatmapId: number;
-    score: number;
-    combo: number;
-    counts: HitCounts;
-    mods: Mods;
-    rank: string;
-    pp: number;
-    mode: number;
-    date: Date;
-    constructor(data: any, mode: number, api: IAPI) {
-        this.api = api;
-        this.beatmapId = Number(data.beatmap_id);
-        this.score = Number(data.score);
-        this.combo = Number(data.maxcombo);
-        this.counts = new HitCounts({
-            300: Number(data.count300),
-            100: Number(data.count100),
-            50: Number(data.count50),
-            miss: Number(data.countmiss),
-            katu: Number(data.countkatu),
-            geki: Number(data.countgeki)
-        }, mode);
-        this.mods = new Mods(Number(data.enabled_mods));
-        this.rank = data.rank;
-        this.pp = Number(data.pp);
-        this.mode = mode;
-        this.date = new Date(data.date);
-    }
-
-    accuracy() {
-        return Util.accuracy(this.counts);
-    }
-}
-
 class RippleRecentScore implements APIRecentScore {
     api: IAPI;
     beatmapId: number;
@@ -107,7 +71,6 @@ class RippleRecentScore implements APIRecentScore {
 }
 
 class RippleScore implements APIScore {
-    api: IAPI;
     beatmapId: number;
     score: number;
     combo: number;
@@ -117,9 +80,8 @@ class RippleScore implements APIScore {
     rank: string;
     date: Date;
     pp: number;
-    constructor(data: any, mode: number, id: number, api: IAPI) {
-        this.api = api;
-        this.beatmapId = id;
+    constructor(data: any, mode: number) {
+        this.beatmapId = Number(data.beatmap_id);;
         this.score = Number(data.score);
         this.combo = Number(data.maxcombo);
         this.counts = new HitCounts({
@@ -164,10 +126,10 @@ export default class RippleAPI implements IAPI {
         }
     }
 
-    async getUserTop(nickname: string, mode: number = 0, limit: number = 3): Promise<APITopScore[]> {
+    async getUserTop(nickname: string, mode: number = 0, limit: number = 3): Promise<APIScore[]> {
         try {
             let { data } = await this.api.get(`/get_user_best?${qs.stringify({u: nickname, m: mode, limit: limit})}`);
-            return data.map(s => new RippleTopScore(s, mode, this));
+            return data.map(s => new RippleScore(s, mode));
         } catch(e) {
             throw e;
         }
@@ -197,7 +159,8 @@ export default class RippleAPI implements IAPI {
                 data = data.filter(p => p.enabled_mods == mods);
             if(!data[0])
                 throw "No scores found";
-            return new RippleScore(data[0], mode, beatmapId, this);
+            data[0].beatmap_id = beatmapId;
+            return new RippleScore(data[0], mode);
         } catch(e) {
             throw e || "Unknown API error";
         }

@@ -1,7 +1,7 @@
 import IAPI from './base';
 import * as axios from 'axios';
 import qs from 'querystring';
-import { APIUser, APITopScore, HitCounts, APIRecentScore, APIScore, IDatabaseUser, LeaderboardResponse, APIBeatmap, LeaderboardScore, IDatabaseUserStats } from '../Types';
+import { APIUser, HitCounts, APIRecentScore, APIScore, IDatabaseUser, LeaderboardResponse, APIBeatmap, LeaderboardScore, IDatabaseUserStats } from '../Types';
 import Mods from '../pp/Mods';
 import Util from '../Util';
 import { Bot } from "../Bot"
@@ -37,7 +37,7 @@ class GatariUser implements APIUser {
     }
 }
 
-class GatariTopScore implements APITopScore {
+class GatariTopScore implements APIScore {
     api: IAPI;
     beatmapId: number;
     score: number;
@@ -165,7 +165,7 @@ export default class GatariAPI implements IAPI {
         }
     }
 
-    async getUserTop(nickname: string, mode: number = 0, limit: number = 3): Promise<APITopScore[]> {
+    async getUserTop(nickname: string, mode: number = 0, limit: number = 3): Promise<APIScore[]> {
         try {
             let user = await this.getUser(nickname);
             let { data } = await this.api.get(`/user/scores/best?${qs.stringify({id: user.id, mode: mode, p: 1, l: limit})}`);
