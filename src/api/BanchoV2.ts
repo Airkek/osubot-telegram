@@ -31,7 +31,8 @@ interface Score {
     max_combo: number,
     beatmap: {
         id: number
-    }
+    },
+    passed: boolean
 }
 
 
@@ -240,7 +241,7 @@ class V2RecentScore implements APIRecentScore {
             geki: data.statistics.perfect || 0
         }, data.ruleset_id);
         this.mods = new Mods(data.mods as V2Mod[]);
-        this.rank = data.rank;
+        this.rank = data.passed ? data.rank : "F";
         this.mode = data.ruleset_id;
     }
 
