@@ -1,8 +1,8 @@
 import { Bot } from "./Bot"
+import UnifiedMessageContext from "./TelegramSupport";
 import { APIBeatmap, ICommandArgs } from "./Types";
 import Util from "./Util";
 import Mods from "./pp/Mods";
-import { UnifiedMessageContext } from "./Command";
 
 interface Chat {
     id: number;

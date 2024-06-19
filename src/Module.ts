@@ -1,7 +1,8 @@
-import { Command, UnifiedMessageContext } from "./Command";
+import { Command } from "./Command";
 import { Bot } from "./Bot"
 import { IAPI } from "./API";
 import { IDatabaseServer } from "./Types";
+import UnifiedMessageContext from "./TelegramSupport";
 
 interface ICommandsModule {
     name: String,

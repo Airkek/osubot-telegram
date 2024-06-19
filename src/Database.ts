@@ -3,6 +3,7 @@ import { Bot as TG, InputFile } from 'grammy'
 import axios from 'axios';
 import util from './Util';
 import { APIUser, IDatabaseUser, IDatabaseUserStats, IDatabaseServer } from './Types';
+import UnifiedMessageContext from './TelegramSupport';
 
 class DatabaseServer implements IDatabaseServer {
     table: String;
