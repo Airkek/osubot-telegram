@@ -13,7 +13,7 @@ export default class BanchoTrack extends Command {
             if(args.nickname[0])
                 dbUser.nickname = args.nickname.join(" ");
             if(!dbUser.nickname)
-                return ctx.reply("Не указан ник!");
+                return ctx.reply(`Не указан ник!\nПривяжите через ${module.prefix[0]} nick <ник>`);
             try {
                 let update = await self.module.bot.track.getChanges(dbUser.nickname, dbUser.mode || 0);
                 ctx.reply(self.module.bot.templates.Track(update));

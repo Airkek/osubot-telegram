@@ -1,16 +1,17 @@
 import { Module } from "../../Module";
 
 import { Bot } from "../../Bot";
-import BanchoUser from "./User";
-import BanchoNick from "./Nick";
-import BanchoMode from "./Mode";
-import BanchoTop from "./Top";
-import BanchoRecent from "./Recent";
-import BanchoCompare from "./Compare";
-import BanchoChat from "./Chat";
-import BanchoFind from "./Find";
-import BanchoLeaderboard from "./Leaderboard";
 import BanchoTrack from "./Track";
+import AbstractUser from "../BaseServerCommands/User";
+import AbstractMode from "../BaseServerCommands/Mode";
+import AbstractTop from "../BaseServerCommands/Top";
+import AbstractRecent from "../BaseServerCommands/Recent";
+import AbstractChat from "../BaseServerCommands/Chat";
+import AbstractFind from "../BaseServerCommands/Find";
+import AbstractNick from "../BaseServerCommands/Nick";
+import AbstractLeaderboard from "../BaseServerCommands/Leaderboard";
+import AbstractCompare from "../BaseServerCommands/Compare";
+
 
 export default class Bancho extends Module {
     link: string;
@@ -18,19 +19,21 @@ export default class Bancho extends Module {
         super(["s", "ы"], bot);
 
         this.name = "Bancho";
-
         this.link = "https://osu.ppy.sh";
+        this.api = bot.api.v2;
+        this.db = bot.database.servers.bancho;
+        this.statusGetter = "bancho";
         
         this.registerCommand([
-            new BanchoUser(this),
-            new BanchoNick(this),
-            new BanchoMode(this),
-            new BanchoFind(this),
-            new BanchoTop(this),
-            new BanchoRecent(this),
-            new BanchoCompare(this),
-            new BanchoChat(this),
-            new BanchoLeaderboard(this),
+            new AbstractUser(this),
+            new AbstractNick(this),
+            new AbstractMode(this),
+            new AbstractFind(this),
+            new AbstractTop(this),
+            new AbstractRecent(this),
+            new AbstractCompare(this),
+            new AbstractChat(this),
+            new AbstractLeaderboard(this),
             new BanchoTrack(this)
         ]);
     }

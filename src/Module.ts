@@ -1,5 +1,7 @@
 import { Command, UnifiedMessageContext } from "./Command";
 import { Bot } from "./Bot"
+import { IAPI } from "./API";
+import { IDatabaseServer } from "./Types";
 
 interface ICommandsModule {
     name: String,
@@ -11,10 +13,14 @@ interface ICommandsModule {
 export class Module implements ICommandsModule {
     name: string;
     link?: string;
-    prefix: String | String[];
+    prefix: String[];
     commands: Command[];
     bot: Bot;
-    constructor(prefix: String | String[], bot: Bot) {
+    api?: IAPI;
+    db?: IDatabaseServer;
+    statusGetter?: string
+
+    constructor(prefix: String[], bot: Bot) {
         this.prefix = prefix;
         this.bot = bot;
         this.commands = [];

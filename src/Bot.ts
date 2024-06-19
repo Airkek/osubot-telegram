@@ -59,16 +59,6 @@ export class Bot {
         this.tg = new TG(config.tg.token);
         this.modules = [];
 
-        this.registerModule([
-            new Bancho(this),
-            new Gatari(this),
-            new Ripple(this),
-            new Akatsuki(this),
-            new AkatsukiRelax(this),
-            new Admin(this),
-            new Main(this)
-        ]);
-
         this.database = new Database(this.tg, this.config.tg.owner);
 
         this.initDB();
@@ -78,6 +68,16 @@ export class Bot {
         this.templates = Templates;
 
         this.maps = new Maps(this);
+
+        this.registerModule([
+            new Bancho(this),
+            new Gatari(this),
+            new Ripple(this),
+            new Akatsuki(this),
+            new AkatsukiRelax(this),
+            new Admin(this),
+            new Main(this)
+        ]);
 
         this.tg.catch((err) => {
             const ctx = err.ctx;
@@ -137,7 +137,7 @@ export class Bot {
                     if(check.map) {
                         let chat = this.maps.getChat(ctx.peerId);
                         if(!chat || chat.map.id.map != check.map) {
-                            let map = await this.v2.getBeatmap(check.map);
+                            let map = await this.api.v2.getBeatmap(check.map);
                             this.maps.setMap(ctx.peerId, map);
                         }
                     }
@@ -165,9 +165,9 @@ export class Bot {
 
                     let parser = new ReplayParser(file);
                     let replay = parser.getReplay();
-                    let map = await this.v2.getBeatmap(replay.beatmapHash);
+                    let map = await this.api.v2.getBeatmap(replay.beatmapHash);
                     if(replay.mods.diff()) 
-                        map = await this.v2.getBeatmap(map.id.map, replay.mode, replay.mods.diff());
+                        map = await this.api.v2.getBeatmap(map.id.map, replay.mode, replay.mods.diff());
                     let cover = await this.database.covers.getCover(map.id.set);
                     let calc = new BanchoPP(map, replay.mods);
                     let keyboard = Util.createKeyboard([['B','s'],['G','g'],['R','r']]
@@ -210,7 +210,7 @@ export class Bot {
                             if(check.map) {
                                 let chat = this.maps.getChat(ctx.peerId);
                                 if(!chat || chat.map.id.map != check.map) {
-                                    let map = await this.v2.getBeatmap(check.map);
+                                    let map = await this.api.v2.getBeatmap(check.map);
                                     this.maps.setMap(ctx.peerId, map);
                                 }
                             }
@@ -236,9 +236,7 @@ export class Bot {
 
         this.version = require('../../package.json').version;
 
-        this.v2 = new BanchoV2(this);
-
-        this.v2.data.on('osuupdate', update => {
+        this.api.v2.data.on('osuupdate', update => {
             let changesString = [];
             for(let ch in update.changes) {
                 changesString.push(`${ch} [${update.changes[ch]}]`);
@@ -251,7 +249,7 @@ export class Bot {
             });
         });
 
-        this.v2.data.on('newranked', async mapset => {
+        this.api.v2.data.on('newranked', async mapset => {
             let modes = [];
 
             if(mapset.beatmaps.filter(map => map.mode == 0).length)
@@ -290,7 +288,7 @@ export class Bot {
         });
 
         
-        this.v2.data.on('osunews', async news => {
+        this.api.v2.data.on('osunews', async news => {
             this.news.notify({
                 message: `Новость на сайте osu!\n${news.title}\nот ${news.author}\n\n${news.link}`,
                 photo: news.image,
@@ -316,9 +314,9 @@ export class Bot {
     }
 
     async start() {
-        await this.v2.login()
-        console.log(this.v2.logged ? 'Logged in' : 'Failed to login')
-        //this.v2.startUpdates();
+        await this.api.v2.login()
+        console.log(this.api.v2.logged ? 'Logged in' : 'Failed to login')
+        //this.api.v2.startUpdates();
         this.startTime = Date.now();
         console.log('Started');
         await this.tg.start()

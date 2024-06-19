@@ -17,6 +17,16 @@ interface ICommandArgs {
     mode?: number;
 }
 
+interface IDatabaseServer {
+    getUser(id: number): Promise<IDatabaseUser | null>,
+    findByUserId(id: number): Promise<IDatabaseUser[]>,
+    setNickname(id: number, uid: number, nickname: string): Promise<void>,
+    setMode(id: number, mode: number): Promise<boolean>,
+    updateInfo(user: APIUser, mode: number): Promise<void>,
+    getUserStats(id: number, mode: number): Promise<IDatabaseUserStats>,
+    createTables(): Promise<void>
+}
+
 interface PPArgs {
     score?: number;
     acc?: number;
@@ -191,6 +201,7 @@ interface APIUser {
     country: string;
     accuracy: number;
     level: number;
+    mode?: number;
 }
 
 interface APIScore {
@@ -419,6 +430,7 @@ export {
     IBeatmapStars,
     IBeatmapObjects,
 
+    IDatabaseServer,
     ICommandArgs,
     PPArgs,
     CalcArgs,

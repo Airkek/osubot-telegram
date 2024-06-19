@@ -119,6 +119,7 @@ interface User {
     profile_colour?: string,
     username: string,
     statistics?: UserStats
+    playmode: Ruleset
 }
 
 interface Covers {
@@ -295,6 +296,7 @@ class V2User implements APIUser {
     country: string;
     accuracy: number;
     level: number;
+    mode: number;
 
     constructor(data: User) {
         this.id = data.id;
@@ -309,6 +311,7 @@ class V2User implements APIUser {
         this.country = data.country_code;
         this.accuracy = data.statistics.hit_accuracy;
         this.level = data.statistics.level.current;
+        this.mode = getRulesetId(data.playmode)
     }
 }
 
@@ -423,7 +426,7 @@ class BanchoAPIV2 implements IAPI {
     }
 
     async getUser(nickname: string, mode?: number): Promise<APIUser> {
-        let data = await this.get(`/users/${nickname.replace(' ', '_')}/${getRuleset(mode)}`, {
+        let data = await this.get(`/users/${nickname.replace(' ', '_')}/${mode ? getRuleset(mode) : ''}`, {
             key: 'username'
         });
         

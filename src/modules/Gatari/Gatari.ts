@@ -1,15 +1,15 @@
 import { Module } from "../../Module";
 
 import { Bot } from "../../Bot";
-import GatariUser from "./User";
-import GatariNick from "./Nick";
-import GatariMode from "./Mode";
-import GatariTop from "./Top";
-import GatariRecent from "./Recent";
-import GatariCompare from "./Compare";
-import GatariChat from "./Chat";
-import GatariFind from "./Find";
-import GatariLeaderboard from "./Leaderboard";
+import AbstractUser from "../BaseServerCommands/User";
+import AbstractTop from "../BaseServerCommands/Top";
+import AbstractRecent from "../BaseServerCommands/Recent";
+import AbstractChat from "../BaseServerCommands/Chat";
+import AbstractFind from "../BaseServerCommands/Find";
+import AbstractNick from "../BaseServerCommands/Nick";
+import AbstractMode from "../BaseServerCommands/Mode";
+import AbstractLeaderboard from "../BaseServerCommands/Leaderboard";
+import AbstractCompare from "../BaseServerCommands/Compare";
 
 export default class Gatari extends Module {
     link: string;
@@ -17,19 +17,21 @@ export default class Gatari extends Module {
         super(["g", "п"], bot);
 
         this.name = "Gatari";
-
         this.link = "https://osu.gatari.pw";
+        this.api = bot.api.gatari;
+        this.db = bot.database.servers.gatari;
+        this.statusGetter = "gatari";
 
         this.registerCommand([
-            new GatariUser(this),
-            new GatariNick(this),
-            new GatariMode(this),
-            new GatariFind(this),
-            new GatariTop(this),
-            new GatariRecent(this),
-            new GatariCompare(this),
-            new GatariChat(this),
-            new GatariLeaderboard(this)
+            new AbstractUser(this),
+            new AbstractNick(this),
+            new AbstractMode(this),
+            new AbstractFind(this),
+            new AbstractTop(this),
+            new AbstractRecent(this),
+            new AbstractCompare(this),
+            new AbstractChat(this),
+            new AbstractLeaderboard(this)
         ]);
     }
 }

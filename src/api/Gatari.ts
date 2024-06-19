@@ -204,7 +204,7 @@ export default class GatariAPI implements IAPI {
     }
 
     async getLeaderboard(beatmapId: number, users: IDatabaseUser[], mode: number = 0): Promise<LeaderboardResponse> {
-        let map = await this.bot.v2.getBeatmap(beatmapId, mode, 0);
+        let map = await this.bot.api.v2.getBeatmap(beatmapId, mode, 0);
         let scores: LeaderboardScore[] = [];
         try {
             let lim = Math.ceil(users.length / 5);

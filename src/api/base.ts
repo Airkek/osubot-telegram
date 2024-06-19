@@ -9,7 +9,6 @@ export default interface IAPI {
     getUser(nickname: string, mode?: number): Promise<APIUser>,
     getUserTop(nickname: string, mode?: number, limit?: number): Promise<APIScore[]>,
     getUserRecent(nickname: string, mode?: number, limit?: number): Promise<APIRecentScore>,
-    getScore?(nickname: string, beatmapId: number, mode?: number, mods?: number): Promise<APIScore>,
-    getBeatmap?(id: number | string, mode?: number, mods?: number): Promise<APIBeatmap>,
-    getLeaderboard?(beatmapId: number, users: IDatabaseUser[], mode?: number): Promise<LeaderboardResponse>
+    getScore?(nickname: string, beatmapId: number, mode?: number, mods?: number): Promise<APIScore>
+    getLeaderboard?(beatmapId: number, users: IDatabaseUser[], mode?: number, mods?: number): Promise<LeaderboardResponse>
 }

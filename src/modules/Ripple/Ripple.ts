@@ -1,15 +1,15 @@
 import { Module } from "../../Module";
 
 import { Bot } from "../../Bot";
-import RippleUser from "./User";
-import RippleTop from "./Top";
-import RippleRecent from "./Recent";
-import RippleChat from "./Chat";
-import RippleCompare from "./Compare";
-import RippleMode from "./Mode";
-import RippleNick from "./Nick";
-import RippleFind from "./Find";
-import RippleLeaderboard from "./Leaderboard";
+import AbstractUser from "../BaseServerCommands/User";
+import AbstractTop from "../BaseServerCommands/Top";
+import AbstractRecent from "../BaseServerCommands/Recent";
+import AbstractChat from "../BaseServerCommands/Chat";
+import AbstractFind from "../BaseServerCommands/Find";
+import AbstractMode from "../BaseServerCommands/Mode";
+import AbstractNick from "../BaseServerCommands/Nick";
+import AbstractLeaderboard from "../BaseServerCommands/Leaderboard";
+import AbstractCompare from "../BaseServerCommands/Compare";
 
 export default class Ripple extends Module {
     link: string;
@@ -17,19 +17,21 @@ export default class Ripple extends Module {
         super(["r", "к"], bot);
 
         this.name = "Ripple";
-
         this.link = "https://ripple.moe";
+        this.api = bot.api.ripple;
+        this.db = bot.database.servers.ripple;
+        this.statusGetter = "ripple";
 
         this.registerCommand([
-            new RippleUser(this),
-            new RippleFind(this),
-            new RippleTop(this),
-            new RippleRecent(this),
-            new RippleChat(this),
-            new RippleCompare(this),
-            new RippleMode(this),
-            new RippleNick(this),
-            new RippleLeaderboard(this)
+            new AbstractUser(this),
+            new AbstractFind(this),
+            new AbstractTop(this),
+            new AbstractRecent(this),
+            new AbstractChat(this),
+            new AbstractCompare(this),
+            new AbstractMode(this),
+            new AbstractNick(this),
+            new AbstractLeaderboard(this)
         ]);
     }
 }

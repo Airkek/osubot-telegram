@@ -33,7 +33,7 @@ export default class Maps {
 
     async sendMap(beatmapId: number, ctx: UnifiedMessageContext) {
         try {
-            let map = await this.bot.v2.getBeatmap(beatmapId);
+            let map = await this.bot.api.v2.getBeatmap(beatmapId);
             let cover = await this.bot.database.covers.getCover(map.id.set);
             ctx.reply(this.bot.templates.Beatmap(map), {
                 attachment: cover
@@ -51,7 +51,7 @@ export default class Maps {
         if(!chat)
             return ctx.reply("Сначала отправьте карту!");
         let mods = new Mods(args.mods);
-        let map = await this.bot.v2.getBeatmap(chat.map.id.map, chat.map.mode, mods.diff());
+        let map = await this.bot.api.v2.getBeatmap(chat.map.id.map, chat.map.mode, mods.diff());
         let cover = await this.bot.database.covers.getCover(map.id.set);
         ctx.reply(this.bot.templates.PP(map, args), {
             attachment: cover
