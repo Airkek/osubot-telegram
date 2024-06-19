@@ -1,7 +1,6 @@
 import { Module } from './Module';
 import Database from './Database';
 import Bancho from './modules/Bancho';
-import { Command, UnifiedMessageContext } from './Command';
 import { APICollection } from './API';
 import { Templates, ITemplates } from './templates';
 import Maps from './Maps';
@@ -21,6 +20,7 @@ import OsuTrackAPI from './Track';
 import BanchoV2 from "./api/BanchoV2";
 import Util from './Util';
 import IgnoreList from './Ignore';
+import UnifiedMessageContext from './TelegramSupport';
 
 export interface IBotConfig {
     tg?: {
