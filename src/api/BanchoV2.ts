@@ -1,9 +1,6 @@
 import * as axios from "axios";
 import qs from "querystring";
-import { EventEmitter } from "eventemitter3";
-import { APIV2Events } from "../Events";
-import BanchoV2Data from "./BanchoV2Data";
-import { V2ChangelogArguments, V2BeatmapsetsArguments, V2ChangelogResponse, V2Beatmapset, V2Mod, V2News, APIRecentScore, HitCounts, APIBeatmap, APIScore, APIUser, IDatabaseUser, LeaderboardResponse, IBeatmapObjects, IBeatmapStars, BeatmapStatus, LeaderboardScore } from "../Types";
+import { V2BeatmapsetsArguments, V2Beatmapset, V2Mod, APIRecentScore, HitCounts, APIBeatmap, APIScore, APIUser, IDatabaseUser, LeaderboardResponse, IBeatmapObjects, IBeatmapStars, BeatmapStatus, LeaderboardScore } from "../Types";
 import Mods from "../pp/Mods";
 import Util from "../Util";
 import * as fs from "fs";
@@ -339,7 +336,6 @@ var getRulesetId = (ruleset: Ruleset | string): number => {
 
 class BanchoAPIV2 implements IAPI {
     api: axios.AxiosInstance;
-    data: BanchoV2Data;
     logged: number;
     token?: string;
     app_id: number;
@@ -355,8 +351,6 @@ class BanchoAPIV2 implements IAPI {
         this.client_secret = this.bot.config.tokens.bancho_v2_secret;
 
         this.logged = 0;
-
-        this.data = new BanchoV2Data(this);
     }
 
     async login() {
@@ -412,17 +406,6 @@ class BanchoAPIV2 implements IAPI {
         if(this.logged != 1)
             throw "Not logged in";
         return await this.login();
-    }
-
-    startUpdates() {
-        setInterval(async() => {
-            try {
-                await this.data.fetch();
-            } catch (e) {
-                console.log("Failed to fetch osu news data");
-                console.log(e);
-            }
-        }, 15e3);
     }
 
     async getUser(nickname: string, mode?: number): Promise<APIUser> {
@@ -543,19 +526,6 @@ class BanchoAPIV2 implements IAPI {
         }
     }
 
-    async getChangelog(args: V2ChangelogArguments): Promise<V2ChangelogResponse[]> {
-        let data = (await this.get('/changelog', { stream: args.stream || "stable40", limit: args.limit })).builds;
-        return data.map(build => ({
-            id: build.id,
-            version: build.version,
-            entries: build.changelog_entries.map(entry => ({
-                category: entry.category,
-                title: entry.title,
-                isMajor: entry.major
-            }))
-        }));
-    }
-
     async getBeatmapsets(args: V2BeatmapsetsArguments): Promise<V2Beatmapset[]> {
         let data = await this.get('/beatmapsets/search/', { q: args.query || null, s: args.status || 'ranked' });
         return data.beatmapsets.map(set => ({
@@ -614,18 +584,6 @@ class BanchoAPIV2 implements IAPI {
         }
     
         return new V2Score(data.score);
-    }
-
-    async getNews(): Promise<V2News> {
-        let data = (await this.get('/news')).news_posts[0];
-        return {
-            id: data.id,
-            author: data.author,
-            image: data.first_image.startsWith("/") ? "https://osu.ppy.sh" + data.first_image : data.first_image,
-            title: data.title,
-            link: "https://osu.ppy.sh/home/news/" + data.slug,
-            date: new Date(data.published_at)
-        };
     }
 }
 

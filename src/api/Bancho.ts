@@ -7,7 +7,7 @@ import Mods from '../pp/Mods';
 import Util from '../Util';
 import { Bot } from "../Bot"
 
-export default class BanchoAPI implements IAPI {
+export default class BanchoAPI {
     bot: Bot;
     token: string;
     api: axios.AxiosInstance;
@@ -19,35 +19,6 @@ export default class BanchoAPI implements IAPI {
             timeout: 3000
         });
     }
-
-    /**
-     * @deprecated The method should not be used
-     */
-    async getUser(nickname: string, mode: number = 0): Promise<APIUser> {
-        throw "Bancho api V1 deprecated";
-    }
-
-    /**
-     * @deprecated The method should not be used
-     */
-    async getUserTop(nickname: string, mode: number = 0, limit: number = 3): Promise<APIScore[]> {
-        throw "Bancho api V1 deprecated";
-    }
-
-    /**
-     * @deprecated The method should not be used
-     */
-    async getUserRecent(nickname: string, mode: number = 0, place: number = 1): Promise<APIRecentScore> {
-        throw "Bancho api V1 deprecated";
-    }
-
-    /**
-     * @deprecated The method should not be used
-     */
-    async getScore(nickname: string, beatmapId: number, mode: number = 0, mods: number = null): Promise<APIScore> {
-        throw "Bancho api V1 deprecated";
-    }
-
     /**
      * @deprecated The method should not be used
      */
@@ -83,12 +54,5 @@ export default class BanchoAPI implements IAPI {
             fs.writeFileSync(filePath, buffer);
         }
         return beatmap;
-    }
-
-    /**
-     * @deprecated The method should not be used
-     */
-    async getLeaderboard(beatmapId: number, users: IDatabaseUser[], mode: number = 0, mods: number = null): Promise<LeaderboardResponse> {
-        throw "Bancho api V1 deprecated";
     }
 }

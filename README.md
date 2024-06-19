@@ -12,7 +12,7 @@ Telegram: https://t.me/osulegacybot
 - [X] update calculator to new formula 
 - [X] make find command works 
 - [X] move help to telegraph
-- [ ] updates notify
+- [ ] ~updates notify~ - wontfix
 
 # additional features:
 - [X] full lazer support (api v2)

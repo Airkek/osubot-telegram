@@ -8,7 +8,6 @@ import Maps from './Maps';
 import { ReplayParser } from './Replay';
 import * as axios from 'axios';
 import { Bot as TG, GrammyError, HttpError} from 'grammy'
-import News from './News';
 import Admin from './modules/Admin';
 import Main from './modules/Main';
 import BanchoPP from './pp/bancho';
@@ -43,7 +42,6 @@ export class Bot {
     api: APICollection;
     templates: ITemplates;
     maps: Maps;
-    news: News;
     disabled: number[] = [];
     ignored: IgnoreList;
     donaters: Donaters;
@@ -222,8 +220,6 @@ export class Bot {
             }
         });
 
-        this.news = new News(this);
-
         this.ignored = new IgnoreList();
 
         this.donaters = new Donaters();
@@ -235,66 +231,6 @@ export class Bot {
         this.totalMessages = 0;
 
         this.version = require('../../package.json').version;
-
-        this.api.v2.data.on('osuupdate', update => {
-            let changesString = [];
-            for(let ch in update.changes) {
-                changesString.push(`${ch} [${update.changes[ch]}]`);
-            }
-            this.news.notify({
-                message: `🔔 Новое обновление osu! (${update.version})${update.majors ? `\n❗ Есть важные изменения! (${update.majors})` : ""}
-                ${changesString.join("\n")}
-                https://osu.ppy.sh/home/changelog/stable40/${update.version}`,
-                type: 'osuupdate'
-            });
-        });
-
-        this.api.v2.data.on('newranked', async mapset => {
-            let modes = [];
-
-            if(mapset.beatmaps.filter(map => map.mode == 0).length)
-                modes.push({
-                    mode: 'osu!',
-                    min: Math.min(...mapset.beatmaps.filter(map => map.mode == 0).map(map => map.stars)),
-                    max: Math.max(...mapset.beatmaps.filter(map => map.mode == 0).map(map => map.stars))
-                });
-
-            if(mapset.beatmaps.filter(map => map.mode == 1).length)
-                modes.push({
-                    mode: 'osu!taiko',
-                    min: Math.min(...mapset.beatmaps.filter(map => map.mode == 1).map(map => map.stars)),
-                    max: Math.max(...mapset.beatmaps.filter(map => map.mode == 1).map(map => map.stars))
-                });
-
-            if(mapset.beatmaps.filter(map => map.mode == 2).length)
-                modes.push({
-                    mode: 'osu!catch',
-                    min: Math.min(...mapset.beatmaps.filter(map => map.mode == 2).map(map => map.stars)),
-                    max: Math.max(...mapset.beatmaps.filter(map => map.mode == 2).map(map => map.stars))
-                });
-
-            if(mapset.beatmaps.filter(map => map.mode == 3).length)
-                modes.push({
-                    mode: 'osu!mania',
-                    min: Math.min(...mapset.beatmaps.filter(map => map.mode == 3).map(map => map.stars)),
-                    max: Math.max(...mapset.beatmaps.filter(map => map.mode == 3).map(map => map.stars))
-                });
-
-            this.news.notify({
-                message: `Новая ранкнутая карта!\n\n${mapset.artist} - ${mapset.title} by ${mapset.creator}\n${modes.map(mode => `${mode.mode} [${mode.min == mode.max ? `${mode.min}` : `${mode.min} - ${mode.max}`}]`).join(", ")}\n\nhttps://osu.ppy.sh/s/${mapset.id}`,
-                attachment: await this.database.covers.getCover(mapset.id),
-                type: 'newranked'
-            });
-        });
-
-        
-        this.api.v2.data.on('osunews', async news => {
-            this.news.notify({
-                message: `Новость на сайте osu!\n${news.title}\nот ${news.author}\n\n${news.link}`,
-                photo: news.image,
-                type: 'osunews'
-            });
-        });
     }
 
     registerModule(module: Module | Module[]) {
@@ -316,7 +252,6 @@ export class Bot {
     async start() {
         await this.api.v2.login()
         console.log(this.api.v2.logged ? 'Logged in' : 'Failed to login')
-        //this.api.v2.startUpdates();
         this.startTime = Date.now();
         console.log('Started');
         await this.tg.start()

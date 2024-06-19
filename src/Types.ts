@@ -357,27 +357,10 @@ interface OsuTrackResponse {
     highscores: TrackTopScore[];
 }
 
-interface V2ChangelogArguments {
-    stream?: string;
-    limit?: number;
-}
-
 interface V2BeatmapsetsArguments {
     query?: string;
     status?: string;
     limit?: number;
-}
-
-interface V2ChangelogResponse {
-    id: number;
-    version: string;
-    entries: V2ChangelogEntry[];
-}
-
-interface V2ChangelogEntry {
-    category: string;
-    title: string;
-    isMajor: boolean;
 }
 
 interface V2Beatmapset {
@@ -395,15 +378,6 @@ interface V2Beatmap {
     mode: number;
     stars: number;
     version: string;
-}
-
-interface V2News {
-    id: number;
-    author: string;
-    image: string;
-    title: string;
-    link: string;
-    date: Date;
 }
 
 interface V2Mod {
@@ -441,11 +415,8 @@ export {
     LeaderboardResponse,
     OsuTrackResponse,
 
-    V2ChangelogArguments,
     V2BeatmapsetsArguments,
     V2Mod,
     
-    V2ChangelogResponse,
     V2Beatmapset,
-    V2News
 }

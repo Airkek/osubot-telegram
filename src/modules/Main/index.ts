@@ -1,6 +1,5 @@
 import { Module } from '../../Module';
 import { Bot } from "../../Bot";
-import NewsCommand from './News';
 import HelpCommand from './Help';
 import UptimeCommand from './Uptime';
 import TopCmdsCommand from './TopCmds';
@@ -16,7 +15,6 @@ export default class Main extends Module {
 
         this.registerCommand([
             new HelpCommand(this),
-            new NewsCommand(this),
             new UptimeCommand(this),
             new TopCmdsCommand(this),
             new StatusCommand(this),
