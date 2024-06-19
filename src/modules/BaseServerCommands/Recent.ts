@@ -8,31 +8,11 @@ import { ServerCommand } from "./BasicServerCommand";
 export default class AbstractRecent extends ServerCommand {
     constructor(module: Module) {
         super(["recent", "r", "rp", "к", "кз", "кусуте"], module, async (self) => {
-            let userId: number = null;
-            let dbUser: IDatabaseUser = undefined;
-            if (self.args.nickname[0]) {
-                userId = (await self.module.api.getUser(self.args.nickname.join(" "))).id;
-            } else {
-                if(self.ctx.hasReplyMessage) {
-                    dbUser = await self.module.db.getUser(self.ctx.replyMessage.senderId);
+            let mode = self.args.mode === null ? self.user.dbUser?.mode || 0 : self.args.mode;
+            let recent = self.user.username 
+                ? await self.module.api.getUserRecent(self.user.username, mode, 1) 
+                : await self.module.api.getUserRecentById(self.user.dbUser.uid, mode, 1);
 
-                    if(!dbUser.nickname) {
-                        return self.reply(`У этого пользователя не указан ник!\nПривяжите через ${module.prefix[0]} nick <ник>`);
-                    }                    
-                } else {
-                    dbUser = await self.module.db.getUser(self.ctx.senderId);
-
-                    if(!dbUser.nickname) {
-                        return self.reply(`Не указан ник!\nПривяжите через ${module.prefix[0]} nick <ник>`);
-                    }
-                }
-
-                userId = dbUser.uid;
-            }
-            
-            let mode = self.args.mode === null ? dbUser?.mode || 0 : self.args.mode;
-
-            let recent = await self.module.api.getUserRecentById(userId, mode, 1);
             let map = await self.module.bot.api.v2.getBeatmap(recent.beatmapId, recent.mode, recent.mods.diff());
             let cover = await self.module.bot.database.covers.getCover(map.id.set);
             let calc = new Calculator(map, recent.mods);
@@ -51,6 +31,6 @@ export default class AbstractRecent extends ServerCommand {
                 keyboard
             });
             self.module.bot.maps.setMap(self.ctx.peerId, map);
-        });
+        }, true);
     }
 }

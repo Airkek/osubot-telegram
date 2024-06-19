@@ -11,29 +11,10 @@ export default class AbstractTop extends ServerCommand {
 
     constructor(module: Module, ignoreDbUpdate: boolean = false) {
         super(["top", "t", "е", "ещз"], module, async (self) => {
-            let user: APIUser = undefined;
-            let dbUser: IDatabaseUser = undefined;
-            if (self.args.nickname[0]) {
-                user = await self.module.api.getUser(self.args.nickname.join(" "));
-            } else {
-                if(self.ctx.hasReplyMessage) {
-                    dbUser = await self.module.db.getUser(self.ctx.replyMessage.senderId);
-
-                    if(!dbUser.nickname) {
-                        return self.reply(`У этого пользователя не указан ник!\nПривяжите через ${module.prefix[0]} nick <ник>`);
-                    }                    
-                } else {
-                    dbUser = await self.module.db.getUser(self.ctx.senderId);
-
-                    if(!dbUser.nickname) {
-                        return self.reply(`Не указан ник!\nПривяжите через ${module.prefix[0]} nick <ник>`);
-                    }
-                }
-
-                user = await self.module.api.getUserById(dbUser.uid);
-            }
-            
-            let mode = self.args.mode === null ? dbUser?.mode || 0 : self.args.mode;
+            let mode = self.args.mode === null ? self.user.dbUser?.mode || 0 : self.args.mode;
+            let user = self.user.username 
+                ? await self.module.api.getUser(self.user.username, mode) 
+                : await self.module.api.getUserById(self.user.dbUser.uid, mode);
 
             if (!this.ignoreDbUpdate) {
                 self.module.db.updateInfo(user, mode);
@@ -106,7 +87,7 @@ export default class AbstractTop extends ServerCommand {
                 }).join("\n");
                 self.reply(`Топ скоры игрока ${user.nickname} ${status} [${Util.profileModes[mode]}]:\n${str}`);
             }
-        });
+        }, true);
 
         this.ignoreDbUpdate = ignoreDbUpdate;
     }

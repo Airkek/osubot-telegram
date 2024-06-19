@@ -10,29 +10,10 @@ export default class AbstractUser extends ServerCommand {
 
     constructor(module: Module, ignoreDbUpdate: boolean = false) {
         super(["user", "u", "г", "гыук"], module, async (self) => {
-            let user: APIUser = undefined;
-            let dbUser: IDatabaseUser = undefined;
-            if (self.args.nickname[0]) {
-                user = await self.module.api.getUser(self.args.nickname.join(" "));
-            } else {
-                if(self.ctx.hasReplyMessage) {
-                    dbUser = await self.module.db.getUser(self.ctx.replyMessage.senderId);
-
-                    if(!dbUser.nickname) {
-                        return self.reply(`У этого пользователя не указан ник!\nПривяжите через ${module.prefix[0]} nick <ник>`);
-                    }                    
-                } else {
-                    dbUser = await self.module.db.getUser(self.ctx.senderId);
-
-                    if(!dbUser.nickname) {
-                        return self.reply(`Не указан ник!\nПривяжите через ${module.prefix[0]} nick <ник>`);
-                    }
-                }
-
-                user = await self.module.api.getUserById(dbUser.uid);
-            }
-            
-            let mode = self.args.mode === null ? dbUser?.mode || 0 : self.args.mode;
+            let mode = self.args.mode === null ? self.user.dbUser?.mode || 0 : self.args.mode;
+            let user = self.user.username 
+                ? await self.module.api.getUser(self.user.username, mode) 
+                : await self.module.api.getUserById(self.user.dbUser.uid, mode);
 
             let status = self.module.bot.donaters.status(self.module.statusGetter, user.id);
             if (!this.ignoreDbUpdate) {
@@ -52,7 +33,7 @@ export default class AbstractUser extends ServerCommand {
             self.reply(`${self.module.bot.templates.User(user, mode, status, self.module.link)}`, {
                 keyboard 
             });
-        });
+        }, true);
 
         this.ignoreDbUpdate = ignoreDbUpdate;
     }
