@@ -1,4 +1,3 @@
-import { IAPI } from './API';
 import Mods from './pp/Mods';
 import { ICalcStats } from './pp/Stats';
 import Util from './Util';
@@ -180,7 +179,6 @@ interface IBeatmapObjects {
 }
 
 interface APIUser {
-    api: IAPI;
     id: number;
     nickname: string;
     playcount: number;
@@ -209,7 +207,6 @@ interface APITopScore {
 }
 
 interface APIScore {
-    api: IAPI;
     beatmapId: number;
     score: number;
     combo: number;
@@ -222,7 +219,6 @@ interface APIScore {
 }
 
 class APIBeatmap {
-    api: IAPI;
     artist: string;
     id: {
         set: number;
@@ -242,8 +238,7 @@ class APIBeatmap {
     version: string;
     combo: number;
     mode: number;
-    constructor(data: any, api: IAPI) {
-        this.api = api;
+    constructor(data: any) {
         this.artist = data.artist;
         this.id = {
             set: Number(data.beatmapset_id),

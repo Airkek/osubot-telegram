@@ -223,7 +223,7 @@ export default class BanchoAPI implements IAPI {
         if(!data[0])
             throw "Beatmap not found";
 
-        let beatmap = new APIBeatmap(data[0], this);
+        let beatmap = new APIBeatmap(data[0]);
         if(mods)
             beatmap.stats.modify(new Mods(mods));
 

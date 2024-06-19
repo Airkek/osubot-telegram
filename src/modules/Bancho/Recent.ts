@@ -17,12 +17,12 @@ export default class BanchoRecent extends Command {
             try {
                 let uid = dbUser.uid;
                 if (args.nickname[0]) {
-                    let user = await self.module.bot.api.bancho.getUser(args.nickname.join(" "));
+                    let user = await self.module.bot.v2.getUser(args.nickname.join(" "));
                     uid = user.id
                 }
                 
-                let recent = await self.module.bot.v2.getRecentScores(uid, mode);
-                let map = await self.module.bot.api.bancho.getBeatmap(recent.beatmapId, recent.mode, recent.mods.diff());
+                let recent = await self.module.bot.v2.getUserRecentById(uid, mode, 1);
+                let map = await self.module.bot.v2.getBeatmap(recent.beatmapId, recent.mode, recent.mods.diff());
                 let cover = await self.module.bot.database.covers.getCover(map.id.set);
                 let calc = new Calculator(map, recent.mods);
                 let keyboard = Util.createKeyboard([

@@ -17,7 +17,7 @@ export default class BanchoUser extends Command {
                 return ctx.reply("Не указан ник!");
             let mode = args.mode === null ? dbUser.mode || 0 : args.mode;
             try {
-                let user = await self.module.bot.api.bancho.getUser(dbUser.nickname, mode);
+                let user = await self.module.bot.v2.getUser(dbUser.nickname, mode);
                 let status = self.module.bot.donaters.status("bancho", user.id);
                 self.module.bot.database.servers.bancho.updateInfo(user, mode);
                 let keyboard = Util.createKeyboard([

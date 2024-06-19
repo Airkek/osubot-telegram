@@ -15,11 +15,8 @@ Telegram: https://t.me/osulegacybot
 - [ ] updates notify
 
 # additional features:
-- [X] lazer support for bancho recent plays
-- [X] lazer support for bancho top plays
+- [X] full lazer support (api v2)
 - [X] calculate pp using latest formula (by using rosu-pp.js)
-- [X] save osu api v2 credentials locally (do not authorize every run)
-- [X] ~encrypt osu password in config.json~
 - [X] removed dead servers (r.i.p: kurikku, vudek, enjuu, sakuru)
 - [X] auth api v2 by client secret
 

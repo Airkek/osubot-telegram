@@ -30,7 +30,7 @@ export default class RippleTop extends Command {
                             place = i+1;
                         }
                     }
-                    let map = await self.module.bot.api.bancho.getBeatmap(nearest.beatmapId, mode, nearest.mods.diff());
+                    let map = await self.module.bot.v2.getBeatmap(nearest.beatmapId, mode, nearest.mods.diff());
                     let cover = await self.module.bot.database.covers.getCover(map.id.set);
                     let calc = new BanchoPP(map, nearest.mods);
                     self.module.bot.maps.setMap(ctx.peerId, map);
@@ -43,7 +43,7 @@ export default class RippleTop extends Command {
                     ctx.reply(`[Server: ${self.module.name}]\nУ игрока ${user.nickname} ${amount ? amount : 'нет'}${amount == 100 ? '+' : ''} ${Util.scoreNum(amount)} выше ${args.more}pp`);
                 } else if(args.place) {
                     let score = (await self.module.bot.api.ripple.getUserTop(dbUser.nickname, mode, args.place))[args.place - 1];
-                    let map = await self.module.bot.api.bancho.getBeatmap(score.beatmapId, mode, score.mods.diff());
+                    let map = await self.module.bot.v2.getBeatmap(score.beatmapId, mode, score.mods.diff());
                     let cover = await self.module.bot.database.covers.getCover(map.id.set);
                     let calc = new BanchoPP(map, score.mods);
                     let keyboard = Util.createKeyboard([
@@ -63,7 +63,7 @@ export default class RippleTop extends Command {
                     });
                 } else {
                     let top = await self.module.bot.api.ripple.getUserTop(dbUser.nickname, mode, 3);
-                    let maps = await Promise.all(top.map(s => self.module.bot.api.bancho.getBeatmap(s.beatmapId, mode, s.mods.diff())));
+                    let maps = await Promise.all(top.map(s => self.module.bot.v2.getBeatmap(s.beatmapId, mode, s.mods.diff())));
                     let str = maps.map((map, i) => {
                         let calc = new BanchoPP(map, top[i].mods);
                         return self.module.bot.templates.TopScore(top[i], map, i+1, calc, self.module.link);

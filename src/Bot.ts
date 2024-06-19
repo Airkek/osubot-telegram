@@ -137,7 +137,7 @@ export class Bot {
                     if(check.map) {
                         let chat = this.maps.getChat(ctx.peerId);
                         if(!chat || chat.map.id.map != check.map) {
-                            let map = await this.api.bancho.getBeatmap(check.map);
+                            let map = await this.v2.getBeatmap(check.map);
                             this.maps.setMap(ctx.peerId, map);
                         }
                     }
@@ -167,7 +167,7 @@ export class Bot {
                     let replay = parser.getReplay();
                     let map = await this.api.bancho.getBeatmap(replay.beatmapHash);
                     if(replay.mods.diff()) 
-                        map = await this.api.bancho.getBeatmap(map.id.map, replay.mode, replay.mods.diff());
+                        map = await this.v2.getBeatmap(map.id.map, replay.mode, replay.mods.diff());
                     let cover = await this.database.covers.getCover(map.id.set);
                     let calc = new BanchoPP(map, replay.mods);
                     let keyboard = Util.createKeyboard([['B','s'],['G','g'],['R','r']]
@@ -210,7 +210,7 @@ export class Bot {
                             if(check.map) {
                                 let chat = this.maps.getChat(ctx.peerId);
                                 if(!chat || chat.map.id.map != check.map) {
-                                    let map = await this.api.bancho.getBeatmap(check.map);
+                                    let map = await this.v2.getBeatmap(check.map);
                                     this.maps.setMap(ctx.peerId, map);
                                 }
                             }
@@ -236,7 +236,7 @@ export class Bot {
 
         this.version = require('../../package.json').version;
 
-        this.v2 = new BanchoV2();
+        this.v2 = new BanchoV2(this);
 
         this.v2.data.on('osuupdate', update => {
             let changesString = [];
@@ -316,10 +316,7 @@ export class Bot {
     }
 
     async start() {
-        await this.v2.login(
-            this.config.tokens.bancho_v2_app_id,
-            this.config.tokens.bancho_v2_secret
-        )
+        await this.v2.login()
         console.log(this.v2.logged ? 'Logged in' : 'Failed to login')
         //this.v2.startUpdates();
         this.startTime = Date.now();
@@ -335,7 +332,7 @@ export class Bot {
     async checkReplay(ctx: UnifiedMessageContext): Promise<import("@grammyjs/types/message.js").File> {
         if(!ctx.hasAttachments("doc"))
             return null;
-        const replays = ctx.getAttachments("doc").filter(doc => doc.file_name.endsWith(".osr"));
+        const replays = ctx.getAttachments("doc").filter(doc => doc.file_name?.endsWith(".osr"));
         if (replays.length == 0) {
             return null;
         }

@@ -207,7 +207,7 @@ export default class RippleAPI implements IAPI {
         try {
             cache.push({
                 mods: 0,
-                map: await this.bot.api.bancho.getBeatmap(beatmapId, mode, 0)
+                map: await this.bot.v2.getBeatmap(beatmapId, mode, 0)
             });
             let lim = Math.ceil(users.length / 5);
             for(var i = 0; i < lim; i++) {
@@ -232,7 +232,7 @@ export default class RippleAPI implements IAPI {
                             if(!cache.find(c => c.mods == s[j].mods.diff()))
                                 cache.push({
                                     mods: s[j].mods.diff(),
-                                    map: await this.bot.api.bancho.getBeatmap(beatmapId, mode, s[j].mods.diff())
+                                    map: await this.bot.v2.getBeatmap(beatmapId, mode, s[j].mods.diff())
                                 }); 
                         } catch(e) {}
                     }

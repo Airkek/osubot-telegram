@@ -18,11 +18,11 @@ export default class BanchoTop extends Command {
                 return ctx.reply("Не указан ник!");
             let mode = args.mode === null ? dbUser.mode || 0 : args.mode;
             try {
-                let user = await self.module.bot.api.bancho.getUser(dbUser.nickname, mode);
+                let user = await self.module.bot.v2.getUser(dbUser.nickname, mode);
                 self.module.bot.database.servers.bancho.updateInfo(user, mode);
                 let status = self.module.bot.donaters.status("bancho", user.id);
                 if(args.apx) {
-                    let top = await self.module.bot.v2.getTopScores(user.id, mode, 100);
+                    let top = await self.module.bot.v2.getUserTopById(user.id, mode, 100);
                     if(args.mods) {
                         let mods = new Mods(args.mods);
                         top = top.filter(score => score.mods.sum() == mods.sum());
@@ -36,7 +36,7 @@ export default class BanchoTop extends Command {
                             place = i+1;
                         }
                     }
-                    let map = await self.module.bot.api.bancho.getBeatmap(nearest.beatmapId, mode, nearest.mods.diff());
+                    let map = await self.module.bot.v2.getBeatmap(nearest.beatmapId, mode, nearest.mods.diff());
                     let cover = await self.module.bot.database.covers.getCover(map.id.set);
                     let calc = new BanchoPP(map, nearest.mods);
                     self.module.bot.maps.setMap(ctx.peerId, map);
@@ -44,7 +44,7 @@ export default class BanchoTop extends Command {
                         attachment: cover
                     });
                 } else if(args.more) {
-                    let top = await self.module.bot.v2.getTopScores(user.id, mode, 100);
+                    let top = await self.module.bot.v2.getUserTopById(user.id, mode, 100);
                     if(args.mods) {
                         let mods = new Mods(args.mods);
                         top = top.filter(score => score.mods.sum() == mods.sum());
@@ -53,8 +53,8 @@ export default class BanchoTop extends Command {
                     let amount = top.filter(t => t.pp > args.more).length;
                     ctx.reply(`[Server: ${self.module.name}]\nУ игрока ${user.nickname} ${amount ? amount : 'нет'}${amount == 100 ? '+' : ''} ${Util.scoreNum(amount)} выше ${args.more}pp`);
                 } else if(args.place) {
-                    let score = (await self.module.bot.v2.getTopScores(user.id, mode, args.place))[args.place - 1];
-                    let map = await self.module.bot.api.bancho.getBeatmap(score.beatmapId, mode, score.mods.diff());
+                    let score = (await self.module.bot.v2.getUserTopById(user.id, mode, args.place))[args.place - 1];
+                    let map = await self.module.bot.v2.getBeatmap(score.beatmapId, mode, score.mods.diff());
                     let cover = await self.module.bot.database.covers.getCover(map.id.set);
                     let calc = new BanchoPP(map, score.mods);
                     let keyboard = Util.createKeyboard([
@@ -73,14 +73,14 @@ export default class BanchoTop extends Command {
                     });
                     self.module.bot.maps.setMap(ctx.peerId, map);
                 } else {
-                    let top = await self.module.bot.v2.getTopScores(user.id, mode, 100);
+                    let top = await self.module.bot.v2.getUserTopById(user.id, mode, 100);
                     if(args.mods) {
                         let mods = new Mods(args.mods);
                         top = top.filter(score => score.mods.sum() == mods.sum());
                         if(!top[0]) return ctx.reply(`[Server: ${self.module.name}] Не найдено топ скоров с указанной комбинацией модов!`);
                     }
                     top = top.splice(0, 3);
-                    let maps = await Promise.all(top.map(s => self.module.bot.api.bancho.getBeatmap(s.beatmapId, mode, s.mods.diff())));
+                    let maps = await Promise.all(top.map(s => self.module.bot.v2.getBeatmap(s.beatmapId, mode, s.mods.diff())));
                     let str = maps.map((map, i) => {
                         let calc = new BanchoPP(map, top[i].mods);
                         return self.module.bot.templates.TopScore(top[i], map, i+1, calc, self.module.link);

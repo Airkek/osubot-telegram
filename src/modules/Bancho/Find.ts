@@ -8,7 +8,7 @@ export default class BanchoFind extends Command {
             if(!args.nickname[0])
                 return ctx.reply("Укажите ник!");
             try {
-                let u = await self.module.bot.api.bancho.getUser(args.nickname.join(" "));
+                let u = await self.module.bot.v2.getUser(args.nickname.join(" "));
                 let users = await self.module.bot.database.servers.bancho.findByUserId(u.id);
                 if(!users[0])
                     return ctx.reply("Не найдено пользователей с таким ником!");

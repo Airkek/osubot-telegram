@@ -18,7 +18,7 @@ export default class RippleRecent extends Command {
             let mode = args.mode === null ? dbUser.mode || 0 : args.mode;
             try {
                 let recent = await self.module.bot.api.ripple.getUserRecent(dbUser.nickname, mode);
-                let map = await self.module.bot.api.bancho.getBeatmap(recent.beatmapId, recent.mode, recent.mods.diff());
+                let map = await self.module.bot.v2.getBeatmap(recent.beatmapId, recent.mode, recent.mods.diff());
                 let cover = await self.module.bot.database.covers.getCover(map.id.set);
                 let calc = new Calculator(map, recent.mods);
                 let keyboard = Util.createKeyboard([

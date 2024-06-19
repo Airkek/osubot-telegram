@@ -22,7 +22,7 @@ export default class RippleCompare extends Command {
                 if(!chat)
                     return ctx.reply("Отправьте карту!");
                 let score = await self.module.bot.api.ripple.getScore(dbUser.nickname, chat.map.id.map, mode, args.mods.length == 0 ? undefined : new Mods(args.mods).sum());
-                let map = await self.module.bot.api.bancho.getBeatmap(chat.map.id.map, mode, score.mods.diff());
+                let map = await self.module.bot.v2.getBeatmap(chat.map.id.map, mode, score.mods.diff());
                 let cover = await self.module.bot.database.covers.getCover(map.id.set);
                 let calc = new Calculator(map, score.mods);
                 ctx.reply(`[Server: ${self.module.name}]\n${self.module.bot.templates.Compare(score, map, calc)}`, {
