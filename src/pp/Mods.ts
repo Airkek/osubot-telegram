@@ -169,9 +169,8 @@ export default class Mods {
 	fromMods(mods: V2Mod[]): number {
 		let flags = 0;
 		for (let mod of mods) {
-			let fullName = ModsAcronyms[mod.acronym];
-			if (!fullName || !ModsBitwise[fullName]) {
-				flags |= ModsBitwise[mod.acronym]
+			if (AcrToNum[mod.acronym]) {
+				flags |= AcrToNum[mod.acronym]
 			}
 		}
 
