@@ -116,6 +116,7 @@ class RippleScore implements APIScore {
     mode: number;
     rank: string;
     date: Date;
+    pp: number;
     constructor(data: any, mode: number, id: number, api: IAPI) {
         this.api = api;
         this.beatmapId = id;
@@ -133,6 +134,7 @@ class RippleScore implements APIScore {
         this.rank = data.rank;
         this.mode = mode;
         this.date = new Date(data.date);
+        this.pp = Number(data.pp);
     }
 
     accuracy() {
@@ -202,13 +204,9 @@ export default class RippleAPI implements IAPI {
     }
     
     async getLeaderboard(beatmapId: number, users: IDatabaseUser[], mode: number = 0, mods: number = null): Promise<LeaderboardResponse> {
-        let cache: { mods: number, map: APIBeatmap }[] = [];
+        let map = await this.bot.v2.getBeatmap(beatmapId, mode, 0);
         let scores: LeaderboardScore[] = [];
         try {
-            cache.push({
-                mods: 0,
-                map: await this.bot.v2.getBeatmap(beatmapId, mode, 0)
-            });
             let lim = Math.ceil(users.length / 5);
             for(var i = 0; i < lim; i++) {
                 try {
@@ -227,15 +225,6 @@ export default class RippleAPI implements IAPI {
                             usrs.splice(j, 1);
                         }
                     }
-                    for(let j = 0; j < s.length; j++) {
-                        try {
-                            if(!cache.find(c => c.mods == s[j].mods.diff()))
-                                cache.push({
-                                    mods: s[j].mods.diff(),
-                                    map: await this.bot.v2.getBeatmap(beatmapId, mode, s[j].mods.diff())
-                                }); 
-                        } catch(e) {}
-                    }
                     scores.push(...s.map((score, j) => {
                         return {
                             user: usrs[j],
@@ -245,7 +234,7 @@ export default class RippleAPI implements IAPI {
                 }catch(e){} // Ignore "No scores"
             }
             return {
-                maps: cache,
+                map,
                 scores: scores.sort((a,b) => {
                     if(a.score.score > b.score.score)
                         return -1;

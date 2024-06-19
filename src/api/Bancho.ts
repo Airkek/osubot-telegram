@@ -154,67 +154,46 @@ export default class BanchoAPI implements IAPI {
         });
     }
 
+    /**
+     * @deprecated The method should not be used
+     */
     async getUser(nickname: string, mode: number = 0): Promise<APIUser> {
-        try {
-            let { data } = await this.api.get(`/get_user?${qs.stringify({u: nickname, m: mode, k: this.token})}`);
-            if(!data[0])
-                throw "User not found";
-            return new BanchoUser(data[0], this);
-        } catch(e) {
-            throw e;
-        }
+        throw "Bancho api V1 deprecated";
     }
 
+    /**
+     * @deprecated The method should not be used
+     */
     async getUserTop(nickname: string, mode: number = 0, limit: number = 3): Promise<APITopScore[]> {
-        try {
-            let { data } = await this.api.get(`/get_user_best?${qs.stringify({u: nickname, m: mode, k: this.token, limit: limit})}`);
-            if(!data[0])
-                throw "No top scores";
-            return data.map(s => new BanchoTopScore(s, mode, this));
-        } catch(e) {
-            throw e;
-        }
+        throw "Bancho api V1 deprecated";
     }
 
+    /**
+     * @deprecated The method should not be used
+     */
     async getUserRecent(nickname: string, mode: number = 0, place: number = 1): Promise<APIRecentScore> {
-        try {
-            let { data } = await this.api.get(`/get_user_recent?${qs.stringify({u: nickname, m: mode, k: this.token, limit: place})}`);
-            if(data[place - 1])
-                return new BanchoRecentScore(data[place - 1], mode, this);
-            else
-                throw "No recent scores";
-        } catch(e) {
-            throw e;
-        }
+        throw "Bancho api V1 deprecated";
     }
 
+    /**
+     * @deprecated The method should not be used
+     */
     async getScore(nickname: string, beatmapId: number, mode: number = 0, mods: number = null): Promise<APIScore> {
-        let opts = {
-            k: this.token,
-            u: nickname,
-            b: beatmapId,
-            m: mode
-        };
-        try {
-            let { data } = await this.api.get(`/get_scores?${qs.stringify(opts)}`);
-            if(!isNullOrUndefined(mods))
-                data = data.filter(p => p.enabled_mods == mods);
-            if(!data[0])
-                throw "No scores found";
-            return new BanchoScore(data[0], mode, beatmapId, this);
-        } catch(e) {
-            throw e || "Unknown API error";
-        }
+        throw "Bancho api V1 deprecated";
     }
 
+    /**
+     * @deprecated The method should not be used
+     */
     async getBeatmap(id: number | string, mode: number = 0, mods: number = 0): Promise<APIBeatmap> {
+        // Preserving only for replays
         let opts: any = {
             k: this.token,
             a: 1,
             mode: mode
         };
         if(typeof id == "number")
-            opts.b = id;
+            throw "Bancho api V1 deprecated";
         else
             opts.h = String(id);
         if(mods)
@@ -240,61 +219,10 @@ export default class BanchoAPI implements IAPI {
         return beatmap;
     }
 
+    /**
+     * @deprecated The method should not be used
+     */
     async getLeaderboard(beatmapId: number, users: IDatabaseUser[], mode: number = 0, mods: number = null): Promise<LeaderboardResponse> {
-        let cache: { mods: number, map: APIBeatmap }[] = [];
-        let scores: LeaderboardScore[] = [];
-        try {
-            cache.push({
-                mods: 0,
-                map: await this.getBeatmap(beatmapId, mode, 0)
-            });
-            let lim = Math.ceil(users.length / 5);
-            for(var i = 0; i < lim; i++) {
-                try {
-                    let usrs = users.splice(0, 5);
-                    let usPromise = usrs.map(
-                        u => this.getScore(u.nickname, beatmapId, mode, mods)
-                    );  
-                    let s: APIScore[] = (await Promise.all(usPromise.map(
-                            (p) => p.catch(e => e)
-                        ))
-                    );
-                    for(let j = s.length - 1; j >= 0; j--) {
-                        let ok = typeof s[j] != "string" && !(s[j] instanceof Error);
-                        if(!ok) {
-                            s.splice(j, 1);
-                            usrs.splice(j, 1);
-                        }
-                    }
-                    for(let j = 0; j < s.length; j++) {
-                        try {
-                            if(!cache.find(c => c.mods == s[j].mods.diff()))
-                                cache.push({
-                                    mods: s[j].mods.diff(),
-                                    map: await this.getBeatmap(beatmapId, mode, s[j].mods.diff())
-                                }); 
-                        } catch(e) {}
-                    }
-                    scores.push(...s.map((score, j) => {
-                        return {
-                            user: usrs[j],
-                            score
-                        };
-                    }));
-                }catch(e){} // Ignore "No scores"
-            }
-            return {
-                maps: cache,
-                scores: scores.sort((a,b) => {
-                    if(a.score.score > b.score.score)
-                        return -1;
-                    else if(a.score.score < b.score.score)
-                        return 1;
-                    return 0;
-                })
-            }
-        } catch (e) {
-            throw e || "Unknown error";
-        }
+        throw "Bancho api V1 deprecated";
     }
 }

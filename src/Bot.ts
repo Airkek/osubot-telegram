@@ -165,7 +165,7 @@ export class Bot {
 
                     let parser = new ReplayParser(file);
                     let replay = parser.getReplay();
-                    let map = await this.api.bancho.getBeatmap(replay.beatmapHash);
+                    let map = await this.v2.getBeatmap(replay.beatmapHash);
                     if(replay.mods.diff()) 
                         map = await this.v2.getBeatmap(map.id.map, replay.mode, replay.mods.diff());
                     let cover = await this.database.covers.getCover(map.id.set);

@@ -213,6 +213,7 @@ interface APIScore {
     counts: HitCounts;
     mods: Mods;
     mode: number;
+    pp?: number;
     accuracy(): number;
     rank: string;
     date: Date;
@@ -343,7 +344,7 @@ interface LeaderboardScore {
 }
 
 interface LeaderboardResponse {
-    maps: { mods: number, map: APIBeatmap }[],
+    map: APIBeatmap,
     scores: LeaderboardScore[]
 }
 

@@ -462,6 +462,10 @@ class BanchoAPIV2 implements IAPI {
     }
 
     async getBeatmap(id: number | string, mode?: number, mods?: number): Promise<APIBeatmap> {
+        if (typeof id == "string") {
+            return await this.bot.api.bancho.getBeatmap(id);
+        }
+
         let data: BeatmapExtended = await this.get(`/beatmaps/${id}`);
         if (data === undefined) {
             throw "Beatmap not found";
@@ -492,13 +496,9 @@ class BanchoAPIV2 implements IAPI {
     }
 
     async getLeaderboard(beatmapId: number, users: IDatabaseUser[], mode?: number, mods?: number): Promise<LeaderboardResponse> {
-        let cache: { mods: number, map: APIBeatmap }[] = [];
+        let map = await this.getBeatmap(beatmapId);
         let scores: LeaderboardScore[] = [];
         try {
-            cache.push({
-                mods: 0,
-                map: await this.getBeatmap(beatmapId, mode, 0)
-            });
             let lim = Math.ceil(users.length / 5);
             for(var i = 0; i < lim; i++) {
                 try {
@@ -517,15 +517,6 @@ class BanchoAPIV2 implements IAPI {
                             usrs.splice(j, 1);
                         }
                     }
-                    for(let j = 0; j < s.length; j++) {
-                        try {
-                            if(!cache.find(c => c.mods == s[j].mods.diff()))
-                                cache.push({
-                                    mods: s[j].mods.diff(),
-                                    map: await this.getBeatmap(beatmapId, mode, s[j].mods.diff())
-                                }); 
-                        } catch(e) {}
-                    }
                     scores.push(...s.map((score, j) => {
                         return {
                             user: usrs[j],
@@ -535,7 +526,7 @@ class BanchoAPIV2 implements IAPI {
                 }catch(e){} // Ignore "No scores"
             }
             return {
-                maps: cache,
+                map,
                 scores: scores.sort((a,b) => {
                     if(a.score.score > b.score.score)
                         return -1;
