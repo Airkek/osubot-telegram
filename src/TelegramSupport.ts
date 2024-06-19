@@ -40,8 +40,8 @@ export default class UnifiedMessageContext {
     readonly tgCtx: Context;
     readonly tg: Bot;
 
-    reply: (text: string, options?: SendOptions) => void;
-    send: (text: string, options?: SendOptions, replyTo?: number) => void;
+    reply: (text: string, options?: SendOptions) => Promise<any>;
+    send: (text: string, options?: SendOptions, replyTo?: number) => Promise<any>;
     isAdmin: () => Promise<boolean>;
     hasAttachments: (type: string) => boolean;
     getAttachments: (type: string) => Array<any>; 
@@ -91,16 +91,16 @@ export default class UnifiedMessageContext {
 
             if (options?.attachment !== undefined && options.attachment.length != 0) {
                 opts['caption'] = text
-                this.tgCtx.replyWithPhoto(options.attachment, opts);
+                return this.tgCtx.replyWithPhoto(options.attachment, opts);
             } else {
-                this.tgCtx.reply(text, opts);
+                return this.tgCtx.reply(text, opts);
             }
         }
 
         let callbackReplyTo = this.tgCtx.callbackQuery?.from.username ? `@${this.tgCtx.callbackQuery.from.username}` : this.tgCtx.callbackQuery?.from.first_name;
 
         this.reply = (text: string, options?: SendOptions) => {
-            this.send(isMessage ? text : callbackReplyTo + ",\n" + text, options, isMessage ? this.tgCtx.message.message_id : undefined);
+            return this.send(isMessage ? text : callbackReplyTo + ",\n" + text, options, isMessage ? this.tgCtx.message.message_id : undefined);
         };
 
         this.hasAttachments = (type: string) => {
