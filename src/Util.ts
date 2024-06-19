@@ -119,6 +119,7 @@ export default {
                 iArg.nickname.push(arg);
             } else if(arg.endsWith("x50")) {
                 iArg.c50 = Math.max(Number(arg.slice(0, -3)), 0);
+                iArg.nickname.push(arg);
             } else if(arg.endsWith("m")) {
                 iArg.miss = Number(arg.slice(0, -1));
                 iArg.nickname.push(arg);
