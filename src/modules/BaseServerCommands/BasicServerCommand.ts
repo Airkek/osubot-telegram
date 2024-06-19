@@ -13,10 +13,19 @@ interface SendOptions {
 }
 
 
-class CommandWithContext extends Command {
-    ctx: UnifiedMessageContext;
-    args: ICommandArgs;
+class CommandContext {
+    readonly name: String | String[];
+    readonly module: Module;
+    readonly ctx: UnifiedMessageContext;
+    readonly args: ICommandArgs;
     
+    
+    constructor(command: ServerCommand, ctx: UnifiedMessageContext, args: ICommandArgs) {
+        this.ctx = ctx;
+        this.args = args;
+        this.name = command.name;
+        this.module = command.module;
+    }
     
     reply(text: string, options?: SendOptions): Promise<any> {
         return this.ctx.reply(`[Server: ${this.module.name}]\n` + text, options);
@@ -26,23 +35,21 @@ class CommandWithContext extends Command {
     }
 }
 
-let createServerCommandRunner = (func: (self: CommandWithContext) => Promise<void>): (ctx: UnifiedMessageContext, self: Command, args: ICommandArgs) => Promise<void> => {
+let createServerCommandRunner = (func: (self: CommandContext) => Promise<void>): (ctx: UnifiedMessageContext, self: Command, args: ICommandArgs) => Promise<void> => {
     return async (ctx, self, args) => {
-        let command: CommandWithContext = self as CommandWithContext;
-        command.ctx = ctx;
-        command.args = args;
+        let context = new CommandContext(self, ctx, args);
 
         try {
-            await func(command);
+            await func(context);
         } catch (e) {
             let err = await self.module.bot.database.errors.addError(self.module.prefix[0], ctx, String(e));
-            command.reply(`${Util.error(String(e))} (${err})`);
+            context.reply(`${Util.error(String(e))} (${err})`);
         }
     }
 }
 
 export class ServerCommand extends Command {
-    constructor(name: String[], module: Module, func: (self: CommandWithContext) => Promise<void>) {
+    constructor(name: String[], module: Module, func: (self: CommandContext) => Promise<void>) {
         super(name, module, createServerCommandRunner(func));
     }
 
