@@ -6,9 +6,9 @@ interface Donater {
     status: number | string
 }
 
-type ServerString = string | "bancho" | "gatari" | "ripple" | "akatsuki";
+type ServerString = string | "bancho" | "gatari" | "ripple" | "akatsuki" | "beatleader";
 
-let servers = ["bancho", "gatari", "ripple", "akatsuki"];
+let servers = ["bancho", "gatari", "ripple", "akatsuki", "beatleader"];
 
 export default class Donaters {
     list: {
@@ -16,10 +16,11 @@ export default class Donaters {
         gatari: Donater[],
         ripple: Donater[],
         akatsuki: Donater[],
+        beatleader: Donater[],
     };
     constructor() {
         if(!fs.existsSync("./donaters.json"))
-            fs.writeFileSync("./donaters.json", JSON.stringify({bancho: [], gatari: [], ripple: [], akatsuki: []}, null, 4));
+            fs.writeFileSync("./donaters.json", JSON.stringify({bancho: [], gatari: [], ripple: [], akatsuki: [], beatleader: []}, null, 4));
 
         this.list = JSON.parse(fs.readFileSync("./donaters.json").toString());
 
@@ -48,7 +49,7 @@ export default class Donaters {
         });
     }
 
-    status(server: ServerString, id: number): string {
+    status(server: ServerString, id: number | string): string {
         if(!this.list[server])
             return '';
         let donater = this.list[server].find(d => d.id == id);

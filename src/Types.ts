@@ -19,8 +19,8 @@ interface ICommandArgs {
 
 interface IDatabaseServer {
     getUser(id: number): Promise<IDatabaseUser | null>,
-    findByUserId(id: number): Promise<IDatabaseUser[]>,
-    setNickname(id: number, uid: number, nickname: string): Promise<void>,
+    findByUserId(id: number | string): Promise<IDatabaseUser[]>,
+    setNickname(id: number, uid: number | string, nickname: string): Promise<void>,
     setMode(id: number, mode: number): Promise<boolean>,
     updateInfo(user: APIUser, mode: number): Promise<void>,
     getUserStats(id: number, mode: number): Promise<IDatabaseUserStats>,
@@ -189,10 +189,10 @@ interface IBeatmapObjects {
 }
 
 interface APIUser {
-    id: number;
+    id: number | string;
     nickname: string;
     playcount: number;
-    playtime: number;
+    playtime?: number;
     pp: number;
     rank: {
         total: number,
@@ -200,7 +200,7 @@ interface APIUser {
     };
     country: string;
     accuracy: number;
-    level: number;
+    level?: number;
     mode?: number;
 }
 
@@ -320,7 +320,7 @@ interface APIRecentScore {
 
 interface IDatabaseUser {
     id: number,
-    uid: number,
+    uid: string,
     nickname: string,
     mode: number,
     pp: number,

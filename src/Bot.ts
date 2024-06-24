@@ -21,6 +21,7 @@ import BanchoV2 from "./api/BanchoV2";
 import Util from './Util';
 import IgnoreList from './Ignore';
 import UnifiedMessageContext from './TelegramSupport';
+import BeatLeader from './modules/BeatLeader';
 
 export interface IBotConfig {
     tg?: {
@@ -73,6 +74,7 @@ export class Bot {
             new Ripple(this),
             new Akatsuki(this),
             new AkatsukiRelax(this),
+            new BeatLeader(this),
             new Admin(this),
             new Main(this)
         ]);

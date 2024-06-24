@@ -22,7 +22,7 @@ interface ITemplates {
     Replay: (replay: Replay, map: APIBeatmap, calc: ICalc) => string;
     Beatmap: (map: APIBeatmap) => string;
     PP: (map: APIBeatmap, args: ICommandArgs) => string;
-    Leaderboard: (leaderboard: LeaderboardResponse, server: string, getStatus: (server: string, id: number) => string) => string;
+    Leaderboard: (leaderboard: LeaderboardResponse, server: string, getStatus: (server: string, id: number | string) => string) => string;
     Track: (response: OsuTrackResponse) => string;
     Search: (sets: V2Beatmapset[]) => string;
 }

@@ -1,13 +1,12 @@
 import { IAPI } from "../API";
 import * as axios from "axios";
 import qs from "querystring";
-import { APIUser, HitCounts, Mode, APIRecentScore, APIScore } from "../Types";
+import { APIUser, HitCounts, Mode, APIRecentScore, APIScore, APIBeatmap } from "../Types";
 import Mods from "../pp/Mods";
 import Util from "../Util";
 import { Bot } from "../Bot"
 
 class AkatsukiUser implements APIUser {
-    api: IAPI;
     id: number;
     nickname: string;
     playcount: number;
@@ -20,8 +19,7 @@ class AkatsukiUser implements APIUser {
     country: string;
     accuracy: number;
     level: number;
-    constructor(data: any, mode: string, api: IAPI) {
-        this.api = api;
+    constructor(data: any, mode: string) {
         this.id = data.id;
         this.nickname = data.username;
         this.playcount = data.stats[0][mode].playcount;
@@ -38,7 +36,6 @@ class AkatsukiUser implements APIUser {
 }
 
 class AkatsukiScore implements APIScore {
-    api: IAPI;
     beatmapId: number;
     score: number;
     combo: number;
@@ -48,8 +45,7 @@ class AkatsukiScore implements APIScore {
     pp: number;
     mode: number;
     date: Date;
-    constructor(data: any, mode: number, api: IAPI) {
-        this.api = api;
+    constructor(data: any, mode: number) {
         this.beatmapId = data.beatmap.beatmap_id;
         this.score = data.score;
         this.combo = data.max_combo;
@@ -74,7 +70,6 @@ class AkatsukiScore implements APIScore {
 }
 
 class AkatsukiRecentScore implements APIRecentScore {
-    api: IAPI;
     beatmapId: number;
     score: number;
     combo: number;
@@ -82,8 +77,7 @@ class AkatsukiRecentScore implements APIRecentScore {
     mods: Mods;
     rank: string;
     mode: number;
-    constructor(data: any, mode: number, api: IAPI) {
-        this.api = api;
+    constructor(data: any, mode: number) {
         this.beatmapId = data.beatmap.beatmap_id;
         this.score = data.score;
         this.combo = data.max_combo;
@@ -116,11 +110,15 @@ export default class AkatsukiAPI implements IAPI {
         });
     }
 
+    async getBeatmap(id: number | string, mode?: number, mods?: number): Promise<APIBeatmap> {
+        return await this.bot.api.v2.getBeatmap(id, mode, mods);
+    }
+
     async getUser(nickname: string, mode: number = 0): Promise<APIUser> {
         try {
             let { data } = await this.api.get(`/users/full?${qs.stringify({name: nickname})}`);
             let m = ["std","taiko","ctb","mania"][mode];
-            return new AkatsukiUser(data, m, this);
+            return new AkatsukiUser(data, m);
         } catch(e) {
             throw e || "User not found";
         }
@@ -130,7 +128,7 @@ export default class AkatsukiAPI implements IAPI {
         try {
             let { data } = await this.api.get(`/users/full?${qs.stringify({ id })}`);
             let m = ["std","taiko","ctb","mania"][mode];
-            return new AkatsukiUser(data, m, this);
+            return new AkatsukiUser(data, m);
         } catch(e) {
             throw e || "User not found";
         }
@@ -141,7 +139,7 @@ export default class AkatsukiAPI implements IAPI {
             let { data } = await this.api.get(`/users/scores/best?${qs.stringify({name: nickname, mode: mode, l: limit, rx: 0})}`);
             if(data.code != 200 || !data.scores)
                 throw data.message || undefined;
-            return data.scores.map(score => new AkatsukiScore(score, mode, this));
+            return data.scores.map(score => new AkatsukiScore(score, mode));
         } catch (e) {
             throw e || "No scores";
         }
@@ -152,7 +150,7 @@ export default class AkatsukiAPI implements IAPI {
             let { data } = await this.api.get(`/users/scores/best?${qs.stringify({ id, mode: mode, l: limit, rx: 0})}`);
             if(data.code != 200 || !data.scores)
                 throw data.message || undefined;
-            return data.scores.map(score => new AkatsukiScore(score, mode, this));
+            return data.scores.map(score => new AkatsukiScore(score, mode));
         } catch (e) {
             throw e || "No scores";
         }
@@ -163,7 +161,7 @@ export default class AkatsukiAPI implements IAPI {
             let { data } = await this.api.get(`/users/scores/recent?${qs.stringify({name: nickname, mode: mode, l: 1, rx: 0})}`);
             if(data.code != 200 || !data.scores)
                 throw data.message || undefined
-            return new AkatsukiRecentScore(data.scores[0], mode, this);
+            return new AkatsukiRecentScore(data.scores[0], mode);
         } catch(e) {
             throw e || "No scores"
         }
@@ -174,7 +172,7 @@ export default class AkatsukiAPI implements IAPI {
             let { data } = await this.api.get(`/users/scores/recent?${qs.stringify({ id, mode: mode, l: limit, rx: 0})}`);
             if(data.code != 200 || !data.scores)
                 throw data.message || undefined
-            return new AkatsukiRecentScore(data.scores[0], mode, this);
+            return new AkatsukiRecentScore(data.scores[0], mode);
         } catch(e) {
             throw e || "No scores"
         }

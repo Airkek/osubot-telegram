@@ -14,6 +14,7 @@ interface SendOptions {
 
 interface ParsedUser {
     username?: string,
+    id?: string,
     dbUser?: IDatabaseUser
 }
 
@@ -50,18 +51,22 @@ let createServerCommandRunner = (func: (self: CommandContext) => Promise<void>, 
             if(context.ctx.hasReplyMessage) {
                 context.user.dbUser = await self.module.db.getUser(context.ctx.replyMessage.senderId);
 
-                if(!context.user.dbUser.nickname) {
+                if(!context.user.dbUser.nickname && !args.nickname[0]) {
                     return context.reply(`У этого пользователя не указан ник!\nПривяжите через ${context.module.prefix[0]} nick <ник>`);
                 }                    
             } else {
                 context.user.dbUser = await self.module.db.getUser(context.ctx.senderId);
 
-                if(!context.user.dbUser.nickname) {
+                if(!context.user.dbUser.nickname && !args.nickname[0]) {
                     return context.reply(`Не указан ник!\nПривяжите через ${context.module.prefix[0]} nick <ник>`);
                 }
             }
             if (args.nickname[0]) {
-                context.user.username = context.args.nickname.join(" ");
+                if (context.module.api.getUser == undefined) {
+                    context.user.id = context.args.nickname[0];
+                } else {
+                    context.user.username = context.args.nickname.join(" ");
+                }
             }
         }
 
@@ -70,6 +75,7 @@ let createServerCommandRunner = (func: (self: CommandContext) => Promise<void>, 
         } catch (e) {
             let err = await self.module.bot.database.errors.addError(self.module.prefix[0], ctx, String(e));
             context.reply(`${Util.error(String(e))} (${err})`);
+            throw e;
         }
     }
 }

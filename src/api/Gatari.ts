@@ -7,7 +7,6 @@ import Util from '../Util';
 import { Bot } from "../Bot"
 
 class GatariUser implements APIUser {
-    api: IAPI;
     id: number;
     nickname: string;
     playcount: number;
@@ -20,8 +19,7 @@ class GatariUser implements APIUser {
     country: string;
     accuracy: number;
     level: number;
-    constructor(user: any, stats: any, api: IAPI) {
-        this.api = api;
+    constructor(user: any, stats: any) {
         this.id = user.id;
         this.nickname = user.username;
         this.playcount = stats.playcount;
@@ -38,7 +36,6 @@ class GatariUser implements APIUser {
 }
 
 class GatariTopScore implements APIScore {
-    api: IAPI;
     beatmapId: number;
     score: number;
     combo: number;
@@ -48,8 +45,7 @@ class GatariTopScore implements APIScore {
     pp: number;
     mode: number;
     date: Date;
-    constructor(score: any, api: IAPI) {
-        this.api = api;
+    constructor(score: any) {
         this.beatmapId = score.beatmap.beatmap_id;
         this.score = score.score;
         this.combo = score.max_combo;
@@ -74,7 +70,6 @@ class GatariTopScore implements APIScore {
 }
 
 class GatariRecentScore implements APIRecentScore {
-    api: IAPI;
     beatmapId: number;
     score: number;
     combo: number;
@@ -82,8 +77,7 @@ class GatariRecentScore implements APIRecentScore {
     mods: Mods;
     rank: string;
     mode: number;
-    constructor(data: any, api: IAPI) {
-        this.api = api;
+    constructor(data: any) {
         this.beatmapId = data.beatmap.beatmap_id;
         this.score = data.score;
         this.combo = data.max_combo;
@@ -106,7 +100,6 @@ class GatariRecentScore implements APIRecentScore {
 }
 
 class GatariScore implements APIScore {
-    api: IAPI;
     beatmapId: number;
     score: number;
     combo: number;
@@ -116,8 +109,7 @@ class GatariScore implements APIScore {
     rank: string;
     date: Date;
     pp: number;
-    constructor(data: any, id: number, api: IAPI) {
-        this.api = api;
+    constructor(data: any, id: number) {
         this.beatmapId = id;
         this.score = data.score;
         this.combo = data.max_combo;
@@ -151,6 +143,10 @@ export default class GatariAPI implements IAPI {
         });
     }
 
+    async getBeatmap(id: number | string, mode?: number, mods?: number): Promise<APIBeatmap> {
+        return await this.bot.api.v2.getBeatmap(id, mode, mods);
+    }
+
     async getUser(nickname: string, mode: number = 0): Promise<APIUser> {
         try {
             let { data: user } = await this.api.get(`/users/get?${qs.stringify({u: nickname})}`);
@@ -159,13 +155,13 @@ export default class GatariAPI implements IAPI {
                 throw "Unknown API error";
             if(!user.users[0])
                 throw "User not found";
-            return new GatariUser(user.users[0], stats.stats, this);
+            return new GatariUser(user.users[0], stats.stats);
         } catch(e) {
             throw e;
         }
     }
 
-    async getUserById(id: number, mode?: number): Promise<APIUser> {
+    async getUserById(id: number | string, mode?: number): Promise<APIUser> {
         try {
             let { data: user } = await this.api.get(`/users/get?${qs.stringify({id: id})}`);
             let { data: stats } = await this.api.get(`/user/stats?${qs.stringify({id: id, mode: mode})}`);
@@ -173,7 +169,7 @@ export default class GatariAPI implements IAPI {
                 throw "Unknown API error";
             if(!user.users[0])
                 throw "User not found";
-            return new GatariUser(user.users[0], stats.stats, this);
+            return new GatariUser(user.users[0], stats.stats);
         } catch(e) {
             throw e;
         }
@@ -181,15 +177,15 @@ export default class GatariAPI implements IAPI {
 
     async getUserTop(nickname: string, mode: number = 0, limit: number = 3): Promise<APIScore[]> {
         let user = await this.getUser(nickname);
-        return await this.getUserTopById(user.id, mode, limit);
+        return await this.getUserTopById(user.id as number, mode, limit);
     }
 
-    async getUserTopById(id: number, mode?: number, limit: number = 3): Promise<APIScore[]> {
+    async getUserTopById(id: number | string, mode?: number, limit: number = 3): Promise<APIScore[]> {
         try {
             let { data } = await this.api.get(`/user/scores/best?${qs.stringify({id: id, mode: mode, p: 1, l: limit})}`);
             if(!data.scores)
                 throw "No scores";
-            return data.scores.map(s => new GatariTopScore(s, this));
+            return data.scores.map(s => new GatariTopScore(s));
         } catch (e) {
             throw e;
         }
@@ -197,15 +193,15 @@ export default class GatariAPI implements IAPI {
 
     async getUserRecent(nickname: string, mode: number = 0, limit: number = 1): Promise<APIRecentScore> {
         let user = await this.getUser(nickname);
-        return await this.getUserRecentById(user.id, mode);
+        return await this.getUserRecentById(user.id as number, mode);
     }
 
-    async getUserRecentById(id: number, mode: number = 0, limit: number = 1): Promise<APIRecentScore> {
+    async getUserRecentById(id: number | string, mode: number = 0, limit: number = 1): Promise<APIRecentScore> {
         try {
             let { data } = await this.api.get(`/user/scores/recent?${qs.stringify({id , mode: mode, p: 1, l: limit, f: 1})}`);
             if(!data.scores[0])
                 throw "No scores";
-            return new GatariRecentScore(data.scores[0], this);
+            return new GatariRecentScore(data.scores[0]);
         } catch (e) {
             throw e;
         }
@@ -213,24 +209,24 @@ export default class GatariAPI implements IAPI {
 
     async getScore(nickname: string, beatmapId: number, mode: number = 0, mods?: number): Promise<APIScore> {
         let user = await this.getUser(nickname);
-        return await this.getScoreByUid(user.id, beatmapId, mode)
+        return await this.getScoreByUid(user.id as number, beatmapId, mode)
     }
 
-    async getScoreByUid(uid: number, beatmapId: number, mode: number = 0, mods?: number): Promise<APIScore> {
+    async getScoreByUid(uid: number | string, beatmapId: number, mode: number = 0, mods?: number): Promise<APIScore> {
         if(mode > 1)
             throw "Mode is not supported";
         try {
             let { data } = await this.api.get(`/beatmap/user/score?${qs.stringify({b: beatmapId, u: uid, mode: mode})}`);
             if(!data.score)
                 throw "No score";
-            return new GatariScore(data.score, beatmapId, this);
+            return new GatariScore(data.score, beatmapId);
         } catch (e) {
             throw e;
         }
     }
 
     async getLeaderboard(beatmapId: number, users: IDatabaseUser[], mode: number = 0): Promise<LeaderboardResponse> {
-        let map = await this.bot.api.v2.getBeatmap(beatmapId, mode, 0);
+        let map = await this.getBeatmap(beatmapId, mode, 0);
         let scores: LeaderboardScore[] = [];
         try {
             let lim = Math.ceil(users.length / 5);

@@ -19,7 +19,6 @@ export default class Akatsuki extends Module {
 
         this.registerCommand([
             new AbstractNick(this),
-            new AbstractNick(this),
             new AbstractUser(this),
             new AbstractTop(this),
             new AbstractChat(this),

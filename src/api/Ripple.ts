@@ -8,7 +8,6 @@ import { isNullOrUndefined } from "util";
 import { Bot } from "../Bot"
 
 class RippleUser implements APIUser {
-    api: IAPI;
     id: number;
     nickname: string;
     playcount: number;
@@ -21,8 +20,7 @@ class RippleUser implements APIUser {
     country: string;
     accuracy: number;
     level: number;
-    constructor(data: any, api: IAPI) {
-        this.api = api;
+    constructor(data: any) {
         this.id = Number(data.user_id);
         this.nickname = data.username;
         this.playcount = Number(data.playcount);
@@ -39,7 +37,6 @@ class RippleUser implements APIUser {
 }
 
 class RippleRecentScore implements APIRecentScore {
-    api: IAPI;
     beatmapId: number;
     score: number;
     combo: number;
@@ -47,8 +44,7 @@ class RippleRecentScore implements APIRecentScore {
     mods: Mods;
     rank: string;
     mode: number;
-    constructor(data: any, mode: number, api: IAPI) {
-        this.api = api;
+    constructor(data: any, mode: number) {
         this.beatmapId = Number(data.beatmap_id);
         this.score = Number(data.score);
         this.combo = Number(data.maxcombo);
@@ -115,23 +111,27 @@ export default class RippleAPI implements IAPI {
         });
     }
 
+    async getBeatmap(id: number | string, mode?: number, mods?: number): Promise<APIBeatmap> {
+        return await this.bot.api.v2.getBeatmap(id, mode, mods);
+    }
+
     async getUser(nickname: string, mode: number = 0): Promise<APIUser> {
         try {
             let { data } = await this.api.get(`/get_user?${qs.stringify({u: nickname, m: mode, type: "string"})}`);
             if(!data[0])
                 throw "User not found";
-            return new RippleUser(data[0], this);
+            return new RippleUser(data[0]);
         } catch(e) {
             throw e;
         }
     }
 
-    async getUserById(id: number, mode: number = 0): Promise<APIUser> {
+    async getUserById(id: number | string, mode: number = 0): Promise<APIUser> {
         try {
             let { data } = await this.api.get(`/get_user?${qs.stringify({u: id, m: mode})}`);
             if(!data[0])
                 throw "User not found";
-            return new RippleUser(data[0], this);
+            return new RippleUser(data[0]);
         } catch(e) {
             throw e;
         }
@@ -146,7 +146,7 @@ export default class RippleAPI implements IAPI {
         }
     }
 
-    async getUserTopById(id: number, mode: number = 0, limit: number = 3): Promise<APIScore[]> {
+    async getUserTopById(id: number | string, mode: number = 0, limit: number = 3): Promise<APIScore[]> {
         try {
             let { data } = await this.api.get(`/get_user_best?${qs.stringify({u: id, m: mode, limit: limit})}`);
             return data.map(s => new RippleScore(s, mode));
@@ -159,7 +159,7 @@ export default class RippleAPI implements IAPI {
         try {
             let { data } = await this.api.get(`/get_user_recent?${qs.stringify({u: nickname, m: mode, limit: 1, type: "string"})}`);
             if(data[0])
-                return new RippleRecentScore(data[0], mode, this);
+                return new RippleRecentScore(data[0], mode);
             else
                 throw "No recent scores";
         } catch(e) {
@@ -167,11 +167,11 @@ export default class RippleAPI implements IAPI {
         }
     }
 
-    async getUserRecentById(id: number, mode: number = 0): Promise<APIRecentScore> {
+    async getUserRecentById(id: number | string, mode: number = 0): Promise<APIRecentScore> {
         try {
             let { data } = await this.api.get(`/get_user_recent?${qs.stringify({u: id, m: mode, limit: 1})}`);
             if(data[0])
-                return new RippleRecentScore(data[0], mode, this);
+                return new RippleRecentScore(data[0], mode);
             else
                 throw "No recent scores";
         } catch(e) {
@@ -199,7 +199,7 @@ export default class RippleAPI implements IAPI {
         }
     }
 
-    async getScoreByUid(uid: number, beatmapId: number, mode: number = 0, mods: number = null): Promise<APIScore> {
+    async getScoreByUid(uid: number | string, beatmapId: number, mode: number = 0, mods: number = null): Promise<APIScore> {
         let opts = {
             u: uid,
             b: beatmapId,
@@ -219,7 +219,7 @@ export default class RippleAPI implements IAPI {
     }
     
     async getLeaderboard(beatmapId: number, users: IDatabaseUser[], mode: number = 0, mods: number = null): Promise<LeaderboardResponse> {
-        let map = await this.bot.api.v2.getBeatmap(beatmapId, mode, 0);
+        let map = await this.getBeatmap(beatmapId, mode, 0);
         let scores: LeaderboardScore[] = [];
         try {
             let lim = Math.ceil(users.length / 5);

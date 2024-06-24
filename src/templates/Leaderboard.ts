@@ -3,7 +3,7 @@ import Util from "../Util";
 // import { IPPCalculator as ICalc } from "../pp/Calculator";
 import BanchoPP from "../pp/bancho";
 
-export default function(leaderboard: LeaderboardResponse, server: string, getStatus: (server: string, id: number) => string): string {
+export default function(leaderboard: LeaderboardResponse, server: string, getStatus: (server: string, id: number | string) => string): string {
     if(!leaderboard.scores[0])
         return `Ни у кого нет скоров на этой карте!`;
     let map = leaderboard.map;

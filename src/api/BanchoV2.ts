@@ -421,7 +421,7 @@ class BanchoAPIV2 implements IAPI {
         return new V2User(data);
     }
 
-    async getUserById(id: number, mode?: number): Promise<APIUser> {
+    async getUserById(id: number | string, mode?: number): Promise<APIUser> {
         let data = await this.get(`/users/${id}/${getRuleset(mode)}`, {
             key: 'id'
         });
@@ -435,17 +435,17 @@ class BanchoAPIV2 implements IAPI {
 
     async getUserRecent(nickname: string, mode?: number, limit?: number ): Promise<APIRecentScore> {
         let user = await this.getUser(nickname);
-        return await this.getUserRecentById(user.id, mode, limit);
+        return await this.getUserRecentById(user.id as number, mode, limit);
     }
 
     async getUserTop(nickname: string, mode?: number, limit?: number): Promise<APIScore[]> {
         let user = await this.getUser(nickname);
-        return await this.getUserTopById(user.id, mode, limit);
+        return await this.getUserTopById(user.id as number, mode, limit);
     }
 
     async getScore(nickname: string, beatmapId: number, mode?: number, mods?: number): Promise<APIScore> {
         let user = await this.getUser(nickname);
-        return await this.getScoreByUid(user.id, beatmapId, mode, mods);
+        return await this.getScoreByUid(user.id as number, beatmapId, mode, mods);
     }
 
     async getBeatmap(id: number | string, mode?: number, mods?: number): Promise<APIBeatmap> {
@@ -545,7 +545,7 @@ class BanchoAPIV2 implements IAPI {
         }));
     }
 
-    async getUserRecentById(uid: number, mode: number, limit: number = 1): Promise<APIRecentScore> {
+    async getUserRecentById(uid: number | string, mode: number, limit: number = 1): Promise<APIRecentScore> {
         let data = await this.get(`/users/${uid}/scores/recent`, { 
             mode: getRuleset(mode), 
             include_fails: true,
@@ -560,7 +560,7 @@ class BanchoAPIV2 implements IAPI {
         }
     }
 
-    async getUserTopById(uid: number, mode: number = 0, limit: number = 3): Promise<APIScore[]> {
+    async getUserTopById(uid: number | string, mode: number = 0, limit: number = 3): Promise<APIScore[]> {
         let data = await this.get(`/users/${uid}/scores/best`, { 
             mode: getRuleset(mode), 
             include_fails: true,
@@ -574,7 +574,7 @@ class BanchoAPIV2 implements IAPI {
         }
     }
 
-    async getScoreByUid(uid: number, beatmapId: number, mode?: number, mods?: number): Promise<APIScore> {
+    async getScoreByUid(uid: number | string, beatmapId: number, mode?: number, mods?: number): Promise<APIScore> {
         let data: BeatmapUserScore = await this.get(`/beatmaps/${beatmapId}/scores/users/${uid}`, {
             mode: getRuleset(mode),
             mods: '' //TODO

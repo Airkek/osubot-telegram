@@ -1,13 +1,12 @@
 import { IAPI } from "../API";
 import * as axios from "axios";
 import qs from "querystring";
-import { APIUser, HitCounts, APIRecentScore, APIScore } from "../Types";
+import { APIUser, HitCounts, APIRecentScore, APIScore, APIBeatmap } from "../Types";
 import Mods from "../pp/Mods";
 import Util from "../Util";
 import { Bot } from "../Bot"
 
 class AkatsukiRelaxUser implements APIUser {
-    api: IAPI;
     id: number;
     nickname: string;
     playcount: number;
@@ -20,8 +19,7 @@ class AkatsukiRelaxUser implements APIUser {
     country: string;
     accuracy: number;
     level: number;
-    constructor(data: any, mode: string, api: IAPI) {
-        this.api = api;
+    constructor(data: any, mode: string) {
         this.id = data.id;
         this.nickname = data.username;
         this.playcount = data.stats[1][mode].playcount;
@@ -38,7 +36,6 @@ class AkatsukiRelaxUser implements APIUser {
 }
 
 class AkatsukiRelaxScore implements APIScore {
-    api: IAPI;
     beatmapId: number;
     score: number;
     combo: number;
@@ -48,8 +45,7 @@ class AkatsukiRelaxScore implements APIScore {
     pp: number;
     mode: number;
     date: Date;
-    constructor(data: any, mode: number, api: IAPI) {
-        this.api = api;
+    constructor(data: any, mode: number) {
         this.beatmapId = data.beatmap.beatmap_id;
         this.score = data.score;
         this.combo = data.max_combo;
@@ -74,7 +70,6 @@ class AkatsukiRelaxScore implements APIScore {
 }
 
 class AkatsukiRelaxRecentScore implements APIRecentScore {
-    api: IAPI;
     beatmapId: number;
     score: number;
     combo: number;
@@ -82,8 +77,7 @@ class AkatsukiRelaxRecentScore implements APIRecentScore {
     mods: Mods;
     rank: string;
     mode: number;
-    constructor(data: any, mode: number, api: IAPI) {
-        this.api = api;
+    constructor(data: any, mode: number) {
         this.beatmapId = data.beatmap.beatmap_id;
         this.score = data.score;
         this.combo = data.max_combo;
@@ -116,11 +110,15 @@ export default class AkatsukiRelaxAPI implements IAPI {
         });
     }
 
+    async getBeatmap(id: number | string, mode?: number, mods?: number): Promise<APIBeatmap> {
+        return await this.bot.api.v2.getBeatmap(id, mode, mods);
+    }
+
     async getUser(nickname: string, mode: number = 0): Promise<APIUser> {
         try {
             let { data } = await this.api.get(`/users/full?${qs.stringify({name: nickname})}`);
             let m = ["std","taiko","ctb","mania"][mode];
-            return new AkatsukiRelaxUser(data, m, this);
+            return new AkatsukiRelaxUser(data, m);
         } catch(e) {
             throw e || "User not found";
         }
@@ -130,7 +128,7 @@ export default class AkatsukiRelaxAPI implements IAPI {
         try {
             let { data } = await this.api.get(`/users/full?${qs.stringify({ id })}`);
             let m = ["std","taiko","ctb","mania"][mode];
-            return new AkatsukiRelaxUser(data, m, this);
+            return new AkatsukiRelaxUser(data, m);
         } catch(e) {
             throw e || "User not found";
         }
@@ -141,7 +139,7 @@ export default class AkatsukiRelaxAPI implements IAPI {
             let { data } = await this.api.get(`/users/scores/best?${qs.stringify({name: nickname, mode: mode, l: limit, rx: 1})}`);
             if(data.code != 200 || !data.scores)
                 throw data.message || undefined;
-            return data.scores.map(score => new AkatsukiRelaxScore(score, mode, this));
+            return data.scores.map(score => new AkatsukiRelaxScore(score, mode));
         } catch (e) {
             throw e || "No scores";
         }
@@ -152,7 +150,7 @@ export default class AkatsukiRelaxAPI implements IAPI {
             let { data } = await this.api.get(`/users/scores/best?${qs.stringify({ id, mode: mode, l: limit, rx: 1})}`);
             if(data.code != 200 || !data.scores)
                 throw data.message || undefined;
-            return data.scores.map(score => new AkatsukiRelaxScore(score, mode, this));
+            return data.scores.map(score => new AkatsukiRelaxScore(score, mode));
         } catch (e) {
             throw e || "No scores";
         }
@@ -163,7 +161,7 @@ export default class AkatsukiRelaxAPI implements IAPI {
             let { data } = await this.api.get(`/users/scores/recent?${qs.stringify({name: nickname, mode: mode, l: 1, rx: 1})}`);
             if(data.code != 200 || !data.scores)
                 throw data.message || undefined
-            return new AkatsukiRelaxRecentScore(data.scores[0], mode, this);
+            return new AkatsukiRelaxRecentScore(data.scores[0], mode);
         } catch(e) {
             throw e || "No scores"
         }
@@ -174,7 +172,7 @@ export default class AkatsukiRelaxAPI implements IAPI {
             let { data } = await this.api.get(`/users/scores/recent?${qs.stringify({ id, mode: mode, l: limit, rx: 1})}`);
             if(data.code != 200 || !data.scores)
                 throw data.message || undefined
-            return new AkatsukiRelaxRecentScore(data.scores[0], mode, this);
+            return new AkatsukiRelaxRecentScore(data.scores[0], mode);
         } catch(e) {
             throw e || "No scores"
         }

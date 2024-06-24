@@ -22,7 +22,7 @@ class DatabaseServer implements IDatabaseServer {
         }
     }
 
-    async findByUserId(id: number): Promise<IDatabaseUser[]> {
+    async findByUserId(id: number | string): Promise<IDatabaseUser[]> {
         try {
             let users: IDatabaseUser[] = await this.db.all(`SELECT * FROM ${this.table} WHERE uid = ? COLLATE NOCASE`, [id]);
             return users;
@@ -31,7 +31,7 @@ class DatabaseServer implements IDatabaseServer {
         }
     }
 
-    async setNickname(id: number, uid: number, nickname: String): Promise<void> {
+    async setNickname(id: number, uid: number | string, nickname: String): Promise<void> {
         try {
             let user: IDatabaseUser = await this.getUser(id);
             if(!user.id)
@@ -68,10 +68,43 @@ class DatabaseServer implements IDatabaseServer {
         return stats;
     }
 
+    async applyMigrations(): Promise<void> {
+        let applied = await this.db.all(`SELECT * FROM migrations_${this.table}`);
+
+        if (!applied.includes(1)) {
+            await this.db.run(
+                `CREATE TABLE IF NOT EXISTS temp_${this.table} (
+                  id INTEGER,
+                  uid TEXT,
+                  nickname TEXT,
+                  mode INTEGER
+                )`
+            );
+        
+            await this.db.run(
+                `INSERT INTO temp_${this.table} (id, uid, nickname, mode)
+                SELECT id, uid, nickname, mode FROM ${this.table}`
+            );
+        
+            await this.db.run(
+                `DROP TABLE ${this.table}`
+            );
+        
+            await this.db.run(
+                `ALTER TABLE temp_${this.table} RENAME TO ${this.table}`
+            );
+
+            await this.db.run(`INSERT INTO migrations_${this.table} (id) VALUES (1)`);
+        }
+    }
+
     async createTables(): Promise<void> {
+        await this.db.run(`CREATE TABLE IF NOT EXISTS migrations_${this.table} (version INGEGER)`);
         await this.db.run(`CREATE TABLE IF NOT EXISTS ${this.table} (id INTEGER, uid INTEGER, nickname TEXT, mode INTEGER)`);
         for(let i = 0; i < 4; i++)
             await this.db.run(`CREATE TABLE IF NOT EXISTS ${this.table}_stats_${i} (id INTEGER, nickname TEXT, pp REAL DEFAULT 0, rank INTEGER DEFAULT 9999999, acc REAL DEFAULT 100)`);
+
+        await this.applyMigrations();
     }
 }
 
@@ -173,6 +206,7 @@ interface IServersList {
     gatari: DatabaseServer,
     ripple: DatabaseServer,
     akatsuki: DatabaseServer,
+    saber: DatabaseServer,
 }
 
 export default class Database {
@@ -189,7 +223,8 @@ export default class Database {
             bancho: new DatabaseServer("bancho", this),
             gatari: new DatabaseServer("gatari", this),
             ripple: new DatabaseServer("ripple", this),
-            akatsuki: new DatabaseServer("akatsuki", this)
+            akatsuki: new DatabaseServer("akatsuki", this),
+            saber: new DatabaseServer("beatleader", this)
         }
 
         this.covers = new DatabaseCovers(this);
