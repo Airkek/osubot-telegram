@@ -151,7 +151,8 @@ class DatabaseCovers {
 
     async getPhotoDoc(photoUrl: string): Promise<string> {
         let cover = await this.db.get(`SELECT * FROM photos WHERE url = ?`, [photoUrl]);
-        if(!cover.id)
+        console.log(cover);
+        if(!cover.url)
             return this.addPhotoDoc(photoUrl);
         return cover.attachment;
     }
