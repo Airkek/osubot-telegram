@@ -1,6 +1,6 @@
 import IAPI from "./base";
 import * as axios from "axios";
-import { APIUser, HitCounts, APIRecentScore, APIScore, IDatabaseUser, LeaderboardResponse, APIBeatmap, LeaderboardScore, IDatabaseUserStats } from "../Types";
+import { APIUser, HitCounts, APIScore, IDatabaseUser, LeaderboardResponse, APIBeatmap, LeaderboardScore, IDatabaseUserStats } from "../Types";
 import qs from "querystring";
 import Util from "../Util";
 import Mods from "../pp/Mods";
@@ -36,7 +36,7 @@ class RippleUser implements APIUser {
     }
 }
 
-class RippleRecentScore implements APIRecentScore {
+class RippleRecentScore implements APIScore {
     beatmapId: number;
     score: number;
     combo: number;
@@ -155,7 +155,7 @@ export default class RippleAPI implements IAPI {
         }
     }
 
-    async getUserRecent(nickname: string, mode: number = 0): Promise<APIRecentScore> {
+    async getUserRecent(nickname: string, mode: number = 0): Promise<APIScore> {
         try {
             let { data } = await this.api.get(`/get_user_recent?${qs.stringify({u: nickname, m: mode, limit: 1, type: "string"})}`);
             if(data[0])
@@ -167,7 +167,7 @@ export default class RippleAPI implements IAPI {
         }
     }
 
-    async getUserRecentById(id: number | string, mode: number = 0): Promise<APIRecentScore> {
+    async getUserRecentById(id: number | string, mode: number = 0): Promise<APIScore> {
         try {
             let { data } = await this.api.get(`/get_user_recent?${qs.stringify({u: id, m: mode, limit: 1})}`);
             if(data[0])

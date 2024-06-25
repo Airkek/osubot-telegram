@@ -1,119 +1,63 @@
 import { IAPI } from "../API";
 import * as axios from "axios";
-import { APIUser } from "../Types";
+import qs from "querystring";
+import { APIBeatmap, APIScore, APIUser, HitCounts, IBeatmapObjects, IBeatmapStars, IHitCounts, IHits } from "../Types";
 import { Bot } from "../Bot"
+import Mods from "../pp/Mods";
+import { ICalcStats } from "../pp/Stats";
 
 interface BLUserResponse {
-    mapperId: number,
-    banned: boolean,
-    inactive: boolean,
-    banDescription: any,
-    externalProfileUrl: string,
-    richBioTimeset: number,
-    speedrunStart: number,
-    history: any,
-    badges: any[],
-    pinnedScores: any,
-    changes: any[],
-    accPp: number,
-    passPp: number,
-    techPp: number,
     scoreStats: {
-      id: number,
-      totalScore: number,
-      totalUnrankedScore: number,
-      totalRankedScore: number,
-      lastScoreTime: number,
-      lastUnrankedScoreTime: number,
-      lastRankedScoreTime: number,
       averageRankedAccuracy: number,
-      averageWeightedRankedAccuracy: number,
-      averageUnrankedAccuracy: number,
-      averageAccuracy: number,
-      medianRankedAccuracy: number,
-      medianAccuracy: number,
-      topRankedAccuracy: number,
-      topUnrankedAccuracy: number,
-      topAccuracy: number,
-      topPp: number,
-      topBonusPP: number,
-      topPassPP: number,
-      topAccPP: number,
-      topTechPP: number,
-      peakRank: number,
-      rankedMaxStreak: number,
-      unrankedMaxStreak: number,
-      maxStreak: number,
-      averageLeftTiming: number,
-      averageRightTiming: number,
-      rankedPlayCount: number,
-      unrankedPlayCount: number,
       totalPlayCount: number,
-      rankedImprovementsCount: number,
-      unrankedImprovementsCount: number,
-      totalImprovementsCount: number,
-      rankedTop1Count: number,
-      unrankedTop1Count: number,
-      top1Count: number,
-      rankedTop1Score: number,
-      unrankedTop1Score: number,
-      top1Score: number,
-      averageRankedRank: number,
-      averageWeightedRankedRank: number,
-      averageUnrankedRank: number,
-      averageRank: number,
-      sspPlays: number,
-      ssPlays: number,
-      spPlays: number,
-      sPlays: number,
-      aPlays: number,
-      topPlatform: string,
-      topHMD: number,
-      topPercentile: number,
-      countryTopPercentile: number,
-      dailyImprovements: number,
-      authorizedReplayWatched: number,
-      anonimusReplayWatched: number,
-      watchedReplays: number,
     },
-    lastWeekPp: number,
-    lastWeekRank: number,
-    lastWeekCountryRank: number,
     id: string,
     name: string,
-    platform: string,
-    avatar: string,
     country: string,
-    alias: any,
-    bot: boolean,
     pp: number,
     rank: number,
     countryRank: number,
-    role: string,
-    socials: any[],
-    contextExtensions: any,
-    patreonFeatures: any,
-    profileSettings: {
-      id: number,
-      bio: any,
-      message: any,
-      effectName: string,
-      profileAppearance: string,
-      hue: any,
-      saturation: any,
-      leftSaberColor: any,
-      rightSaberColor: any,
-      profileCover: any,
-      starredFriends: string,
-      horizontalRichBio: boolean,
-      rankedMapperSort: any,
-      showBots: boolean,
-      showAllRatings: boolean,
-      showStatsPublic: boolean,
-      showStatsPublicPinned: boolean,
-    },
-    clanOrder: string,
-    clans: any[],
+}
+
+interface BLScoreData {
+    playerId: string,
+    modifiedScore: number,
+    accuracy: number,
+    rank: number,
+    pp: number,
+    fcPp: number,
+    fullCombo: boolean,
+    modifiers: string,
+    badCuts: number,
+    bombCuts: number,
+    wallsHit: number
+    missedNotes: number,
+    maxCombo: number,
+    pauses: number,
+    leaderboard: {
+        id: string,
+        song: {
+            id: string,
+            name: string,
+            author: string,
+            mapper: string,
+            bpm: number,
+            mapperId: number,
+            fullCoverImage: string
+        },
+        difficulty: {
+            id: number,
+            stars: number,
+            difficultyName: string,
+            mode: number,
+            status: number,
+            duration: number
+        },
+    }
+}
+
+interface BLScoreResponse {
+    data: BLScoreData[]
 }
 
 class BeatSaberUser implements APIUser {
@@ -137,10 +81,134 @@ class BeatSaberUser implements APIUser {
             country: data.countryRank
         };
         this.country = data.country;
-        this.accuracy = data.scoreStats.averageAccuracy * 100;
+        this.accuracy = data.scoreStats.averageRankedAccuracy * 100;
     }
 }
 
+class BeatLeaderScoreMap implements APIBeatmap {
+    artist: string;
+    id: { set: number; map: number; };
+    bpm: number;
+    creator: { nickname: string; id: number; };
+    status: string;
+    stats: ICalcStats;
+    diff: IBeatmapStars;
+    objects: IBeatmapObjects;
+    title: string;
+    length: number;
+    version: string;
+    combo: number;
+    mode: number;
+    coverUrl: string;
+    mapUrl: string
+
+    constructor(data: BLScoreData) {
+        this.artist = data.leaderboard.song.author;
+        this.id = {
+            set: ~~data.leaderboard.song.id,
+            map: data.leaderboard.difficulty.id
+        };
+        this.bpm = data.leaderboard.song.bpm;
+        this.creator = {
+            nickname: data.leaderboard.song.mapper,
+            id: data.leaderboard.song.mapperId
+        };
+        this.status = data.leaderboard.difficulty.status == 3 ? "Ranked" : "Unranked";
+        this.stats = {
+            ar: 0,
+            cs: 0,
+            od: 0,
+            hp: 0,
+            modify: (mods: Mods) => {},
+            toString: () => ""
+        };
+        this.diff = {
+            stars: data.leaderboard.difficulty.stars
+        };
+        this.objects = {
+            circles: 0,
+            sliders: 0,
+            spinners: 0
+        };
+        this.title = data.leaderboard.song.name;
+        this.length = data.leaderboard.difficulty.duration;
+        this.version = data.leaderboard.difficulty.difficultyName;
+        this.combo = data.fullCombo ? data.maxCombo : undefined;
+        this.mode = data.leaderboard.difficulty.mode;
+        this.coverUrl = data.leaderboard.song.fullCoverImage;
+        this.mapUrl = `https://beatleader.xyz/leaderboard/global/${data.leaderboard.id}`
+    }
+}
+
+interface IHitData {
+    wallsHit: number,
+    bombsHit: number,
+    badCuts: number,
+    missedNotes: number,
+    pauses: number
+}
+
+class BSHitCounts implements IHitCounts {
+    300: number;
+    100: number;
+    50: number;
+    miss: number;
+
+    hitData: IHitData;
+    constructor(data: IHitData) {
+        this.hitData = data;
+    }
+    accuracy(): number {
+        return NaN;
+    }
+    totalHits(): number {
+        return NaN;
+    }
+    toString(): string {
+        return `${this.hitData.pauses}xPause ${this.hitData.wallsHit}xWall ${this.hitData.badCuts}xBad ${this.hitData.bombsHit}xBomb ${this.hitData.missedNotes}xMiss`
+    }
+}
+
+class BeatSaberScore implements APIScore {
+    beatmapId: number;
+    score: number;
+    combo: number;
+    counts: IHitCounts;
+    mods: Mods;
+    mode: number;
+    pp?: number;
+    fcPp?: number;
+    beatmap?: APIBeatmap;
+    rank: string;
+    date: Date;
+
+    acc: number;
+
+    constructor(data: BLScoreData) {
+        this.beatmapId = ~~data.leaderboard.song.id;
+        this.score = data.modifiedScore;
+        this.combo = data.maxCombo;
+        this.counts = new BSHitCounts({
+            wallsHit: data.wallsHit,
+            bombsHit: data.bombCuts,
+            badCuts: data.badCuts,
+            missedNotes: data.missedNotes,
+            pauses: data.pauses
+        });
+        this.mods = new Mods(''); // TODO: Implement mods
+        this.acc = data.accuracy;
+        this.pp = data.pp;
+        this.fcPp = data.fcPp;
+        this.rank = data.fullCombo ? "FC" : "Pass" 
+        this.date = new Date();
+        this.mode = data.leaderboard.difficulty.mode;
+        this.beatmap = new BeatLeaderScoreMap(data);
+    }
+
+    accuracy(): number {
+        return this.acc;
+    }
+}
 
 export default class BeatLeaderAPI implements IAPI {
     bot: Bot;
@@ -154,11 +222,23 @@ export default class BeatLeaderAPI implements IAPI {
     }
 
     async getUserById(id: string, mode?: number): Promise<APIUser> {
-        try {
-            let { data } = await this.api.get(`/player/${id}?stats=true&keepOriginalId=false`);
-            return new BeatSaberUser(data);
-        } catch(e) {
-            throw e || "User not found";
+        let { data } = await this.api.get(`/player/${id}?stats=true&keepOriginalId=false`);
+        return new BeatSaberUser(data);
+    }
+
+    async getUserRecentById(id: string, mode?: number, limit: number = 1): Promise<APIScore> {
+        let data: BLScoreResponse = (await this.api.get(`/player/${id}/scores?${qs.stringify({sortBy: 'date', order: 'desc', page: 1, count: limit})}`)).data;
+        if (data && data.data && data.data[0]) {
+            return new BeatSaberScore(data.data[0]);
         }
+        throw "No recent scores";
+    }
+
+    async getUserTopById(id: string, mode?: number, limit: number = 3): Promise<APIScore[]> {
+        let data: BLScoreResponse = (await this.api.get(`/player/${id}/scores?${qs.stringify({sortBy: 'pp', order: 'desc', page: 1, count: limit})}`)).data;
+        if (data && data.data && data.data.length > 0) {
+            return data.data.map((scoreData: BLScoreData) => new BeatSaberScore(scoreData));
+        }
+        throw "No top scores";
     }
 }

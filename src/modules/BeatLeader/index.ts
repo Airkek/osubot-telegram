@@ -3,6 +3,8 @@ import { Bot } from "../../Bot";
 import AbstractUser from "../BaseServerCommands/User";
 import Nick from "./Nick";
 import Id from "./Id";
+import AbstractRecent from "../BaseServerCommands/Recent";
+import AbstractTop from "../BaseServerCommands/Top";
 
 export default class BeatLeader extends Module {
     constructor(bot: Bot) {
@@ -17,7 +19,9 @@ export default class BeatLeader extends Module {
         this.registerCommand([
             new Nick(this),
             new Id(this),
-            new AbstractUser(this)
+            new AbstractUser(this),
+            new AbstractRecent(this),
+            new AbstractTop(this)
         ]);
     }
 }

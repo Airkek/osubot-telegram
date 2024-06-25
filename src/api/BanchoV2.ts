@@ -1,6 +1,6 @@
 import * as axios from "axios";
 import qs from "querystring";
-import { V2BeatmapsetsArguments, V2Beatmapset, V2Mod, APIRecentScore, HitCounts, APIBeatmap, APIScore, APIUser, IDatabaseUser, LeaderboardResponse, IBeatmapObjects, IBeatmapStars, BeatmapStatus, LeaderboardScore } from "../Types";
+import { V2BeatmapsetsArguments, V2Beatmapset, V2Mod, APIScore, HitCounts, APIBeatmap, APIUser, IDatabaseUser, LeaderboardResponse, IBeatmapObjects, IBeatmapStars, BeatmapStatus, LeaderboardScore } from "../Types";
 import Mods from "../pp/Mods";
 import Util from "../Util";
 import * as fs from "fs";
@@ -198,9 +198,7 @@ class V2Beatmap implements APIBeatmap {
             hp: beatmap.drain
         }, beatmap.mode_int);
         this.diff = {
-            stars: attributes.star_rating || beatmap.difficulty_rating,
-            aim: attributes.aim_difficulty || 0,
-            speed: attributes.speed_difficulty || 0
+            stars: attributes.star_rating || beatmap.difficulty_rating
         };
         this.objects = {
             circles: beatmap.count_circles,
@@ -220,7 +218,7 @@ interface BeatmapUserScore {
     score: Score
 }
 
-class V2RecentScore implements APIRecentScore {
+class V2RecentScore implements APIScore {
     beatmapId: number;
     score: number;
     combo: number;
@@ -433,7 +431,7 @@ class BanchoAPIV2 implements IAPI {
         return new V2User(data);
     }
 
-    async getUserRecent(nickname: string, mode?: number, limit?: number ): Promise<APIRecentScore> {
+    async getUserRecent(nickname: string, mode?: number, limit?: number ): Promise<APIScore> {
         let user = await this.getUser(nickname);
         return await this.getUserRecentById(user.id as number, mode, limit);
     }
@@ -545,7 +543,7 @@ class BanchoAPIV2 implements IAPI {
         }));
     }
 
-    async getUserRecentById(uid: number | string, mode: number, limit: number = 1): Promise<APIRecentScore> {
+    async getUserRecentById(uid: number | string, mode: number, limit: number = 1): Promise<APIScore> {
         let data = await this.get(`/users/${uid}/scores/recent`, { 
             mode: getRuleset(mode), 
             include_fails: true,

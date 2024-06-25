@@ -7,7 +7,7 @@ export default class SearchCommand extends Command {
             if(!args.full[0])
                 return ctx.reply("Укажите запрос для поиска");
             
-            let data = await self.module.api.getBeatmapsets({ query: args.full.join(" "), status: 'ranked' });
+            let data = await self.module.bot.api.v2.getBeatmapsets({ query: args.full.join(" "), status: 'ranked' });
             
             if(!data.length)
                 return ctx.reply("Не найдено карт");

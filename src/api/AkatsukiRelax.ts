@@ -1,7 +1,7 @@
 import { IAPI } from "../API";
 import * as axios from "axios";
 import qs from "querystring";
-import { APIUser, HitCounts, APIRecentScore, APIScore, APIBeatmap } from "../Types";
+import { APIUser, HitCounts, APIScore, APIBeatmap } from "../Types";
 import Mods from "../pp/Mods";
 import Util from "../Util";
 import { Bot } from "../Bot"
@@ -69,7 +69,7 @@ class AkatsukiRelaxScore implements APIScore {
     }
 }
 
-class AkatsukiRelaxRecentScore implements APIRecentScore {
+class AkatsukiRelaxRecentScore implements APIScore {
     beatmapId: number;
     score: number;
     combo: number;
@@ -156,7 +156,7 @@ export default class AkatsukiRelaxAPI implements IAPI {
         }
     }
 
-    async getUserRecent(nickname: string, mode: number = 0): Promise<APIRecentScore> {
+    async getUserRecent(nickname: string, mode: number = 0): Promise<APIScore> {
         try {
             let { data } = await this.api.get(`/users/scores/recent?${qs.stringify({name: nickname, mode: mode, l: 1, rx: 1})}`);
             if(data.code != 200 || !data.scores)
@@ -167,7 +167,7 @@ export default class AkatsukiRelaxAPI implements IAPI {
         }
     }
 
-    async getUserRecentById(id: number, mode?: number, limit?: number): Promise<APIRecentScore> {
+    async getUserRecentById(id: number, mode?: number, limit?: number): Promise<APIScore> {
         try {
             let { data } = await this.api.get(`/users/scores/recent?${qs.stringify({ id, mode: mode, l: limit, rx: 1})}`);
             if(data.code != 200 || !data.scores)

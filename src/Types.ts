@@ -43,7 +43,7 @@ class CalcArgs {
     score?: number;
     acc?: number;
     combo?: number;
-    counts?: HitCounts;
+    counts?: IHitCounts;
     mods: Mods;
     mode: number;
     constructor(args: PPArgs, mode: number) {
@@ -118,7 +118,13 @@ interface IHits {
     geki?: number
 }
 
-class HitCounts implements IHits {
+interface IHitCounts extends IHits {
+    accuracy(): number;
+    totalHits(): number;
+    toString(): string;
+}
+
+class HitCounts implements IHitCounts {
     300: number;
     100: number;
     50: number;
@@ -136,8 +142,8 @@ class HitCounts implements IHits {
         this.mode = mode;
     }
 
-    accuracy() {
-        Util.accuracy(this);
+    accuracy(): number {
+        return Util.accuracy(this);
     }
 
     totalHits(): number {
@@ -178,8 +184,6 @@ interface IBeatmapStats {
 
 interface IBeatmapStars {
     stars: number;
-    aim: number;
-    speed: number;
 }
 
 interface IBeatmapObjects {
@@ -208,13 +212,15 @@ interface APIScore {
     beatmapId: number;
     score: number;
     combo: number;
-    counts: HitCounts;
+    counts: IHitCounts;
     mods: Mods;
     mode: number;
-    pp?: number;
-    accuracy(): number;
     rank: string;
-    date: Date;
+    date?: Date;
+    pp?: number;
+    fcPp?: number;
+    beatmap?: APIBeatmap;
+    accuracy(): number;
 }
 
 class APIBeatmap {
@@ -237,6 +243,8 @@ class APIBeatmap {
     version: string;
     combo: number;
     mode: number;
+    coverUrl?: string;
+    mapUrl?: string
     constructor(data: any) {
         this.artist = data.artist;
         this.id = {
@@ -256,9 +264,7 @@ class APIBeatmap {
             hp: Number(data.diff_drain)
         }, Number(data.mode));
         this.diff = {
-            stars: Number(data.difficultyrating),
-            aim: Number(data.diff_aim),
-            speed: Number(data.diff_speed)
+            stars: Number(data.difficultyrating)
         };
         this.objects = {
             circles: Number(data.count_normal),
@@ -305,17 +311,6 @@ class TrackTopScore {
     accuracy() {
         return Util.accuracy(this.counts);
     }
-}
-
-interface APIRecentScore {
-    beatmapId: number;
-    score: number;
-    combo: number;
-    counts: HitCounts;
-    mods: Mods;
-    rank: string;
-    mode: number;
-    accuracy(): number;
 }
 
 interface IDatabaseUser {
@@ -391,7 +386,6 @@ export {
     APIUser,
     APIScore,
     APIBeatmap,
-    APIRecentScore,
 
     TrackTopScore,
 
@@ -400,6 +394,7 @@ export {
     Mode,
     HitCounts,
     IHits,
+    IHitCounts,
     IBeatmapStats,
     IBeatmapStars,
     IBeatmapObjects,

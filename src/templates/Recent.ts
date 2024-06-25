@@ -1,9 +1,17 @@
-import { APIRecentScore, APIBeatmap } from '../Types';
+import { APIScore, APIBeatmap } from '../Types';
 import Util from '../Util';
 import { IPPCalculator as ICalc } from '../pp/Calculator';
 
-export default function(score: APIRecentScore, beatmap: APIBeatmap, calc: ICalc, link: string) {
-    let pp = calc.calculate(score);
+export default function(score: APIScore, beatmap: APIBeatmap, calc: ICalc, link: string) {
+    let pp = score.fcPp ? { pp: score.pp, fc: score.fcPp, ss: undefined } : calc.calculate(score);
+
+    let ppString = `PP: ${pp.pp.toFixed(2)}`;
+    if (pp.fc !== undefined && pp.fc != pp.pp) {
+        ppString += ` ⯈ FC: ${pp.fc.toFixed(2)}`;
+    }
+    if (pp.ss !== undefined && pp.ss != pp.pp) {
+        ppString += ` ⯈ SS: ${pp.ss.toFixed(2)}`;
+    }
 
     let hits = beatmap.objects.circles + beatmap.objects.sliders + beatmap.objects.spinners;
     if(score.mode == 1)
@@ -16,9 +24,9 @@ ${Util.formatBeatmapLength(beatmap.length / calc.speedMultiplier)} | ${beatmap.s
 
 Score: ${score.score} | Combo: ${Util.formatCombo(score.combo, beatmap.combo)}
 Accuracy: ${Util.round(score.accuracy() * 100, 2)}%
-PP: ${pp.pp.toFixed(2)}${pp.ss == pp.pp ? '' : pp.fc == pp.pp ? ` ⯈ SS: ${pp.ss.toFixed(2)}` : ` ⯈ FC: ${pp.fc.toFixed(2)} ⯈ SS: ${pp.ss.toFixed(2)}`}
+` + ppString + `
 Hitcounts: ${score.counts.toString()}
 Grade: ${score.rank} ${score.rank == "F" ? `(${Util.round(progress * 100, 2)}%)` : ''}
 
-Beatmap: ${link}/b/${beatmap.id.map}`;
+Beatmap: ` + (beatmap.mapUrl ?? `${link}/b/${beatmap.id.map}`);
 }

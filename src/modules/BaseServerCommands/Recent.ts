@@ -1,3 +1,4 @@
+import { InputFile } from "grammy";
 import { Command } from "../../Command";
 import { Module } from "../../Module";
 import Calculator from '../../pp/bancho';
@@ -13,8 +14,9 @@ export default class AbstractRecent extends ServerCommand {
                 ? await self.module.api.getUserRecent(self.user.username, mode, 1) 
                 : await self.module.api.getUserRecentById(self.user.id || self.user.dbUser.uid, mode, 1);
 
-            let map = await self.module.api.getBeatmap(recent.beatmapId, recent.mode, recent.mods.diff());
-            let cover = await self.module.bot.database.covers.getCover(map.id.set);
+            let map = recent.beatmap ?? await self.module.api.getBeatmap(recent.beatmapId, recent.mode, recent.mods.diff());
+            
+            let cover = map.coverUrl ? await self.module.bot.database.covers.getPhotoDoc(map.coverUrl) : await self.module.bot.database.covers.getCover(map.id.set);
             let calc = new Calculator(map, recent.mods);
             let keyboard = self.module.api.getScore !== undefined ? Util.createKeyboard([
                 [{

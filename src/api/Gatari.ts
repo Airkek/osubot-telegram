@@ -1,7 +1,7 @@
 import IAPI from './base';
 import * as axios from 'axios';
 import qs from 'querystring';
-import { APIUser, HitCounts, APIRecentScore, APIScore, IDatabaseUser, LeaderboardResponse, APIBeatmap, LeaderboardScore, IDatabaseUserStats } from '../Types';
+import { APIUser, HitCounts, APIScore, IDatabaseUser, LeaderboardResponse, APIBeatmap, LeaderboardScore, IDatabaseUserStats } from '../Types';
 import Mods from '../pp/Mods';
 import Util from '../Util';
 import { Bot } from "../Bot"
@@ -69,7 +69,7 @@ class GatariTopScore implements APIScore {
     }
 }
 
-class GatariRecentScore implements APIRecentScore {
+class GatariRecentScore implements APIScore {
     beatmapId: number;
     score: number;
     combo: number;
@@ -191,12 +191,12 @@ export default class GatariAPI implements IAPI {
         }
     }
 
-    async getUserRecent(nickname: string, mode: number = 0, limit: number = 1): Promise<APIRecentScore> {
+    async getUserRecent(nickname: string, mode: number = 0, limit: number = 1): Promise<APIScore> {
         let user = await this.getUser(nickname);
         return await this.getUserRecentById(user.id as number, mode);
     }
 
-    async getUserRecentById(id: number | string, mode: number = 0, limit: number = 1): Promise<APIRecentScore> {
+    async getUserRecentById(id: number | string, mode: number = 0, limit: number = 1): Promise<APIScore> {
         try {
             let { data } = await this.api.get(`/user/scores/recent?${qs.stringify({id , mode: mode, p: 1, l: limit, f: 1})}`);
             if(!data.scores[0])

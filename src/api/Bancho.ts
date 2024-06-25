@@ -2,7 +2,7 @@ import IAPI from './base';
 import * as fs from 'fs'
 import * as axios from 'axios';
 import qs from 'querystring';
-import { APIUser, APIBeatmap, APIRecentScore, HitCounts, APIScore, IDatabaseUser, LeaderboardScore, LeaderboardResponse, IDatabaseUserStats } from '../Types';
+import { APIBeatmap } from '../Types';
 import Mods from '../pp/Mods';
 import Util from '../Util';
 import { Bot } from "../Bot"

@@ -22,11 +22,11 @@ export default class AbstractUser extends ServerCommand {
             let keyboard = Util.createKeyboard([
                 self.module.api.getUserTopById ? [{
                     text: `Топ скоры ${user.nickname}`,
-                    command: `${module.prefix[0]} top ${user.nickname} ${Util.getModeArg(mode)}`
+                    command: `${module.prefix[0]} top ${self.module.api.getUserTop ? user.nickname : user.id} ${Util.getModeArg(mode)}`
                 }] : [],
-                self.module.api.getScoreByUid ? [{
+                self.module.api.getUserRecentById ? [{
                     text: `Последний скор ${user.nickname}`,
-                    command: `${module.prefix[0]} recent ${user.nickname} ${Util.getModeArg(mode)}`
+                    command: `${module.prefix[0]} recent ${self.module.api.getUserRecent ? user.nickname : user.id} ${Util.getModeArg(mode)}`
                 }] : []
             ]);
 
