@@ -141,7 +141,7 @@ class DatabaseCovers {
             let send = await this.db.tg.api.sendPhoto(this.db.owner, file);
             let photo = send.photo[0].file_id;
 
-            await this.db.run("INSERT INTO covers (id, attachment) VALUES (?, ?)", [photoUrl, photo.toString()]);
+            await this.db.run("INSERT INTO photos (url, attachment) VALUES (?, ?)", [photoUrl, photo.toString()]);
 
             return photo.toString();
         } catch(e) {
