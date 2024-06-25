@@ -75,7 +75,6 @@ let createServerCommandRunner = (func: (self: CommandContext) => Promise<void>, 
         } catch (e) {
             let err = await self.module.bot.database.errors.addError(self.module.prefix[0], ctx, String(e));
             context.reply(`${Util.error(String(e))} (${err})`);
-            throw e;
         }
     }
 }
