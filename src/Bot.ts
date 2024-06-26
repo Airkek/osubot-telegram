@@ -22,6 +22,7 @@ import Util from './Util';
 import IgnoreList from './Ignore';
 import UnifiedMessageContext from './TelegramSupport';
 import BeatLeader from './modules/BeatLeader';
+import ScoreSaber from './modules/ScoreSaber';
 
 export interface IBotConfig {
     tg?: {
@@ -75,6 +76,7 @@ export class Bot {
             new Akatsuki(this),
             new AkatsukiRelax(this),
             new BeatLeader(this),
+            new ScoreSaber(this),
             new Admin(this),
             new Main(this)
         ]);

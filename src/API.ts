@@ -8,6 +8,7 @@ import AkatsukiAPI from './api/Akatsuki';
 import AkatsukiRelaxAPI from './api/AkatsukiRelax';
 import BanchoAPIV2 from "./api/BanchoV2";
 import BeatLeaderAPI from "./api/BeatLeader";
+import ScoreSaberAPI from "./api/ScoreSaber";
 
 class APICollection {
     bancho: BanchoAPI;
@@ -16,7 +17,8 @@ class APICollection {
     akatsuki: AkatsukiAPI;
     relax: AkatsukiRelaxAPI;
     v2: BanchoAPIV2;
-    saber: BeatLeaderAPI;
+    beatleader: BeatLeaderAPI;
+    scoresaber: ScoreSaberAPI
     constructor(bot: Bot) {
         this.bancho = new BanchoAPI(bot);
         this.gatari = new GatariAPI(bot);
@@ -24,7 +26,8 @@ class APICollection {
         this.akatsuki = new AkatsukiAPI(bot);
         this.relax = new AkatsukiRelaxAPI(bot);
         this.v2 = new BanchoAPIV2(bot);
-        this.saber = new BeatLeaderAPI(bot);
+        this.beatleader = new BeatLeaderAPI(bot);
+        this.scoresaber = new ScoreSaberAPI(bot);
     }
 }
 

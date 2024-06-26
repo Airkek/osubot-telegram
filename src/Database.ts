@@ -151,7 +151,6 @@ class DatabaseCovers {
 
     async getPhotoDoc(photoUrl: string): Promise<string> {
         let cover = await this.db.get(`SELECT * FROM photos WHERE url = ?`, [photoUrl]);
-        console.log(cover);
         if(!cover.url)
             return this.addPhotoDoc(photoUrl);
         return cover.attachment;
@@ -229,7 +228,8 @@ interface IServersList {
     gatari: DatabaseServer,
     ripple: DatabaseServer,
     akatsuki: DatabaseServer,
-    saber: DatabaseServer,
+    beatleader: DatabaseServer,
+    scoresaber: DatabaseServer
 }
 
 export default class Database {
@@ -247,7 +247,8 @@ export default class Database {
             gatari: new DatabaseServer("gatari", this),
             ripple: new DatabaseServer("ripple", this),
             akatsuki: new DatabaseServer("akatsuki", this),
-            saber: new DatabaseServer("beatleader", this)
+            beatleader: new DatabaseServer("beatleader", this),
+            scoresaber: new DatabaseServer("scoresaber", this)
         }
 
         this.covers = new DatabaseCovers(this);

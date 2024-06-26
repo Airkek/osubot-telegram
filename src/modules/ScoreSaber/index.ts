@@ -7,15 +7,15 @@ import AbstractRecent from "../BaseServerCommands/Recent";
 import AbstractTop from "../BaseServerCommands/Top";
 import AbstractChat from "../BaseServerCommands/Chat";
 
-export default class BeatLeader extends Module {
+export default class ScoreSaber extends Module {
     constructor(bot: Bot) {
-        super(["bl", "ид"], bot);
+        super(["ss", "ыы"], bot);
         
-        this.name = "BeatLeader";
-        this.link = "https://beatleader.xyz";
-        this.api = bot.api.beatleader;
-        this.db = bot.database.servers.beatleader;
-        this.statusGetter = "beatleader";
+        this.name = "ScoreSaber";
+        this.link = "https://scoresaber.com";
+        this.api = bot.api.scoresaber;
+        this.db = bot.database.servers.scoresaber;
+        this.statusGetter = "scoresaber";
 
         this.registerCommand([
             new Nick(this),

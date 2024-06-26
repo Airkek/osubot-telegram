@@ -6,9 +6,9 @@ interface Donater {
     status: number | string
 }
 
-type ServerString = string | "bancho" | "gatari" | "ripple" | "akatsuki" | "beatleader";
+type ServerString = string | "bancho" | "gatari" | "ripple" | "akatsuki" | "beatleader" | "scoresaber";
 
-let servers = ["bancho", "gatari", "ripple", "akatsuki", "beatleader"];
+let servers = ["bancho", "gatari", "ripple", "akatsuki", "beatleader", "scoresaber"];
 
 export default class Donaters {
     list: {
@@ -17,10 +17,11 @@ export default class Donaters {
         ripple: Donater[],
         akatsuki: Donater[],
         beatleader: Donater[],
+        scoresaber: Donater[]
     };
     constructor() {
         if(!fs.existsSync("./donaters.json"))
-            fs.writeFileSync("./donaters.json", JSON.stringify({bancho: [], gatari: [], ripple: [], akatsuki: [], beatleader: []}, null, 4));
+            fs.writeFileSync("./donaters.json", JSON.stringify({bancho: [], gatari: [], ripple: [], akatsuki: [], beatleader: [], scoresaber: []}, null, 4));
 
         this.list = JSON.parse(fs.readFileSync("./donaters.json").toString());
 

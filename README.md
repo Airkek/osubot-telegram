@@ -19,6 +19,7 @@ Telegram: https://t.me/osulegacybot
 - [X] calculate pp using latest formula (by using rosu-pp.js)
 - [X] removed dead servers (r.i.p: kurikku, vudek, enjuu, sakuru)
 - [X] auth api v2 by client secret
+- [X] BeatSaber support (BeatLeader + ScoreSaber)
 
 ## How to run:
 

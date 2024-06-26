@@ -34,6 +34,7 @@ interface BLScoreData {
     missedNotes: number,
     maxCombo: number,
     pauses: number,
+    timepost: number,
     leaderboard: {
         id: string,
         song: {
@@ -200,7 +201,7 @@ class BeatSaberScore implements APIScore {
         this.pp = data.pp;
         this.fcPp = data.fcPp;
         this.rank = data.fullCombo ? "FC" : "Pass" 
-        this.date = new Date();
+        this.date = new Date(data.timepost * 1000);
         this.mode = data.leaderboard.difficulty.mode;
         this.beatmap = new BeatLeaderScoreMap(data);
     }
