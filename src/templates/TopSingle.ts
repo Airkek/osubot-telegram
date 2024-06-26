@@ -15,5 +15,5 @@ Accuracy: ${Util.round(score.accuracy() * 100, 2)}%
 Hitcounts: ${score.counts}
 PP: ${score.pp} | Grade: ${score.rank}
 
-${link}/b/${beatmap.id.map}`;
+` + (beatmap.mapUrl ?? `${link}/b/${beatmap.id.map}`)
 }

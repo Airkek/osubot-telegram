@@ -10,5 +10,5 @@ Grade: ${score.rank} ⯈ ${Util.formatCombo(score.combo, beatmap.combo)} ⯈ ${U
 Accuracy: ${Util.round(score.accuracy() * 100, 2)}% ⯈ ${score.counts}
 PP: ${Util.round(score.pp, 2)}
 ${Util.formatDate(score.date)}
-${link}/b/${beatmap.id.map}`;
+` + (beatmap.mapUrl ?? `${link}/b/${beatmap.id.map}`);
 }
