@@ -6,7 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node ./build",
-    "update": "git pull && tsc"
+    "update": "git pull && npx tsc"
   },
   "author": "OctopuSSX",
   "license": "GPL-3.0-or-later",

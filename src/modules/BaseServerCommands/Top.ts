@@ -80,7 +80,7 @@ export default class AbstractTop extends ServerCommand {
                     if(!top[0]) return self.reply(`Не найдено топ скоров с указанной комбинацией модов!`);
                 }
                 top = top.splice(0, 3);
-                let maps = await Promise.all(top.map(s => Promise.resolve(s.beatmap) ?? self.module.api.getBeatmap(s.beatmapId, mode, s.mods.diff())));
+                let maps = await Promise.all(top.map(s => s.beatmap ? Promise.resolve(s.beatmap) : self.module.api.getBeatmap(s.beatmapId, mode, s.mods.diff())));
                 let str = maps.map((map, i) => {
                     let calc = new BanchoPP(map, top[i].mods);
                     return self.module.bot.templates.TopScore(top[i], map, i+1, calc, self.module.link);
