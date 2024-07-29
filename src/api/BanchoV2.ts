@@ -408,7 +408,7 @@ class BanchoAPIV2 implements IAPI {
     }
 
     async getUser(nickname: string, mode?: number): Promise<APIUser> {
-        let data = await this.get(`/users/${nickname.replace(' ', '_')}/${mode ? getRuleset(mode) : ''}`, {
+        let data = await this.get(`/users/${nickname.replace(' ', '_')}/${mode !== undefined ? getRuleset(mode) : ''}`, {
             key: 'username'
         });
         
@@ -420,7 +420,7 @@ class BanchoAPIV2 implements IAPI {
     }
 
     async getUserById(id: number | string, mode?: number): Promise<APIUser> {
-        let data = await this.get(`/users/${id}/${getRuleset(mode)}`, {
+        let data = await this.get(`/users/${id}/${mode !== undefined ? getRuleset(mode) : ''}`, {
             key: 'id'
         });
         

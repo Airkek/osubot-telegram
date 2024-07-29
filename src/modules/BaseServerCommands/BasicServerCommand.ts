@@ -15,6 +15,7 @@ interface SendOptions {
 interface ParsedUser {
     username?: string,
     id?: string,
+    mode?: number,
     dbUser?: IDatabaseUser
 }
 
