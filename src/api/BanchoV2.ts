@@ -260,7 +260,7 @@ class V2Score implements APIScore {
     date: Date;
     constructor(data: Score) {
         this.beatmapId = data.beatmap.id;
-        this.score = data.total_score || data.legacy_total_score;
+        this.score = data.legacy_total_score || data.total_score;
         this.combo = data.max_combo;
         this.counts = new HitCounts({
             300: data.statistics.great || 0,
