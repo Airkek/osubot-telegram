@@ -258,9 +258,9 @@ class V2Score implements APIScore {
     mode: number;
     pp: number;
     date: Date;
-    constructor(data: Score) {
+    constructor(data: Score, forceLaserScore = false) {
         this.beatmapId = data.beatmap.id;
-        this.score = data.legacy_total_score || data.total_score;
+        this.score = forceLaserScore ? data.total_score : data.legacy_total_score || data.total_score;
         this.combo = data.max_combo;
         this.counts = new HitCounts({
             300: data.statistics.great || 0,
@@ -489,7 +489,7 @@ class BanchoAPIV2 implements IAPI {
                 try {
                     let usrs = users.splice(0, 5);
                     let usPromise = usrs.map(
-                        u => this.getScoreByUid(u.uid, beatmapId, mode, mods)
+                        u => this.getScoreByUid(u.uid, beatmapId, mode, mods, true)
                     );  
                     let s: APIScore[] = (await Promise.all(usPromise.map(
                             (p) => p.catch(e => e)
@@ -572,7 +572,7 @@ class BanchoAPIV2 implements IAPI {
         }
     }
 
-    async getScoreByUid(uid: number | string, beatmapId: number, mode?: number, mods?: number): Promise<APIScore> {
+    async getScoreByUid(uid: number | string, beatmapId: number, mode?: number, mods?: number, forceLazerScore = false): Promise<APIScore> {
         let data: BeatmapUserScore = await this.get(`/beatmaps/${beatmapId}/scores/users/${uid}`, {
             mode: getRuleset(mode),
             mods: '' //TODO
@@ -582,7 +582,7 @@ class BanchoAPIV2 implements IAPI {
             throw "No scores found";
         }
     
-        return new V2Score(data.score);
+        return new V2Score(data.score, forceLazerScore);
     }
 }
 
