@@ -89,11 +89,15 @@ export default class UnifiedMessageContext {
                 opts['reply_markup'] = options.keyboard
             }
 
-            if (options?.attachment !== undefined && options.attachment.length != 0) {
-                opts['caption'] = text
-                return this.tgCtx.replyWithPhoto(options.attachment, opts);
-            } else {
-                return this.tgCtx.reply(text, opts);
+            try {
+                if (options?.attachment !== undefined && options.attachment.length != 0) {
+                    opts['caption'] = text
+                    return this.tgCtx.replyWithPhoto(options.attachment, opts);
+                } else {
+                    return this.tgCtx.reply(text, opts);
+                }
+            } catch (e) {
+                console.log(e);
             }
         }
 
