@@ -259,7 +259,7 @@ export class Bot {
         console.log(this.api.v2.logged ? 'Logged in' : 'Failed to login')
         this.startTime = Date.now();
         console.log('Started');
-        await this.tg.start()
+        await this.tg.start({ drop_pending_updates: true })
     }
 
     async stop() {
