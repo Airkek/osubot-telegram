@@ -72,7 +72,7 @@ export default class UnifiedMessageContext {
             return user.status == "creator" || user.status == "administrator"
         }
 
-        this.send = (text: string, options?: SendOptions, replyTo?: number) => {
+        this.send = async (text: string, options?: SendOptions, replyTo?: number) => {
             let opts: any = {
                 disable_web_page_preview: true
             }
@@ -92,9 +92,9 @@ export default class UnifiedMessageContext {
             try {
                 if (options?.attachment !== undefined && options.attachment.length != 0) {
                     opts['caption'] = text
-                    return this.tgCtx.replyWithPhoto(options.attachment, opts);
+                    return await this.tgCtx.replyWithPhoto(options.attachment, opts);
                 } else {
-                    return this.tgCtx.reply(text, opts);
+                    return await this.tgCtx.reply(text, opts);
                 }
             } catch (e) {
                 console.log(e);
