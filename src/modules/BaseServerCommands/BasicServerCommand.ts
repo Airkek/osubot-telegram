@@ -15,7 +15,7 @@ interface SendOptions {
 interface ParsedUser {
     username?: string,
     id?: string,
-    dbUser?: IDatabaseUser
+    dbUser: IDatabaseUser
 }
 
 
@@ -46,8 +46,10 @@ let createServerCommandRunner = (func: (self: CommandContext) => Promise<void>, 
     return async (ctx, self, args) => {
         let context = new CommandContext(self, ctx, args);
 
+        context.user = { 
+            dbUser: await self.module.db.getUser(context.ctx.senderId)
+        }; 
         if (needUserParse) {
-            context.user = { }; 
             if(context.ctx.hasReplyMessage) {
                 context.user.dbUser = await self.module.db.getUser(context.ctx.replyMessage.senderId);
 
@@ -55,8 +57,6 @@ let createServerCommandRunner = (func: (self: CommandContext) => Promise<void>, 
                     return context.reply(`У этого пользователя не указан ник!\nПривяжите через ${context.module.prefix[0]} nick <ник>`);
                 }                    
             } else {
-                context.user.dbUser = await self.module.db.getUser(context.ctx.senderId);
-
                 if(!context.user.dbUser.nickname && !args.nickname[0]) {
                     return context.reply(`Не указан ник!\nПривяжите через ${context.module.prefix[0]} nick <ник>`);
                 }
