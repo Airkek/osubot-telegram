@@ -47,7 +47,9 @@ class BanchoPP implements ICalc {
         if (map == null) {
             return {pp: 0, fc: 0, ss: 0};
         }
-        return this.PP(score, map);
+        let res = this.PP(score, map);
+        map.free();
+        return res;
     }
 
     PP(score: APIScore | CalcArgs | Replay, rmap: rosu.Beatmap) {
@@ -79,12 +81,7 @@ class BanchoPP implements ICalc {
         const currAttrs = new rosu.Performance({ 
             mods: this.mods.flags,
             clockRate: this.speedMultiplier,
-            n300: score.counts[300],
-            n100: score.counts[100],
-            n50: score.counts[50],
-            nGeki: score.counts.geki,
-            nKatu: score.counts.katu,
-            misses: score.counts.miss,
+            accuracy: score.accuracy() * 100,
             combo: score.combo,
         }).calculate(rmap);
 
