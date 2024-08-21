@@ -70,12 +70,20 @@ class BanchoPP implements ICalc {
         const fcAttrs = new rosu.Performance({ 
             mods: this.mods.flags,
             clockRate: this.speedMultiplier,
-            accuracy: score.accuracy()
+            n300: score.counts[300] + score.counts.miss,
+            n100: score.counts[100],
+            n50: score.counts[50],
+            nGeki: score.counts.geki,
+            nKatu: score.counts.katu,
         }).calculate(rmap);
         const currAttrs = new rosu.Performance({ 
             mods: this.mods.flags,
             clockRate: this.speedMultiplier,
-            accuracy: score.accuracy(),
+            n300: score.counts[300],
+            n100: score.counts[100],
+            n50: score.counts[50],
+            nGeki: score.counts.geki,
+            nKatu: score.counts.katu,
             misses: score.counts.miss,
             combo: score.combo,
         }).calculate(rmap);
