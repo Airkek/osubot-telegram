@@ -39,7 +39,7 @@ class BanchoPP implements ICalc {
         this.speedMultiplier = mods.speed();
     }
 
-    calculate(score: APIScore  | CalcArgs | Replay): IPP {
+    calculate(score: APIScore | CalcArgs | Replay): IPP {
         if(this.mods.has("Relax") || this.mods.has("Relax2") || this.mods.has("Autoplay"))
             return {pp: 0, fc: 0, ss: 0};
 
@@ -70,6 +70,7 @@ class BanchoPP implements ICalc {
         const fcAttrs = new rosu.Performance({ 
             mods: this.mods.flags,
             clockRate: this.speedMultiplier,
+            accuracy: score.accuracy(),
             n300: score.counts[300] + score.counts.miss,
             n100: score.counts[100],
             n50: score.counts[50],
@@ -85,6 +86,7 @@ class BanchoPP implements ICalc {
             nGeki: score.counts.geki,
             nKatu: score.counts.katu,
             misses: score.counts.miss,
+            accuracy: score.accuracy(),
             combo: score.combo,
         }).calculate(rmap);
 
