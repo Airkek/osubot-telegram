@@ -145,6 +145,7 @@ export default class Mods {
     mods: number[];
 	flags: number;
 	modsv2: V2Mod[];
+	speedMultiplierV2: number = undefined;
     constructor(m: number | string | V2Mod[]) {
 		if (typeof m == "string") {
 			this.flags = this.fromString(m);
@@ -168,9 +169,23 @@ export default class Mods {
 
 	fromMods(mods: V2Mod[]): number {
 		let flags = 0;
+		const speedChanging = ["DT", "NC", "HT", "DC"]
 		for (let mod of mods) {
 			if (AcrToNum[mod.acronym]) {
 				flags |= AcrToNum[mod.acronym]
+			}
+
+			const idx = speedChanging.indexOf(mod.acronym);
+			if (idx != -1) {
+				if (mod.settings?.speed_change !== undefined) {
+					this.speedMultiplierV2 = mod.settings.speed_change;
+				} else {
+					if (idx < 2) {
+						this.speedMultiplierV2 = 1.5;
+					} else {
+						this.speedMultiplierV2 = 0.75
+					}
+				}
 			}
 		}
 
@@ -222,6 +237,24 @@ export default class Mods {
 	
 	diff() {
 		return this.sum() & ModsBitwise.DifficultyChanging;
+	}
+
+	speed() {
+		if (this.speedMultiplierV2 !== undefined) {
+			return this.speedMultiplierV2;
+		}
+
+		const speed_up = ModsBitwise.DoubleTime & ModsBitwise.Nightcore;
+		const speed_down = ModsBitwise.HalfTime;
+		if ((this.flags & speed_up) != 0) {
+			return 1.5;
+		}
+		
+		if ((this.flags & speed_down) != 0) {
+			return 0.75;
+		}
+
+		return 1;
 	}
 
     sum(): number {

@@ -36,10 +36,7 @@ class BanchoPP implements ICalc {
         this.map = map;
         this.mods = mods;
         this.stats = map.stats;
-        if(mods.has("DoubleTime"))
-            this.speedMultiplier *= 1.5;
-        if(mods.has("HalfTime"))
-            this.speedMultiplier *= 0.75;
+        this.speedMultiplier = mods.speed();
     }
 
     calculate(score: APIScore  | CalcArgs | Replay): IPP {
