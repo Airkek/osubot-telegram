@@ -244,7 +244,7 @@ export default class Mods {
 			return this.speedMultiplierV2;
 		}
 
-		const speed_up = ModsBitwise.DoubleTime & ModsBitwise.Nightcore;
+		const speed_up = ModsBitwise.DoubleTime | ModsBitwise.Nightcore;
 		const speed_down = ModsBitwise.HalfTime;
 		if ((this.flags & speed_up) != 0) {
 			return 1.5;
