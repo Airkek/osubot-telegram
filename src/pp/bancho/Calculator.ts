@@ -87,7 +87,7 @@ class BanchoPP implements ICalc {
             nGeki: score.counts.geki,
             nKatu: score.counts.katu,
             misses: score.counts.miss,
-            accuracy: score.accuracy() * 100,
+            //accuracy: score.accuracy() * 100,
             combo: score.combo,
         }).calculate(rmap);
 
