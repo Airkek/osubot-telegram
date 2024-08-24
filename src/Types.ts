@@ -46,7 +46,9 @@ class CalcArgs {
     counts?: IHitCounts;
     mods: Mods;
     mode: number;
+    fake: boolean
     constructor(args: PPArgs, mode: number) {
+        this.fake = true;
         this.mods = args.mods;
         this.mode = mode;
         switch(mode) {
@@ -220,6 +222,7 @@ interface APIScore {
     pp?: number;
     fcPp?: number;
     beatmap?: APIBeatmap;
+    fake?: boolean;
     accuracy(): number;
 }
 

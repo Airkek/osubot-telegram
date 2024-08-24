@@ -68,16 +68,6 @@ class BanchoPP implements ICalc {
                 break;
         }
 
-        const maxAttrs = new rosu.Performance({ mods: this.mods.flags, clockRate: this.speedMultiplier }).calculate(rmap);
-        const fcAttrs = new rosu.Performance({ 
-            mods: this.mods.flags,
-            clockRate: this.speedMultiplier,
-            n300: score.counts[300] + score.counts.miss,
-            n100: score.counts[100],
-            n50: score.counts[50],
-            nGeki: score.counts.geki,
-            nKatu: score.counts.katu,
-        }).calculate(rmap);
         const currAttrs = new rosu.Performance({ 
             mods: this.mods.flags,
             clockRate: this.speedMultiplier,
@@ -87,9 +77,28 @@ class BanchoPP implements ICalc {
             nGeki: score.counts.geki,
             nKatu: score.counts.katu,
             misses: score.counts.miss,
-            accuracy: score.accuracy() * 100,
+            accuracy: score.fake ? score.accuracy() * 100 : undefined,
             combo: score.combo,
         }).calculate(rmap);
+
+        const fcAttrs = score.counts.miss == 0 ? currAttrs : new rosu.Performance({ 
+            mods: this.mods.flags,
+            clockRate: this.speedMultiplier,
+            n300: score.counts[300] + score.counts.miss,
+            n100: score.counts[100],
+            n50: score.counts[50],
+            nGeki: score.counts.geki,
+            nKatu: score.counts.katu,
+        }).calculate(rmap);
+
+        const maxAttrs = score.accuracy() === 1 
+                        && score.counts[100] === 0 
+                        && score.counts[50] === 0 
+                        && score.counts.miss === 0 
+                        && (score.mode != 3 || (score.counts.katu === 0 
+                                                && score.counts[300] === 0))
+                        ? currAttrs 
+                        : new rosu.Performance({ mods: this.mods.flags, clockRate: this.speedMultiplier }).calculate(rmap);
 
         return {pp: currAttrs.pp, fc: fcAttrs.pp, ss: maxAttrs.pp};
     }
