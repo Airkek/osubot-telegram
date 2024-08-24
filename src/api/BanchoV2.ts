@@ -281,7 +281,7 @@ class V2Score implements APIScore {
     }
 
     accuracy() {
-        return this.v2_acc / 100;
+        return this.v2_acc;
     }
 }
 
