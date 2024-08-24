@@ -7,10 +7,10 @@ export default function(score: APIScore, beatmap: APIBeatmap, calc: ICalc, link:
 
     let ppString = `PP: ${pp.pp.toFixed(2)}`;
     if (pp.fc !== undefined && pp.fc != pp.pp) {
-        ppString += ` ⯈ FC: ${pp.fc.toFixed(2)}`;
+        ppString += ` → FC: ${pp.fc.toFixed(2)}`;
     }
     if (pp.ss !== undefined && pp.ss != pp.pp) {
-        ppString += ` ⯈ SS: ${pp.ss.toFixed(2)}`;
+        ppString += ` → SS: ${pp.ss.toFixed(2)}`;
     }
 
     let hits = beatmap.objects.circles + beatmap.objects.sliders + beatmap.objects.spinners;

@@ -12,6 +12,6 @@ ${Util.formatBeatmapLength(map.length / calc.speedMultiplier)} | ${map.stats} ${
 
 Score: ${replay.score} | Combo: ${Util.formatCombo(replay.combo, map.combo)}
 Accuracy: ${Util.round(replay.accuracy() * 100, 2)}%
-PP: ${pp.pp.toFixed(2)}${pp.ss == pp.pp ? '' : pp.fc == pp.pp ? ` ⯈ SS: ${pp.ss.toFixed(2)}` : ` ⯈ FC: ${pp.fc.toFixed(2)} ⯈ SS: ${pp.ss.toFixed(2)}`}
+PP: ${pp.pp.toFixed(2)}${pp.ss == pp.pp ? '' : pp.fc == pp.pp ? ` → SS: ${pp.ss.toFixed(2)}` : ` → FC: ${pp.fc.toFixed(2)} → SS: ${pp.ss.toFixed(2)}`}
 Hitcounts: ${replay.counts.toString()}`;
 }
