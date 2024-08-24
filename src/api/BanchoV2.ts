@@ -12,6 +12,7 @@ type Ruleset = "osu" | "mania" | "taiko" | "fruits";
 
 interface Score {
     mods: V2Mod[],
+    accuracy: number,
     statistics: {
         great: number,
         ok: number,
@@ -258,6 +259,7 @@ class V2Score implements APIScore {
     mode: number;
     pp: number;
     date: Date;
+    v2_acc: number;
     constructor(data: Score, forceLaserScore = false) {
         this.beatmapId = data.beatmap.id;
         this.score = forceLaserScore ? data.total_score : data.legacy_total_score || data.total_score;
@@ -275,10 +277,11 @@ class V2Score implements APIScore {
         this.mode = data.ruleset_id;
         this.date = new Date(data.ended_at);
         this.pp = data.pp;
+        this.v2_acc = data.accuracy;
     }
 
     accuracy() {
-        return Util.accuracy(this.counts);
+        return this.v2_acc / 100;
     }
 }
 
