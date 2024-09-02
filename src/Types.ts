@@ -57,6 +57,8 @@ class CalcArgs {
             300: args.hits - args.miss,
             100: 0,
             50: args.counts?.[50] ?? 0,
+            katu: 0,
+            geki: 0,
             miss: args.miss
         }, mode);
         this.mods = args.mods;
