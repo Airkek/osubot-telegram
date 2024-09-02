@@ -51,35 +51,15 @@ class CalcArgs {
         this.fake = true;
         this.mods = args.mods;
         this.mode = mode;
-        switch(mode) {
-            case 0:
-            case 1:
-            case 2: {
-                this.acc = args.acc;
-                this.combo = args.combo;
-                this.counts = new HitCounts({
-                    300: args.hits - args.miss,
-                    100: 0,
-                    50: args.counts?.[50] ?? 0,
-                    miss: args.miss
-                }, mode);
-                this.mods = args.mods;
-                break;
-            }
-
-            case 3: {
-                this.counts = new HitCounts({
-                    300: args.hits,
-                    100: 0,
-                    50: 0,
-                    miss: 0,
-                    katu: 0,
-                    geki: 0
-                }, this.mode)
-                this.score = args.score;
-                break;
-            }
-        }
+        this.acc = args.acc;
+        this.combo = args.combo;
+        this.counts = new HitCounts({
+            300: args.hits - args.miss,
+            100: 0,
+            50: args.counts?.[50] ?? 0,
+            miss: args.miss
+        }, mode);
+        this.mods = args.mods;
     }
 
     accuracy() {
