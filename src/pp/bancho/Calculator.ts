@@ -81,7 +81,7 @@ class BanchoPP implements ICalc {
             combo: score.combo,
         }).calculate(rmap);
 
-        const fcAttrs = score.counts.miss == 0 ? currAttrs : new rosu.Performance({ 
+        const fcAttrs = new rosu.Performance({ 
             mods: this.mods.flags,
             clockRate: this.speedMultiplier,
             n300: score.counts[300] + score.counts.miss,

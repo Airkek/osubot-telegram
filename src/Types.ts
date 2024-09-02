@@ -218,6 +218,7 @@ interface APIScore {
     mods: Mods;
     mode: number;
     rank: string;
+    rank_global?: number;
     date?: Date;
     pp?: number;
     fcPp?: number;

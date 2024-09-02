@@ -33,7 +33,8 @@ interface Score {
     beatmap: {
         id: number
     },
-    passed: boolean
+    passed: boolean,
+    rank_global?: number
 }
 
 
@@ -219,7 +220,7 @@ interface BeatmapUserScore {
     score: Score
 }
 
-class V2RecentScore implements APIScore {
+class V2Score implements APIScore {
     beatmapId: number;
     score: number;
     combo: number;
@@ -227,9 +228,13 @@ class V2RecentScore implements APIScore {
     mods: Mods;
     rank: string;
     mode: number;
-    constructor(data: Score) {
+    pp: number;
+    date: Date;
+    rank_global?: number;
+    v2_acc: number;
+    constructor(data: Score, forceLaserScore = false) {
         this.beatmapId = data.beatmap.id;
-        this.score = data.total_score || data.legacy_total_score;
+        this.score = (forceLaserScore || data.legacy_total_score === undefined) ? data.total_score : data.legacy_total_score;
         this.combo = data.max_combo;
         this.counts = new HitCounts({
             300: data.statistics.great || 0,
@@ -241,39 +246,7 @@ class V2RecentScore implements APIScore {
         }, data.ruleset_id);
         this.mods = new Mods(data.mods as V2Mod[]);
         this.rank = data.passed ? data.rank : "F";
-        this.mode = data.ruleset_id;
-    }
-
-    accuracy() {
-        return Util.accuracy(this.counts);
-    }
-}
-
-class V2Score implements APIScore {
-    beatmapId: number;
-    score: number;
-    combo: number;
-    counts: HitCounts;
-    mods: Mods;
-    rank: string;
-    mode: number;
-    pp: number;
-    date: Date;
-    v2_acc: number;
-    constructor(data: Score, forceLaserScore = false) {
-        this.beatmapId = data.beatmap.id;
-        this.score = forceLaserScore ? data.total_score : data.legacy_total_score || data.total_score;
-        this.combo = data.max_combo;
-        this.counts = new HitCounts({
-            300: data.statistics.great || 0,
-            100: data.statistics.ok || 0,
-            50: data.statistics.meh || 0,
-            miss: data.statistics.miss || 0,
-            katu: data.statistics.good || 0,
-            geki: data.statistics.perfect || 0
-        }, data.ruleset_id);
-        this.mods = new Mods(data.mods as V2Mod[]);
-        this.rank = data.rank;
+        this.rank_global = data.rank_global;
         this.mode = data.ruleset_id;
         this.date = new Date(data.ended_at);
         this.pp = data.pp;
@@ -555,7 +528,7 @@ class BanchoAPIV2 implements IAPI {
 
         if (data[0]) {
             let score = data[0];
-            return new V2RecentScore(score);
+            return new V2Score(score);
         } else {
             throw "No recent scores";
         }

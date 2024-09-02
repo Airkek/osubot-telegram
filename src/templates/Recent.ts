@@ -19,6 +19,7 @@ export default function(score: APIScore, beatmap: APIBeatmap, calc: ICalc, link:
     if(score.mode == 1 || score.mode == 3)
         hits -= beatmap.objects.spinners;
     let progress = score.counts.totalHits() / hits;
+    let rankStr = score.rank_global !== undefined ? `🏆 #${score.rank_global} место по миру на карте\n` : '';
     return ` <${beatmap.status}> ${beatmap.artist} - ${beatmap.title} [${beatmap.version}] by ${beatmap.creator.nickname}
 ${Util.formatBeatmapLength(beatmap.length / calc.speedMultiplier)} | ${beatmap.stats} ${Math.round(beatmap.bpm * calc.speedMultiplier)}BPM | ${Util.round(beatmap.diff.stars, 2)}✩ ${score.mods}
 
@@ -27,6 +28,6 @@ Accuracy: ${Util.round(score.accuracy() * 100, 2)}%
 ` + ppString + `
 Hitcounts: ${score.counts.toString()}
 Grade: ${score.rank} ${score.rank == "F" ? `(${Util.round(progress * 100, 2)}%)` : ''}
-
+${rankStr}
 Beatmap: ` + (beatmap.mapUrl ?? `${link}/b/${beatmap.id.map}`);
 }
