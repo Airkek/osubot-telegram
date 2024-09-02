@@ -80,7 +80,9 @@ class CalcArgs {
                     katu: 0,
                     geki: 0
                 }, this.mode)
-                this.score = args.score;
+                this.mods = args.mods;
+                this.acc = args.acc;
+                this.combo = args.combo;
                 break;
             }
         }
