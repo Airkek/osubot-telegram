@@ -33,7 +33,7 @@ enum ModsBitwise {
 	Key2 = 1 << 28,
 	ScoreV2 = 1 << 29,
     Mirror = 1 << 30,
-	DifficultyChanging = Easy | HardRock | DoubleTime | HalfTime,
+	DifficultyChanging = Easy | HardRock | DoubleTime | HalfTime | Nightcore,
 	Unranked = Relax | Autoplay | Relax2 | Cinema | Target | ScoreV2
 };
 
