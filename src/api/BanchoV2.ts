@@ -234,7 +234,7 @@ class V2Score implements APIScore {
     v2_acc: number;
     constructor(data: Score, forceLaserScore = false) {
         this.beatmapId = data.beatmap.id;
-        this.score = (forceLaserScore || data.legacy_total_score === undefined) ? data.total_score : data.legacy_total_score;
+        this.score = (forceLaserScore || !data.legacy_total_score) ? data.total_score : data.legacy_total_score;
         this.combo = data.max_combo;
         this.counts = new HitCounts({
             300: data.statistics.great || 0,
