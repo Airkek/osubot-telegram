@@ -47,12 +47,14 @@ class CalcArgs {
     mods: Mods;
     mode: number;
     fake: boolean
+    lazer: boolean
     constructor(args: PPArgs, mode: number) {
         this.fake = true;
         this.mods = args.mods;
         this.mode = mode;
         this.acc = args.acc;
         this.combo = args.combo;
+        this.lazer = true; // TODO: pass in bot args
         switch(mode) {
             case 0:
             case 1:
@@ -230,6 +232,7 @@ interface APIScore {
     fcPp?: number;
     beatmap?: APIBeatmap;
     fake?: boolean;
+    lazer?: boolean;
     accuracy(): number;
 }
 

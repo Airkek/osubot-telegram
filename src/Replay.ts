@@ -16,7 +16,8 @@ class Replay {
     combo: number;
     perfect: number;
     mods: Mods;
-    fake?: boolean
+    fake?: boolean;
+    lazer?: boolean; // TODO
     constructor() { }
 
     accuracy() {
