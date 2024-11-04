@@ -252,7 +252,7 @@ class V2Score implements APIScore {
         this.date = new Date(data.ended_at);
         this.pp = data.pp;
         this.v2_acc = data.accuracy;
-        this.lazer = !!data.legacy_total_score;
+        this.lazer = !data.legacy_total_score;
     }
 
     accuracy() {
