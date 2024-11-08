@@ -146,6 +146,7 @@ export default class Mods {
 	flags: number;
 	modsv2: V2Mod[];
 	speedMultiplierV2: number = undefined;
+	lazer: boolean = false;
     constructor(m: number | string | V2Mod[]) {
 		if (typeof m == "string") {
 			this.flags = this.fromString(m);
@@ -187,6 +188,7 @@ export default class Mods {
 					}
 				}
 			}
+			this.lazer = this.lazer || mod.acronym == 'CL';
 		}
 
 		return flags;
@@ -237,6 +239,10 @@ export default class Mods {
 	
 	diff() {
 		return this.sum() & ModsBitwise.DifficultyChanging;
+	}
+
+	isLazer() {
+		return this.lazer;
 	}
 
 	speed() {

@@ -232,7 +232,6 @@ class V2Score implements APIScore {
     date: Date;
     rank_global?: number;
     v2_acc: number;
-    lazer: boolean;
     constructor(data: Score, forceLaserScore = false) {
         this.beatmapId = data.beatmap.id;
         this.score = (forceLaserScore || !data.legacy_total_score) ? data.total_score : data.legacy_total_score;
@@ -252,11 +251,10 @@ class V2Score implements APIScore {
         this.date = new Date(data.ended_at);
         this.pp = data.pp;
         this.v2_acc = data.accuracy;
-        this.lazer = !data.legacy_total_score;
     }
 
     accuracy() {
-        return this.lazer ? this.v2_acc : Util.accuracy(this.counts);
+        return this.v2_acc;
     }
 }
 

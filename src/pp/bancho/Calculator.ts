@@ -77,7 +77,7 @@ class BanchoPP implements ICalc {
             nGeki: score.fake ? undefined : score.counts.geki,
             nKatu: score.fake ? undefined : score.counts.katu,
             misses: score.counts.miss,
-            lazer: score.lazer,
+            lazer: this.mods.isLazer(),
             accuracy: score.fake ? score.accuracy() * 100 : undefined,
             combo: score.combo,
         }).calculate(rmap);
@@ -90,7 +90,7 @@ class BanchoPP implements ICalc {
             n50: score.counts[50],
             nGeki: score.counts.geki,
             nKatu: score.counts.katu,
-            lazer: score.lazer,
+            lazer: this.mods.isLazer(),
         }).calculate(rmap);
 
         const maxAttrs = score.accuracy() === 1 
@@ -100,7 +100,7 @@ class BanchoPP implements ICalc {
                         && (score.mode != 3 || (score.counts.katu === 0 
                                                 && score.counts[300] === 0))
                         ? currAttrs 
-                        : new rosu.Performance({ mods: this.mods.flags, clockRate: this.speedMultiplier, lazer: score.lazer }).calculate(rmap);
+                        : new rosu.Performance({ mods: this.mods.flags, clockRate: this.speedMultiplier, lazer: this.mods.isLazer() }).calculate(rmap);
 
         return {pp: currAttrs.pp, fc: fcAttrs.pp, ss: maxAttrs.pp};
     }
