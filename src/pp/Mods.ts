@@ -194,17 +194,20 @@ export default class Mods {
 		return flags;
 	}
 
-    fromString(string: string): number {
+    fromString(str: string): number {
         let offset = 0;
         let buf = "";
         let m = 0;
-        while(offset < string.length) {
-			buf += string[offset];
-            if(ModsAcronyms[buf.toUpperCase().slice(-2)]) {
-                if(!(m & AcrToNum[buf.toUpperCase().slice(-2)]))
-                    m += AcrToNum[buf.toUpperCase().slice(-2)];
+        while (offset < str.length) {
+			buf += str[offset];
+			const currAcr = buf.toUpperCase().slice(-2);
+            if (ModsAcronyms[currAcr]) {
+				m |=  AcrToNum[currAcr];
                 buf = "";
-            }
+            } else if (currAcr == "CL") {
+				this.lazer = true;
+				buf = "";
+			}
             offset++;
         }
 		return m;
