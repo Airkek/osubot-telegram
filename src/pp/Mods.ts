@@ -234,13 +234,14 @@ export default class Mods {
 			tempMods -= ModsBitwise.SuddenDeath;
 		let p = this.parse(tempMods);
 		let str = p.map(mod => ModsAcronyms2[ModsBitwise[mod]]).join(" +")
-		if (!this.lazer) {
-			str += " +CL"
+		if (str.length != 0) {
+			str = "+" + str;
 		}
-		if(str.length == 0)
-			return '';
-		else
-			return '+' + str;
+		if (!this.lazer) {
+			str += " +CL";
+		}
+		
+		return str.trim();
 	}
 	
 	diff() {
