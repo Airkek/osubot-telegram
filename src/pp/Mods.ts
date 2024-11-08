@@ -146,12 +146,13 @@ export default class Mods {
 	flags: number;
 	modsv2: V2Mod[];
 	speedMultiplierV2: number = undefined;
-	lazer: boolean = false;
+	lazer: boolean = true;
     constructor(m: number | string | V2Mod[]) {
 		if (typeof m == "string") {
 			this.flags = this.fromString(m);
 		} else if (typeof m == "number") {
 			this.flags = m;
+			this.lazer = false;
 		} else {
 			this.modsv2 = m;
 			this.flags = this.fromMods(m);
@@ -205,7 +206,7 @@ export default class Mods {
 				m |=  AcrToNum[currAcr];
                 buf = "";
             } else if (currAcr == "CL") {
-				this.lazer = true;
+				this.lazer = false;
 				buf = "";
 			}
             offset++;
