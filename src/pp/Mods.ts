@@ -233,7 +233,10 @@ export default class Mods {
         if(this.sum() & ModsBitwise.Perfect)
 			tempMods -= ModsBitwise.SuddenDeath;
 		let p = this.parse(tempMods);
-		let str = p.map(mod => ModsAcronyms2[ModsBitwise[mod]]).join("")
+		let str = p.map(mod => ModsAcronyms2[ModsBitwise[mod]]).join(" +")
+		if (!this.lazer) {
+			str += " +CL"
+		}
 		if(str.length == 0)
 			return '';
 		else
