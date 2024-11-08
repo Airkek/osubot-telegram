@@ -189,7 +189,9 @@ export default class Mods {
 					}
 				}
 			}
-			this.lazer = this.lazer || mod.acronym == 'CL';
+			if (mod.acronym == 'CL') {
+				this.lazer = false;
+			}
 		}
 
 		return flags;
