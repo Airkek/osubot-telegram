@@ -111,7 +111,7 @@ export default class RippleAPI implements IAPI {
         });
     }
 
-    async getBeatmap(id: number | string, mode?: number, mods?: number): Promise<APIBeatmap> {
+    async getBeatmap(id: number | string, mode?: number, mods?: Mods): Promise<APIBeatmap> {
         return await this.bot.api.v2.getBeatmap(id, mode, mods);
     }
 
@@ -219,7 +219,7 @@ export default class RippleAPI implements IAPI {
     }
     
     async getLeaderboard(beatmapId: number, users: IDatabaseUser[], mode: number = 0, mods: number = null): Promise<LeaderboardResponse> {
-        let map = await this.getBeatmap(beatmapId, mode, 0);
+        let map = await this.getBeatmap(beatmapId, mode, new Mods(0));
         let scores: LeaderboardScore[] = [];
         try {
             let lim = Math.ceil(users.length / 5);

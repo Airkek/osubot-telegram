@@ -169,7 +169,7 @@ export class Bot {
                     let replay = parser.getReplay();
                     let map = await this.api.v2.getBeatmap(replay.beatmapHash);
                     if(replay.mods.diff()) 
-                        map = await this.api.v2.getBeatmap(map.id.map, replay.mode, replay.mods.diff());
+                        map = await this.api.v2.getBeatmap(map.id.map, replay.mode, replay.mods);
                     let cover = await this.database.covers.getCover(map.id.set);
                     let calc = new BanchoPP(map, replay.mods);
                     let keyboard = Util.createKeyboard([['B','s'],['G','g'],['R','r']]

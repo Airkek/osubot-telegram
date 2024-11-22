@@ -110,7 +110,7 @@ export default class AkatsukiRelaxAPI implements IAPI {
         });
     }
 
-    async getBeatmap(id: number | string, mode?: number, mods?: number): Promise<APIBeatmap> {
+    async getBeatmap(id: number | string, mode?: number, mods?: Mods): Promise<APIBeatmap> {
         return await this.bot.api.v2.getBeatmap(id, mode, mods);
     }
 

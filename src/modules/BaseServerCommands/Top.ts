@@ -35,7 +35,7 @@ export default class AbstractTop extends ServerCommand {
                         place = i+1;
                     }
                 }
-                let map = nearest.beatmap ?? await self.module.api.getBeatmap(nearest.beatmapId, mode, nearest.mods.diff());
+                let map = nearest.beatmap ?? await self.module.api.getBeatmap(nearest.beatmapId, mode, nearest.mods);
                 let cover = await self.module.bot.database.covers.getCover(map.id.set);
                 let calc = new BanchoPP(map, nearest.mods);
                 self.module.bot.maps.setMap(self.ctx.peerId, map);
@@ -53,7 +53,7 @@ export default class AbstractTop extends ServerCommand {
                 self.reply(`У игрока ${user.nickname} ${amount ? amount : 'нет'}${amount == 100 ? '+' : ''} ${Util.scoreNum(amount)} выше ${self.args.more}pp`);
             } else if(self.args.place) {
                 let score = (await self.module.api.getUserTopById(user.id, mode, self.args.place))[self.args.place - 1];
-                let map = score.beatmap ?? await self.module.api.getBeatmap(score.beatmapId, mode, score.mods.diff());
+                let map = score.beatmap ?? await self.module.api.getBeatmap(score.beatmapId, mode, score.mods);
                 let cover = await self.module.bot.database.covers.getCover(map.id.set);
                 let calc = new BanchoPP(map, score.mods);
                 let keyboard = self.module.api.getScore !== undefined ? Util.createKeyboard([
@@ -80,7 +80,7 @@ export default class AbstractTop extends ServerCommand {
                     if(!top[0]) return self.reply(`Не найдено топ скоров с указанной комбинацией модов!`);
                 }
                 top = top.splice(0, 3);
-                let maps = await Promise.all(top.map(s => s.beatmap ? Promise.resolve(s.beatmap) : self.module.api.getBeatmap(s.beatmapId, mode, s.mods.diff())));
+                let maps = await Promise.all(top.map(s => s.beatmap ? Promise.resolve(s.beatmap) : self.module.api.getBeatmap(s.beatmapId, mode, s.mods)));
                 let str = maps.map((map, i) => {
                     let calc = new BanchoPP(map, top[i].mods);
                     return self.module.bot.templates.TopScore(top[i], map, i+1, calc, self.module.link);

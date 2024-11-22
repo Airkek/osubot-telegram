@@ -424,7 +424,7 @@ class BanchoAPIV2 implements IAPI {
         return await this.getScoreByUid(user.id as number, beatmapId, mode, mods);
     }
 
-    async getBeatmap(id: number | string, mode?: number, mods?: number): Promise<APIBeatmap> {
+    async getBeatmap(id: number | string, mode?: number, mods?: Mods): Promise<APIBeatmap> {
         if (typeof id == "string") {
             return await this.bot.api.bancho.getBeatmap(id);
         }
@@ -435,14 +435,14 @@ class BanchoAPIV2 implements IAPI {
         }
 
         let attributes: BeatmapDifficultyAttributesResponse = await this.post(`/beatmaps/${data.id}/attributes`, mods !== undefined && mode !== undefined ? {
-            mods,
+            mods: mods.diff(), // TODO: lazer
             ruleset_id: mode
         } : undefined);
         if (attributes === undefined) {
             throw "Beatmap not found";
         }
 
-        let beatmap = new V2Beatmap(data, attributes.attributes, new Mods(mods));
+        let beatmap = new V2Beatmap(data, attributes.attributes, mods);
 
         const folderPath = 'beatmap_cache';
         if (!fs.existsSync(folderPath)) {

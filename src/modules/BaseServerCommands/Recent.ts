@@ -14,7 +14,7 @@ export default class AbstractRecent extends ServerCommand {
                 ? await self.module.api.getUserRecent(self.user.username, mode, 1) 
                 : await self.module.api.getUserRecentById(self.user.id || self.user.dbUser.uid, mode, 1);
 
-            let map = recent.beatmap ?? await self.module.api.getBeatmap(recent.beatmapId, recent.mode, recent.mods.diff());
+            let map = recent.beatmap ?? await self.module.api.getBeatmap(recent.beatmapId, recent.mode, recent.mods);
             
             let cover = map.coverUrl ? await self.module.bot.database.covers.getPhotoDoc(map.coverUrl) : await self.module.bot.database.covers.getCover(map.id.set);
             let calc = new Calculator(map, recent.mods);

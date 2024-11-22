@@ -51,7 +51,7 @@ export default class Maps {
         if(!chat)
             return ctx.reply("Сначала отправьте карту!");
         let mods = new Mods(args.mods);
-        let map = await this.bot.api.v2.getBeatmap(chat.map.id.map, chat.map.mode, mods.diff());
+        let map = await this.bot.api.v2.getBeatmap(chat.map.id.map, chat.map.mode, mods);
         let cover = await this.bot.database.covers.getCover(map.id.set);
         ctx.reply(this.bot.templates.PP(map, args), {
             attachment: cover
