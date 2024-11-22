@@ -280,4 +280,12 @@ export default class Mods {
     has(mod: Mod): Boolean {
         return this.mods.includes(ModsBitwise[mod]);
     }
+
+	isEasy(): Boolean {
+		return this.has("Easy");
+	}
+
+	isHardRock(): Boolean {
+		return this.has("HardRock")
+	}
 }

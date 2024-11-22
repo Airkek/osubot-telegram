@@ -2,6 +2,7 @@ import * as axios from "axios";
 import qs from "querystring";
 import { V2BeatmapsetsArguments, V2Beatmapset, V2Mod, APIScore, HitCounts, APIBeatmap, APIUser, IDatabaseUser, LeaderboardResponse, IBeatmapObjects, IBeatmapStars, BeatmapStatus, LeaderboardScore } from "../Types";
 import Mods from "../pp/Mods";
+import AttributesCalculator from "../pp/AttributesCalculator";
 import Util from "../Util";
 import * as fs from "fs";
 import IAPI from "./base";
@@ -181,7 +182,8 @@ class V2Beatmap implements APIBeatmap {
     combo: number;
     mode: number;
 
-    constructor(beatmap: BeatmapExtended, attributes: BeatmapDifficultyAttributes) {
+    constructor(beatmap: BeatmapExtended, attributes: BeatmapDifficultyAttributes, mods: Mods) {
+        let calc = new AttributesCalculator(beatmap.ar, beatmap.accuracy, beatmap.drain, beatmap.cs, mods)
         this.artist = beatmap.beatmapset.artist;
         this.id = {
             set: beatmap.beatmapset_id,
@@ -194,10 +196,10 @@ class V2Beatmap implements APIBeatmap {
         };
         this.status = BeatmapStatus[Number(beatmap.ranked)];
         this.stats = Util.getStats({
-            ar: attributes.approach_rate || beatmap.ar,
-            cs: beatmap.cs,
-            od: attributes.overall_difficulty || 0,
-            hp: beatmap.drain
+            ar: calc.calculateMultipliedAR(),
+            cs: calc.calculateMultipliedCS(),
+            od: calc.calculateMultipliedOD(),
+            hp: calc.calculateMultipliedHP()
         }, beatmap.mode_int);
         this.diff = {
             stars: attributes.star_rating || beatmap.difficulty_rating
@@ -436,12 +438,11 @@ class BanchoAPIV2 implements IAPI {
             mods,
             ruleset_id: mode
         } : undefined);
-
         if (attributes === undefined) {
             throw "Beatmap not found";
         }
 
-        let beatmap = new V2Beatmap(data, attributes.attributes);
+        let beatmap = new V2Beatmap(data, attributes.attributes, new Mods(mods));
 
         const folderPath = 'beatmap_cache';
         if (!fs.existsSync(folderPath)) {
