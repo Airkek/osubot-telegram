@@ -12,7 +12,7 @@ function approachRateToMs(approachRate: number): number {
 function msToApproachRate(ms: number): number {
     let smallestDiff = 100000; // large initial value
     for (let AR = 0; AR <= 110; AR++) {
-        const newDiff = Math.abs(this.approachRateToMs(AR / 10) - ms);
+        const newDiff = Math.abs(approachRateToMs(AR / 10) - ms);
         if (newDiff < smallestDiff) {
             smallestDiff = newDiff;
         } else {
