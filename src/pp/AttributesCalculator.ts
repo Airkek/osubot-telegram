@@ -41,12 +41,12 @@ export default class AttributesCalculator {
     cs: number;
     mods: Mods;
 
-    constructor(ar: number, od: number, hp: number, cs: number, mods: Mods) {
+    constructor(ar: number, od: number, hp: number, cs: number, mods?: Mods) {
         this.ar = ar;
         this.od = od;
         this.hp = hp;
         this.cs = cs;
-        this.mods = mods;
+        this.mods = mods || new Mods(0);
     }
 
     calculateMultipliedCS(): number {
