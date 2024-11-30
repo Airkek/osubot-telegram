@@ -599,8 +599,10 @@ class BanchoAPIV2 implements IAPI {
         return new V2Score(data.score, forceLazerScore);
     }
 
-    private async getScoreByScoreId(scoreId: number | string, forceLazerScore = false): Promise<Score> {
-        let data: Score = await this.get(`/scores/${scoreId}`);
+    private async getScoreByScoreId(scoreId: number | string, legacyOnly = false): Promise<Score> {
+        let data: Score = await this.get(`/scores/${scoreId}`, {
+            legacy_only: legacyOnly
+        });
         
         if (!data) {
             throw "No scores found";
