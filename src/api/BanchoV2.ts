@@ -543,15 +543,15 @@ class BanchoAPIV2 implements IAPI {
         if (data[0]) {
             let score = data[0];
 
-            let fullInfo: Score = undefined;
-            try {
-                fullInfo = await this.getScoreByScoreId(score.id);
-            } catch { 
-                fullInfo = score
+            let fullInfo: Score = score;
+            if (fullInfo.passed) {
+                try {
+                    fullInfo = await this.getScoreByScoreId(score.id);
+                } catch { }
             }
 
             let result = new V2Score(fullInfo);
-            if (fullInfo.preserve && fullInfo.ranked && fullInfo.processed) {
+            if (fullInfo.preserve && fullInfo.ranked) {
                 try {
                     let topscores = await this.getUserTopById(uid, mode, 100);
                     for (let i = topscores.length - 1; i >= 0; i--) {
