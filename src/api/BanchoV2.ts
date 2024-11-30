@@ -18,11 +18,16 @@ interface Score {
         great: number,
         ok: number,
         miss: number,
-        meh: number
+        meh: number,
 
         //mania:
         perfect?: number, // geki
-        good?: number // katu
+        good?: number, // katu
+
+        // std lazer slider stats:
+        large_tick_hit?: number,
+        small_tick_hit?: number,
+        slider_tail_hit?: number,
     },
     ruleset_id: number,
     ended_at: string,
@@ -244,7 +249,10 @@ class V2Score implements APIScore {
             50: data.statistics.meh || 0,
             miss: data.statistics.miss || 0,
             katu: data.statistics.good || 0,
-            geki: data.statistics.perfect || 0
+            geki: data.statistics.perfect || 0,
+            slider_large: data.statistics.large_tick_hit || 0,
+            slider_small: data.statistics.small_tick_hit || 0,
+            slider_tail: data.statistics.slider_tail_hit || 0,
         }, data.ruleset_id);
         this.mods = new Mods(data.mods as V2Mod[]);
         this.rank = data.passed ? data.rank : "F";
@@ -348,7 +356,7 @@ class BanchoAPIV2 implements IAPI {
             let { data } = await this.api.get(`${method}${query ? `?${qs.stringify(query)}` : ''}`, {
                 headers: {
                     'Authorization': `Bearer ${this.token}`,
-                    'x-api-version': '20240529'
+                    'x-api-version': '20241130'
                 }
             });
             return data;
@@ -366,7 +374,7 @@ class BanchoAPIV2 implements IAPI {
             let { data } = await this.api.post(`${method}`, query, {
                 headers: {
                     'Authorization': `Bearer ${this.token}`,
-                    'x-api-version': '20240529'
+                    'x-api-version': '20241130'
                 }
             });
             return data;

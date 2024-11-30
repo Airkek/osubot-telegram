@@ -77,6 +77,8 @@ class BanchoPP implements ICalc {
             nGeki: score.fake ? undefined : score.counts.geki,
             nKatu: score.fake ? undefined : score.counts.katu,
             misses: score.counts.miss,
+            sliderTickHits: score.counts.slider_small + score.counts.slider_large,
+            sliderEndHits: score.counts.slider_tail,
             lazer: this.mods.isLazer(),
             accuracy: score.fake ? score.accuracy() * 100 : undefined,
             combo: score.combo,
