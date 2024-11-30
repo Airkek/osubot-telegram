@@ -223,6 +223,7 @@ interface APIUser {
 }
 
 interface APIScore {
+    api_score_id?: number;
     beatmapId: number;
     score: number;
     combo: number;
@@ -231,6 +232,7 @@ interface APIScore {
     mode: number;
     rank: string;
     rank_global?: number;
+    top100_number?: number;
     date?: Date;
     pp?: number;
     fcPp?: number;

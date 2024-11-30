@@ -19,6 +19,7 @@ export default function(score: APIScore, beatmap: APIBeatmap, calc: ICalc, link:
     if(score.mode == 1 || score.mode == 3)
         hits -= beatmap.objects.spinners;
     let progress = score.counts.totalHits() / hits;
+    let topscoreStr = score.top100_number ? `🏆 Персональный топ-${score.top100_number} скор\n` : '';
     let rankStr = score.rank_global ? `#${score.rank_global} место по миру на карте\n` : '';
     if (score.rank_global && score.rank_global <= 1000) {
         rankStr = "🏆 "+ rankStr;
@@ -32,5 +33,6 @@ Accuracy: ${Util.round(score.accuracy() * 100, 2)}%
 Hitcounts: ${score.counts.toString()}
 Grade: ${score.rank} ${score.rank == "F" ? `(${Util.round(progress * 100, 2)}%)` : ''}
 ${rankStr}
+${topscoreStr}
 Beatmap: ` + (beatmap.mapUrl ?? `${link}/b/${beatmap.id.map}`);
 }

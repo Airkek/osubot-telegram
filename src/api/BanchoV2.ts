@@ -40,7 +40,10 @@ interface Score {
         id: number
     },
     passed: boolean,
-    rank_global?: number
+    rank_global?: number,
+    processed?: boolean,
+    preserve?: boolean,
+    ranked?: boolean,
 }
 
 
@@ -228,6 +231,7 @@ interface BeatmapUserScore {
 }
 
 class V2Score implements APIScore {
+    api_score_id: number;
     beatmapId: number;
     score: number;
     combo: number;
@@ -239,7 +243,9 @@ class V2Score implements APIScore {
     date: Date;
     rank_global?: number;
     v2_acc: number;
+    top100_number?: number;
     constructor(data: Score, forceLaserScore = false) {
+        this.api_score_id = data.id;
         this.beatmapId = data.beatmap.id;
         this.score = (forceLaserScore || !data.legacy_total_score) ? data.total_score : data.legacy_total_score;
         this.combo = data.max_combo;
@@ -536,7 +542,31 @@ class BanchoAPIV2 implements IAPI {
 
         if (data[0]) {
             let score = data[0];
-            return await this.getScoreByScoreId(score.id);
+
+            let fullInfo = undefined;
+            try {
+                fullInfo = await this.getScoreByScoreId(score.id);
+            } catch { 
+                fullInfo = new V2Score(score)
+            }
+
+            if (fullInfo.preserve && fullInfo.ranked && fullInfo.processed) {
+                try {
+                    let topscores = await this.getUserTopById(uid, mode, 100);
+                    for (let i = topscores.length - 1; i >= 0; i--) {
+                        let topScore = topscores[i];
+                        if (topScore.api_score_id == score.id) {
+                            fullInfo.top100_number = i + 1;                            
+                            break;
+                        }
+                        if (topScore.pp > score.pp) {
+                            break;
+                        }
+                    }
+                } catch { }
+            }
+
+            return fullInfo;
         } else {
             throw "No recent scores";
         }
@@ -545,7 +575,6 @@ class BanchoAPIV2 implements IAPI {
     async getUserTopById(uid: number | string, mode: number = 0, limit: number = 3): Promise<APIScore[]> {
         let data = await this.get(`/users/${uid}/scores/best`, { 
             mode: getRuleset(mode), 
-            include_fails: true,
             limit
         });
 
@@ -554,16 +583,6 @@ class BanchoAPIV2 implements IAPI {
         } else {
             throw "No top scores";
         }
-    }
-
-    async getScoreByScoreId(scoreId: number | string, forceLazerScore = false): Promise<APIScore> {
-        let data: Score = await this.get(`/scores/${scoreId}`);
-        
-        if (!data) {
-            throw "No scores found";
-        }
-    
-        return new V2Score(data, forceLazerScore);
     }
 
     async getScoreByUid(uid: number | string, beatmapId: number, mode?: number, mods?: number, forceLazerScore = false): Promise<APIScore> {
@@ -577,6 +596,16 @@ class BanchoAPIV2 implements IAPI {
         }
     
         return new V2Score(data.score, forceLazerScore);
+    }
+
+    async getScoreByScoreId(scoreId: number | string, forceLazerScore = false): Promise<APIScore> {
+        let data: Score = await this.get(`/scores/${scoreId}`);
+        
+        if (!data) {
+            throw "No scores found";
+        }
+    
+        return new V2Score(data, forceLazerScore);
     }
 }
 
