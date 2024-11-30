@@ -11,11 +11,6 @@ import { ICalcStats } from "../pp/Stats";
 
 type Ruleset = "osu" | "mania" | "taiko" | "fruits"; 
 
-interface LegacyScore {
-    id: number,
-    rank_global?: number
-}
-
 interface Score {
     id: number,
     mods: V2Mod[],
@@ -379,23 +374,6 @@ class BanchoAPIV2 implements IAPI {
         }
     }
 
-    private async get_legacy_version(method: string, query?: {[key: string]: any}) {
-        try {
-            let { data } = await this.api.get(`${method}${query ? `?${qs.stringify(query)}` : ''}`, {
-                headers: {
-                    'Authorization': `Bearer ${this.token}`
-                }
-            });
-            return data;
-        } catch(e) {
-            if(e.response?.status == 401) {
-                await this.refresh();
-                return this.get(method, query);
-            }
-            return undefined;
-        }
-    }
-
     private  async post(method: string, query?: {[key: string]: any}) {
         try {
             let { data } = await this.api.post(`${method}`, query, {
@@ -568,19 +546,11 @@ class BanchoAPIV2 implements IAPI {
             let fullInfo: Score = score;
             if (fullInfo.passed) {
                 try {
-                    fullInfo = await this.getScoreByScoreId(score.id);
+                    fullInfo = await this.getScoreByScoreId(score.id, !!score.legacy_total_score);
                 } catch { }
             }
 
             let result = new V2Score(fullInfo);
-
-            if (fullInfo.passed && fullInfo.legacy_total_score) {
-                try {
-                    let legacyScore: LegacyScore = await this.getScoreByScoreIdLegacyMode(score.id);
-                    result.rank_global = legacyScore.rank_global || result.rank_global;
-                } catch { }
-            }
-
             if (fullInfo.preserve && fullInfo.ranked) {
                 try {
                     let topscores = await this.getUserTopById(uid, mode, 100);
@@ -631,16 +601,6 @@ class BanchoAPIV2 implements IAPI {
 
     private async getScoreByScoreId(scoreId: number | string, forceLazerScore = false): Promise<Score> {
         let data: Score = await this.get(`/scores/${scoreId}`);
-        
-        if (!data) {
-            throw "No scores found";
-        }
-    
-        return data;
-    }
-
-    private async getScoreByScoreIdLegacyMode(scoreId: number | string): Promise<Score> {
-        let data: Score = await this.get_legacy_version(`/scores/${scoreId}`);
         
         if (!data) {
             throw "No scores found";
