@@ -152,8 +152,8 @@ class HitCounts implements IHitCounts {
         this.katu = hits.katu;
         this.geki = hits.geki;
         this.mode = mode;
-        this.slider_large = hits.slider_large || 0;
-        this.slider_tail = hits.slider_tail || 0;
+        this.slider_large = hits.slider_large;
+        this.slider_tail = hits.slider_tail;
     }
 
     accuracy(): number {
