@@ -11,6 +11,11 @@ import { ICalcStats } from "../pp/Stats";
 
 type Ruleset = "osu" | "mania" | "taiko" | "fruits"; 
 
+interface LegacyScore {
+    id: number,
+    rank_global?: number
+}
+
 interface Score {
     id: number,
     mods: V2Mod[],
@@ -244,10 +249,10 @@ class V2Score implements APIScore {
     rank_global?: number;
     v2_acc: number;
     top100_number?: number;
-    constructor(data: Score, forceLaserScore = false) {
+    constructor(data: Score, forceLazerScore = false) {
         this.api_score_id = data.id;
         this.beatmapId = data.beatmap.id;
-        this.score = (forceLaserScore || !data.legacy_total_score) ? data.total_score : data.legacy_total_score;
+        this.score = (forceLazerScore || !data.legacy_total_score) ? data.total_score : data.legacy_total_score;
         this.combo = data.max_combo;
         this.counts = new HitCounts({
             300: data.statistics.great || 0,
@@ -356,7 +361,7 @@ class BanchoAPIV2 implements IAPI {
         this.logged = 1;
     }
 
-    async get(method: string, query?: {[key: string]: any}) {
+    private async get(method: string, query?: {[key: string]: any}) {
         try {
             let { data } = await this.api.get(`${method}${query ? `?${qs.stringify(query)}` : ''}`, {
                 headers: {
@@ -374,7 +379,24 @@ class BanchoAPIV2 implements IAPI {
         }
     }
 
-    async post(method: string, query?: {[key: string]: any}) {
+    private async get_legacy_version(method: string, query?: {[key: string]: any}) {
+        try {
+            let { data } = await this.api.get(`${method}${query ? `?${qs.stringify(query)}` : ''}`, {
+                headers: {
+                    'Authorization': `Bearer ${this.token}`
+                }
+            });
+            return data;
+        } catch(e) {
+            if(e.response?.status == 401) {
+                await this.refresh();
+                return this.get(method, query);
+            }
+            return undefined;
+        }
+    }
+
+    private  async post(method: string, query?: {[key: string]: any}) {
         try {
             let { data } = await this.api.post(`${method}`, query, {
                 headers: {
@@ -551,6 +573,14 @@ class BanchoAPIV2 implements IAPI {
             }
 
             let result = new V2Score(fullInfo);
+
+            if (fullInfo.passed && fullInfo.legacy_total_score) {
+                try {
+                    let legacyScore: LegacyScore = await this.getScoreByScoreIdLegacyMode(score.id);
+                    result.rank_global = legacyScore.rank_global || result.rank_global;
+                } catch { }
+            }
+
             if (fullInfo.preserve && fullInfo.ranked) {
                 try {
                     let topscores = await this.getUserTopById(uid, mode, 100);
@@ -601,6 +631,16 @@ class BanchoAPIV2 implements IAPI {
 
     private async getScoreByScoreId(scoreId: number | string, forceLazerScore = false): Promise<Score> {
         let data: Score = await this.get(`/scores/${scoreId}`);
+        
+        if (!data) {
+            throw "No scores found";
+        }
+    
+        return data;
+    }
+
+    private async getScoreByScoreIdLegacyMode(scoreId: number | string): Promise<Score> {
+        let data: Score = await this.get_legacy_version(`/scores/${scoreId}`);
         
         if (!data) {
             throw "No scores found";
