@@ -32,7 +32,6 @@ Accuracy: ${Util.round(score.accuracy() * 100, 2)}%
 ` + ppString + `
 Hitcounts: ${score.counts.toString()}
 Grade: ${score.rank} ${score.rank == "F" ? `(${Util.round(progress * 100, 2)}%)` : ''}
-${rankStr}
-${topscoreStr}
+${rankStr}${topscoreStr}
 Beatmap: ` + (beatmap.mapUrl ?? `${link}/b/${beatmap.id.map}`);
 }
