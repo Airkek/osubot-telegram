@@ -124,9 +124,9 @@ interface IHits {
     miss: number,
     katu?: number,
     geki?: number
-    slider_large: number;
-    slider_small: number;
-    slider_tail: number;
+    slider_large?: number;
+    slider_small?: number;
+    slider_tail?: number;
 }
 
 interface IHitCounts extends IHits {
@@ -143,9 +143,9 @@ class HitCounts implements IHitCounts {
     katu?: number;
     geki?: number;
     mode: number;
-    slider_large: number;
-    slider_small: number;
-    slider_tail: number;
+    slider_large?: number;
+    slider_small?: number;
+    slider_tail?: number;
     constructor(hits: IHits, mode: number) {
         this[300] = hits[300];
         this[100] = hits[100];
