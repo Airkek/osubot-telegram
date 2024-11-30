@@ -21,7 +21,7 @@ export default function(score: APIScore, beatmap: APIBeatmap, calc: ICalc, link:
     let progress = score.counts.totalHits() / hits;
     let topscoreStr = score.top100_number ? `🏆 Персональный топ-${score.top100_number} скор\n` : '';
     let rankStr = score.rank_global ? `#${score.rank_global} место по миру на карте\n` : '';
-    if (score.rank_global && score.rank_global <= 1000) {
+    if (score.rank_global && score.rank_global <= 100) {
         rankStr = "🏆 "+ rankStr;
     }
     return ` <${beatmap.status}> ${beatmap.artist} - ${beatmap.title} [${beatmap.version}] by ${beatmap.creator.nickname}
