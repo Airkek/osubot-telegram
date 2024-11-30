@@ -76,31 +76,36 @@ export default class AttributesCalculator {
     }
 
     calculateMultipliedAR(): number {
-        const bpmMultiplier = this.mods.speed();
-        let newBpmMs = approachRateToMs(this.ar) / bpmMultiplier;
-        let newBpmAR = msToApproachRate(newBpmMs);
-        
+        let newAr = this.ar;
         if (this.mods.isEasy()) {
-            newBpmAR /= 2; // Easy halves AR
+            newAr /= 2; // Easy halves AR
         }
         if (this.mods.isHardRock()) {
-            newBpmAR *= 1.4; // Hard Rock multiplies AR by 1.4
+            newAr *= 1.4; // Hard Rock multiplies AR by 1.4
         }
+        newAr = clamp(newAr, 0, 10);
+
+        const bpmMultiplier = this.mods.speed();
+
+        let newBpmMs = approachRateToMs(newAr) / bpmMultiplier;
+        let newBpmAR = msToApproachRate(newBpmMs);
         
         return clamp(newBpmAR, 0, 11);
     }
 
     calculateMultipliedOD(): number {
-        const bpmMultiplier = this.mods.speed();
-        let newBpmMs = overallDifficultyToMs(this.od) / bpmMultiplier;
-        let newBpmOD = msToOverallDifficulty(newBpmMs);
-
+        let newOd = this.od;
         if (this.mods.isEasy()) {
-            newBpmOD /= 2; // Easy halves OD
+            newOd /= 2; // Easy halves OD
         }
         if (this.mods.isHardRock()) {
-            newBpmOD *= 1.4; // Hard Rock multiplies OD by 1.4
+            newOd *= 1.4; // Hard Rock multiplies OD by 1.4
         }
+        newOd = clamp(newOd, 0, 10)
+
+        const bpmMultiplier = this.mods.speed();
+        let newBpmMs = overallDifficultyToMs(newOd) / bpmMultiplier;
+        let newBpmOD = msToOverallDifficulty(newBpmMs);
 
         newBpmOD = Math.round(newBpmOD * 10) / 10; // round to 1 decimal place
         return clamp(newBpmOD, 0, 11);
