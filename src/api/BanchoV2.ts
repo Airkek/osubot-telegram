@@ -26,7 +26,6 @@ interface Score {
 
         // std lazer slider stats:
         large_tick_hit?: number,
-        small_tick_hit?: number,
         slider_tail_hit?: number,
     },
     ruleset_id: number,
@@ -251,7 +250,6 @@ class V2Score implements APIScore {
             katu: data.statistics.good || 0,
             geki: data.statistics.perfect || 0,
             slider_large: data.statistics.large_tick_hit || 0,
-            slider_small: data.statistics.small_tick_hit || 0,
             slider_tail: data.statistics.slider_tail_hit || 0,
         }, data.ruleset_id);
         this.mods = new Mods(data.mods as V2Mod[]);
