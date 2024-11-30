@@ -536,7 +536,7 @@ class BanchoAPIV2 implements IAPI {
 
         if (data[0]) {
             let score = data[0];
-            return new V2Score(score);
+            return await this.getScoreByScoreId(score.id);
         } else {
             throw "No recent scores";
         }
@@ -576,7 +576,7 @@ class BanchoAPIV2 implements IAPI {
             throw "No scores found";
         }
     
-        return await this.getScoreByScoreId(data.score.id);
+        return new V2Score(data.score, forceLazerScore);
     }
 }
 
