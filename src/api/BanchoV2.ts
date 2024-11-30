@@ -12,6 +12,7 @@ import { ICalcStats } from "../pp/Stats";
 type Ruleset = "osu" | "mania" | "taiko" | "fruits"; 
 
 interface Score {
+    id: number,
     mods: V2Mod[],
     accuracy: number,
     statistics: {
@@ -555,6 +556,16 @@ class BanchoAPIV2 implements IAPI {
         }
     }
 
+    async getScoreByScoreId(scoreId: number | string, forceLazerScore = false): Promise<APIScore> {
+        let data: BeatmapUserScore = await this.get(`/scores/${scoreId}`);
+        
+        if (!data) {
+            throw "No scores found";
+        }
+    
+        return new V2Score(data.score, forceLazerScore);
+    }
+
     async getScoreByUid(uid: number | string, beatmapId: number, mode?: number, mods?: number, forceLazerScore = false): Promise<APIScore> {
         let data: BeatmapUserScore = await this.get(`/beatmaps/${beatmapId}/scores/users/${uid}`, {
             mode: getRuleset(mode),
@@ -565,7 +576,7 @@ class BanchoAPIV2 implements IAPI {
             throw "No scores found";
         }
     
-        return new V2Score(data.score, forceLazerScore);
+        return await this.getScoreByScoreId(data.score.id);
     }
 }
 
