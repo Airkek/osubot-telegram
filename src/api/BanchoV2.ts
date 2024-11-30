@@ -557,13 +557,13 @@ class BanchoAPIV2 implements IAPI {
     }
 
     async getScoreByScoreId(scoreId: number | string, forceLazerScore = false): Promise<APIScore> {
-        let data: BeatmapUserScore = await this.get(`/scores/${scoreId}`);
+        let data: Score = await this.get(`/scores/${scoreId}`);
         
         if (!data) {
             throw "No scores found";
         }
     
-        return new V2Score(data.score, forceLazerScore);
+        return new V2Score(data, forceLazerScore);
     }
 
     async getScoreByUid(uid: number | string, beatmapId: number, mode?: number, mods?: number, forceLazerScore = false): Promise<APIScore> {
