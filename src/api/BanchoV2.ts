@@ -543,20 +543,21 @@ class BanchoAPIV2 implements IAPI {
         if (data[0]) {
             let score = data[0];
 
-            let fullInfo = undefined;
+            let fullInfo: Score = undefined;
             try {
                 fullInfo = await this.getScoreByScoreId(score.id);
             } catch { 
-                fullInfo = new V2Score(score)
+                fullInfo = score
             }
 
+            let result = new V2Score(fullInfo);
             if (fullInfo.preserve && fullInfo.ranked && fullInfo.processed) {
                 try {
                     let topscores = await this.getUserTopById(uid, mode, 100);
                     for (let i = topscores.length - 1; i >= 0; i--) {
                         let topScore = topscores[i];
                         if (topScore.api_score_id == score.id) {
-                            fullInfo.top100_number = i + 1;                            
+                            result.top100_number = i + 1;                            
                             break;
                         }
                         if (topScore.pp > score.pp) {
@@ -566,7 +567,7 @@ class BanchoAPIV2 implements IAPI {
                 } catch { }
             }
 
-            return fullInfo;
+            return result;
         } else {
             throw "No recent scores";
         }
@@ -598,14 +599,14 @@ class BanchoAPIV2 implements IAPI {
         return new V2Score(data.score, forceLazerScore);
     }
 
-    async getScoreByScoreId(scoreId: number | string, forceLazerScore = false): Promise<APIScore> {
+    private async getScoreByScoreId(scoreId: number | string, forceLazerScore = false): Promise<Score> {
         let data: Score = await this.get(`/scores/${scoreId}`);
         
         if (!data) {
             throw "No scores found";
         }
     
-        return new V2Score(data, forceLazerScore);
+        return data;
     }
 }
 
