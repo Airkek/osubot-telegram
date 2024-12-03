@@ -17,10 +17,10 @@ export default class ClearCommand extends Command {
             const count = members.length;
             let kicked = 0;
 
-            const estimate = count * 2;
+            const estimate = count / 2;
             let estimateStr = `${count} сек.`
             if (estimate > 60) {
-                estimateStr = `${Math.ceil(estimate / 60)} мин.`
+                estimateStr = `${Math.floor(estimate / 60)} мин. ${estimate % 60} сек.`
             }
 
             await ctx.reply(`Проводится чистка топа от вышедших пользователей.
@@ -28,7 +28,7 @@ export default class ClearCommand extends Command {
 Участников в чате: ${realCount}
 Зарегистрированных участников чата: ${count}
 
-Примерное время ожидания: ${count * 2} сек.`);
+Примерное время ожидания: ${estimateStr}`);
 
             for (const member of members) {
                 if (member == ctx.senderId) {

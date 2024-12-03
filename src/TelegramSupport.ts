@@ -80,7 +80,7 @@ export default class UnifiedMessageContext {
                 console.log(user?.status);
                 return user && user.status != "kicked" && user.status != "left";
             } catch (e) {
-                console.log(e)
+                console.log(e.description)
                 return e.description?.includes("member not found");
             }
         }
