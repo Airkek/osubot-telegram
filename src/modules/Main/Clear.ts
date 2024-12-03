@@ -17,10 +17,10 @@ export default class ClearCommand extends Command {
             const count = members.length;
             let kicked = 0;
 
-            const estimate = count / 2;
-            let estimateStr = `${count} сек.`
+            const estimate = count / 8;
+            let estimateStr = `${Math.ceil(count)} сек.`
             if (estimate > 60) {
-                estimateStr = `${Math.floor(estimate / 60)} мин. ${estimate % 60} сек.`
+                estimateStr = `${Math.floor(estimate / 60)} мин. ${Math.ceil(estimate % 60)} сек.`
             }
 
             await ctx.reply(`Проводится чистка топа от вышедших пользователей.
