@@ -77,13 +77,9 @@ export default class UnifiedMessageContext {
         this.isUserInChat = async (userId: number) => {
             try {
                 let user = await this.tg.api.getChatMember(this.chatId, userId);
-                console.log(user?.status);
                 return user && user.status != "kicked" && user.status != "left";
             } catch (e) {
-                if (!e.description?.includes("member not found")) {
-                    console.log(e);
-                }
-                return e.description?.includes("member not found");
+                return !e.description?.includes("member not found");
             }
         }
 

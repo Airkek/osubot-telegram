@@ -18,7 +18,7 @@ export default class ClearCommand extends Command {
             let kicked = 0;
 
             const estimate = count / 8;
-            let estimateStr = `${Math.ceil(count)} сек.`
+            let estimateStr = `${Math.ceil(estimate)} сек.`
             if (estimate > 60) {
                 estimateStr = `${Math.floor(estimate / 60)} мин. ${Math.ceil(estimate % 60)} сек.`
             }
