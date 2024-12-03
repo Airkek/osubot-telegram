@@ -6,6 +6,7 @@ import TopCmdsCommand from './TopCmds';
 import StatusCommand from './Status';
 import SearchCommand from './Search';
 import DisableCommand from './Disable';
+import ClearCommand from './Clear';
 
 export default class Main extends Module {
     constructor(bot: Bot) {
@@ -19,7 +20,8 @@ export default class Main extends Module {
             new TopCmdsCommand(this),
             new StatusCommand(this),
             new SearchCommand(this),
-            new DisableCommand(this)
+            new DisableCommand(this),
+            new ClearCommand(this)
         ]);
     }
 }

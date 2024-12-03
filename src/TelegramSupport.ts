@@ -43,6 +43,7 @@ export default class UnifiedMessageContext {
     reply: (text: string, options?: SendOptions) => Promise<any>;
     send: (text: string, options?: SendOptions, replyTo?: number) => Promise<any>;
     isAdmin: () => Promise<boolean>;
+    isUserInChat: (userId: number) => Promise<boolean>;
     hasAttachments: (type: string) => boolean;
     getAttachments: (type: string) => Array<any>; 
 
@@ -70,6 +71,11 @@ export default class UnifiedMessageContext {
         this.isAdmin = async () => {
             let user = await this.tg.api.getChatMember(this.chatId, this.senderId);
             return user.status == "creator" || user.status == "administrator"
+        }
+
+        this.isUserInChat = async (userId: number) => {
+            let user = await this.tg.api.getChatMember(this.chatId, userId);
+            return user && user.status != "kicked" && user.status != "left";
         }
 
         this.send = async (text: string, options?: SendOptions, replyTo?: number) => {
