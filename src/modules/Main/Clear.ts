@@ -14,7 +14,7 @@ export default class ClearCommand extends Command {
 
             const members = new Set(await self.module.bot.database.chats.getChatUsers(ctx.chatId));
             const realCount = await ctx.countMembers();
-            const count = members.length;
+            const count = members.size;
             let kicked = 0;
 
             const estimate = count / 8;
