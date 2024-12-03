@@ -12,11 +12,23 @@ export default class ClearCommand extends Command {
                 return ctx.reply("Эту команду может использовать только администратор чата");
             }
 
-            await ctx.reply("Проводится чистка топа от вышедших пользователей");
-
             const members = await self.module.bot.database.chats.getChatUsers(ctx.chatId);
+            const realCount = await ctx.countMembers();
             const count = members.length;
             let kicked = 0;
+
+            const estimate = count * 2;
+            let estimateStr = `${count} сек.`
+            if (estimate > 60) {
+                estimateStr = `${Math.ceil(estimate / 60)} мин.`
+            }
+
+            await ctx.reply(`Проводится чистка топа от вышедших пользователей.
+
+Участников в чате: ${realCount}
+Зарегистрированных участников чата: ${count}
+
+Примерное время ожидания: ${count * 2} сек.`);
 
             for (const member of members) {
                 if (member == ctx.senderId) {

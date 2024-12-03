@@ -44,6 +44,7 @@ export default class UnifiedMessageContext {
     send: (text: string, options?: SendOptions, replyTo?: number) => Promise<any>;
     isAdmin: () => Promise<boolean>;
     isUserInChat: (userId: number) => Promise<boolean>;
+    countMembers: () => Promise<number>;
     hasAttachments: (type: string) => boolean;
     getAttachments: (type: string) => Array<any>; 
 
@@ -76,10 +77,16 @@ export default class UnifiedMessageContext {
         this.isUserInChat = async (userId: number) => {
             try {
                 let user = await this.tg.api.getChatMember(this.chatId, userId);
+                console.log(user?.status);
                 return user && user.status != "kicked" && user.status != "left";
             } catch (e) {
+                console.log(e)
                 return e.description?.includes("member not found");
             }
+        }
+
+        this.countMembers = async () => {
+            return this.tg.api.getChatMemberCount(this.chatId);
         }
 
         this.send = async (text: string, options?: SendOptions, replyTo?: number) => {
