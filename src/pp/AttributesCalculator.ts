@@ -59,7 +59,7 @@ export default class AttributesCalculator {
             newCs *= 1.3; // Hard Rock multiplies CS by 1.3
         }
 
-        return clamp(newCs, 2, 7);
+        return clamp(newCs, 0, 10);
     }
 
     calculateMultipliedHP(): number {
