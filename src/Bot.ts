@@ -95,7 +95,9 @@ export class Bot {
 
         this.tg.on("message:new_chat_members", async (context) => {
             for (let user of context.message.new_chat_members) {
-                this.database.chats.userJoined(user.id, context.chat.id);
+                if (!this.database.chats.isUserInChat(user.id, context.chatId)) {
+                    this.database.chats.userJoined(user.id, context.chat.id);
+                }
             }
         })
 

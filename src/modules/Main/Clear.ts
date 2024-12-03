@@ -12,9 +12,28 @@ export default class ClearCommand extends Command {
                 return ctx.reply("Эту команду может использовать только администратор чата");
             }
 
-            const members = new Set(await self.module.bot.database.chats.getChatUsers(ctx.chatId));
+            const origMembers = await self.module.bot.database.chats.getChatUsers(ctx.chatId);
+            const duplicates = new Set<number>();
+            const members = new Set<number>();
+
+            for (const member of origMembers) { 
+                if (members.has(member)) {
+                    if (!duplicates.has(member)) {
+                        duplicates.add(member);
+                    }
+                } else {
+                    members.add(member);
+                }
+            }
+
+            for (const member of duplicates) {
+                await self.module.bot.database.chats.userLeft(member, ctx.chatId);
+                await self.module.bot.database.chats.userJoined(member, ctx.chatId);
+            }
+
             const realCount = await ctx.countMembers();
             const count = members.size;
+            const duplicateCount = duplicates.size;
             let kicked = 0;
 
             const estimate = count / 8;
@@ -27,6 +46,7 @@ export default class ClearCommand extends Command {
 
 Участников в чате: ${realCount}
 Зарегистрированных участников чата: ${count}
+Зарегистрированных несколько раз: ${duplicateCount}
 
 Примерное время ожидания: ${estimateStr}`);
 
