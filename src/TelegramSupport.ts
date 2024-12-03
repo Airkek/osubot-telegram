@@ -1,4 +1,4 @@
-import { Bot, Context, InlineKeyboard } from "grammy";
+import { Bot, Context, GrammyError, InlineKeyboard } from "grammy";
 
 class ReplyToMessage {
     readonly text: string;
@@ -74,8 +74,12 @@ export default class UnifiedMessageContext {
         }
 
         this.isUserInChat = async (userId: number) => {
-            let user = await this.tg.api.getChatMember(this.chatId, userId);
-            return user && user.status != "kicked" && user.status != "left";
+            try {
+                let user = await this.tg.api.getChatMember(this.chatId, userId);
+                return user && user.status != "kicked" && user.status != "left";
+            } catch (e) {
+                return e.description?.includes("member not found");
+            }
         }
 
         this.send = async (text: string, options?: SendOptions, replyTo?: number) => {
