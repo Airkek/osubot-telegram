@@ -11,7 +11,6 @@ if (fs.existsSync("./config.json")) {
             owner: 0
         },
         tokens: {
-            bancho_v1: "bancho_api_v1_token",
             bancho_v2_app_id: 123,
             bancho_v2_secret: "bancho_api_v2_secret",
         },

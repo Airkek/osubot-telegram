@@ -438,11 +438,16 @@ class BanchoAPIV2 implements IAPI {
     }
 
     async getBeatmap(id: number | string, mode?: number, mods?: Mods): Promise<APIBeatmap> {
+        let data: BeatmapExtended = undefined;
+        
         if (typeof id == "string") {
-            return await this.bot.api.bancho.getBeatmap(id);
+            data = await this.get('https://osu.ppy.sh/api/v2/beatmaps/lookup', {
+                'checksum': id
+            });
+        } else {
+            data = await this.get(`/beatmaps/${id}`);
         }
 
-        let data: BeatmapExtended = await this.get(`/beatmaps/${id}`);
         if (data === undefined) {
             throw "Beatmap not found";
         }

@@ -30,7 +30,6 @@ export interface IBotConfig {
         owner: number
     }
     tokens?: {
-        bancho_v1: string,
         bancho_v2_app_id: number,
         bancho_v2_secret: string
     }

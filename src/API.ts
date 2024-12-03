@@ -1,7 +1,6 @@
 import { Bot } from "./Bot"
 import IAPI from './api/base';
 
-import BanchoAPI from './api/Bancho';
 import GatariAPI from './api/Gatari';
 import RippleAPI from './api/Ripple';
 import AkatsukiAPI from './api/Akatsuki';
@@ -11,7 +10,6 @@ import BeatLeaderAPI from "./api/BeatLeader";
 import ScoreSaberAPI from "./api/ScoreSaber";
 
 class APICollection {
-    bancho: BanchoAPI;
     gatari: GatariAPI;
     ripple: RippleAPI;
     akatsuki: AkatsukiAPI;
@@ -20,7 +18,6 @@ class APICollection {
     beatleader: BeatLeaderAPI;
     scoresaber: ScoreSaberAPI
     constructor(bot: Bot) {
-        this.bancho = new BanchoAPI(bot);
         this.gatari = new GatariAPI(bot);
         this.ripple = new RippleAPI(bot);
         this.akatsuki = new AkatsukiAPI(bot);

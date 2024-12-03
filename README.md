@@ -44,7 +44,6 @@ npm i
         "owner": 5435325 // Your telegram ID
     },
     "tokens": {
-        "bancho_v1": "Bancho v1 token",
         "bancho_v2_app_id": 123, // your osu app id
         "bancho_v2_secret": "osu app client_secret"
     },
