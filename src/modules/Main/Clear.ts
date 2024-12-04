@@ -8,7 +8,8 @@ export default class ClearCommand extends Command {
                 return ctx.reply("Эту команду можно вводить только в чате");
             }
 
-            if (!ctx.isAdmin()) {
+            const isAdmin = await ctx.isAdmin();
+            if (!isAdmin) {
                 return ctx.reply("Эту команду может использовать только администратор чата");
             }
 
