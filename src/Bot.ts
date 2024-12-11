@@ -106,10 +106,6 @@ export class Bot {
         })
 
         this.basicOverride = (cmd, override) => {
-
-        }
-
-        this.basicOverride = (cmd, override) => {
             this.tg.command(cmd, async (context) => {
                 context.message.text = override;
                 var ctx = new UnifiedMessageContext(context, this.tg);

@@ -5,13 +5,15 @@ export default class DisableCommand extends Command {
     disables = false;
     
     constructor(module: Module) {
-        super(["disable"], module, async (ctx, self) => {
+        super(["disable", "enable"], module, async (ctx, self) => {
             if(!ctx.isChat)
                 return ctx.reply("Данная команда только для чатов!")
 
             try {
-                if(!ctx.isAdmin())
+                const isAdmin = await ctx.isAdmin();
+                if (!isAdmin) {
                     return;
+                }
 
                 let isDisabled = self.module.bot.disabled.includes(ctx.peerId);
 
