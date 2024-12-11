@@ -108,11 +108,11 @@ export default class HelpCommand extends Command {
             }
 
             if (ctx.hasMessagePayload) {
-                await ctx.edit(page.text, {keyboard: page.keyboard});
+                await ctx.edit(page.text, {keyboard: page.keyboard, dont_parse_links: false});
                 return;
             }
 
-            await ctx.reply(page.text, {keyboard: page.keyboard});
+            await ctx.reply(page.text, {keyboard: page.keyboard, dont_parse_links: false});
         });
     }
 }

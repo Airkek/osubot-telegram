@@ -90,7 +90,19 @@ export default class UnifiedMessageContext {
             if (!this.tgCtx.callbackQuery) {
                 return;
             }
-            await this.tgCtx.editMessageText(text, {reply_markup: options.keyboard});
+            let opts: any = {
+                disable_web_page_preview: true
+            }
+
+            if (options?.dont_parse_links === false) {
+                opts.disable_web_page_preview = false;
+            }
+            if (options?.keyboard !== undefined) {
+                opts['reply_markup'] = options.keyboard
+            }
+
+            // TODO: support media
+            await this.tgCtx.editMessageText(text, opts);
         }
 
         this.send = async (text: string, options?: SendOptions, replyTo?: number) => {
