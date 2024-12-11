@@ -207,8 +207,6 @@ class DatabaseErrors {
         let info = `Sent by: ${ctx.senderId}; Text: ${ctx.text}`;
         if(ctx.hasReplyMessage)
             info += `; Replied to: ${ctx.replyMessage.senderId}`;
-        if(ctx.hasForwards)
-            info += `; Forward: ${ctx.forwards[0].senderId}`;
         await this.db.run(`INSERT INTO errors (code, info, error) VALUES (?, ?, ?)`, [code, info, error]);
         return code;
     }

@@ -60,8 +60,6 @@ export default class UnifiedMessageContext {
         this.hasMessagePayload = this.messagePayload !== undefined;
         this.hasReplyMessage = ctx.message?.reply_to_message !== undefined;
         this.replyMessage = this.hasReplyMessage ? new ReplyToMessage(ctx) : null;
-        this.hasForwards = false; // in telegram we cant forward message as attachment, for compatibility only
-        this.forwards = [];
         this.isChat = ctx.chat.type == "supergroup" || ctx.chat.type == "group";
         this.senderId = ctx.from.id;
         this.peerId = ctx.chat.id;

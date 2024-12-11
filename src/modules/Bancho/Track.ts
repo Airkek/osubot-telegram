@@ -9,8 +9,6 @@ export default class BanchoTrack extends ServerCommand {
             let dbUser = await self.module.bot.database.servers.bancho.getUser(self.ctx.senderId);
             if(self.ctx.hasReplyMessage)
                 dbUser.nickname = (await self.module.bot.database.servers.bancho.getUser(self.ctx.replyMessage.senderId)).nickname;
-            if(self.ctx.hasForwards)
-                dbUser.nickname = (await self.module.bot.database.servers.bancho.getUser(self.ctx.forwards[0].senderId)).nickname;
             if(self.args.nickname[0])
                 dbUser.nickname = self.args.nickname.join(" ");
             if(!dbUser.nickname)
