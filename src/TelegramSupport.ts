@@ -41,6 +41,7 @@ export default class UnifiedMessageContext {
     readonly tg: Bot;
 
     reply: (text: string, options?: SendOptions) => Promise<any>;
+    edit: (text: string, options?: SendOptions) => Promise<any>;
     send: (text: string, options?: SendOptions, replyTo?: number) => Promise<any>;
     isAdmin: () => Promise<boolean>;
     isUserInChat: (userId: number) => Promise<boolean>;
@@ -85,6 +86,13 @@ export default class UnifiedMessageContext {
 
         this.countMembers = async () => {
             return this.tg.api.getChatMemberCount(this.chatId);
+        }
+
+        this.edit = async (text: string, options?: SendOptions, replyTo?: number) => {
+            if (!this.tgCtx.callbackQuery) {
+                return;
+            }
+            await this.tgCtx.editMessageText(text, {reply_markup: options.keyboard});
         }
 
         this.send = async (text: string, options?: SendOptions, replyTo?: number) => {
