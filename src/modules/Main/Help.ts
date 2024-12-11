@@ -99,7 +99,7 @@ osu clear - очистить топ чата от вышедших участн�
 export default class HelpCommand extends Command {
     constructor(module: Module) {
         super(["help", "хелп", "рудз", "помощь"], module, async (ctx, self, args) => {
-            let arg: pageNames = args[0];
+            let arg = args.full[0];
             let page: IHelpPage = pages['default'];
             if (arg && pages[arg]) {
                 page = pages[arg];
