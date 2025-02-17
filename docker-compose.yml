@@ -1,5 +1,11 @@
 services:
   osubot:
-    build: .
+    image: ghcr.io/Airkek/osubot-telegram
     env_file: .env
     restart: always
+
+    volumes:
+      - ./osu.db:/usr/osubot/osu!.db
+      - ./beatmap_cache:/usr/osubot/beatmap_cache
+      - ./donaters.json:/usr/osubot/donaters.json
+      - ./ignore_list.json:/usr/osubot/ignore_list.json

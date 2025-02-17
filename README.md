@@ -25,34 +25,53 @@ Telegram: https://t.me/osulegacybot
 
 1. Clone repository
 
-```
+```bash
 git clone https://github.com/Airkek/osubot-telegram
 cd osubot-telegram
 ```
 
 2. Install dependencdies
 
-```
-npm i
+```bash
+npm install
 ```
 
-3. Create a config `config.json`
-```jsonc
-{
-    "tg": {
-        "token": "Your bot token",
-        "owner": 5435325 // Your telegram ID
-    },
-    "tokens": {
-        "bancho_v2_app_id": 123, // your osu app id
-        "bancho_v2_secret": "osu app client_secret"
-    },
-}
+3. Fill .env:
+
+```bash
+cp .env.example .env
+nano .env
 ```
 
 4. Build & run
 
-```
-npx tsc
+```bash
+npm build
 npm start
+```
+
+## How to run (docker):
+1. Download compose file
+
+```bash
+mkdir osubot-telegram && cd osubot-telegram
+wget https://raw.githubusercontent.com/Airkek/osubot-telegram/refs/heads/stable/docker-compose.yml
+```
+
+2. Fill .env:
+
+```bash
+wget -O .env https://raw.githubusercontent.com/Airkek/osubot-telegram/refs/heads/stable/.env.example
+nano .env
+```
+
+3. Start container:
+
+```bash
+docker compose up -d
+```
+
+4. Update (if necessary)
+```bash
+docker pull
 ```

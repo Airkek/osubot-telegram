@@ -7,8 +7,6 @@ config.json
 osu_v2_auth_data.json
 package-lock.json
 ignore_list.json
-news_forbidden.json
-news_rules.json
 donaters.json
 secret
 start.sh
