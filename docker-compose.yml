@@ -1,6 +1,6 @@
 services:
   osubot:
-    image: ghcr.io/Airkek/osubot-telegram
+    image: ghcr.io/airkek/osubot-telegram
     env_file: .env
     restart: always
 
