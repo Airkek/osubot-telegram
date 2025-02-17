@@ -73,5 +73,5 @@ docker compose up -d
 
 4. Update (if necessary)
 ```bash
-docker pull
+docker compose pull
 ```
