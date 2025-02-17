@@ -19,15 +19,17 @@
   },
   "homepage": "https://github.com/Airkek/osubot-telegram#readme",
   "dependencies": {
-    "axios": "^1.7.3",
-    "grammy": "^1.24.1",
-    "int64-buffer": "^0.99.1007",
-    "leb": "^0.3.0",
-    "querystring": "^0.2.0",
-    "rosu-pp-js": "2.0.0",
+    "axios": "^1.7.9",
+    "grammy": "^1.35.0",
+    "int64-buffer": "^1.1.0",
+    "leb": "^1.0.0",
+    "querystring": "^0.2.1",
+    "rosu-pp-js": "^2.0.0",
     "sqlite3": "^5.1.7"
   },
   "devDependencies": {
+    "@grammyjs/types": "^3.19.0",
+    "@types/node": "^22.13.4",
     "@types/sqlite3": "^3.1.6",
     "typescript": "^4.1.2"
   }
