@@ -25,11 +25,11 @@ import BeatLeader from './modules/BeatLeader';
 import ScoreSaber from './modules/ScoreSaber';
 
 export interface IBotConfig {
-    tg?: {
+    tg: {
         token: string,
         owner: number
     }
-    tokens?: {
+    tokens: {
         bancho_v2_app_id: number,
         bancho_v2_secret: string
     }

@@ -12,5 +12,6 @@ news_rules.json
 donaters.json
 secret
 start.sh
+.env
 
 **/*test.ts
