@@ -1,11 +1,14 @@
+name: osubot-telegram
+
 services:
   osubot:
-    image: ghcr.io/airkek/osubot-telegram
+    image: ghcr.io/airkek/osubot-telegram:stable
+    container_name: osubot_telegram
     env_file: .env
     restart: always
 
     volumes:
-      - ./osu.db:/usr/osubot/osu!.db
+      - ./osu.db:/usr/osubot/osu.db
       - ./beatmap_cache:/usr/osubot/beatmap_cache
       - ./donaters.json:/usr/osubot/donaters.json
       - ./ignore_list.json:/usr/osubot/ignore_list.json
