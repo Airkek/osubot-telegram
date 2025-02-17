@@ -46,7 +46,7 @@ nano .env
 4. Build & run
 
 ```bash
-npm build
+npm run build
 npm start
 ```
 
