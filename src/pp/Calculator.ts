@@ -1,6 +1,6 @@
 import { APIBeatmap, APIScore, CalcArgs } from '../Types';
 import { ICalcStats } from './Stats';
-import * as rosu from '@kotrikd/rosu-pp'
+import * as rosu from 'rosu-pp-js'
 import Mods from './Mods';
 import { Replay } from '../Replay';
 

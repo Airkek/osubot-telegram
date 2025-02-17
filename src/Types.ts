@@ -143,6 +143,7 @@ class HitCounts implements IHitCounts {
     geki?: number;
     mode: number;
     slider_large?: number;
+    slider_small?: number;
     slider_tail?: number;
     constructor(hits: IHits, mode: number) {
         this[300] = hits[300];

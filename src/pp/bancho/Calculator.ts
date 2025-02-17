@@ -1,5 +1,5 @@
 import { IPPCalculator as ICalc } from '../Calculator';
-import * as rosu from "@kotrikd/rosu-pp";
+import * as rosu from "rosu-pp-js";
 import * as axios from 'axios';
 import * as fs from "fs";
 import Mods from '../Mods';
@@ -77,7 +77,7 @@ class BanchoPP implements ICalc {
             nGeki: score.fake ? undefined : score.counts.geki,
             nKatu: score.fake ? undefined : score.counts.katu,
             misses: score.counts.miss,
-            sliderTickHits: score.counts.slider_large,
+            largeTickHits: score.counts.slider_large,
             sliderEndHits: score.counts.slider_tail,
             lazer: this.mods.isLazer(),
             accuracy: score.fake ? score.accuracy() * 100 : undefined,
