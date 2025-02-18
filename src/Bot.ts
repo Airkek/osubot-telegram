@@ -59,6 +59,8 @@ export class Bot {
         this.modules = [];
 
         this.database = new Database(this.tg, this.config.tg.owner);
+        this.ignored = new IgnoreList(this.database);
+        this.donaters = new Donaters();
 
         this.initDB();
 
@@ -220,10 +222,6 @@ export class Bot {
                 }
             }
         });
-
-        this.ignored = new IgnoreList(this.database);
-
-        this.donaters = new Donaters();
 
         this.track = new OsuTrackAPI();
 
