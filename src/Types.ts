@@ -332,7 +332,7 @@ class TrackTopScore {
 
 interface IDatabaseUser {
     id: number,
-    uid: string,
+    game_id: string,
     nickname: string,
     mode: number,
     pp: number,
