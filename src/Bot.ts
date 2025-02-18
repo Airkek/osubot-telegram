@@ -240,8 +240,9 @@ export class Bot {
     }
 
     initDB(): void {
-        this.database.init();
-        this.ignored.init();
+        this.database.init().then(() => {
+            this.ignored.init();
+        })
     }
 
     async start() {
