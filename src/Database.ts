@@ -229,6 +229,7 @@ export default class Database {
 
     async get(stmt: string, opts: any[] = []): Promise<any> {
         return new Promise((resolve, reject) => {
+            console.log(stmt, opts)
             this.db.query(stmt, opts, (err: Error, res: QueryResult<any>) => {
                 if (err)
                     reject(err);
@@ -240,6 +241,7 @@ export default class Database {
 
     async all(stmt: string, opts: any[] = []): Promise<any[]> {
         return new Promise((resolve, reject) => {
+            console.log(stmt, opts)
             this.db.query(stmt, opts, (err: Error, res: QueryResult<any>) => {
                 if (err)
                     reject(err);
@@ -250,6 +252,7 @@ export default class Database {
     }
 
     async run(stmt: string, opts: any[] = []): Promise<QueryResult<any>> {
+        console.log(stmt, opts)
         return new Promise((resolve, reject) => {
             this.db.query(stmt, opts, (err: Error, res: QueryResult<any>) => {
                 if(err)
