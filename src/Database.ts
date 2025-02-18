@@ -168,11 +168,11 @@ class DatabaseUsersToChat {
     }
 
     async userJoined(userId: number, chatId: number): Promise<void> {
-        await this.db.run("INSERT INTO users_to_chat (`user`, chat) VALUES ($1, $2)", [userId, chatId])
+        await this.db.run(`INSERT INTO users_to_chat ("user", chat) VALUES ($1, $2)`, [userId, chatId])
     }
 
     async userLeft(userId: number, chatId: number): Promise<void> {
-        await this.db.run("DELETE FROM users_to_chat WHERE `user` = $1 AND chat = $2", [userId, chatId])
+        await this.db.run(`DELETE FROM users_to_chat WHERE "user" = $1 AND chat = $2`, [userId, chatId])
     }
 
     async getChatUsers(chatId: Number): Promise<number[]> {
@@ -181,7 +181,7 @@ class DatabaseUsersToChat {
     }
 
     async isUserInChat(userId: number, chatId: number): Promise<boolean> {
-        let user = await this.db.get("SELECT * FROM users_to_chat WHERE `user` = $1 AND chat = $2", [userId, chatId]);
+        let user = await this.db.get(`SELECT * FROM users_to_chat WHERE "user" = $1 AND chat = $2`, [userId, chatId]);
         return user.user ? true : false;
     }
 }
