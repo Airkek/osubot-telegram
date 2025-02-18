@@ -255,7 +255,7 @@ export default class Database {
 
         this.chats = new DatabaseUsersToChat(this);
 
-        this.db = new sqlite.Database("osu.db");
+        this.db = new sqlite.Database("data/osu.db"); // TODO: postgres
 
         this.tg = tg;
         this.owner = owner; 

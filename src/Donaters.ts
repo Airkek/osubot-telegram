@@ -10,6 +10,8 @@ type ServerString = string | "bancho" | "gatari" | "ripple" | "akatsuki" | "beat
 
 let servers = ["bancho", "gatari", "ripple", "akatsuki", "beatleader", "scoresaber"];
 
+const DONATERS_DATA_FILE = "./data/donaters.json" // TODO: remove this shit
+
 export default class Donaters {
     list: {
         bancho: Donater[],
@@ -20,10 +22,10 @@ export default class Donaters {
         scoresaber: Donater[]
     };
     constructor() {
-        if(!fs.existsSync("./donaters.json"))
-            fs.writeFileSync("./donaters.json", JSON.stringify({bancho: [], gatari: [], ripple: [], akatsuki: [], beatleader: [], scoresaber: []}, null, 4));
+        if(!fs.existsSync(DONATERS_DATA_FILE))
+            fs.writeFileSync(DONATERS_DATA_FILE, JSON.stringify({bancho: [], gatari: [], ripple: [], akatsuki: [], beatleader: [], scoresaber: []}, null, 4));
 
-        this.list = JSON.parse(fs.readFileSync("./donaters.json").toString());
+        this.list = JSON.parse(fs.readFileSync(DONATERS_DATA_FILE).toString());
 
         for(let i = 0; i < servers.length; i++) {
             if(!this.list[servers[i]])
@@ -34,7 +36,7 @@ export default class Donaters {
     }
 
     save() {
-        fs.writeFileSync("./donaters.json", JSON.stringify(this.list, null, 4));
+        fs.writeFileSync(DONATERS_DATA_FILE, JSON.stringify(this.list, null, 4));
         setTimeout(() => {
             this.save();
         }, 30000);
