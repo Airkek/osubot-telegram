@@ -98,7 +98,7 @@ class DatabaseServer implements IDatabaseServer {
     }
 
     async createTables(): Promise<void> {
-        await this.db.run(`CREATE TABLE IF NOT EXISTS migrations_${this.table} (version INGEGER)`);
+        await this.db.run(`CREATE TABLE IF NOT EXISTS migrations_${this.table} (version INTEGER)`);
         await this.db.run(`CREATE TABLE IF NOT EXISTS ${this.table} (id INTEGER, uid INTEGER, nickname TEXT, mode INTEGER)`);
         for(let i = 0; i < 4; i++)
             await this.db.run(`CREATE TABLE IF NOT EXISTS ${this.table}_stats_${i} (id INTEGER, nickname TEXT, pp REAL DEFAULT 0, rank INTEGER DEFAULT 9999999, acc REAL DEFAULT 100)`);
