@@ -11,7 +11,7 @@ export default class DropCommand extends Command {
             
             await self.module.bot.database.drop.dropUser(ctx.senderId);
 
-            ctx.send(`Привязки ников tg://user?id=${context.senderId} удалены'}!`, {
+            ctx.send(`Привязки ников tg://user?id=${context.senderId} удалены!`, {
                 disable_mentions: 1
             });
         });
