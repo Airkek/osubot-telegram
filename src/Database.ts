@@ -1,6 +1,5 @@
-import sqlite from 'sqlite3';
-import { Bot as TG, InputFile } from 'grammy'
-import axios from 'axios';
+import { Bot as TG, InputFile } from 'grammy';
+import { Pool, QueryResult } from 'pg';
 import util from './Util';
 import { APIUser, IDatabaseUser, IDatabaseUserStats, IDatabaseServer } from './Types';
 import UnifiedMessageContext from './TelegramSupport';
@@ -236,7 +235,7 @@ export default class Database {
     errors: DatabaseErrors;
     chats: DatabaseUsersToChat;
 
-    db: sqlite.Database;
+    db: Pool;
     tg: TG;
     owner: number
     constructor(tg: TG, owner: number) {
@@ -255,7 +254,13 @@ export default class Database {
 
         this.chats = new DatabaseUsersToChat(this);
 
-        this.db = new sqlite.Database("data/osu.db"); // TODO: postgres
+        this.db = new Pool({
+            user: process.env.DB_USERNAME,
+            host: process.env.DB_HOST,
+            database: process.env.DB_DATABASE_NAME,
+            password: process.env.DB_PASSWORD,
+            port: Number(process.env.DB_PORT),
+          });
 
         this.tg = tg;
         this.owner = owner; 
@@ -263,29 +268,29 @@ export default class Database {
 
     async get(stmt: string, opts: any[] = []): Promise<any> {
         return new Promise((resolve, reject) => {
-            this.db.get(stmt, opts, (err: Error, row: any) => {
-                if(err)
+            this.db.query(stmt, opts, (err: Error, res: QueryResult<any>) => {
+                if (err)
                     reject(err);
                 else
-                    resolve(row || {});
+                    resolve(res.rows[0] || {});
             });
         });
     }
 
     async all(stmt: string, opts: any[] = []): Promise<any[]> {
         return new Promise((resolve, reject) => {
-            this.db.all(stmt, opts, (err: Error, rows: any[]) => {
-                if(err)
+            this.db.query(stmt, opts, (err: Error, res: QueryResult<any>) => {
+                if (err)
                     reject(err);
                 else
-                    resolve(rows);
+                    resolve(res.rows);
             });
         });
     }
 
-    async run(stmt: string, opts: any[] = []): Promise<sqlite.RunResult> {
+    async run(stmt: string, opts: any[] = []): Promise<QueryResult<any>> {
         return new Promise((resolve, reject) => {
-            this.db.run(stmt, opts, (res: sqlite.RunResult, err: Error) => {
+            this.db.query(stmt, opts, (err: Error, res: QueryResult<any>) => {
                 if(err)
                     reject(err);
                 else

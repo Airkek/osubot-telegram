@@ -3,7 +3,9 @@
 /beatmap_cache
 /osubot_postgres
 /osubot_data
+/data
 package-lock.json
 .env
+docker-compose.override.yml
 
 **/*test.ts
