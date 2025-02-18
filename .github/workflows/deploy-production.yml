@@ -23,6 +23,7 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           source: "docker-compose.yml"
+          overwrite: true
           target: ${{ secrets.SSH_TARGET_PATH }}
 
       - name: Pulling Docker image from ssh
