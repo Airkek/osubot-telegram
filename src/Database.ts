@@ -47,7 +47,7 @@ class DatabaseServer implements IDatabaseServer {
             let user: IDatabaseUser = await this.getUser(id);
             if(!user)
                 return false;
-            await this.db.run(`UPDATE ${this.table} SET mode = $1 WHERE id = $2`, [mode, id]);
+            await this.db.run(`UPDATE ${this.table} SET mode = $1 WHERE id = $2::BIGINT`, [mode, id]);
         } catch(err) {
             throw err;
         }
@@ -243,6 +243,7 @@ export default class Database {
 
     async get(stmt: string, opts: any[] = []): Promise<any> {
         return new Promise((resolve, reject) => {
+            console.log(stmt, opts);
             this.db.query(stmt, opts, (err: Error, res: QueryResult<any>) => {
                 if (err)
                     reject(err);
@@ -254,6 +255,7 @@ export default class Database {
 
     async all(stmt: string, opts: any[] = []): Promise<any[]> {
         return new Promise((resolve, reject) => {
+            console.log(stmt, opts);
             this.db.query(stmt, opts, (err: Error, res: QueryResult<any>) => {
                 if (err)
                     reject(err);
@@ -265,6 +267,7 @@ export default class Database {
 
     async run(stmt: string, opts: any[] = []): Promise<QueryResult<any>> {
         return new Promise((resolve, reject) => {
+            console.log(stmt, opts);
             this.db.query(stmt, opts, (err: Error, res: QueryResult<any>) => {
                 if(err)
                     reject(err);
