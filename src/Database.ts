@@ -206,7 +206,7 @@ const migrations : IMigration[] = [
             await db.run("CREATE TABLE IF NOT EXISTS errors (code TEXT, info TEXT, error TEXT)");
             await db.run(`CREATE TABLE IF NOT EXISTS users_to_chat (user_id INTEGER, chat_id TEXT)`);
             await db.run(`CREATE TABLE IF NOT EXISTS users (id INTEGER, game_id TEXT, nickname TEXT, mode SMALLINT, server TEXT)`);
-            await db.run(`CREATE TABLE IF NOT EXISTS stats (id INTEGER, nickname TEXT, server TEXT, mode SMALLINT, pp REAL DEFAULT 0, rank INTEGER DEFAULT 9999999, acc REAL DEFAULT 100)`);
+            await db.run(`CREATE TABLE IF NOT EXISTS stats (id TEXT, nickname TEXT, server TEXT, mode SMALLINT, pp REAL DEFAULT 0, rank INTEGER DEFAULT 9999999, acc REAL DEFAULT 100)`);
             return true;
         }
     }
@@ -219,7 +219,6 @@ async function applyMigrations(db: Database) {
     for (let m of dbData) {
         applied.add(m.version);
     }
-    console.log(applied);
     for (const migration of migrations) {
         if (applied.has(migration.version)) {
             continue;
