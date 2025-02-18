@@ -3,6 +3,7 @@ import { Bot } from "../../Bot";
 import ErrorCommand from './Error';
 import StatusCommand from './Status';
 import IgnoreCommand from './Ignore';
+import DropCommand from './Drop';
 
 export default class Admin extends Module {
     constructor(bot: Bot) {
@@ -13,7 +14,8 @@ export default class Admin extends Module {
         this.registerCommand([
             new ErrorCommand(this),
             new StatusCommand(this),
-            new IgnoreCommand(this)
+            new IgnoreCommand(this),
+            new DropCommand(this)
         ]);
     }
 }

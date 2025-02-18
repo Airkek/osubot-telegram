@@ -167,6 +167,17 @@ class DatabaseIgnore {
     }
 }
 
+class DatabaseDrop {
+    db: Database;
+    constructor(db: Database) {
+        this.db = db;
+    }
+
+    async dropUser(userId: Number): Promise<any> {
+        await this.db.run(`DELETE FROM users WHERE id = $1`, [userId]);
+    }
+}
+
 interface IDatabaseError {
     code: String,
     info: String,
@@ -278,6 +289,7 @@ export default class Database {
     errors: DatabaseErrors;
     chats: DatabaseUsersToChat;
     ignore: DatabaseIgnore;
+    drop: DatabaseDrop;
 
     db: Pool;
     tg: TG;
@@ -299,6 +311,8 @@ export default class Database {
         this.chats = new DatabaseUsersToChat(this);
 
         this.ignore = new DatabaseIgnore(this);
+
+        this.drop = new DatabaseDrop(this);
 
         this.db = new Pool({
             user: process.env.DB_USERNAME,
