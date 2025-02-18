@@ -1,27 +1,33 @@
-import fs from "fs";
+import Database from "./Database";
 
-const IGNORE_LIST_DATA_FILE = "./data/ignore_list.json" // TODO: move to database
 
 export default class IgnoreList {
-    list: number[];
-    constructor() {
-        if(!fs.existsSync(IGNORE_LIST_DATA_FILE))
-            fs.writeFileSync(IGNORE_LIST_DATA_FILE, "[]");
-        this.list = JSON.parse(fs.readFileSync(IGNORE_LIST_DATA_FILE).toString());
+    list: Set<number>;
+    db: Database;
+
+    constructor(db: Database) {
+        this.list = new Set();
+        this.db = db;
+
+        this.db.ignore.getIgnoredUsers().then(res => {
+            this.list = new Set(res);
+        })
     }
 
     switch(id: number): boolean {
-        if(this.list.includes(id))
-            this.list.splice(
-                this.list.indexOf(id), 1
-            )
-        else
-            this.list.push(id);
+        if (this.isIgnored(id)) {
+            this.list.delete(id);
+            this.db.ignore.unignoreUser(id);
+            return false;
+        }
 
-        return this.isIgnored(id);
+        this.list.add(id);
+        this.db.ignore.ignoreUser(id);
+
+        return true;
     }
 
     isIgnored(id: number): boolean {
-        return this.list.includes(id);
+        return this.list.has(id);
     }
 }

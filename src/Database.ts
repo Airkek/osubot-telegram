@@ -147,6 +147,26 @@ class DatabaseUsersToChat {
     }
 }
 
+class DatabaseIgnore {
+    db: Database;
+    constructor(db: Database) {
+        this.db = db;
+    }
+
+    async getIgnoredUsers(): Promise<number[]> {
+        let users = await this.db.all("SELECT id FROM ignored_users");
+        return users.map(u => u.id);
+    }
+
+    async unignoreUser(userId: Number): Promise<any> {
+        await this.db.run(`DELETE FROM ignored_users WHERE id = $1`, [userId]);
+    }
+
+    async ignoreUser(userId: Number): Promise<any> {
+        await this.db.run(`INSERT INTO ignored_users (id) VALUES ($1)`, [userId]);
+    }
+}
+
 interface IDatabaseError {
     code: String,
     info: String,
@@ -209,6 +229,14 @@ const migrations : IMigration[] = [
             await db.run(`CREATE TABLE IF NOT EXISTS stats (id TEXT, nickname TEXT, server TEXT, mode SMALLINT, pp REAL DEFAULT 0, rank INTEGER DEFAULT 9999999, acc REAL DEFAULT 100)`);
             return true;
         }
+    },
+    {
+        version: 2,
+        name: "Create table for Ignore List",
+        process: async (db: Database) => {
+            await db.run("CREATE TABLE IF NOT EXISTS ignored_users (id BIGINT)");
+            return true;
+        }
     }
 ]
 
@@ -249,6 +277,7 @@ export default class Database {
     covers: DatabaseCovers;
     errors: DatabaseErrors;
     chats: DatabaseUsersToChat;
+    ignore: DatabaseIgnore;
 
     db: Pool;
     tg: TG;
@@ -268,6 +297,8 @@ export default class Database {
         this.errors = new DatabaseErrors(this);
 
         this.chats = new DatabaseUsersToChat(this);
+
+        this.ignore = new DatabaseIgnore(this);
 
         this.db = new Pool({
             user: process.env.DB_USERNAME,

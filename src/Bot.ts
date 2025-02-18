@@ -221,7 +221,7 @@ export class Bot {
             }
         });
 
-        this.ignored = new IgnoreList();
+        this.ignored = new IgnoreList(this.database);
 
         this.donaters = new Donaters();
 
