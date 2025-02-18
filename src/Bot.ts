@@ -248,7 +248,7 @@ export class Bot {
         this.database.run("CREATE TABLE IF NOT EXISTS covers (id INTEGER, attachment TEXT)");
         this.database.run("CREATE TABLE IF NOT EXISTS photos (url TEXT, attachment TEXT)");
         this.database.run("CREATE TABLE IF NOT EXISTS errors (code TEXT, info TEXT, error TEXT)");
-        this.database.run(`CREATE TABLE IF NOT EXISTS users_to_chat (user INTEGER, chat INTEGER)`);
+        this.database.run(`CREATE TABLE IF NOT EXISTS users_to_chat ("user" INTEGER, chat INTEGER)`);
     }
 
     async start() {
