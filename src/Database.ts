@@ -58,7 +58,7 @@ class DatabaseServer implements IDatabaseServer {
         if(!dbUser.id)
             await this.db.run(`INSERT INTO stats (id, nickname, pp, rank, acc, mode, server) VALUES ($1, $2, $3, $4, $5, $6, $7)`, [user.id, user.nickname, user.pp, user.rank.total, user.accuracy, mode, this.serverName]);
         else
-            await this.db.run(`UPDATE stats SET nickname = $1, pp = $2, rank = $3, acc = $4 WHERE id = $5 AND mode = $6 AND server = $6`, [user.nickname, user.pp, user.rank.total, user.accuracy, user.id, mode, this.serverName]);
+            await this.db.run(`UPDATE stats SET nickname = $1, pp = $2, rank = $3, acc = $4 WHERE id = $5 AND mode = $6 AND server = $7`, [user.nickname, user.pp, user.rank.total, user.accuracy, user.id, mode, this.serverName]);
     }
 
     async getUserStats(id: number, mode: number): Promise<IDatabaseUserStats> {
@@ -205,7 +205,7 @@ const migrations : IMigration[] = [
             await db.run("CREATE TABLE IF NOT EXISTS photos (url TEXT, attachment TEXT)");
             await db.run("CREATE TABLE IF NOT EXISTS errors (code TEXT, info TEXT, error TEXT)");
             await db.run(`CREATE TABLE IF NOT EXISTS users_to_chat (user_id INTEGER, chat_id TEXT)`);
-            await db.run(`CREATE TABLE IF NOT EXISTS users (id INTEGER, game_id TEXT, nickname TEXT, mode SMALLINT, server TEXT)`);
+            await db.run(`CREATE TABLE IF NOT EXISTS users (id BIGINT, game_id TEXT, nickname TEXT, mode SMALLINT, server TEXT)`);
             await db.run(`CREATE TABLE IF NOT EXISTS stats (id TEXT, nickname TEXT, server TEXT, mode SMALLINT, pp REAL DEFAULT 0, rank INTEGER DEFAULT 9999999, acc REAL DEFAULT 100)`);
             return true;
         }
