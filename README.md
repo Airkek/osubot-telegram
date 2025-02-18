@@ -55,13 +55,13 @@ npm start
 
 ```bash
 mkdir osubot-telegram && cd osubot-telegram
-wget https://raw.githubusercontent.com/Airkek/osubot-telegram/refs/heads/stable/docker-compose.yml
+wget https://raw.githubusercontent.com/Airkek/osubot-telegram/refs/heads/master/docker-compose.yml
 ```
 
 2. Fill .env:
 
 ```bash
-wget -O .env https://raw.githubusercontent.com/Airkek/osubot-telegram/refs/heads/stable/.env.example
+wget -O .env https://raw.githubusercontent.com/Airkek/osubot-telegram/refs/heads/master/.env.example
 nano .env
 ```
 

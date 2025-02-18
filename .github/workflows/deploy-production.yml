@@ -1,0 +1,40 @@
+name: Deploy
+
+env:
+  REGISTRY: ghcr.io
+
+on:
+  workflow_dispatch
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Copying Docker Compose file by using scp
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.PASSWORD }}
+          source: "docker-compose.yml"
+          target: ${{ secrets.SSH_TARGET_PATH }}
+
+      - name: Pulling Docker image from ssh
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd ${{ secrets.SSH_TARGET_PATH }}
+            echo ${{ secrets.PAT }} | docker login ${{ env.REGISTRY }} -u ${{github.actor}} --password-stdin
+            docker compose pull
+            docker logout ${{ env.REGISTRY }}
+            docker compose up -d
+            docker system prune --all --force

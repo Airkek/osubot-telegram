@@ -2,7 +2,7 @@ name: osubot-telegram
 
 services:
   osubot:
-    image: ghcr.io/airkek/osubot-telegram:stable
+    image: ghcr.io/airkek/osubot-telegram
     container_name: osubot_telegram
     env_file: .env
     restart: always
