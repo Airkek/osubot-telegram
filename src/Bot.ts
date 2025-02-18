@@ -243,6 +243,7 @@ export class Bot {
 
     initDB(): void {
         this.database.init();
+        this.ignored.init();
     }
 
     async start() {

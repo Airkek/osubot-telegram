@@ -4,17 +4,23 @@ import Database from "./Database";
 export default class IgnoreList {
     list: Set<number>;
     db: Database;
+    inited = false;
 
     constructor(db: Database) {
         this.list = new Set();
         this.db = db;
+    }
 
-        this.db.ignore.getIgnoredUsers().then(res => {
-            this.list = new Set(res);
-        })
+    async init() {
+        this.list = new Set(await this.db.ignore.getIgnoredUsers());
+        this.inited = true;
     }
 
     switch(id: number): boolean {
+        if (!this.inited) {
+            return false;
+        }
+
         if (this.isIgnored(id)) {
             this.list.delete(id);
             this.db.ignore.unignoreUser(id);
@@ -28,6 +34,6 @@ export default class IgnoreList {
     }
 
     isIgnored(id: number): boolean {
-        return this.list.has(id);
+        return !this.inited || this.list.has(id);
     }
 }
