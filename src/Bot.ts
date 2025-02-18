@@ -242,7 +242,7 @@ export class Bot {
     }
 
     initDB(): void {
-        this.database.createTables();
+        this.database.init();
     }
 
     async start() {

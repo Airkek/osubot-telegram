@@ -190,6 +190,56 @@ interface IServersList {
     scoresaber: DatabaseServer
 }
 
+interface IMigration {
+    version: number,
+    name: string,
+    process: (db: Database) => Promise<boolean>;
+}
+
+const migrations : IMigration[] = [
+    {
+        version: 1,
+        name: "Create tables",
+        process: async (db: Database) => {
+            await db.run("CREATE TABLE IF NOT EXISTS covers (id INTEGER, attachment TEXT)");
+            await db.run("CREATE TABLE IF NOT EXISTS photos (url TEXT, attachment TEXT)");
+            await db.run("CREATE TABLE IF NOT EXISTS errors (code TEXT, info TEXT, error TEXT)");
+            await db.run(`CREATE TABLE IF NOT EXISTS users_to_chat (user_id INTEGER, chat_id TEXT)`);
+            await db.run(`CREATE TABLE IF NOT EXISTS users (id INTEGER, game_id TEXT, nickname TEXT, mode SMALLINT, server TEXT)`);
+            await db.run(`CREATE TABLE IF NOT EXISTS stats (id INTEGER, nickname TEXT, server TEXT, mode SMALLINT, pp REAL DEFAULT 0, rank INTEGER DEFAULT 9999999, acc REAL DEFAULT 100)`);
+            return true;
+        }
+    }
+]
+
+async function applyMigrations(db: Database) {
+    console.log("Applying migrations")
+    const applied = new Set(await db.all("SELECT version FROM migrations"));
+    for (const migration of migrations) {
+        if (applied.has(migration.version)) {
+            continue;
+        }
+
+        console.log(`Processing migration #${migration.version}: ${migration.name}`);
+
+        let res = false;
+        try {
+            res = await migration.process(db);
+        } catch (e) {
+            console.log(e);
+        }
+
+        if (res) {
+            console.log("Success")
+            await db.run("INSERT INTO migrations (version) VALUES $1", [migration.version]);
+        } else {
+            console.log("Failed. Aborting");
+            process.abort();
+            return;
+        }
+    }
+}
+
 export default class Database {
     servers: IServersList;
     covers: DatabaseCovers;
@@ -229,7 +279,6 @@ export default class Database {
 
     async get(stmt: string, opts: any[] = []): Promise<any> {
         return new Promise((resolve, reject) => {
-            console.log(stmt, opts)
             this.db.query(stmt, opts, (err: Error, res: QueryResult<any>) => {
                 if (err)
                     reject(err);
@@ -241,7 +290,6 @@ export default class Database {
 
     async all(stmt: string, opts: any[] = []): Promise<any[]> {
         return new Promise((resolve, reject) => {
-            console.log(stmt, opts)
             this.db.query(stmt, opts, (err: Error, res: QueryResult<any>) => {
                 if (err)
                     reject(err);
@@ -252,7 +300,6 @@ export default class Database {
     }
 
     async run(stmt: string, opts: any[] = []): Promise<QueryResult<any>> {
-        console.log(stmt, opts)
         return new Promise((resolve, reject) => {
             this.db.query(stmt, opts, (err: Error, res: QueryResult<any>) => {
                 if(err)
@@ -263,15 +310,9 @@ export default class Database {
         });
     }
 
-    async createTables() {
-        await this.run("CREATE TABLE IF NOT EXISTS covers (id INTEGER, attachment TEXT)");
-        await this.run("CREATE TABLE IF NOT EXISTS photos (url TEXT, attachment TEXT)");
-        await this.run("CREATE TABLE IF NOT EXISTS errors (code TEXT, info TEXT, error TEXT)");
-        await this.run(`CREATE TABLE IF NOT EXISTS users_to_chat (user_id INTEGER, chat_id TEXT)`);
-
+    async init() {
         await this.run(`CREATE TABLE IF NOT EXISTS migrations (version INTEGER)`);
 
-        await this.run(`CREATE TABLE IF NOT EXISTS users (id INTEGER, game_id TEXT, nickname TEXT, mode SMALLINT, server TEXT)`);
-        await this.run(`CREATE TABLE IF NOT EXISTS stats (id INTEGER, nickname TEXT, server TEXT, mode SMALLINT, pp REAL DEFAULT 0, rank INTEGER DEFAULT 9999999, acc REAL DEFAULT 100)`);
+        await applyMigrations(this);
     }
 }
