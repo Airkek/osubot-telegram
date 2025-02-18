@@ -34,7 +34,7 @@ class DatabaseServer implements IDatabaseServer {
         try {
             let user: IDatabaseUser = await this.getUser(id);
             if (!user.id)
-                await this.db.run(`INSERT INTO users (id, game_id, nickname, mode) VALUES ($1, $2, $3, $4, $5)`, [id, game_id, nickname, mode, this.serverName]);
+                await this.db.run(`INSERT INTO users (id, game_id, nickname, mode, server) VALUES ($1, $2, $3, $4, $5)`, [id, game_id, nickname, mode, this.serverName]);
             else
                 await this.db.run(`UPDATE users SET nickname = $1, game_id = $2 WHERE id = $3 AND server = $4`, [nickname, game_id, id, this.serverName]);
         } catch(err) {
