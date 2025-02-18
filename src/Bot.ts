@@ -242,13 +242,7 @@ export class Bot {
     }
 
     initDB(): void {
-        for(let k in this.database.servers) {
-            this.database.servers[k].createTables();
-        }
-        this.database.run("CREATE TABLE IF NOT EXISTS covers (id INTEGER, attachment TEXT)");
-        this.database.run("CREATE TABLE IF NOT EXISTS photos (url TEXT, attachment TEXT)");
-        this.database.run("CREATE TABLE IF NOT EXISTS errors (code TEXT, info TEXT, error TEXT)");
-        this.database.run(`CREATE TABLE IF NOT EXISTS users_to_chat ("user" INTEGER, chat INTEGER)`);
+        this.database.createTables();
     }
 
     async start() {

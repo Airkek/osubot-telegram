@@ -14,7 +14,7 @@ class DatabaseServer implements IDatabaseServer {
 
     async getUser(id: Number): Promise<IDatabaseUser | null> {
         try {
-            let user: IDatabaseUser = await this.db.get(`SELECT * FROM ${this.table} WHERE id = $1::BIGINT`, [id]);
+            let user: IDatabaseUser = await this.db.get(`SELECT * FROM ${this.table} WHERE id = $1`, [id]);
             return user;
         } catch(err) {
             throw err;
@@ -34,9 +34,9 @@ class DatabaseServer implements IDatabaseServer {
         try {
             let user: IDatabaseUser = await this.getUser(id);
             if(!user.id)
-                await this.db.run(`INSERT INTO ${this.table} (id, uid, nickname, mode) VALUES ($1::BIGINT, $2, $3, 0)`, [id, uid, nickname]);
+                await this.db.run(`INSERT INTO ${this.table} (id, uid, nickname, mode) VALUES ($1, $2, $3, 0)`, [id, uid, nickname]);
             else
-                await this.db.run(`UPDATE ${this.table} SET nickname = $1, uid = $2 WHERE id = $3::BIGINT`, [nickname, uid, id]);
+                await this.db.run(`UPDATE ${this.table} SET nickname = $1, uid = $2 WHERE id = $3`, [nickname, uid, id]);
         } catch(err) {
             throw err;
         }
@@ -47,7 +47,7 @@ class DatabaseServer implements IDatabaseServer {
             let user: IDatabaseUser = await this.getUser(id);
             if(!user)
                 return false;
-            await this.db.run(`UPDATE ${this.table} SET mode = $1 WHERE id = $2::BIGINT`, [mode, id]);
+            await this.db.run(`UPDATE ${this.table} SET mode = $1 WHERE id = $2`, [mode, id]);
         } catch(err) {
             throw err;
         }
@@ -74,9 +74,9 @@ class DatabaseServer implements IDatabaseServer {
 
     async createTables(): Promise<void> {
         await this.db.run(`CREATE TABLE IF NOT EXISTS migrations_${this.table} (version INTEGER)`);
-        await this.db.run(`CREATE TABLE IF NOT EXISTS ${this.table} (id BIGINT, uid TEXT, nickname TEXT, mode SMALLINT)`);
+        await this.db.run(`CREATE TABLE IF NOT EXISTS ${this.table} (id INTEGER, uid TEXT, nickname TEXT, mode SMALLINT)`);
         for(let i = 0; i < 4; i++)
-            await this.db.run(`CREATE TABLE IF NOT EXISTS ${this.table}_stats_${i} (id BIGINT, nickname TEXT, pp REAL DEFAULT 0, rank BIGINT DEFAULT 9999999, acc REAL DEFAULT 100)`);
+            await this.db.run(`CREATE TABLE IF NOT EXISTS ${this.table}_stats_${i} (id INTEGER, nickname TEXT, pp REAL DEFAULT 0, rank INTEGER DEFAULT 9999999, acc REAL DEFAULT 100)`);
 
         await this.applyMigrations();
     }
@@ -94,7 +94,7 @@ class DatabaseCovers {
             let send = await this.db.tg.api.sendPhoto(this.db.owner, file);
             let photo = send.photo[0].file_id;
 
-            await this.db.run("INSERT INTO covers (id, attachment) VALUES ($1::BIGINT, $2)", [id, photo.toString()]);
+            await this.db.run("INSERT INTO covers (id, attachment) VALUES ($1, $2)", [id, photo.toString()]);
 
             return photo.toString();
         } catch(e) {
@@ -103,7 +103,7 @@ class DatabaseCovers {
     }
 
     async getCover(id: Number): Promise<string> {
-        let cover = await this.db.get(`SELECT * FROM covers WHERE id = $1::BIGINT`, [id]);
+        let cover = await this.db.get(`SELECT * FROM covers WHERE id = $1`, [id]);
         if(!cover.id)
             return this.addCover(id);
         return cover.attachment;
@@ -142,21 +142,21 @@ class DatabaseUsersToChat {
         this.db = db;
     }
 
-    async userJoined(userId: number, chatId: number): Promise<void> {
-        await this.db.run(`INSERT INTO users_to_chat ("user", chat) VALUES ($1::BIGINT, $2::BIGINT)`, [userId, chatId])
+    async userJoined(userId: Number, chatId: Number): Promise<void> {
+        await this.db.run(`INSERT INTO users_to_chat (user_id, chat_id) VALUES ($1, $2)`, [userId, chatId])
     }
 
-    async userLeft(userId: number, chatId: number): Promise<void> {
-        await this.db.run(`DELETE FROM users_to_chat WHERE "user" = $1::BIGINT AND chat = $2::BIGINT`, [userId, chatId])
+    async userLeft(userId: Number, chatId: Number): Promise<void> {
+        await this.db.run(`DELETE FROM users_to_chat WHERE user_id = $1 AND chat_id = $2`, [userId, chatId])
     }
 
     async getChatUsers(chatId: Number): Promise<number[]> {
-        let users = await this.db.all("SELECT * FROM users_to_chat WHERE chat = $1::BIGINT", [chatId]);
+        let users = await this.db.all("SELECT * FROM users_to_chat WHERE chat_id = $1", [chatId]);
         return users.map(u => u.user);
     }
 
-    async isUserInChat(userId: number, chatId: number): Promise<boolean> {
-        let user = await this.db.get(`SELECT * FROM users_to_chat WHERE "user" = $1::BIGINT AND chat = $2::BIGINT`, [userId, chatId]);
+    async isUserInChat(userId: Number, chatId: Number): Promise<boolean> {
+        let user = await this.db.get(`SELECT * FROM users_to_chat WHERE user_id = $1 AND chat_id = $2`, [userId, chatId]);
         return user.user ? true : false;
     }
 }
@@ -243,7 +243,6 @@ export default class Database {
 
     async get(stmt: string, opts: any[] = []): Promise<any> {
         return new Promise((resolve, reject) => {
-            console.log(stmt, opts);
             this.db.query(stmt, opts, (err: Error, res: QueryResult<any>) => {
                 if (err)
                     reject(err);
@@ -255,7 +254,6 @@ export default class Database {
 
     async all(stmt: string, opts: any[] = []): Promise<any[]> {
         return new Promise((resolve, reject) => {
-            console.log(stmt, opts);
             this.db.query(stmt, opts, (err: Error, res: QueryResult<any>) => {
                 if (err)
                     reject(err);
@@ -267,7 +265,6 @@ export default class Database {
 
     async run(stmt: string, opts: any[] = []): Promise<QueryResult<any>> {
         return new Promise((resolve, reject) => {
-            console.log(stmt, opts);
             this.db.query(stmt, opts, (err: Error, res: QueryResult<any>) => {
                 if(err)
                     reject(err);
@@ -275,5 +272,16 @@ export default class Database {
                     resolve(res);
             });
         });
+    }
+
+    async createTables() {
+        await this.run("CREATE TABLE IF NOT EXISTS covers (id INTEGER, attachment TEXT)");
+        await this.run("CREATE TABLE IF NOT EXISTS photos (url TEXT, attachment TEXT)");
+        await this.run("CREATE TABLE IF NOT EXISTS errors (code TEXT, info TEXT, error TEXT)");
+        await this.run(`CREATE TABLE IF NOT EXISTS users_to_chat (user_id INTEGER, chat_id TEXT)`);
+
+        for (const server in this.servers) {
+            await this.servers[server].createTables();
+        }
     }
 }
