@@ -155,7 +155,7 @@ class DatabaseIgnore {
 
     async getIgnoredUsers(): Promise<number[]> {
         let users = await this.db.all("SELECT id FROM ignored_users");
-        return users.map(u => u.id);
+        return users.map(u => Number(u.id));
     }
 
     async unignoreUser(userId: Number): Promise<any> {
