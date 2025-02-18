@@ -69,39 +69,14 @@ class DatabaseServer implements IDatabaseServer {
 
     async applyMigrations(): Promise<void> {
         let applied = await this.db.all(`SELECT * FROM migrations_${this.table}`);
-
-        if (!applied.includes(1)) {
-            await this.db.run(
-                `CREATE TABLE IF NOT EXISTS temp_${this.table} (
-                  id INTEGER,
-                  uid TEXT,
-                  nickname TEXT,
-                  mode INTEGER
-                )`
-            );
-        
-            await this.db.run(
-                `INSERT INTO temp_${this.table} (id, uid, nickname, mode)
-                SELECT id, uid, nickname, mode FROM ${this.table}`
-            );
-        
-            await this.db.run(
-                `DROP TABLE ${this.table}`
-            );
-        
-            await this.db.run(
-                `ALTER TABLE temp_${this.table} RENAME TO ${this.table}`
-            );
-
-            await this.db.run(`INSERT INTO migrations_${this.table} (version) VALUES (1)`);
-        }
+        // Todo
     }
 
     async createTables(): Promise<void> {
         await this.db.run(`CREATE TABLE IF NOT EXISTS migrations_${this.table} (version INTEGER)`);
-        await this.db.run(`CREATE TABLE IF NOT EXISTS ${this.table} (id INTEGER, uid INTEGER, nickname TEXT, mode INTEGER)`);
+        await this.db.run(`CREATE TABLE IF NOT EXISTS ${this.table} (id BIGINT, uid TEXT, nickname TEXT, mode SMALLINT)`);
         for(let i = 0; i < 4; i++)
-            await this.db.run(`CREATE TABLE IF NOT EXISTS ${this.table}_stats_${i} (id INTEGER, nickname TEXT, pp REAL DEFAULT 0, rank INTEGER DEFAULT 9999999, acc REAL DEFAULT 100)`);
+            await this.db.run(`CREATE TABLE IF NOT EXISTS ${this.table}_stats_${i} (id BIGINT, nickname TEXT, pp REAL DEFAULT 0, rank BIGINT DEFAULT 9999999, acc REAL DEFAULT 100)`);
 
         await this.applyMigrations();
     }
