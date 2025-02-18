@@ -231,7 +231,7 @@ async function applyMigrations(db: Database) {
 
         if (res) {
             console.log("Success")
-            await db.run("INSERT INTO migrations (version) VALUES $1", [migration.version]);
+            await db.run("INSERT INTO migrations (version) VALUES ($1)", [migration.version]);
         } else {
             console.log("Failed. Aborting");
             process.abort();
