@@ -14,7 +14,7 @@ class DatabaseServer implements IDatabaseServer {
 
     async getUser(id: Number): Promise<IDatabaseUser | null> {
         try {
-            let user: IDatabaseUser = await this.db.get(`SELECT * FROM ${this.table} WHERE id = $1`, [id]);
+            let user: IDatabaseUser = await this.db.get(`SELECT * FROM ${this.table} WHERE id = $1::BIGINT`, [id]);
             return user;
         } catch(err) {
             throw err;
@@ -34,9 +34,9 @@ class DatabaseServer implements IDatabaseServer {
         try {
             let user: IDatabaseUser = await this.getUser(id);
             if(!user.id)
-                await this.db.run(`INSERT INTO ${this.table} (id, uid, nickname, mode) VALUES ($1, $2, $3, 0)`, [id, uid, nickname]);
+                await this.db.run(`INSERT INTO ${this.table} (id, uid, nickname, mode) VALUES ($1::BIGINT, $2, $3, 0)`, [id, uid, nickname]);
             else
-                await this.db.run(`UPDATE ${this.table} SET nickname = $1, uid = $2 WHERE id = $3`, [nickname, uid, id]);
+                await this.db.run(`UPDATE ${this.table} SET nickname = $1, uid = $2 WHERE id = $3::BIGINT`, [nickname, uid, id]);
         } catch(err) {
             throw err;
         }
@@ -94,7 +94,7 @@ class DatabaseCovers {
             let send = await this.db.tg.api.sendPhoto(this.db.owner, file);
             let photo = send.photo[0].file_id;
 
-            await this.db.run("INSERT INTO covers (id, attachment) VALUES ($1, $2)", [id, photo.toString()]);
+            await this.db.run("INSERT INTO covers (id, attachment) VALUES ($1::BIGINT, $2)", [id, photo.toString()]);
 
             return photo.toString();
         } catch(e) {
@@ -103,7 +103,7 @@ class DatabaseCovers {
     }
 
     async getCover(id: Number): Promise<string> {
-        let cover = await this.db.get(`SELECT * FROM covers WHERE id = $1`, [id]);
+        let cover = await this.db.get(`SELECT * FROM covers WHERE id = $1::BIGINT`, [id]);
         if(!cover.id)
             return this.addCover(id);
         return cover.attachment;
@@ -143,20 +143,20 @@ class DatabaseUsersToChat {
     }
 
     async userJoined(userId: number, chatId: number): Promise<void> {
-        await this.db.run(`INSERT INTO users_to_chat ("user", chat) VALUES ($1, $2)`, [userId, chatId])
+        await this.db.run(`INSERT INTO users_to_chat ("user", chat) VALUES ($1::BIGINT, $2::BIGINT)`, [userId, chatId])
     }
 
     async userLeft(userId: number, chatId: number): Promise<void> {
-        await this.db.run(`DELETE FROM users_to_chat WHERE "user" = $1 AND chat = $2`, [userId, chatId])
+        await this.db.run(`DELETE FROM users_to_chat WHERE "user" = $1::BIGINT AND chat = $2::BIGINT`, [userId, chatId])
     }
 
     async getChatUsers(chatId: Number): Promise<number[]> {
-        let users = await this.db.all("SELECT * FROM users_to_chat WHERE chat = $1", [chatId]);
+        let users = await this.db.all("SELECT * FROM users_to_chat WHERE chat = $1::BIGINT", [chatId]);
         return users.map(u => u.user);
     }
 
     async isUserInChat(userId: number, chatId: number): Promise<boolean> {
-        let user = await this.db.get(`SELECT * FROM users_to_chat WHERE "user" = $1 AND chat = $2`, [userId, chatId]);
+        let user = await this.db.get(`SELECT * FROM users_to_chat WHERE "user" = $1::BIGINT AND chat = $2::BIGINT`, [userId, chatId]);
         return user.user ? true : false;
     }
 }
