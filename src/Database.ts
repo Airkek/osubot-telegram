@@ -271,7 +271,7 @@ export default class Database {
 
         await this.run(`CREATE TABLE IF NOT EXISTS migrations (version INTEGER)`);
 
-        await this.run(`CREATE TABLE IF NOT EXISTS users (id INTEGER, game_id TEXT, nickname TEXT, mode SMALLINT, server TEXT`);
+        await this.run(`CREATE TABLE IF NOT EXISTS users (id INTEGER, game_id TEXT, nickname TEXT, mode SMALLINT, server TEXT)`);
         await this.run(`CREATE TABLE IF NOT EXISTS stats (id INTEGER, nickname TEXT, server TEXT, mode SMALLINT, pp REAL DEFAULT 0, rank INTEGER DEFAULT 9999999, acc REAL DEFAULT 100)`);
     }
 }
