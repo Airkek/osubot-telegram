@@ -24,7 +24,6 @@ interface IDatabaseServer {
     setMode(id: number, mode: number): Promise<boolean>,
     updateInfo(user: APIUser, mode: number): Promise<void>,
     getUserStats(id: number, mode: number): Promise<IDatabaseUserStats>,
-    createTables(): Promise<void>
 }
 
 interface PPArgs {

@@ -5,16 +5,16 @@ import { APIUser, IDatabaseUser, IDatabaseUserStats, IDatabaseServer } from './T
 import UnifiedMessageContext from './TelegramSupport';
 
 class DatabaseServer implements IDatabaseServer {
-    table: String;
+    serverName: String;
     db: Database;
-    constructor(table: String, db: Database) {
-        this.table = table;
+    constructor(serverName: String, db: Database) {
+        this.serverName = serverName;
         this.db = db;
     }
 
     async getUser(id: Number): Promise<IDatabaseUser | null> {
         try {
-            let user: IDatabaseUser = await this.db.get(`SELECT * FROM ${this.table} WHERE id = $1`, [id]);
+            let user: IDatabaseUser = await this.db.get(`SELECT * FROM users WHERE id = $1 AND server = $2`, [id, this.serverName]);
             return user;
         } catch(err) {
             throw err;
@@ -23,20 +23,20 @@ class DatabaseServer implements IDatabaseServer {
 
     async findByUserId(id: number | string): Promise<IDatabaseUser[]> {
         try {
-            let users: IDatabaseUser[] = await this.db.all(`SELECT * FROM ${this.table} WHERE uid = $1 COLLATE NOCASE`, [id]);
+            let users: IDatabaseUser[] = await this.db.all(`SELECT * FROM users WHERE game_id = $1 AND server = $2 COLLATE NOCASE`, [id, this.serverName]);
             return users;
         } catch(err) {
             throw err;
         }
     }
 
-    async setNickname(id: number, uid: number | string, nickname: String): Promise<void> {
+    async setNickname(id: number, game_id: number | string, nickname: String, mode: Number = 0): Promise<void> {
         try {
             let user: IDatabaseUser = await this.getUser(id);
-            if(!user.id)
-                await this.db.run(`INSERT INTO ${this.table} (id, uid, nickname, mode) VALUES ($1, $2, $3, 0)`, [id, uid, nickname]);
+            if (!user.id)
+                await this.db.run(`INSERT INTO users (id, game_id, nickname, mode) VALUES ($1, $2, $3, $4, $5)`, [id, game_id, nickname, mode, this.serverName]);
             else
-                await this.db.run(`UPDATE ${this.table} SET nickname = $1, uid = $2 WHERE id = $3`, [nickname, uid, id]);
+                await this.db.run(`UPDATE users SET nickname = $1, game_id = $2 WHERE id = $3 AND server = $4`, [nickname, game_id, id, this.serverName]);
         } catch(err) {
             throw err;
         }
@@ -47,38 +47,24 @@ class DatabaseServer implements IDatabaseServer {
             let user: IDatabaseUser = await this.getUser(id);
             if(!user)
                 return false;
-            await this.db.run(`UPDATE ${this.table} SET mode = $1 WHERE id = $2`, [mode, id]);
+            await this.db.run(`UPDATE users SET mode = $1 WHERE id = $2 AND server = $3`, [mode, id, this.serverName]);
         } catch(err) {
             throw err;
         }
     }
 
     async updateInfo(user: APIUser, mode: number): Promise<void> {
-        let dbUser = await this.db.get(`SELECT * FROM ${this.table}_stats_${mode} WHERE id = $1 LIMIT 1`, [user.id]);
+        let dbUser = await this.db.get(`SELECT * FROM stats WHERE id = $1 AND mode = $2 AND server = $3 LIMIT 1`, [user.id, mode, this.serverName]);
         if(!dbUser.id)
-            await this.db.run(`INSERT INTO ${this.table}_stats_${mode} (id, nickname, pp, rank, acc) VALUES ($1, $2, $3, $4, $5)`, [user.id, user.nickname, user.pp, user.rank.total, user.accuracy]);
+            await this.db.run(`INSERT INTO stats (id, nickname, pp, rank, acc, mode, server) VALUES ($1, $2, $3, $4, $5, $6, $7)`, [user.id, user.nickname, user.pp, user.rank.total, user.accuracy, mode, this.serverName]);
         else
-            await this.db.run(`UPDATE ${this.table}_stats_${mode} SET nickname = $1, pp = $2, rank = $3, acc = $4 WHERE id = $5`, [user.nickname, user.pp, user.rank.total, user.accuracy, user.id]);
+            await this.db.run(`UPDATE stats SET nickname = $1, pp = $2, rank = $3, acc = $4 WHERE id = $5 AND mode = $6 AND server = $6`, [user.nickname, user.pp, user.rank.total, user.accuracy, user.id, mode, this.serverName]);
     }
 
     async getUserStats(id: number, mode: number): Promise<IDatabaseUserStats> {
         let u = await this.getUser(id);
-        let stats: IDatabaseUserStats = await this.db.get(`SELECT * FROM ${this.table}_stats_${mode} WHERE id = $1`, [u.uid]);
+        let stats: IDatabaseUserStats = await this.db.get(`SELECT * FROM stats WHERE id = $1 AND mode = $2 AND server = $3`, [u.uid, mode, this.serverName]);
         return stats;
-    }
-
-    async applyMigrations(): Promise<void> {
-        let applied = await this.db.all(`SELECT * FROM migrations_${this.table}`);
-        // Todo
-    }
-
-    async createTables(): Promise<void> {
-        await this.db.run(`CREATE TABLE IF NOT EXISTS migrations_${this.table} (version INTEGER)`);
-        await this.db.run(`CREATE TABLE IF NOT EXISTS ${this.table} (id INTEGER, uid TEXT, nickname TEXT, mode SMALLINT)`);
-        for(let i = 0; i < 4; i++)
-            await this.db.run(`CREATE TABLE IF NOT EXISTS ${this.table}_stats_${i} (id INTEGER, nickname TEXT, pp REAL DEFAULT 0, rank INTEGER DEFAULT 9999999, acc REAL DEFAULT 100)`);
-
-        await this.applyMigrations();
     }
 }
 
@@ -280,8 +266,9 @@ export default class Database {
         await this.run("CREATE TABLE IF NOT EXISTS errors (code TEXT, info TEXT, error TEXT)");
         await this.run(`CREATE TABLE IF NOT EXISTS users_to_chat (user_id INTEGER, chat_id TEXT)`);
 
-        for (const server in this.servers) {
-            await this.servers[server].createTables();
-        }
+        await this.run(`CREATE TABLE IF NOT EXISTS migrations (version INTEGER)`);
+
+        await this.run(`CREATE TABLE IF NOT EXISTS users (id INTEGER, game_id TEXT, nickname TEXT, mode SMALLINT, server TEXT`);
+        await this.run(`CREATE TABLE IF NOT EXISTS stats (id INTEGER, nickname TEXT, server TEXT, mode SMALLINT, pp REAL DEFAULT 0, rank INTEGER DEFAULT 9999999, acc REAL DEFAULT 100,)`);
     }
 }
