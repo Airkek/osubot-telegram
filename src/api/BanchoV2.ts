@@ -484,7 +484,7 @@ class BanchoAPIV2 implements IAPI {
                 try {
                     let usrs = users.splice(0, 5);
                     let usPromise = usrs.map(
-                        u => this.getScoreByUid(u.uid, beatmapId, mode, mods, true)
+                        u => this.getScoreByUid(u.game_id, beatmapId, mode, mods, true)
                     );  
                     let s: APIScore[] = (await Promise.all(usPromise.map(
                             (p) => p.catch(e => e)

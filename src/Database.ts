@@ -63,7 +63,7 @@ class DatabaseServer implements IDatabaseServer {
 
     async getUserStats(id: number, mode: number): Promise<IDatabaseUserStats> {
         let u = await this.getUser(id);
-        let stats: IDatabaseUserStats = await this.db.get(`SELECT * FROM stats WHERE id = $1 AND mode = $2 AND server = $3`, [u.uid, mode, this.serverName]);
+        let stats: IDatabaseUserStats = await this.db.get(`SELECT * FROM stats WHERE id = $1 AND mode = $2 AND server = $3`, [u.game_id, mode, this.serverName]);
         return stats;
     }
 }

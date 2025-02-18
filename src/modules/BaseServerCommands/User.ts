@@ -13,7 +13,7 @@ export default class AbstractUser extends ServerCommand {
             let mode = self.args.mode === null ? self.user.dbUser?.mode || 0 : self.args.mode;
             let user = self.user.username 
                 ? await self.module.api.getUser(self.user.username, mode) 
-                : await self.module.api.getUserById(self.user.id || self.user.dbUser.uid, mode);
+                : await self.module.api.getUserById(self.user.id || self.user.dbUser.game_id, mode);
 
             let status = self.module.bot.donaters.status(self.module.statusGetter, user.id);
             if (!this.ignoreDbUpdate) {

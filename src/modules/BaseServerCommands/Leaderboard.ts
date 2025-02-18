@@ -19,7 +19,7 @@ export default class AbstractLeaderboard extends ServerCommand {
             for(let i = 0; i < profiles.length; i++) {
                 let profile = profiles[i];
                 let user = await self.module.db.getUser(profile);
-                if(user.id && !users.some(u => u.uid == user.uid))
+                if(user.id && !users.some(u => u.game_id == user.game_id))
                     users.push(user);
             }
             let leaderboard = await self.module.api.getLeaderboard(chat.map.id.map, users, chat.map.mode, self.args.mods.length == 0 ? null : new Mods(self.args.mods).sum());

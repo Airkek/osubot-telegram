@@ -14,7 +14,7 @@ export default class AbstractTop extends ServerCommand {
             let mode = self.args.mode === null ? self.user.dbUser?.mode || 0 : self.args.mode;
             let user = self.user.username 
                 ? await self.module.api.getUser(self.user.username, mode) 
-                : await self.module.api.getUserById(self.user.id || self.user.dbUser.uid, mode);
+                : await self.module.api.getUserById(self.user.id || self.user.dbUser.game_id, mode);
 
             if (!this.ignoreDbUpdate) {
                 self.module.db.updateInfo(user, mode);

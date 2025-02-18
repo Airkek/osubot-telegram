@@ -15,7 +15,7 @@ export default class AbstractCompare extends ServerCommand {
                 return self.ctx.reply("Сначала отправьте карту!");
             let score = self.user.username 
                 ? await self.module.api.getScore(self.user.username, chat.map.id.map, mode, self.args.mods.length == 0 ? undefined : new Mods(self.args.mods).sum())
-                : await self.module.api.getScoreByUid(self.user.id || self.user.dbUser.uid, chat.map.id.map, mode, self.args.mods.length == 0 ? undefined : new Mods(self.args.mods).sum());
+                : await self.module.api.getScoreByUid(self.user.id || self.user.dbUser.game_id, chat.map.id.map, mode, self.args.mods.length == 0 ? undefined : new Mods(self.args.mods).sum());
             let map = score.beatmap ?? await self.module.api.getBeatmap(chat.map.id.map, mode, score.mods);
             let cover = await self.module.bot.database.covers.getCover(map.id.set);
             let calc = new Calculator(map, score.mods);
