@@ -138,12 +138,12 @@ class DatabaseUsersToChat {
 
     async getChatUsers(chatId: Number): Promise<number[]> {
         let users = await this.db.all("SELECT * FROM users_to_chat WHERE chat_id = $1", [chatId]);
-        return users.map(u => u.user);
+        return users.map(u => u.user_id);
     }
 
     async isUserInChat(userId: Number, chatId: Number): Promise<boolean> {
         let user = await this.db.get(`SELECT * FROM users_to_chat WHERE user_id = $1 AND chat_id = $2`, [userId, chatId]);
-        return user.user ? true : false;
+        return user.user_id ? true : false;
     }
 }
 
