@@ -1,15 +1,11 @@
 /build
 /node_modules
 /beatmap_cache
-osu.db
-osu.db-journal
-config.json
-osu_v2_auth_data.json
+/osubot_postgres
+/osubot_data
+/data
 package-lock.json
-ignore_list.json
-donaters.json
-secret
-start.sh
 .env
+docker-compose.override.yml
 
 **/*test.ts

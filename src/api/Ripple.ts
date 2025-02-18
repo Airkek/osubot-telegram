@@ -227,7 +227,7 @@ export default class RippleAPI implements IAPI {
                 try {
                     let usrs = users.splice(0, 5);
                     let usPromise = usrs.map(
-                        u => this.getScoreByUid(u.uid, beatmapId, mode, mods)
+                        u => this.getScoreByUid(u.game_id, beatmapId, mode, mods)
                     );  
                     let s: APIScore[] = (await Promise.all(usPromise.map(
                             (p) => p.catch(e => e)

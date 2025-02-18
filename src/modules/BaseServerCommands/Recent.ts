@@ -12,7 +12,7 @@ export default class AbstractRecent extends ServerCommand {
             let mode = self.args.mode === null ? self.user.dbUser?.mode || 0 : self.args.mode;
             let recent = self.user.username 
                 ? await self.module.api.getUserRecent(self.user.username, mode, 1) 
-                : await self.module.api.getUserRecentById(self.user.id || self.user.dbUser.uid, mode, 1);
+                : await self.module.api.getUserRecentById(self.user.id || self.user.dbUser.game_id, mode, 1);
 
             let map = recent.beatmap ?? await self.module.api.getBeatmap(recent.beatmapId, recent.mode, recent.mods);
             

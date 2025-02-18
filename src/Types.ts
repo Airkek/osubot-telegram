@@ -20,11 +20,10 @@ interface ICommandArgs {
 interface IDatabaseServer {
     getUser(id: number): Promise<IDatabaseUser | null>,
     findByUserId(id: number | string): Promise<IDatabaseUser[]>,
-    setNickname(id: number, uid: number | string, nickname: string): Promise<void>,
+    setNickname(id: number, uid: number | string, nickname: string, mode?: number): Promise<void>,
     setMode(id: number, mode: number): Promise<boolean>,
     updateInfo(user: APIUser, mode: number): Promise<void>,
     getUserStats(id: number, mode: number): Promise<IDatabaseUserStats>,
-    createTables(): Promise<void>
 }
 
 interface PPArgs {
@@ -333,7 +332,7 @@ class TrackTopScore {
 
 interface IDatabaseUser {
     id: number,
-    uid: string,
+    game_id: string,
     nickname: string,
     mode: number,
     pp: number,
