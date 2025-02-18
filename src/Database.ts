@@ -14,7 +14,7 @@ class DatabaseServer implements IDatabaseServer {
 
     async getUser(id: Number): Promise<IDatabaseUser | null> {
         try {
-            let user: IDatabaseUser = await this.db.get(`SELECT * FROM ${this.table} WHERE id = ?`, [id]);
+            let user: IDatabaseUser = await this.db.get(`SELECT * FROM ${this.table} WHERE id = $1`, [id]);
             return user;
         } catch(err) {
             throw err;
@@ -23,7 +23,7 @@ class DatabaseServer implements IDatabaseServer {
 
     async findByUserId(id: number | string): Promise<IDatabaseUser[]> {
         try {
-            let users: IDatabaseUser[] = await this.db.all(`SELECT * FROM ${this.table} WHERE uid = ? COLLATE NOCASE`, [id]);
+            let users: IDatabaseUser[] = await this.db.all(`SELECT * FROM ${this.table} WHERE uid = $1 COLLATE NOCASE`, [id]);
             return users;
         } catch(err) {
             throw err;
@@ -34,9 +34,9 @@ class DatabaseServer implements IDatabaseServer {
         try {
             let user: IDatabaseUser = await this.getUser(id);
             if(!user.id)
-                await this.db.run(`INSERT INTO ${this.table} (id, uid, nickname, mode) VALUES (?, ?, ?, 0)`, [id, uid, nickname]);
+                await this.db.run(`INSERT INTO ${this.table} (id, uid, nickname, mode) VALUES ($1, $2, $3, 0)`, [id, uid, nickname]);
             else
-                await this.db.run(`UPDATE ${this.table} SET nickname = ?, uid = ? WHERE id = ?`, [nickname, uid, id]);
+                await this.db.run(`UPDATE ${this.table} SET nickname = $1, uid = $2 WHERE id = $3`, [nickname, uid, id]);
         } catch(err) {
             throw err;
         }
@@ -47,23 +47,23 @@ class DatabaseServer implements IDatabaseServer {
             let user: IDatabaseUser = await this.getUser(id);
             if(!user)
                 return false;
-            await this.db.run(`UPDATE ${this.table} SET mode = ? WHERE id = ?`, [mode, id]);
+            await this.db.run(`UPDATE ${this.table} SET mode = $1 WHERE id = $2`, [mode, id]);
         } catch(err) {
             throw err;
         }
     }
 
     async updateInfo(user: APIUser, mode: number): Promise<void> {
-        let dbUser = await this.db.get(`SELECT * FROM ${this.table}_stats_${mode} WHERE id = ? LIMIT 1`, [user.id]);
+        let dbUser = await this.db.get(`SELECT * FROM ${this.table}_stats_${mode} WHERE id = $1 LIMIT 1`, [user.id]);
         if(!dbUser.id)
-            await this.db.run(`INSERT INTO ${this.table}_stats_${mode} (id, nickname, pp, rank, acc) VALUES (?, ?, ?, ?, ?)`, [user.id, user.nickname, user.pp, user.rank.total, user.accuracy]);
+            await this.db.run(`INSERT INTO ${this.table}_stats_${mode} (id, nickname, pp, rank, acc) VALUES ($1, $2, $3, $4, $5)`, [user.id, user.nickname, user.pp, user.rank.total, user.accuracy]);
         else
-            await this.db.run(`UPDATE ${this.table}_stats_${mode} SET nickname = ?, pp = ?, rank = ?, acc = ? WHERE id = ?`, [user.nickname, user.pp, user.rank.total, user.accuracy, user.id]);
+            await this.db.run(`UPDATE ${this.table}_stats_${mode} SET nickname = $1, pp = $2, rank = $3, acc = $4 WHERE id = $5`, [user.nickname, user.pp, user.rank.total, user.accuracy, user.id]);
     }
 
     async getUserStats(id: number, mode: number): Promise<IDatabaseUserStats> {
         let u = await this.getUser(id);
-        let stats: IDatabaseUserStats = await this.db.get(`SELECT * FROM ${this.table}_stats_${mode} WHERE id = ?`, [u.uid]);
+        let stats: IDatabaseUserStats = await this.db.get(`SELECT * FROM ${this.table}_stats_${mode} WHERE id = $1`, [u.uid]);
         return stats;
     }
 
@@ -119,7 +119,7 @@ class DatabaseCovers {
             let send = await this.db.tg.api.sendPhoto(this.db.owner, file);
             let photo = send.photo[0].file_id;
 
-            await this.db.run("INSERT INTO covers (id, attachment) VALUES (?, ?)", [id, photo.toString()]);
+            await this.db.run("INSERT INTO covers (id, attachment) VALUES ($1, $2)", [id, photo.toString()]);
 
             return photo.toString();
         } catch(e) {
@@ -128,7 +128,7 @@ class DatabaseCovers {
     }
 
     async getCover(id: Number): Promise<string> {
-        let cover = await this.db.get(`SELECT * FROM covers WHERE id = ?`, [id]);
+        let cover = await this.db.get(`SELECT * FROM covers WHERE id = $1`, [id]);
         if(!cover.id)
             return this.addCover(id);
         return cover.attachment;
@@ -140,7 +140,7 @@ class DatabaseCovers {
             let send = await this.db.tg.api.sendPhoto(this.db.owner, file);
             let photo = send.photo[0].file_id;
 
-            await this.db.run("INSERT INTO photos (url, attachment) VALUES (?, ?)", [photoUrl, photo.toString()]);
+            await this.db.run("INSERT INTO photos (url, attachment) VALUES ($1, $2)", [photoUrl, photo.toString()]);
 
             return photo.toString();
         } catch(e) {
@@ -149,15 +149,15 @@ class DatabaseCovers {
     }
 
     async getPhotoDoc(photoUrl: string): Promise<string> {
-        let cover = await this.db.get(`SELECT * FROM photos WHERE url = ?`, [photoUrl]);
+        let cover = await this.db.get(`SELECT * FROM photos WHERE url = $1`, [photoUrl]);
         if(!cover.url)
             return this.addPhotoDoc(photoUrl);
         return cover.attachment;
     }
 
     async removeEmpty() {
-        await this.db.run("DELETE FROM covers WHERE attachment = ?", [""]);
-        await this.db.run("DELETE FROM photos WHERE attachment = ?", [""]);
+        await this.db.run("DELETE FROM covers WHERE attachment = $1", [""]);
+        await this.db.run("DELETE FROM photos WHERE attachment = $1", [""]);
     }
 }
 
@@ -168,20 +168,20 @@ class DatabaseUsersToChat {
     }
 
     async userJoined(userId: number, chatId: number): Promise<void> {
-        await this.db.run("INSERT INTO users_to_chat (user, chat) VALUES (?, ?)", [userId, chatId])
+        await this.db.run("INSERT INTO users_to_chat (user, chat) VALUES ($1, $2)", [userId, chatId])
     }
 
     async userLeft(userId: number, chatId: number): Promise<void> {
-        await this.db.run("DELETE FROM users_to_chat WHERE user = ? AND chat = ?", [userId, chatId])
+        await this.db.run("DELETE FROM users_to_chat WHERE user = $1 AND chat = $2", [userId, chatId])
     }
 
     async getChatUsers(chatId: Number): Promise<number[]> {
-        let users = await this.db.all("SELECT * FROM users_to_chat WHERE chat = ?", [chatId]);
+        let users = await this.db.all("SELECT * FROM users_to_chat WHERE chat = $1", [chatId]);
         return users.map(u => u.user);
     }
 
     async isUserInChat(userId: number, chatId: number): Promise<boolean> {
-        let user = await this.db.get("SELECT * FROM users_to_chat WHERE user = ? AND chat = ?", [userId, chatId]);
+        let user = await this.db.get("SELECT * FROM users_to_chat WHERE user = $1 AND chat = $2", [userId, chatId]);
         return user.user ? true : false;
     }
 }
@@ -206,12 +206,12 @@ class DatabaseErrors {
         let info = `Sent by: ${ctx.senderId}; Text: ${ctx.text}`;
         if(ctx.hasReplyMessage)
             info += `; Replied to: ${ctx.replyMessage.senderId}`;
-        await this.db.run(`INSERT INTO errors (code, info, error) VALUES (?, ?, ?)`, [code, info, error]);
+        await this.db.run(`INSERT INTO errors (code, info, error) VALUES ($1, $2, $3)`, [code, info, error]);
         return code;
     }
 
     async getError(code: String): Promise<IDatabaseError | null> {
-        let error = this.db.get(`SELECT * FROM errors WHERE code = ?`, [code]);
+        let error = this.db.get(`SELECT * FROM errors WHERE code = $1`, [code]);
         return error;
     }
 
