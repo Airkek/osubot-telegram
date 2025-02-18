@@ -21,7 +21,7 @@ jobs:
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.PASSWORD }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
           source: "docker-compose.yml"
           target: ${{ secrets.SSH_TARGET_PATH }}
 
