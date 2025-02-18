@@ -201,10 +201,10 @@ const migrations : IMigration[] = [
         version: 1,
         name: "Create tables",
         process: async (db: Database) => {
-            await db.run("CREATE TABLE IF NOT EXISTS covers (id INTEGER, attachment TEXT)");
+            await db.run("CREATE TABLE IF NOT EXISTS covers (id BIGINT, attachment TEXT)");
             await db.run("CREATE TABLE IF NOT EXISTS photos (url TEXT, attachment TEXT)");
             await db.run("CREATE TABLE IF NOT EXISTS errors (code TEXT, info TEXT, error TEXT)");
-            await db.run(`CREATE TABLE IF NOT EXISTS users_to_chat (user_id INTEGER, chat_id TEXT)`);
+            await db.run(`CREATE TABLE IF NOT EXISTS users_to_chat (user_id BIGINT, chat_id TEXT)`);
             await db.run(`CREATE TABLE IF NOT EXISTS users (id BIGINT, game_id TEXT, nickname TEXT, mode SMALLINT, server TEXT)`);
             await db.run(`CREATE TABLE IF NOT EXISTS stats (id TEXT, nickname TEXT, server TEXT, mode SMALLINT, pp REAL DEFAULT 0, rank INTEGER DEFAULT 9999999, acc REAL DEFAULT 100)`);
             return true;
