@@ -29,7 +29,7 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          types: |
+          tags: |
             type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build and push Docker image
