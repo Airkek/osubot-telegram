@@ -214,7 +214,11 @@ const migrations : IMigration[] = [
 
 async function applyMigrations(db: Database) {
     console.log("Applying migrations")
-    const applied = new Set(await db.all("SELECT version FROM migrations"));
+    const applied = new Set<number>();
+    const dbData: IMigration[] = await db.all("SELECT version FROM migrations")
+    for (let m of dbData) {
+        applied.add(m.version);
+    }
     console.log(applied);
     for (const migration of migrations) {
         if (applied.has(migration.version)) {
