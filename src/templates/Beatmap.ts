@@ -1,96 +1,66 @@
-import { APIBeatmap, BeatmapStatus } from "../Types";
-// import { IPPCalculator as ICalc } from "../pp/Calculator";
+import { APIBeatmap, ProfileMode } from "../Types";
 import BanchoPP from "../pp/bancho";
 import Util from "../Util";
 import Mods from "../pp/Mods";
 
-export default function(map: APIBeatmap): string {
-    let calc = new BanchoPP(map, new Mods(0));
+interface PPResults {
+    pp98: number;
+    pp99: number;
+    pp100: number;
+}
 
+export default function formatBeatmapInfo(map: APIBeatmap): string {
+    const mapText = Util.formatBeatmap(map);
+
+    const totalHits = map.objects.circles + map.objects.sliders + map.objects.spinners;
+    const calculator = new BanchoPP(map, new Mods(0));
+
+    const getStandardPP = (accuracy: number): number => {
+        return calculator.calculate(Util.createPPArgs({
+            acc: accuracy,
+            combo: map.combo,
+            hits: totalHits,
+            miss: 0,
+            mods: new Mods(0)
+        }, map.mode)).pp;
+    };
+
+    const getManiaPP = (): number => {
+        return calculator.calculate(Util.createPPArgs({
+            hits: map.objects.circles + map.objects.sliders,
+            score: 1_000_000,
+            mods: new Mods(0)
+        }, map.mode)).pp;
+    };
+
+    const formatPPResults = ({ pp98, pp99, pp100 }: PPResults): string => 
+        `PP:
+- 98% = ${Util.round(pp98, 2)}
+- 99% = ${Util.round(pp99, 2)}
+- 100% = ${Util.round(pp100, 2)}`;
+
+    let content: string;
+    
     switch(map.mode) {
-        case 0: { // osu!
-            let pp98 = calc.calculate(Util.createPPArgs({
-                acc: 0.98,
-                combo: map.combo,
-                hits: map.objects.circles + map.objects.sliders + map.objects.spinners,
-                miss: 0,
-                mods: new Mods(0)
-            }, map.mode));
-            let pp99 = calc.calculate(Util.createPPArgs({
-                acc: 0.99,
-                combo: map.combo,
-                hits: map.objects.circles + map.objects.sliders + map.objects.spinners,
-                miss: 0,
-                mods: new Mods(0)
-            }, map.mode));
-
-            return `${map.artist} - ${map.title} [${map.version}] by ${map.creator.nickname} (${map.status})
-${Util.formatBeatmapLength(map.length)} | ${map.stats} ${Math.round(map.bpm)}BPM | ${Util.round(map.diff.stars, 2)}✩
-PP:
-- 98% = ${Util.round(pp98.pp, 2)}
-- 99% = ${Util.round(pp99.pp, 2)}
-- 100% = ${Util.round(pp98.ss, 2)}
-`;
+        case ProfileMode.STD:
+        case ProfileMode.Taiko:
+        case ProfileMode.Catch: {
+            const pp98 = getStandardPP(0.98);
+            const pp99 = getStandardPP(0.99);
+            const pp100 = getStandardPP(1.0);
+            content = formatPPResults({ pp98, pp99, pp100 });
+            break;
         }
 
-        case 1: { // osu!taiko
-            let pp98 = calc.calculate(Util.createPPArgs({
-                acc: 0.98,
-                combo: map.combo,
-                hits: map.objects.circles + map.objects.sliders + map.objects.spinners,
-                miss: 0,
-                mods: new Mods(0)
-            }, map.mode));
-            let pp99 = calc.calculate(Util.createPPArgs({
-                acc: 0.99,
-                combo: map.combo,
-                hits: map.objects.circles + map.objects.sliders + map.objects.spinners,
-                miss: 0,
-                mods: new Mods(0)
-            }, map.mode));
-            return `${map.artist} - ${map.title} [${map.version}] by ${map.creator.nickname} (${map.status})
-${Util.formatBeatmapLength(map.length)} | ${map.stats} ${Math.round(map.bpm)}BPM | ${Util.round(map.diff.stars, 2)}✩
-PP:
-- 98% = ${Util.round(pp98.pp, 2)}
-- 99% = ${Util.round(pp99.pp, 2)}
-- 100% = ${Util.round(pp98.ss, 2)}`;
-        }
-
-        case 2: { // osu!catch
-            let pp98 = calc.calculate(Util.createPPArgs({
-                acc: 0.98,
-                combo: map.combo,
-                hits: map.objects.circles + map.objects.sliders + map.objects.spinners,
-                miss: 0,
-                mods: new Mods(0)
-            }, map.mode));
-            let pp99 = calc.calculate(Util.createPPArgs({
-                acc: 0.99,
-                combo: map.combo,
-                hits: map.objects.circles + map.objects.sliders + map.objects.spinners,
-                miss: 0,
-                mods: new Mods(0)
-            }, map.mode));
-            return `${map.artist} - ${map.title} [${map.version}] by ${map.creator.nickname} (${map.status})
-${Util.formatBeatmapLength(map.length)} | ${map.stats} ${Math.round(map.bpm)}BPM | ${Util.round(map.diff.stars, 2)}✩
-PP:
-- 98% = ${Util.round(pp98.pp, 2)}
-- 99% = ${Util.round(pp99.pp, 2)}
-- 100% = ${Util.round(pp98.ss, 2)}`;
-        }
-
-        case 3: { // osu!mania
-            let pp = calc.calculate(Util.createPPArgs({
-                hits: map.objects.circles + map.objects.sliders,
-                score: 1000000,
-                mods: new Mods(0)
-            }, map.mode));
-            return `${map.artist} - ${map.title} [${map.version}] by ${map.creator.nickname} (${map.status})
-${Util.formatBeatmapLength(map.length)} | ${map.stats} ${Math.round(map.bpm)}BPM | ${Util.round(map.diff.stars, 2)}✩
-PP (1kk score): ${Util.round(pp.pp, 2)}`;
+        case ProfileMode.Mania: {
+            const pp = getManiaPP();
+            content = `PP (1M score): ${Util.round(pp, 2)}`;
+            break;
         }
 
         default:
-            return "Произошла очень плохая ошибка! Я не понимаю, что происходит!";
+            return "Произошла ошибка: неизвестный режим игры!";
     }
+
+    return `${mapText}\n${content}`;
 }

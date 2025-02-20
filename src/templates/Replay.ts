@@ -3,15 +3,40 @@ import { APIBeatmap } from '../Types';
 import Util from '../Util';
 import { IPPCalculator as ICalc } from '../pp/Calculator';
 
-export default function(replay: Replay, map: APIBeatmap, calc: ICalc) {
-    let pp = calc.calculate(replay);
-    return `${replay.player}'s replay:
+export default function formatReplay(
+    replay: Replay,
+    map: APIBeatmap,
+    calc: ICalc
+): string {
+    const pp = calc.calculate(replay);
 
-${map.artist} - ${map.title} [${map.version}] by ${map.creator.nickname}
-${Util.formatBeatmapLength(map.length / calc.speedMultiplier)} | ${map.stats} ${Math.round(map.bpm * calc.speedMultiplier)}BPM | ${Util.round(map.diff.stars, 2)}✩ ${replay.mods}
+    const header = `${replay.player}'s replay:`;
+    const mapLine = `${Util.formatBeatmap(map)} ${replay.mods}`;
 
-Score: ${replay.score} | Combo: ${Util.formatCombo(replay.combo, map.combo)}
-Accuracy: ${Util.round(replay.accuracy() * 100, 2)}%
-PP: ${pp.pp.toFixed(2)}${pp.ss == pp.pp ? '' : pp.fc == pp.pp ? ` → SS: ${pp.ss.toFixed(2)}` : ` → FC: ${pp.fc.toFixed(2)} → SS: ${pp.ss.toFixed(2)}`}
-Hitcounts: ${replay.counts.toString()}`;
+    const gameStats = [
+        `Score: ${replay.score.toLocaleString()}`,
+        `Combo: ${Util.formatCombo(replay.combo, map.combo)}`
+    ].join(' | ');
+
+    const accuracy = `Accuracy: ${Util.round(replay.accuracy() * 100, 2)}%`;
+
+    let ppInfo = `PP: ${Util.round(pp.pp, 2)}`;
+    if (pp.ss !== pp.pp) {
+        ppInfo += pp.fc === pp.pp 
+            ? ` → SS: ${Util.round(pp.ss, 2)}`
+            : ` → FC: ${Util.round(pp.fc, 2)} → SS: ${Util.round(pp.ss, 2)}`;
+    }
+
+    const additionalInfo = `Hitcounts: ${replay.counts.toString()}`;
+
+    return [
+        header,
+        '',
+        mapLine,
+        '',
+        gameStats,
+        accuracy,
+        ppInfo,
+        additionalInfo
+    ].join('\n');
 }

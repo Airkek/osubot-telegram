@@ -197,7 +197,10 @@ class V2Beatmap implements APIBeatmap {
             set: beatmap.beatmapset_id,
             map: beatmap.id
         };
-        this.bpm = beatmap.bpm;
+
+        this.bpm = beatmap.bpm * (mods?.speed() ?? 1);
+        this.length = beatmap.hit_length / (mods?.speed() ?? 1);
+
         this.creator = {
             nickname: beatmap.beatmapset.creator,
             id: beatmap.beatmapset.user_id
@@ -218,7 +221,6 @@ class V2Beatmap implements APIBeatmap {
             spinners: beatmap.count_spinners
         };
         this.title = beatmap.beatmapset.title;
-        this.length = beatmap.hit_length;
         this.version = beatmap.version;
         this.combo = attributes.max_combo;
         this.mode = beatmap.mode_int;

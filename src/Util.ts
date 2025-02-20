@@ -1,4 +1,4 @@
-import { IBeatmapStats, HitCounts, ICommandArgs, IHits, PPArgs, CalcArgs } from "./Types";
+import { IBeatmapStats, HitCounts, ICommandArgs, IHits, PPArgs, CalcArgs, APIBeatmap } from "./Types";
 import { ICalcStats, OsuStats, TaikoStats, CatchStats, ManiaStats } from "./pp/Stats";
 import { InlineKeyboard } from "grammy";
 
@@ -196,6 +196,10 @@ export default {
         if(!full)
             return `${combo}x`;
         return `${combo}x/${full}x`;
+    },
+    formatBeatmap(map: APIBeatmap): string {
+        return `${map.artist} - ${map.title} [${map.version}] by ${map.creator.nickname} (${map.status})
+${this.formatBeatmapLength(map.length)} | ${map.stats} ${Math.round(map.bpm)}BPM | ${this.round(map.diff.stars, 2)}✩`
     },
     formatDate(d: Date, crop: boolean = false) {
         if(!crop)
