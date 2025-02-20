@@ -19,7 +19,7 @@ export default class AbstractTop extends ServerCommand {
             if (!this.ignoreDbUpdate) {
                 self.module.db.updateInfo(user, mode);
             }
-            let status = self.module.bot.donaters.status(self.module.statusGetter, user.id);
+
             if(self.args.apx) {
                 let top = await self.module.api.getUserTopById(user.id, mode, 100);
                 if(self.args.mods) {
@@ -39,7 +39,7 @@ export default class AbstractTop extends ServerCommand {
                 let cover = await self.module.bot.database.covers.getCover(map.id.set);
                 let calc = new BanchoPP(map, nearest.mods);
                 self.module.bot.maps.setMap(self.ctx.peerId, map);
-                self.reply(`Ближайшее к ${self.args.apx}pp\n${self.module.bot.templates.TopSingle(nearest, map, user, place, calc, self.module.link, status)}`, {
+                self.reply(`Ближайшее к ${self.args.apx}pp\n${self.module.bot.templates.TopSingle(nearest, map, user, place, calc, self.module.link)}`, {
                     attachment: cover
                 });
             } else if(self.args.more) {
@@ -67,7 +67,7 @@ export default class AbstractTop extends ServerCommand {
                     }] : []
                 ]) : undefined;
                 
-                self.reply(`${self.module.bot.templates.TopSingle(score, map, user, self.args.place, calc, self.module.link, status)}`, {
+                self.reply(`${self.module.bot.templates.TopSingle(score, map, user, self.args.place, calc, self.module.link)}`, {
                     attachment: cover,
                     keyboard
                 });
@@ -85,7 +85,7 @@ export default class AbstractTop extends ServerCommand {
                     let calc = new BanchoPP(map, top[i].mods);
                     return self.module.bot.templates.TopScore(top[i], map, i+1, calc, self.module.link);
                 }).join("\n");
-                self.reply(`Топ скоры игрока ${user.nickname} ${status} [${Util.profileModes[mode]}]:\n${str}`);
+                self.reply(`Топ скоры игрока ${user.nickname} [${Util.profileModes[mode]}]:\n${str}`);
             }
         }, true);
 

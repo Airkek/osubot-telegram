@@ -12,7 +12,6 @@ export default class AkatsukiRelax extends Module {
         this.link = "https://akatsuki.gg";
         this.api = bot.api.relax;
         this.db = bot.database.servers.akatsuki;
-        this.statusGetter = "akatsuki";
 
         this.registerCommand([
             new AbstractUser(this, true),

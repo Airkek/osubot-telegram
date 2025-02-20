@@ -13,7 +13,6 @@ import BanchoPP from './pp/bancho';
 import Gatari from './modules/Gatari';
 import IsMap from './MapRegexp';
 import Ripple from './modules/Ripple';
-import Donaters from './Donaters';
 import Akatsuki from './modules/Akatsuki';
 import AkatsukiRelax from './modules/AkatsukiRelax';
 import OsuTrackAPI from './Track';
@@ -45,7 +44,6 @@ export class Bot {
     maps: Maps;
     disabled: number[] = [];
     ignored: IgnoreList;
-    donaters: Donaters;
     track: OsuTrackAPI;
     v2: BanchoV2;
     startTime: number;
@@ -60,7 +58,6 @@ export class Bot {
 
         this.database = new Database(this.tg, this.config.tg.owner);
         this.ignored = new IgnoreList(this.database);
-        this.donaters = new Donaters();
 
         this.initDB();
 

@@ -20,7 +20,6 @@ export default class Gatari extends Module {
         this.link = "https://osu.gatari.pw";
         this.api = bot.api.gatari;
         this.db = bot.database.servers.gatari;
-        this.statusGetter = "gatari";
 
         this.registerCommand([
             new AbstractUser(this),

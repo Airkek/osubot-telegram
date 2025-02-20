@@ -14,15 +14,15 @@ import { APIUser, APIBeatmap, APIScore, ICommandArgs, LeaderboardResponse, OsuTr
 import { IPPCalculator as ICalc } from '../pp/Calculator';
 
 interface ITemplates {
-    User: (user: APIUser, mode: number, status: string, link: string) => string;
+    User: (user: APIUser, mode: number, link: string) => string;
     TopScore: (score: APIScore, beatmap: APIBeatmap, place: number, calc: ICalc, link: string) => string;
-    TopSingle: (score: APIScore, beatmap: APIBeatmap, user: APIUser, place: number, calc: ICalc, link: string, status?: string) => string;
+    TopSingle: (score: APIScore, beatmap: APIBeatmap, user: APIUser, place: number, calc: ICalc, link: string) => string;
     RecentScore: (score: APIScore, beatmap: APIBeatmap, calc: ICalc, link: string) => string;
     Compare: (score: APIScore, beatmap: APIBeatmap, calc: ICalc) => string;
     Replay: (replay: Replay, map: APIBeatmap, calc: ICalc) => string;
     Beatmap: (map: APIBeatmap) => string;
     PP: (map: APIBeatmap, args: ICommandArgs) => string;
-    Leaderboard: (leaderboard: LeaderboardResponse, server: string, getStatus: (server: string, id: number | string) => string) => string;
+    Leaderboard: (leaderboard: LeaderboardResponse) => string;
     Track: (response: OsuTrackResponse) => string;
     Search: (sets: V2Beatmapset[]) => string;
 }
