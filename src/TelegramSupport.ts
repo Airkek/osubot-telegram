@@ -1,6 +1,6 @@
 /* eslint-disable  @typescript-eslint/no-explicit-any */
 /* eslint-disable  @typescript-eslint/no-unused-vars */
-import { Bot, Context, InlineKeyboard } from 'grammy';
+import { Bot, Context, InlineKeyboard } from "grammy";
 
 class ReplyToMessage {
     readonly text: string;
@@ -44,25 +44,35 @@ export default class UnifiedMessageContext {
 
     reply: (text: string, options?: SendOptions) => Promise<any>;
     edit: (text: string, options?: SendOptions) => Promise<any>;
-    send: (text: string, options?: SendOptions, replyTo?: number) => Promise<any>;
+    send: (
+        text: string,
+        options?: SendOptions,
+        replyTo?: number
+    ) => Promise<any>;
     isAdmin: () => Promise<boolean>;
     isUserInChat: (userId: number) => Promise<boolean>;
     countMembers: () => Promise<number>;
     hasAttachments: (type: string) => boolean;
-    getAttachments: (type: string) => Array<any>; 
+    getAttachments: (type: string) => Array<any>;
 
     constructor(ctx: Context, tg: Bot) {
         this.tgCtx = ctx;
         this.tg = tg;
 
-        const isMessage = ctx.message !== undefined; 
-        this.text = isMessage ? (ctx.message.text ? ctx.message.text : ctx.message.caption) : undefined;
+        const isMessage = ctx.message !== undefined;
+        this.text = isMessage
+            ? ctx.message.text
+                ? ctx.message.text
+                : ctx.message.caption
+            : undefined;
         this.hasText = this.text !== undefined;
         this.messagePayload = ctx.callbackQuery?.data;
         this.hasMessagePayload = this.messagePayload !== undefined;
         this.hasReplyMessage = ctx.message?.reply_to_message !== undefined;
-        this.replyMessage = this.hasReplyMessage ? new ReplyToMessage(ctx) : null;
-        this.isChat = ctx.chat.type == 'supergroup' || ctx.chat.type == 'group';
+        this.replyMessage = this.hasReplyMessage
+            ? new ReplyToMessage(ctx)
+            : null;
+        this.isChat = ctx.chat.type == "supergroup" || ctx.chat.type == "group";
         this.senderId = ctx.from.id;
         this.peerId = ctx.chat.id;
         this.chatId = ctx.chat.id;
@@ -71,16 +81,22 @@ export default class UnifiedMessageContext {
         this.isEvent = false;
         this.isFromUser = !ctx.from.is_bot;
         this.isAdmin = async () => {
-            const user = await this.tg.api.getChatMember(this.chatId, this.senderId);
-            return user.status == 'creator' || user.status == 'administrator';
+            const user = await this.tg.api.getChatMember(
+                this.chatId,
+                this.senderId
+            );
+            return user.status == "creator" || user.status == "administrator";
         };
 
         this.isUserInChat = async (userId: number) => {
             try {
-                const user = await this.tg.api.getChatMember(this.chatId, userId);
-                return user && user.status != 'kicked' && user.status != 'left';
+                const user = await this.tg.api.getChatMember(
+                    this.chatId,
+                    userId
+                );
+                return user && user.status != "kicked" && user.status != "left";
             } catch (e) {
-                return !e.description?.includes('member not found');
+                return !e.description?.includes("member not found");
             }
         };
 
@@ -88,86 +104,113 @@ export default class UnifiedMessageContext {
             return this.tg.api.getChatMemberCount(this.chatId);
         };
 
-        this.edit = async (text: string, options?: SendOptions, replyTo?: number) => {
+        this.edit = async (
+            text: string,
+            options?: SendOptions,
+            replyTo?: number
+        ) => {
             if (!this.tgCtx.callbackQuery) {
                 return undefined;
             }
-            
+
             const opts: any = {
-                disable_web_page_preview: true
+                disable_web_page_preview: true,
             };
 
             if (options?.dont_parse_links === false) {
                 opts.disable_web_page_preview = false;
             }
-            
+
             if (options?.keyboard !== undefined) {
-                opts['reply_markup'] = options.keyboard;
+                opts["reply_markup"] = options.keyboard;
             }
 
             // TODO: support media
             return await this.tgCtx.editMessageText(text, opts);
         };
 
-        this.send = async (text: string, options?: SendOptions, replyTo?: number) => {
+        this.send = async (
+            text: string,
+            options?: SendOptions,
+            replyTo?: number
+        ) => {
             const opts: any = {
-                disable_web_page_preview: true
+                disable_web_page_preview: true,
             };
 
             if (options?.dont_parse_links === false) {
                 opts.disable_web_page_preview = false;
             }
-            
+
             if (replyTo !== undefined) {
-                opts['reply_parameters'] = {
-                    message_id: replyTo
+                opts["reply_parameters"] = {
+                    message_id: replyTo,
                 };
-            } 
-            
+            }
+
             if (options?.keyboard !== undefined) {
-                opts['reply_markup'] = options.keyboard;
+                opts["reply_markup"] = options.keyboard;
             }
 
             try {
-                if (options?.attachment !== undefined && options.attachment.length != 0) {
-                    opts['caption'] = text;
-                    return await this.tgCtx.replyWithPhoto(options.attachment, opts);
-                } 
+                if (
+                    options?.attachment !== undefined &&
+                    options.attachment.length != 0
+                ) {
+                    opts["caption"] = text;
+                    return await this.tgCtx.replyWithPhoto(
+                        options.attachment,
+                        opts
+                    );
+                }
                 return await this.tgCtx.reply(text, opts);
-                
             } catch (e) {
                 console.log(e);
                 return undefined;
             }
         };
 
-        const callbackReplyTo = this.tgCtx.callbackQuery?.from.username ? `@${this.tgCtx.callbackQuery.from.username}` : this.tgCtx.callbackQuery?.from.first_name;
+        const callbackReplyTo = this.tgCtx.callbackQuery?.from.username
+            ? `@${this.tgCtx.callbackQuery.from.username}`
+            : this.tgCtx.callbackQuery?.from.first_name;
 
         this.reply = async (text: string, options?: SendOptions) => {
-            return await this.send(isMessage ? text : `${callbackReplyTo},\n${text}`, options, isMessage ? this.tgCtx.message.message_id : undefined);
+            return await this.send(
+                isMessage ? text : `${callbackReplyTo},\n${text}`,
+                options,
+                isMessage ? this.tgCtx.message.message_id : undefined
+            );
         };
 
         this.hasAttachments = (type: string) => {
             switch (type) {
-            case 'doc':
-                return this.tgCtx.message.document !== undefined;
-            case 'link':
-                return this.tgCtx.message.entities !== undefined && this.tgCtx.message.entities.some((entity) => entity.type === 'text_link');
-            default:
-                return false;
+                case "doc":
+                    return this.tgCtx.message.document !== undefined;
+                case "link":
+                    return (
+                        this.tgCtx.message.entities !== undefined &&
+                        this.tgCtx.message.entities.some(
+                            (entity) => entity.type === "text_link"
+                        )
+                    );
+                default:
+                    return false;
             }
         };
 
         this.getAttachments = (type: string) => {
             switch (type) {
-            case 'doc':
-                return [this.tgCtx.message.document];
-            case 'link':
-                return [this.tgCtx.message.entities?.filter((entity) => entity.type === 'text_link')];
-            default:
-                return [];
+                case "doc":
+                    return [this.tgCtx.message.document];
+                case "link":
+                    return [
+                        this.tgCtx.message.entities?.filter(
+                            (entity) => entity.type === "text_link"
+                        ),
+                    ];
+                default:
+                    return [];
             }
         };
-
     }
 }

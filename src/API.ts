@@ -1,13 +1,13 @@
-import { Bot } from './Bot';
-import IAPI from './api/base';
+import { Bot } from "./Bot";
+import IAPI from "./api/base";
 
-import GatariAPI from './api/Gatari';
-import RippleAPI from './api/Ripple';
-import AkatsukiAPI from './api/Akatsuki';
-import AkatsukiRelaxAPI from './api/AkatsukiRelax';
-import BanchoAPIV2 from './api/BanchoV2';
-import BeatLeaderAPI from './api/BeatLeader';
-import ScoreSaberAPI from './api/ScoreSaber';
+import GatariAPI from "./api/Gatari";
+import RippleAPI from "./api/Ripple";
+import AkatsukiAPI from "./api/Akatsuki";
+import AkatsukiRelaxAPI from "./api/AkatsukiRelax";
+import BanchoAPIV2 from "./api/BanchoV2";
+import BeatLeaderAPI from "./api/BeatLeader";
+import ScoreSaberAPI from "./api/ScoreSaber";
 
 class APICollection {
     gatari: GatariAPI;
@@ -28,7 +28,4 @@ class APICollection {
     }
 }
 
-export {
-    IAPI,
-    APICollection
-};
+export { IAPI, APICollection };

@@ -1,8 +1,15 @@
-import { APIScore, APIBeatmap, APIUser, Mode } from '../Types';
-import Util from '../Util';
-import { IPPCalculator as ICalc } from '../pp/Calculator';
+import { APIScore, APIBeatmap, APIUser, Mode } from "../Types";
+import Util from "../Util";
+import { IPPCalculator as ICalc } from "../pp/Calculator";
 
-export default function(score: APIScore, beatmap: APIBeatmap, user: APIUser, place: number, calc: ICalc, link: string) {
+export default function (
+    score: APIScore,
+    beatmap: APIBeatmap,
+    user: APIUser,
+    place: number,
+    calc: ICalc,
+    link: string
+) {
     return `Топ #${place} скор игрока ${user.nickname} (${Mode[score.mode]}):
 ${Util.formatBeatmap(beatmap)} ${score.mods}
 

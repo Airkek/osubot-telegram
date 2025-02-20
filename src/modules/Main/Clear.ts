@@ -1,21 +1,24 @@
-import { Command } from '../../Command';
-import { Module } from '../../Module';
+import { Command } from "../../Command";
+import { Module } from "../../Module";
 
 export default class ClearCommand extends Command {
     constructor(module: Module) {
-        super(['clear', 'сдуфк'], module, async (ctx, self) => {
+        super(["clear", "сдуфк"], module, async (ctx, self) => {
             if (!ctx.isChat) {
-                await ctx.reply('Эту команду можно вводить только в чате');
+                await ctx.reply("Эту команду можно вводить только в чате");
                 return;
             }
 
             const isAdmin = await ctx.isAdmin();
             if (!isAdmin) {
-                await ctx.reply('Эту команду может использовать только администратор чата');
+                await ctx.reply(
+                    "Эту команду может использовать только администратор чата"
+                );
                 return;
             }
 
-            const origMembers = await self.module.bot.database.chats.getChatUsers(ctx.chatId);
+            const origMembers =
+                await self.module.bot.database.chats.getChatUsers(ctx.chatId);
             const duplicates = new Set<number>();
             const members = new Set<number>();
 
@@ -24,15 +27,20 @@ export default class ClearCommand extends Command {
                     if (!duplicates.has(member)) {
                         duplicates.add(member);
                     }
-                    
                 } else {
                     members.add(member);
                 }
             }
 
             for (const member of duplicates) {
-                await self.module.bot.database.chats.userLeft(member, ctx.chatId);
-                await self.module.bot.database.chats.userJoined(member, ctx.chatId);
+                await self.module.bot.database.chats.userLeft(
+                    member,
+                    ctx.chatId
+                );
+                await self.module.bot.database.chats.userJoined(
+                    member,
+                    ctx.chatId
+                );
             }
 
             const realCount = await ctx.countMembers();
@@ -62,7 +70,10 @@ export default class ClearCommand extends Command {
                 const inGroup = await ctx.isUserInChat(member);
 
                 if (!inGroup) {
-                    await self.module.bot.database.chats.userLeft(member, ctx.chatId);
+                    await self.module.bot.database.chats.userLeft(
+                        member,
+                        ctx.chatId
+                    );
                     kicked++;
                 }
             }

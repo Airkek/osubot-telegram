@@ -7,12 +7,12 @@ const rs = [
     /(https?:\/\/)?akatsuki\.gg\/b\/(?<ID>\d+)/i,
 ];
 
-export default function(text: string): number {
+export default function (text: string): number {
     for (let i = 0; i < rs.length; i++) {
         if (rs[i].test(text)) {
             return Number(text.match(rs[i]).groups.ID);
         }
     }
-    
+
     return 0;
 }

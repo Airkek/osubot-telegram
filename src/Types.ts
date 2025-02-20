@@ -1,6 +1,6 @@
-import Mods from './pp/Mods';
-import { ICalcStats } from './pp/Stats';
-import Util from './Util';
+import Mods from "./pp/Mods";
+import { ICalcStats } from "./pp/Stats";
+import Util from "./Util";
 
 interface ICommandArgs {
     full: string[];
@@ -18,12 +18,17 @@ interface ICommandArgs {
 }
 
 interface IDatabaseServer {
-    getUser(id: number): Promise<IDatabaseUser | null>,
-    findByUserId(id: number | string): Promise<IDatabaseUser[]>,
-    setNickname(id: number, uid: number | string, nickname: string, mode?: number): Promise<void>,
-    setMode(id: number, mode: number): Promise<boolean>,
-    updateInfo(user: APIUser, mode: number): Promise<void>,
-    getUserStats(id: number, mode: number): Promise<IDatabaseUserStats>,
+    getUser(id: number): Promise<IDatabaseUser | null>;
+    findByUserId(id: number | string): Promise<IDatabaseUser[]>;
+    setNickname(
+        id: number,
+        uid: number | string,
+        nickname: string,
+        mode?: number
+    ): Promise<void>;
+    setMode(id: number, mode: number): Promise<boolean>;
+    updateInfo(user: APIUser, mode: number): Promise<void>;
+    getUserStats(id: number, mode: number): Promise<IDatabaseUserStats>;
 }
 
 interface PPArgs {
@@ -53,37 +58,43 @@ class CalcArgs {
         this.acc = args.acc;
         this.combo = args.combo;
         switch (mode) {
-        case 0:
-        case 1:
-        case 2: {
-            this.acc = args.acc;
-            this.combo = args.combo;
-            this.counts = new HitCounts({
-                300: args.hits - args.miss,
-                100: 0,
-                50: args.counts?.[50] ?? 0,
-                katu: 0,
-                geki: 0,
-                miss: args.miss
-            }, mode);
-            this.mods = args.mods;
-            break;
-        }
+            case 0:
+            case 1:
+            case 2: {
+                this.acc = args.acc;
+                this.combo = args.combo;
+                this.counts = new HitCounts(
+                    {
+                        300: args.hits - args.miss,
+                        100: 0,
+                        50: args.counts?.[50] ?? 0,
+                        katu: 0,
+                        geki: 0,
+                        miss: args.miss,
+                    },
+                    mode
+                );
+                this.mods = args.mods;
+                break;
+            }
 
-        case 3: {
-            this.counts = new HitCounts({
-                300: args.hits,
-                100: 0,
-                50: 0,
-                miss: 0,
-                katu: 0,
-                geki: 0
-            }, this.mode);
-            this.mods = args.mods;
-            this.acc = args.acc;
-            this.combo = args.combo;
-            break;
-        }
+            case 3: {
+                this.counts = new HitCounts(
+                    {
+                        300: args.hits,
+                        100: 0,
+                        50: 0,
+                        miss: 0,
+                        katu: 0,
+                        geki: 0,
+                    },
+                    this.mode
+                );
+                this.mods = args.mods;
+                this.acc = args.acc;
+                this.combo = args.combo;
+                break;
+            }
         }
     }
 
@@ -99,30 +110,30 @@ enum BeatmapStatus {
     Ranked = 1,
     Approved = 2,
     Qualified = 3,
-    Loved = 4
+    Loved = 4,
 }
 
 enum ProfileMode {
     STD = 0,
     Taiko = 1,
     Catch = 2,
-    Mania = 3
+    Mania = 3,
 }
 
 enum Mode {
-    'osu!' = 0,
-    'osu!taiko' = 1,
-    'osu!catch' = 2,
-    'osu!mania' = 3
+    "osu!" = 0,
+    "osu!taiko" = 1,
+    "osu!catch" = 2,
+    "osu!mania" = 3,
 }
 
 interface IHits {
-    300: number,
-    100: number,
-    50: number,
-    miss: number,
-    katu?: number,
-    geki?: number
+    300: number;
+    100: number;
+    50: number;
+    miss: number;
+    katu?: number;
+    geki?: number;
     slider_large?: number;
     slider_tail?: number;
 }
@@ -161,29 +172,36 @@ class HitCounts implements IHitCounts {
 
     totalHits(): number {
         switch (this.mode) {
-        case 1:
-            return this[300] + this[100] + this[50] + this.miss;
-        case 2:
-            return 0;
-        case 3: 
-            return this.geki + this.katu + this[300] + this[100] + this[50] + this.miss;
-        default:
-            return this[300] + this[100] + this[50] + this.miss;
+            case 1:
+                return this[300] + this[100] + this[50] + this.miss;
+            case 2:
+                return 0;
+            case 3:
+                return (
+                    this.geki +
+                    this.katu +
+                    this[300] +
+                    this[100] +
+                    this[50] +
+                    this.miss
+                );
+            default:
+                return this[300] + this[100] + this[50] + this.miss;
         }
     }
 
     toString(): string {
         switch (this.mode) {
-        case 0:
-        case 1:
-        case 2:
-            return `${this[300]}/${this[100]}/${this[50]}/${this.miss}`;
+            case 0:
+            case 1:
+            case 2:
+                return `${this[300]}/${this[100]}/${this[50]}/${this.miss}`;
 
-        case 3:
-            return `${this.geki}/${this[300]}/${this.katu}/${this[100]}/${this[50]}/${this.miss}`;
+            case 3:
+                return `${this.geki}/${this[300]}/${this.katu}/${this[100]}/${this[50]}/${this.miss}`;
 
-        default:
-            return '';
+            default:
+                return "";
         }
     }
 }
@@ -212,8 +230,8 @@ interface APIUser {
     playtime?: number;
     pp: number;
     rank: {
-        total: number,
-        country: number
+        total: number;
+        country: number;
     };
     country: string;
     accuracy: number;
@@ -266,32 +284,36 @@ class APIBeatmap {
         this.artist = data.artist;
         this.id = {
             set: Number(data.beatmapset_id),
-            map: Number(data.beatmap_id)
+            map: Number(data.beatmap_id),
         };
         this.bpm = Number(data.bpm);
         this.creator = {
             nickname: data.creator,
-            id: Number(data.creator_id)
+            id: Number(data.creator_id),
         };
         this.status = BeatmapStatus[Number(data.approved)];
-        this.stats = Util.getStats({
-            cs: Number(data.diff_size),
-            od: Number(data.diff_overall),
-            ar: Number(data.diff_approach),
-            hp: Number(data.diff_drain)
-        }, Number(data.mode));
+        this.stats = Util.getStats(
+            {
+                cs: Number(data.diff_size),
+                od: Number(data.diff_overall),
+                ar: Number(data.diff_approach),
+                hp: Number(data.diff_drain),
+            },
+            Number(data.mode)
+        );
         this.diff = {
-            stars: Number(data.difficultyrating)
+            stars: Number(data.difficultyrating),
         };
         this.objects = {
             circles: Number(data.count_normal),
             sliders: Number(data.count_slider),
-            spinners: Number(data.count_spinner)
+            spinners: Number(data.count_spinner),
         };
         this.title = data.title;
         this.length = Number(data.total_length);
         this.version = data.version;
-        this.combo = data.mode == 1 ? this.objects.circles : Number(data.max_combo);
+        this.combo =
+            data.mode == 1 ? this.objects.circles : Number(data.max_combo);
         this.mode = Number(data.mode);
     }
 }
@@ -310,14 +332,17 @@ class TrackTopScore {
         this.beatmapId = Number(data.beatmap_id);
         this.score = Number(data.score);
         this.combo = Number(data.maxcombo);
-        this.counts = new HitCounts({
-            300: Number(data.count300),
-            100: Number(data.count100),
-            50: Number(data.count50),
-            miss: Number(data.countmiss),
-            katu: Number(data.countkatu),
-            geki: Number(data.countgeki)
-        }, mode);
+        this.counts = new HitCounts(
+            {
+                300: Number(data.count300),
+                100: Number(data.count100),
+                50: Number(data.count50),
+                miss: Number(data.countmiss),
+                katu: Number(data.countkatu),
+                geki: Number(data.countgeki),
+            },
+            mode
+        );
         this.mods = new Mods(Number(data.enabled_mods));
         this.rank = data.rank;
         this.pp = Number(data.pp);
@@ -331,31 +356,31 @@ class TrackTopScore {
 }
 
 interface IDatabaseUser {
-    id: number,
-    game_id: string,
-    nickname: string,
-    mode: number,
-    pp: number,
-    rank: number,
-    acc: number
+    id: number;
+    game_id: string;
+    nickname: string;
+    mode: number;
+    pp: number;
+    rank: number;
+    acc: number;
 }
 
 interface IDatabaseUserStats {
-    id: number,
-    nickname: string,
-    pp: number,
-    rank: number,
-    acc: number
+    id: number;
+    nickname: string;
+    pp: number;
+    rank: number;
+    acc: number;
 }
 
 interface LeaderboardScore {
-    user: IDatabaseUser,
-    score: APIScore
+    user: IDatabaseUser;
+    score: APIScore;
 }
 
 interface LeaderboardResponse {
-    map: APIBeatmap,
-    scores: LeaderboardScore[]
+    map: APIBeatmap;
+    scores: LeaderboardScore[];
 }
 
 interface OsuTrackResponse {
@@ -382,7 +407,7 @@ interface V2Beatmapset {
     rankedDate: Date;
     creator: string;
     status: string;
-    beatmaps: V2Beatmap[]
+    beatmaps: V2Beatmap[];
 }
 
 interface V2Beatmap {
@@ -393,19 +418,17 @@ interface V2Beatmap {
 }
 
 interface V2Mod {
-    acronym: string
+    acronym: string;
     settings?: {
-        speed_change?: number
-    }
+        speed_change?: number;
+    };
 }
 
 export {
     APIUser,
     APIScore,
     APIBeatmap,
-
     TrackTopScore,
-
     BeatmapStatus,
     ProfileMode,
     Mode,
@@ -415,20 +438,16 @@ export {
     IBeatmapStats,
     IBeatmapStars,
     IBeatmapObjects,
-
     IDatabaseServer,
     ICommandArgs,
     PPArgs,
     CalcArgs,
-
     IDatabaseUser,
     IDatabaseUserStats,
     LeaderboardScore,
     LeaderboardResponse,
     OsuTrackResponse,
-
     V2BeatmapsetsArguments,
     V2Mod,
-    
     V2Beatmapset,
 };

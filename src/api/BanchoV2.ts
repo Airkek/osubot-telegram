@@ -1,183 +1,197 @@
-import * as axios from 'axios';
-import qs from 'querystring';
-import { V2BeatmapsetsArguments, V2Beatmapset, V2Mod, APIScore, HitCounts, APIBeatmap, APIUser, IDatabaseUser, LeaderboardResponse, IBeatmapObjects, IBeatmapStars, BeatmapStatus, LeaderboardScore } from '../Types';
-import Mods from '../pp/Mods';
-import AttributesCalculator from '../pp/AttributesCalculator';
-import Util from '../Util';
-import * as fs from 'fs';
-import IAPI from './base';
-import { Bot } from '../Bot';
-import { ICalcStats } from '../pp/Stats';
+import * as axios from "axios";
+import qs from "querystring";
+import {
+    V2BeatmapsetsArguments,
+    V2Beatmapset,
+    V2Mod,
+    APIScore,
+    HitCounts,
+    APIBeatmap,
+    APIUser,
+    IDatabaseUser,
+    LeaderboardResponse,
+    IBeatmapObjects,
+    IBeatmapStars,
+    BeatmapStatus,
+    LeaderboardScore,
+} from "../Types";
+import Mods from "../pp/Mods";
+import AttributesCalculator from "../pp/AttributesCalculator";
+import Util from "../Util";
+import * as fs from "fs";
+import IAPI from "./base";
+import { Bot } from "../Bot";
+import { ICalcStats } from "../pp/Stats";
 
-type Ruleset = 'osu' | 'mania' | 'taiko' | 'fruits'; 
+type Ruleset = "osu" | "mania" | "taiko" | "fruits";
 
 interface Score {
-    id: number,
-    mods: V2Mod[],
-    accuracy: number,
+    id: number;
+    mods: V2Mod[];
+    accuracy: number;
     statistics: {
-        great: number,
-        ok: number,
-        miss: number,
-        meh: number,
+        great: number;
+        ok: number;
+        miss: number;
+        meh: number;
 
         // mania:
-        perfect?: number, // geki
-        good?: number, // katu
+        perfect?: number; // geki
+        good?: number; // katu
 
         // std lazer slider stats:
-        large_tick_hit?: number,
-        slider_tail_hit?: number,
-    },
-    ruleset_id: number,
-    ended_at: string,
-    pp?,
-    rank: string,
-    total_score: number,
-    legacy_total_score: number,
-    max_combo: number,
+        large_tick_hit?: number;
+        slider_tail_hit?: number;
+    };
+    ruleset_id: number;
+    ended_at: string;
+    pp?;
+    rank: string;
+    total_score: number;
+    legacy_total_score: number;
+    max_combo: number;
     beatmap: {
-        id: number
-    },
-    passed: boolean,
-    rank_global?: number,
-    processed?: boolean,
-    preserve?: boolean,
-    ranked?: boolean,
+        id: number;
+    };
+    passed: boolean;
+    rank_global?: number;
+    processed?: boolean;
+    preserve?: boolean;
+    ranked?: boolean;
 }
 
 interface Beatmap {
-    beatmapset_id: number,
-    difficulty_rating: number,
-    id: number,
-    mode: Ruleset,
-    status: string,
-    total_length: number,
-    user_id: number,
-    version: string,
-    beatmapset: Beatmapset 
+    beatmapset_id: number;
+    difficulty_rating: number;
+    id: number;
+    mode: Ruleset;
+    status: string;
+    total_length: number;
+    user_id: number;
+    version: string;
+    beatmapset: Beatmapset;
 }
 
 interface BeatmapExtended extends Beatmap {
-    accuracy: number,
-    ar: number,
-    bpm?: number,
-    convert: boolean,
-    count_circles: number,
-    count_sliders: number,
-    count_spinners: number,
-    cs: number,
-    deleted_at?: string,
-    drain: number,
-    hit_length: number,
-    is_scoreable: boolean,
-    last_updated: string,
-    mode_int: number,
-    passcount: number,
-    playcount: number,
-    ranked: BeatmapStatus,
-    url: string
+    accuracy: number;
+    ar: number;
+    bpm?: number;
+    convert: boolean;
+    count_circles: number;
+    count_sliders: number;
+    count_spinners: number;
+    cs: number;
+    deleted_at?: string;
+    drain: number;
+    hit_length: number;
+    is_scoreable: boolean;
+    last_updated: string;
+    mode_int: number;
+    passcount: number;
+    playcount: number;
+    ranked: BeatmapStatus;
+    url: string;
 }
 
 interface UserStats {
-    count_100: number,
-    count_300: number,
-    count_50: number,
-    count_miss: number,
-    country_rank?: number,
+    count_100: number;
+    count_300: number;
+    count_50: number;
+    count_miss: number;
+    country_rank?: number;
     grade_counts: {
-      a: number,
-      s: number,
-      sh: number,
-      ss: number,
-      ssh: number,
-    },
-    hit_accuracy: number,
-    is_ranked: boolean,
+        a: number;
+        s: number;
+        sh: number;
+        ss: number;
+        ssh: number;
+    };
+    hit_accuracy: number;
+    is_ranked: boolean;
     level: {
-      current: number,
-      progress: number,
-    },
-    maximum_combo: number,
-    play_count: number,
-    play_time: number,
-    pp: number,
-    pp_exp: number,
-    global_rank?: number,
-    global_rank_exp?: number,
-    ranked_score: number,
-    replays_watched_by_others: number,
-    total_hits: number,
-    total_score: number,
-  }
+        current: number;
+        progress: number;
+    };
+    maximum_combo: number;
+    play_count: number;
+    play_time: number;
+    pp: number;
+    pp_exp: number;
+    global_rank?: number;
+    global_rank_exp?: number;
+    ranked_score: number;
+    replays_watched_by_others: number;
+    total_hits: number;
+    total_score: number;
+}
 
 interface User {
-    avatar_url: string,
-    country_code: string,
-    default_group?: string,
-    id: number,
-    is_active: boolean,
-    is_bot: boolean,
-    is_deleted: boolean,
-    is_online: boolean,
-    is_supporter: boolean,
-    last_visit?: string,
-    pm_friends_only: boolean,
-    profile_colour?: string,
-    username: string,
-    statistics?: UserStats
-    playmode: Ruleset
+    avatar_url: string;
+    country_code: string;
+    default_group?: string;
+    id: number;
+    is_active: boolean;
+    is_bot: boolean;
+    is_deleted: boolean;
+    is_online: boolean;
+    is_supporter: boolean;
+    last_visit?: string;
+    pm_friends_only: boolean;
+    profile_colour?: string;
+    username: string;
+    statistics?: UserStats;
+    playmode: Ruleset;
 }
 
 interface Covers {
-    cover?: string,
-    'cover@2x'?: string,
-    card?: string,
-    'card@2x'?: string,
-    list?: string,
-    'list@2x'?: string,
-    slimcover?: string,
-    'slimcover@2x'?: string,
+    cover?: string;
+    "cover@2x"?: string;
+    card?: string;
+    "card@2x"?: string;
+    list?: string;
+    "list@2x"?: string;
+    slimcover?: string;
+    "slimcover@2x"?: string;
 }
 
 interface Beatmapset {
-    artist?: string,
-    artist_unicode?: string,
-    covers?: Covers,
-    creator?: string,
-    favourite_count?: number,
-    id: number,
-    nsfw?: boolean,
-    offset?: number,
-    play_count?: number,
-    preview_url?: string,
-    source?: string,
-    status?: string,
-    spotlight?: boolean,
-    title?: string,
-    title_unicode?: string,
-    user_id?: number,
-    video?: boolean,
+    artist?: string;
+    artist_unicode?: string;
+    covers?: Covers;
+    creator?: string;
+    favourite_count?: number;
+    id: number;
+    nsfw?: boolean;
+    offset?: number;
+    play_count?: number;
+    preview_url?: string;
+    source?: string;
+    status?: string;
+    spotlight?: boolean;
+    title?: string;
+    title_unicode?: string;
+    user_id?: number;
+    video?: boolean;
 }
 
 interface BeatmapDifficultyAttributesResponse {
-    attributes: BeatmapDifficultyAttributes
+    attributes: BeatmapDifficultyAttributes;
 }
 
-interface BeatmapDifficultyAttributes{
-    max_combo: number,
-    star_rating: number,
-    overall_difficulty?: number,
-    approach_rate?: number,
-    aim_difficulty?: number,
-    speed_difficulty?: number
+interface BeatmapDifficultyAttributes {
+    max_combo: number;
+    star_rating: number;
+    overall_difficulty?: number;
+    approach_rate?: number;
+    aim_difficulty?: number;
+    speed_difficulty?: number;
 }
 
 class V2Beatmap implements APIBeatmap {
     artist: string;
-    id: { set: number; map: number; };
+    id: { set: number; map: number };
     bpm: number;
-    creator: { nickname: string; id: number; };
+    creator: { nickname: string; id: number };
     status: string;
     stats: ICalcStats;
     diff: IBeatmapStars;
@@ -188,12 +202,22 @@ class V2Beatmap implements APIBeatmap {
     combo: number;
     mode: number;
 
-    constructor(beatmap: BeatmapExtended, attributes: BeatmapDifficultyAttributes, mods: Mods) {
-        const calc = new AttributesCalculator(beatmap.ar, beatmap.accuracy, beatmap.drain, beatmap.cs, mods);
+    constructor(
+        beatmap: BeatmapExtended,
+        attributes: BeatmapDifficultyAttributes,
+        mods: Mods
+    ) {
+        const calc = new AttributesCalculator(
+            beatmap.ar,
+            beatmap.accuracy,
+            beatmap.drain,
+            beatmap.cs,
+            mods
+        );
         this.artist = beatmap.beatmapset.artist;
         this.id = {
             set: beatmap.beatmapset_id,
-            map: beatmap.id
+            map: beatmap.id,
         };
 
         this.bpm = beatmap.bpm * (mods?.speed() ?? 1);
@@ -201,22 +225,25 @@ class V2Beatmap implements APIBeatmap {
 
         this.creator = {
             nickname: beatmap.beatmapset.creator,
-            id: beatmap.beatmapset.user_id
+            id: beatmap.beatmapset.user_id,
         };
         this.status = BeatmapStatus[Number(beatmap.ranked)];
-        this.stats = Util.getStats({
-            ar: calc.calculateMultipliedAR(),
-            cs: calc.calculateMultipliedCS(),
-            od: calc.calculateMultipliedOD(),
-            hp: calc.calculateMultipliedHP()
-        }, beatmap.mode_int);
+        this.stats = Util.getStats(
+            {
+                ar: calc.calculateMultipliedAR(),
+                cs: calc.calculateMultipliedCS(),
+                od: calc.calculateMultipliedOD(),
+                hp: calc.calculateMultipliedHP(),
+            },
+            beatmap.mode_int
+        );
         this.diff = {
-            stars: attributes.star_rating || beatmap.difficulty_rating
+            stars: attributes.star_rating || beatmap.difficulty_rating,
         };
         this.objects = {
             circles: beatmap.count_circles,
             sliders: beatmap.count_sliders,
-            spinners: beatmap.count_spinners
+            spinners: beatmap.count_spinners,
         };
         this.title = beatmap.beatmapset.title;
         this.version = beatmap.version;
@@ -226,8 +253,8 @@ class V2Beatmap implements APIBeatmap {
 }
 
 interface BeatmapUserScore {
-    position: number,
-    score: Score
+    position: number;
+    score: Score;
 }
 
 class V2Score implements APIScore {
@@ -247,20 +274,26 @@ class V2Score implements APIScore {
     constructor(data: Score, forceLazerScore = false) {
         this.api_score_id = data.id;
         this.beatmapId = data.beatmap.id;
-        this.score = (forceLazerScore || !data.legacy_total_score) ? data.total_score : data.legacy_total_score;
+        this.score =
+            forceLazerScore || !data.legacy_total_score
+                ? data.total_score
+                : data.legacy_total_score;
         this.combo = data.max_combo;
-        this.counts = new HitCounts({
-            300: data.statistics.great || 0,
-            100: data.statistics.ok || 0,
-            50: data.statistics.meh || 0,
-            miss: data.statistics.miss || 0,
-            katu: data.statistics.good || 0,
-            geki: data.statistics.perfect || 0,
-            slider_large: data.statistics.large_tick_hit || 0,
-            slider_tail: data.statistics.slider_tail_hit || 0,
-        }, data.ruleset_id);
+        this.counts = new HitCounts(
+            {
+                300: data.statistics.great || 0,
+                100: data.statistics.ok || 0,
+                50: data.statistics.meh || 0,
+                miss: data.statistics.miss || 0,
+                katu: data.statistics.good || 0,
+                geki: data.statistics.perfect || 0,
+                slider_large: data.statistics.large_tick_hit || 0,
+                slider_tail: data.statistics.slider_tail_hit || 0,
+            },
+            data.ruleset_id
+        );
         this.mods = new Mods(data.mods as V2Mod[]);
-        this.rank = data.passed ? data.rank : 'F';
+        this.rank = data.passed ? data.rank : "F";
         this.rank_global = data.rank_global;
         this.mode = data.ruleset_id;
         this.date = new Date(data.ended_at);
@@ -279,7 +312,7 @@ class V2User implements APIUser {
     playcount: number;
     playtime: number;
     pp: number;
-    rank: { total: number; country: number; };
+    rank: { total: number; country: number };
     country: string;
     accuracy: number;
     level: number;
@@ -293,7 +326,7 @@ class V2User implements APIUser {
         this.pp = data.statistics.pp;
         this.rank = {
             total: data.statistics.global_rank,
-            country: data.statistics.country_rank
+            country: data.statistics.country_rank,
         };
         this.country = data.country_code;
         this.accuracy = data.statistics.hit_accuracy;
@@ -303,12 +336,20 @@ class V2User implements APIUser {
 }
 
 const getRuleset = (mode: number): Ruleset => {
-    let ruleset: Ruleset = 'osu';
+    let ruleset: Ruleset = "osu";
     switch (mode) {
-    case 0: ruleset = 'osu'; break;
-    case 1: ruleset = 'taiko'; break;
-    case 2: ruleset = 'fruits'; break;
-    case 3: ruleset = 'mania'; break;
+        case 0:
+            ruleset = "osu";
+            break;
+        case 1:
+            ruleset = "taiko";
+            break;
+        case 2:
+            ruleset = "fruits";
+            break;
+        case 3:
+            ruleset = "mania";
+            break;
     }
     return ruleset;
 };
@@ -316,10 +357,18 @@ const getRuleset = (mode: number): Ruleset => {
 const getRulesetId = (ruleset: Ruleset | string): number => {
     let mode = 0;
     switch (ruleset) {
-    case 'osu': mode = 0; break;
-    case 'taiko': mode = 1; break;
-    case 'fruits': mode = 2; break;
-    case 'mania': mode = 3; break;
+        case "osu":
+            mode = 0;
+            break;
+        case "taiko":
+            mode = 1;
+            break;
+        case "fruits":
+            mode = 2;
+            break;
+        case "mania":
+            mode = 3;
+            break;
     }
     return mode;
 };
@@ -333,8 +382,8 @@ class BanchoAPIV2 implements IAPI {
     bot: Bot;
     constructor(bot: Bot) {
         this.api = axios.default.create({
-            baseURL: 'https://osu.ppy.sh/api/v2',
-            timeout: 1e4
+            baseURL: "https://osu.ppy.sh/api/v2",
+            timeout: 1e4,
         });
         this.bot = bot;
         this.app_id = this.bot.config.tokens.bancho_v2_app_id;
@@ -344,12 +393,15 @@ class BanchoAPIV2 implements IAPI {
     }
 
     async login() {
-        const { data } = await axios.default.post('https://osu.ppy.sh/oauth/token', {
-            grant_type: 'client_credentials',
-            client_id: this.app_id,
-            client_secret: this.client_secret,
-            scope: 'identify public'
-        });
+        const { data } = await axios.default.post(
+            "https://osu.ppy.sh/oauth/token",
+            {
+                grant_type: "client_credentials",
+                client_id: this.app_id,
+                client_secret: this.client_secret,
+                scope: "identify public",
+            }
+        );
         if (!data.access_token) {
             this.logged = -1;
             return;
@@ -360,12 +412,15 @@ class BanchoAPIV2 implements IAPI {
 
     private async get(method: string, query?) {
         try {
-            const { data } = await this.api.get(`${method}${query ? `?${qs.stringify(query)}` : ''}`, {
-                headers: {
-                    'Authorization': `Bearer ${this.token}`,
-                    'x-api-version': '20241130'
+            const { data } = await this.api.get(
+                `${method}${query ? `?${qs.stringify(query)}` : ""}`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${this.token}`,
+                        "x-api-version": "20241130",
+                    },
                 }
-            });
+            );
             return data;
         } catch (e) {
             if (e.response?.status == 401) {
@@ -380,106 +435,147 @@ class BanchoAPIV2 implements IAPI {
         try {
             const { data } = await this.api.post(`${method}`, query, {
                 headers: {
-                    'Authorization': `Bearer ${this.token}`,
-                    'x-api-version': '20241130'
-                }
+                    Authorization: `Bearer ${this.token}`,
+                    "x-api-version": "20241130",
+                },
             });
             return data;
         } catch (e) {
             if (e.response?.status == 401) {
                 await this.refresh();
                 return this.post(method, query);
-            } 
+            }
             return undefined;
         }
     }
 
     async refresh() {
         if (this.logged != 1) {
-            throw 'Not logged in';
+            throw "Not logged in";
         }
         return await this.login();
     }
 
     async getUser(nickname: string, mode?: number): Promise<APIUser> {
-        const data = await this.get(`/users/${nickname.replace(' ', '_')}/${mode !== undefined ? getRuleset(mode) : ''}`, {
-            key: 'username'
-        });
-        
+        const data = await this.get(
+            `/users/${nickname.replace(" ", "_")}/${mode !== undefined ? getRuleset(mode) : ""}`,
+            {
+                key: "username",
+            }
+        );
+
         if (data === undefined) {
-            throw 'User not found';
+            throw "User not found";
         }
 
         return new V2User(data);
     }
 
     async getUserById(id: number | string, mode?: number): Promise<APIUser> {
-        const data = await this.get(`/users/${id}/${mode !== undefined ? getRuleset(mode) : ''}`, {
-            key: 'id'
-        });
-        
+        const data = await this.get(
+            `/users/${id}/${mode !== undefined ? getRuleset(mode) : ""}`,
+            {
+                key: "id",
+            }
+        );
+
         if (data === undefined) {
-            throw 'User not found';
+            throw "User not found";
         }
 
         return new V2User(data);
     }
 
-    async getUserRecent(nickname: string, mode?: number, limit?: number ): Promise<APIScore> {
+    async getUserRecent(
+        nickname: string,
+        mode?: number,
+        limit?: number
+    ): Promise<APIScore> {
         const user = await this.getUser(nickname);
         return await this.getUserRecentById(user.id as number, mode, limit);
     }
 
-    async getUserTop(nickname: string, mode?: number, limit?: number): Promise<APIScore[]> {
+    async getUserTop(
+        nickname: string,
+        mode?: number,
+        limit?: number
+    ): Promise<APIScore[]> {
         const user = await this.getUser(nickname);
         return await this.getUserTopById(user.id as number, mode, limit);
     }
 
-    async getScore(nickname: string, beatmapId: number, mode?: number, mods?: number): Promise<APIScore> {
+    async getScore(
+        nickname: string,
+        beatmapId: number,
+        mode?: number,
+        mods?: number
+    ): Promise<APIScore> {
         const user = await this.getUser(nickname);
-        return await this.getScoreByUid(user.id as number, beatmapId, mode, mods);
+        return await this.getScoreByUid(
+            user.id as number,
+            beatmapId,
+            mode,
+            mods
+        );
     }
 
-    async getBeatmap(id: number | string, mode?: number, mods?: Mods): Promise<APIBeatmap> {
+    async getBeatmap(
+        id: number | string,
+        mode?: number,
+        mods?: Mods
+    ): Promise<APIBeatmap> {
         let data: BeatmapExtended = undefined;
-        
-        if (typeof id === 'string') {
-            data = await this.get('https://osu.ppy.sh/api/v2/beatmaps/lookup', {
-                'checksum': id
+
+        if (typeof id === "string") {
+            data = await this.get("https://osu.ppy.sh/api/v2/beatmaps/lookup", {
+                checksum: id,
             });
         } else {
             data = await this.get(`/beatmaps/${id}`);
         }
 
         if (data === undefined) {
-            throw 'Beatmap not found';
+            throw "Beatmap not found";
         }
 
-        const attributes: BeatmapDifficultyAttributesResponse = await this.post(`/beatmaps/${data.id}/attributes`, mods !== undefined && mode !== undefined ? {
-            mods: mods.diff(), // TODO: lazer
-            ruleset_id: mode
-        } : undefined);
+        const attributes: BeatmapDifficultyAttributesResponse = await this.post(
+            `/beatmaps/${data.id}/attributes`,
+            mods !== undefined && mode !== undefined
+                ? {
+                      mods: mods.diff(), // TODO: lazer
+                      ruleset_id: mode,
+                  }
+                : undefined
+        );
         if (attributes === undefined) {
-            throw 'Beatmap not found';
+            throw "Beatmap not found";
         }
 
         const beatmap = new V2Beatmap(data, attributes.attributes, mods);
 
-        const folderPath = 'beatmap_cache';
+        const folderPath = "beatmap_cache";
         if (!fs.existsSync(folderPath)) {
             fs.mkdirSync(folderPath);
         }
-        
+
         const filePath = `beatmap_cache/${beatmap.id.map}.osu`;
         if (!fs.existsSync(filePath)) {
-            const response = await axios.default.get(`https://osu.ppy.sh/osu/${beatmap.id.map}`, { responseType: 'arraybuffer' });
-            const buffer = Buffer.from(response.data, 'binary');
+            const response = await axios.default.get(
+                `https://osu.ppy.sh/osu/${beatmap.id.map}`,
+                { responseType: "arraybuffer" }
+            );
+            const buffer = Buffer.from(response.data, "binary");
             fs.writeFileSync(filePath, buffer);
         }
         return beatmap;
     }
 
-    async getLeaderboard(beatmapId: number, users: IDatabaseUser[], mode?: number, mods?: number): Promise<LeaderboardResponse> {
+    async getLeaderboard(
+        beatmapId: number,
+        users: IDatabaseUser[],
+        mode?: number,
+        mods?: number
+    ): Promise<LeaderboardResponse> {
         const map = await this.getBeatmap(beatmapId);
         const scores: LeaderboardScore[] = [];
         try {
@@ -487,49 +583,63 @@ class BanchoAPIV2 implements IAPI {
             for (let i = 0; i < lim; i++) {
                 try {
                     const usrs = users.splice(0, 5);
-                    const usPromise = usrs.map(
-                        (u) => this.getScoreByUid(u.game_id, beatmapId, mode, mods, true)
-                    );  
-                    const s: APIScore[] = (await Promise.all(usPromise.map(
-                        (p) => p.catch((e) => e)
-                    ))
+                    const usPromise = usrs.map((u) =>
+                        this.getScoreByUid(
+                            u.game_id,
+                            beatmapId,
+                            mode,
+                            mods,
+                            true
+                        )
+                    );
+                    const s: APIScore[] = await Promise.all(
+                        usPromise.map((p) => p.catch((e) => e))
                     );
                     for (let j = s.length - 1; j >= 0; j--) {
-                        const ok = typeof s[j] !== 'string' && !(s[j] instanceof Error);
+                        const ok =
+                            typeof s[j] !== "string" &&
+                            !(s[j] instanceof Error);
                         if (!ok) {
                             s.splice(j, 1);
                             usrs.splice(j, 1);
                         }
                     }
-                    scores.push(...s.map((score, j) => {
-                        return {
-                            user: usrs[j],
-                            score
-                        };
-                    }));
+                    scores.push(
+                        ...s.map((score, j) => {
+                            return {
+                                user: usrs[j],
+                                score,
+                            };
+                        })
+                    );
                 } catch {
                     // Ignore "No scores"
                 }
-            } 
-            
+            }
+
             return {
                 map,
-                scores: scores.sort((a,b) => {
+                scores: scores.sort((a, b) => {
                     if (a.score.score > b.score.score) {
                         return -1;
                     } else if (a.score.score < b.score.score) {
                         return 1;
                     }
                     return 0;
-                })
+                }),
             };
         } catch (e) {
-            throw e || 'Unknown error';
+            throw e || "Unknown error";
         }
     }
 
-    async getBeatmapsets(args: V2BeatmapsetsArguments): Promise<V2Beatmapset[]> {
-        const data = await this.get('/beatmapsets/search/', { q: args.query || null, s: args.status || 'ranked' });
+    async getBeatmapsets(
+        args: V2BeatmapsetsArguments
+    ): Promise<V2Beatmapset[]> {
+        const data = await this.get("/beatmapsets/search/", {
+            q: args.query || null,
+            s: args.status || "ranked",
+        });
         return data.beatmapsets.map((set) => ({
             id: set.id,
             title: set.title,
@@ -541,16 +651,20 @@ class BanchoAPIV2 implements IAPI {
                 id: map.id,
                 mode: map.mode_int,
                 stars: map.difficulty_rating,
-                version: map.version
-            }))
+                version: map.version,
+            })),
         }));
     }
 
-    async getUserRecentById(uid: number | string, mode: number, limit: number = 1): Promise<APIScore> {
-        const data = await this.get(`/users/${uid}/scores/recent`, { 
-            mode: getRuleset(mode), 
+    async getUserRecentById(
+        uid: number | string,
+        mode: number,
+        limit: number = 1
+    ): Promise<APIScore> {
+        const data = await this.get(`/users/${uid}/scores/recent`, {
+            mode: getRuleset(mode),
             include_fails: true,
-            limit
+            limit,
         });
 
         if (data[0]) {
@@ -559,8 +673,11 @@ class BanchoAPIV2 implements IAPI {
             let fullInfo: Score = score;
             if (fullInfo.passed) {
                 try {
-                    fullInfo = await this.getScoreByScoreId(score.id, !!score.legacy_total_score);
-                } catch { 
+                    fullInfo = await this.getScoreByScoreId(
+                        score.id,
+                        !!score.legacy_total_score
+                    );
+                } catch {
                     // ignore
                 }
             }
@@ -572,61 +689,74 @@ class BanchoAPIV2 implements IAPI {
                     for (let i = topscores.length - 1; i >= 0; i--) {
                         const topScore = topscores[i];
                         if (topScore.api_score_id == score.id) {
-                            result.top100_number = i + 1;                            
+                            result.top100_number = i + 1;
                             break;
                         }
                         if (topScore.pp > score.pp) {
                             break;
                         }
-                        
                     }
-                } catch { 
+                } catch {
                     // ignore
                 }
             }
 
             return result;
-        } 
-        throw 'No recent scores';
-        
+        }
+        throw "No recent scores";
     }
 
-    async getUserTopById(uid: number | string, mode: number = 0, limit: number = 3): Promise<APIScore[]> {
-        const data = await this.get(`/users/${uid}/scores/best`, { 
-            mode: getRuleset(mode), 
-            limit
+    async getUserTopById(
+        uid: number | string,
+        mode: number = 0,
+        limit: number = 3
+    ): Promise<APIScore[]> {
+        const data = await this.get(`/users/${uid}/scores/best`, {
+            mode: getRuleset(mode),
+            limit,
         });
 
         if (data[0]) {
             return data.map((s) => new V2Score(s));
         }
-         
-        throw 'No top scores';
-        
+
+        throw "No top scores";
     }
 
-    async getScoreByUid(uid: number | string, beatmapId: number, mode?: number, mods?: number, forceLazerScore = false): Promise<APIScore> {
-        const data: BeatmapUserScore = await this.get(`/beatmaps/${beatmapId}/scores/users/${uid}`, {
-            mode: getRuleset(mode),
-            mods: '' // TODO
-        });
-        
+    async getScoreByUid(
+        uid: number | string,
+        beatmapId: number,
+        mode?: number,
+        mods?: number,
+        forceLazerScore = false
+    ): Promise<APIScore> {
+        const data: BeatmapUserScore = await this.get(
+            `/beatmaps/${beatmapId}/scores/users/${uid}`,
+            {
+                mode: getRuleset(mode),
+                mods: "", // TODO
+            }
+        );
+
         if (!data) {
-            throw 'No scores found';
+            throw "No scores found";
         }
-    
+
         return new V2Score(data.score, forceLazerScore);
     }
 
-    private async getScoreByScoreId(scoreId: number | string, legacyOnly = false): Promise<Score> {
+    private async getScoreByScoreId(
+        scoreId: number | string,
+        legacyOnly = false
+    ): Promise<Score> {
         const data: Score = await this.get(`/scores/${scoreId}`, {
-            legacy_only: legacyOnly
+            legacy_only: legacyOnly,
         });
-        
+
         if (!data) {
-            throw 'No scores found';
+            throw "No scores found";
         }
-    
+
         return data;
     }
 }
