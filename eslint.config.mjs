@@ -10,15 +10,15 @@ export default [
     {
         rules: {
             "consistent-return": 2,
-            "indent"           : [1, 4],
-            "no-else-return"   : 1,
-            "semi"             : [1, "always"],
+            "indent"           : [2, 4],
+            "no-else-return"   : 2,
+            "semi"             : [2, "always"],
             "space-unary-ops"  : 2,
-            "curly"            : 1,
-            "brace-style"      : 1,
-            "keyword-spacing"  : 1,
-            "no-multi-spaces"  : 1,
-            "no-multiple-empty-lines": [1, {max: 1}]
+            "curly"            : 2,
+            "brace-style"      : 2,
+            "keyword-spacing"  : 2,
+            "no-multi-spaces"  : 2,
+            "no-multiple-empty-lines": [2, {max: 1}]
         }
     },
     {languageOptions: { globals: globals.browser }},
