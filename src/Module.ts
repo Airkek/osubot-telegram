@@ -1,12 +1,12 @@
-import { Command } from "./Command";
-import { Bot } from "./Bot"
-import { IAPI } from "./API";
-import { IDatabaseServer } from "./Types";
-import UnifiedMessageContext from "./TelegramSupport";
+import { Command } from './Command';
+import { Bot } from './Bot';
+import { IAPI } from './API';
+import { IDatabaseServer } from './Types';
+import UnifiedMessageContext from './TelegramSupport';
 
 interface ICommandsModule {
-    name: String,
-    prefix: String | String[],
+    name: string,
+    prefix: string | string[],
     commands: Command[],
     bot: Bot
 }
@@ -14,53 +14,55 @@ interface ICommandsModule {
 export class Module implements ICommandsModule {
     name: string;
     link?: string;
-    prefix: String[];
+    prefix: string[];
     commands: Command[];
     bot: Bot;
     api?: IAPI;
     db?: IDatabaseServer;
 
-    constructor(prefix: String[], bot: Bot) {
+    constructor(prefix: string[], bot: Bot) {
         this.prefix = prefix;
         this.bot = bot;
         this.commands = [];
     }
 
     registerCommand(command: Command | Command[]) {
-        if(Array.isArray(command))
+        if (Array.isArray(command)) {
             this.commands.push(...command);
-        else
+        } else {
             this.commands.push(command);
+        }
     }
 
     checkContext(ctx: UnifiedMessageContext): {command: Command, map?: number} {
-        var args = ctx.hasMessagePayload ? ctx.messagePayload.split(" ") : ctx.text.split(" ");
+        const args = ctx.hasMessagePayload ? ctx.messagePayload.split(' ') : ctx.text.split(' ');
         let map: number;
-        if(args[0].startsWith("{map")) {
-            map = Number(args[0].split("}")[0].slice(4));
-            args[0] = args[0].split("}")[1];
+        if (args[0].startsWith('{map')) {
+            map = Number(args[0].split('}')[0].slice(4));
+            args[0] = args[0].split('}')[1];
         }
-        if(args.length < 2)
+        if (args.length < 2) {
             return null;
-        var prefix = args.shift();
-        var command = args.shift();
-        if(!this.checkPrefix(prefix.toLowerCase()) || !this.findCommand(command))
+        }
+        const prefix = args.shift();
+        const command = args.shift();
+        if (!this.checkPrefix(prefix.toLowerCase()) || !this.findCommand(command)) {
             return null;
-        else
-            return {
-                command: this.findCommand(command),
-                map
-            }
+        }
+        return {
+            command: this.findCommand(command),
+            map
+        };
     }
 
     checkPrefix(prefix: string): boolean {
-        if(Array.isArray(this.prefix))
+        if (Array.isArray(this.prefix)) {
             return this.prefix.includes(prefix);
-        else
-            return this.prefix == prefix;
+        }
+        return this.prefix == prefix;
     }
 
-    findCommand(command: String): Command | null {
-        return this.commands.find(cmd => cmd.check(command)) || null;
+    findCommand(command: string): Command | null {
+        return this.commands.find((cmd) => cmd.check(command)) || null;
     }
 }

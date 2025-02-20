@@ -1,15 +1,15 @@
-import * as axios from "axios";
-import qs from "querystring";
-import { V2BeatmapsetsArguments, V2Beatmapset, V2Mod, APIScore, HitCounts, APIBeatmap, APIUser, IDatabaseUser, LeaderboardResponse, IBeatmapObjects, IBeatmapStars, BeatmapStatus, LeaderboardScore } from "../Types";
-import Mods from "../pp/Mods";
-import AttributesCalculator from "../pp/AttributesCalculator";
-import Util from "../Util";
-import * as fs from "fs";
-import IAPI from "./base";
-import { Bot } from "../Bot";
-import { ICalcStats } from "../pp/Stats";
+import * as axios from 'axios';
+import qs from 'querystring';
+import { V2BeatmapsetsArguments, V2Beatmapset, V2Mod, APIScore, HitCounts, APIBeatmap, APIUser, IDatabaseUser, LeaderboardResponse, IBeatmapObjects, IBeatmapStars, BeatmapStatus, LeaderboardScore } from '../Types';
+import Mods from '../pp/Mods';
+import AttributesCalculator from '../pp/AttributesCalculator';
+import Util from '../Util';
+import * as fs from 'fs';
+import IAPI from './base';
+import { Bot } from '../Bot';
+import { ICalcStats } from '../pp/Stats';
 
-type Ruleset = "osu" | "mania" | "taiko" | "fruits"; 
+type Ruleset = 'osu' | 'mania' | 'taiko' | 'fruits'; 
 
 interface Score {
     id: number,
@@ -21,7 +21,7 @@ interface Score {
         miss: number,
         meh: number,
 
-        //mania:
+        // mania:
         perfect?: number, // geki
         good?: number, // katu
 
@@ -31,7 +31,7 @@ interface Score {
     },
     ruleset_id: number,
     ended_at: string,
-    pp?: any,
+    pp?,
     rank: string,
     total_score: number,
     legacy_total_score: number,
@@ -46,7 +46,6 @@ interface Score {
     ranked?: boolean,
 }
 
-
 interface Beatmap {
     beatmapset_id: number,
     difficulty_rating: number,
@@ -58,7 +57,6 @@ interface Beatmap {
     version: string,
     beatmapset: Beatmapset 
 }
-
 
 interface BeatmapExtended extends Beatmap {
     accuracy: number,
@@ -133,13 +131,13 @@ interface User {
 
 interface Covers {
     cover?: string,
-    "cover@2x"?: string,
+    'cover@2x'?: string,
     card?: string,
-    "card@2x"?: string,
+    'card@2x'?: string,
     list?: string,
-    "list@2x"?: string,
+    'list@2x'?: string,
     slimcover?: string,
-    "slimcover@2x"?: string,
+    'slimcover@2x'?: string,
 }
 
 interface Beatmapset {
@@ -191,7 +189,7 @@ class V2Beatmap implements APIBeatmap {
     mode: number;
 
     constructor(beatmap: BeatmapExtended, attributes: BeatmapDifficultyAttributes, mods: Mods) {
-        let calc = new AttributesCalculator(beatmap.ar, beatmap.accuracy, beatmap.drain, beatmap.cs, mods)
+        const calc = new AttributesCalculator(beatmap.ar, beatmap.accuracy, beatmap.drain, beatmap.cs, mods);
         this.artist = beatmap.beatmapset.artist;
         this.id = {
             set: beatmap.beatmapset_id,
@@ -262,7 +260,7 @@ class V2Score implements APIScore {
             slider_tail: data.statistics.slider_tail_hit || 0,
         }, data.ruleset_id);
         this.mods = new Mods(data.mods as V2Mod[]);
-        this.rank = data.passed ? data.rank : "F";
+        this.rank = data.passed ? data.rank : 'F';
         this.rank_global = data.rank_global;
         this.mode = data.ruleset_id;
         this.date = new Date(data.ended_at);
@@ -300,31 +298,31 @@ class V2User implements APIUser {
         this.country = data.country_code;
         this.accuracy = data.statistics.hit_accuracy;
         this.level = data.statistics.level.current;
-        this.mode = getRulesetId(data.playmode)
+        this.mode = getRulesetId(data.playmode);
     }
 }
 
-var getRuleset = (mode: number): Ruleset => {
-    let ruleset: Ruleset = "osu";
+const getRuleset = (mode: number): Ruleset => {
+    let ruleset: Ruleset = 'osu';
     switch (mode) {
-        case 0: ruleset = "osu"; break;
-        case 1: ruleset = "taiko"; break;
-        case 2: ruleset = "fruits"; break;
-        case 3: ruleset = "mania"; break;
+    case 0: ruleset = 'osu'; break;
+    case 1: ruleset = 'taiko'; break;
+    case 2: ruleset = 'fruits'; break;
+    case 3: ruleset = 'mania'; break;
     }
     return ruleset;
-}
+};
 
-var getRulesetId = (ruleset: Ruleset | string): number => {
+const getRulesetId = (ruleset: Ruleset | string): number => {
     let mode = 0;
     switch (ruleset) {
-        case "osu": mode = 0; break;
-        case "taiko": mode = 1; break;
-        case "fruits": mode = 2; break;
-        case "mania": mode = 3; break;
+    case 'osu': mode = 0; break;
+    case 'taiko': mode = 1; break;
+    case 'fruits': mode = 2; break;
+    case 'mania': mode = 3; break;
     }
     return mode;
-}
+};
 
 class BanchoAPIV2 implements IAPI {
     api: axios.AxiosInstance;
@@ -335,7 +333,7 @@ class BanchoAPIV2 implements IAPI {
     bot: Bot;
     constructor(bot: Bot) {
         this.api = axios.default.create({
-            baseURL: "https://osu.ppy.sh/api/v2",
+            baseURL: 'https://osu.ppy.sh/api/v2',
             timeout: 1e4
         });
         this.bot = bot;
@@ -346,29 +344,31 @@ class BanchoAPIV2 implements IAPI {
     }
 
     async login() {
-        let { data } = await axios.default.post(`https://osu.ppy.sh/oauth/token`, {
-            grant_type: "client_credentials",
+        const { data } = await axios.default.post('https://osu.ppy.sh/oauth/token', {
+            grant_type: 'client_credentials',
             client_id: this.app_id,
             client_secret: this.client_secret,
-            scope: "identify public"
+            scope: 'identify public'
         });
-        if(!data.access_token)
-            return this.logged = -1;
+        if (!data.access_token) {
+            this.logged = -1;
+            return;
+        }
         this.token = data.access_token;
         this.logged = 1;
     }
 
-    private async get(method: string, query?: {[key: string]: any}) {
+    private async get(method: string, query?) {
         try {
-            let { data } = await this.api.get(`${method}${query ? `?${qs.stringify(query)}` : ''}`, {
+            const { data } = await this.api.get(`${method}${query ? `?${qs.stringify(query)}` : ''}`, {
                 headers: {
                     'Authorization': `Bearer ${this.token}`,
                     'x-api-version': '20241130'
                 }
             });
             return data;
-        } catch(e) {
-            if(e.response?.status == 401) {
+        } catch (e) {
+            if (e.response?.status == 401) {
                 await this.refresh();
                 return this.get(method, query);
             }
@@ -376,17 +376,17 @@ class BanchoAPIV2 implements IAPI {
         }
     }
 
-    private  async post(method: string, query?: {[key: string]: any}) {
+    private async post(method: string, query?) {
         try {
-            let { data } = await this.api.post(`${method}`, query, {
+            const { data } = await this.api.post(`${method}`, query, {
                 headers: {
                     'Authorization': `Bearer ${this.token}`,
                     'x-api-version': '20241130'
                 }
             });
             return data;
-        } catch(e) {
-            if(e.response?.status == 401) {
+        } catch (e) {
+            if (e.response?.status == 401) {
                 await this.refresh();
                 return this.post(method, query);
             } 
@@ -395,54 +395,55 @@ class BanchoAPIV2 implements IAPI {
     }
 
     async refresh() {
-        if(this.logged != 1)
-            throw "Not logged in";
+        if (this.logged != 1) {
+            throw 'Not logged in';
+        }
         return await this.login();
     }
 
     async getUser(nickname: string, mode?: number): Promise<APIUser> {
-        let data = await this.get(`/users/${nickname.replace(' ', '_')}/${mode !== undefined ? getRuleset(mode) : ''}`, {
+        const data = await this.get(`/users/${nickname.replace(' ', '_')}/${mode !== undefined ? getRuleset(mode) : ''}`, {
             key: 'username'
         });
         
         if (data === undefined) {
-            throw "User not found";
+            throw 'User not found';
         }
 
         return new V2User(data);
     }
 
     async getUserById(id: number | string, mode?: number): Promise<APIUser> {
-        let data = await this.get(`/users/${id}/${mode !== undefined ? getRuleset(mode) : ''}`, {
+        const data = await this.get(`/users/${id}/${mode !== undefined ? getRuleset(mode) : ''}`, {
             key: 'id'
         });
         
         if (data === undefined) {
-            throw "User not found";
+            throw 'User not found';
         }
 
         return new V2User(data);
     }
 
     async getUserRecent(nickname: string, mode?: number, limit?: number ): Promise<APIScore> {
-        let user = await this.getUser(nickname);
+        const user = await this.getUser(nickname);
         return await this.getUserRecentById(user.id as number, mode, limit);
     }
 
     async getUserTop(nickname: string, mode?: number, limit?: number): Promise<APIScore[]> {
-        let user = await this.getUser(nickname);
+        const user = await this.getUser(nickname);
         return await this.getUserTopById(user.id as number, mode, limit);
     }
 
     async getScore(nickname: string, beatmapId: number, mode?: number, mods?: number): Promise<APIScore> {
-        let user = await this.getUser(nickname);
+        const user = await this.getUser(nickname);
         return await this.getScoreByUid(user.id as number, beatmapId, mode, mods);
     }
 
     async getBeatmap(id: number | string, mode?: number, mods?: Mods): Promise<APIBeatmap> {
         let data: BeatmapExtended = undefined;
         
-        if (typeof id == "string") {
+        if (typeof id === 'string') {
             data = await this.get('https://osu.ppy.sh/api/v2/beatmaps/lookup', {
                 'checksum': id
             });
@@ -451,26 +452,27 @@ class BanchoAPIV2 implements IAPI {
         }
 
         if (data === undefined) {
-            throw "Beatmap not found";
+            throw 'Beatmap not found';
         }
 
-        let attributes: BeatmapDifficultyAttributesResponse = await this.post(`/beatmaps/${data.id}/attributes`, mods !== undefined && mode !== undefined ? {
+        const attributes: BeatmapDifficultyAttributesResponse = await this.post(`/beatmaps/${data.id}/attributes`, mods !== undefined && mode !== undefined ? {
             mods: mods.diff(), // TODO: lazer
             ruleset_id: mode
         } : undefined);
         if (attributes === undefined) {
-            throw "Beatmap not found";
+            throw 'Beatmap not found';
         }
 
-        let beatmap = new V2Beatmap(data, attributes.attributes, mods);
+        const beatmap = new V2Beatmap(data, attributes.attributes, mods);
 
         const folderPath = 'beatmap_cache';
         if (!fs.existsSync(folderPath)) {
             fs.mkdirSync(folderPath);
         }
+        
         const filePath = `beatmap_cache/${beatmap.id.map}.osu`;
         if (!fs.existsSync(filePath)) {
-            const response = await axios.default.get(`https://osu.ppy.sh/osu/${beatmap.id.map}`, { responseType: 'arraybuffer' })
+            const response = await axios.default.get(`https://osu.ppy.sh/osu/${beatmap.id.map}`, { responseType: 'arraybuffer' });
             const buffer = Buffer.from(response.data, 'binary');
             fs.writeFileSync(filePath, buffer);
         }
@@ -478,23 +480,23 @@ class BanchoAPIV2 implements IAPI {
     }
 
     async getLeaderboard(beatmapId: number, users: IDatabaseUser[], mode?: number, mods?: number): Promise<LeaderboardResponse> {
-        let map = await this.getBeatmap(beatmapId);
-        let scores: LeaderboardScore[] = [];
+        const map = await this.getBeatmap(beatmapId);
+        const scores: LeaderboardScore[] = [];
         try {
-            let lim = Math.ceil(users.length / 5);
-            for(var i = 0; i < lim; i++) {
+            const lim = Math.ceil(users.length / 5);
+            for (let i = 0; i < lim; i++) {
                 try {
-                    let usrs = users.splice(0, 5);
-                    let usPromise = usrs.map(
-                        u => this.getScoreByUid(u.game_id, beatmapId, mode, mods, true)
+                    const usrs = users.splice(0, 5);
+                    const usPromise = usrs.map(
+                        (u) => this.getScoreByUid(u.game_id, beatmapId, mode, mods, true)
                     );  
-                    let s: APIScore[] = (await Promise.all(usPromise.map(
-                            (p) => p.catch(e => e)
-                        ))
+                    const s: APIScore[] = (await Promise.all(usPromise.map(
+                        (p) => p.catch((e) => e)
+                    ))
                     );
-                    for(let j = s.length - 1; j >= 0; j--) {
-                        let ok = typeof s[j] != "string" && !(s[j] instanceof Error);
-                        if(!ok) {
+                    for (let j = s.length - 1; j >= 0; j--) {
+                        const ok = typeof s[j] !== 'string' && !(s[j] instanceof Error);
+                        if (!ok) {
                             s.splice(j, 1);
                             usrs.splice(j, 1);
                         }
@@ -505,33 +507,37 @@ class BanchoAPIV2 implements IAPI {
                             score
                         };
                     }));
-                }catch(e){} // Ignore "No scores"
-            }
+                } catch {
+                    // Ignore "No scores"
+                }
+            } 
+            
             return {
                 map,
                 scores: scores.sort((a,b) => {
-                    if(a.score.score > b.score.score)
+                    if (a.score.score > b.score.score) {
                         return -1;
-                    else if(a.score.score < b.score.score)
+                    } else if (a.score.score < b.score.score) {
                         return 1;
+                    }
                     return 0;
                 })
-            }
+            };
         } catch (e) {
-            throw e || "Unknown error";
+            throw e || 'Unknown error';
         }
     }
 
     async getBeatmapsets(args: V2BeatmapsetsArguments): Promise<V2Beatmapset[]> {
-        let data = await this.get('/beatmapsets/search/', { q: args.query || null, s: args.status || 'ranked' });
-        return data.beatmapsets.map(set => ({
+        const data = await this.get('/beatmapsets/search/', { q: args.query || null, s: args.status || 'ranked' });
+        return data.beatmapsets.map((set) => ({
             id: set.id,
             title: set.title,
             artist: set.artist,
             rankedDate: new Date(set.ranked_date),
             creator: set.creator,
             status: set.status,
-            beatmaps: set.beatmaps.map(map => ({
+            beatmaps: set.beatmaps.map((map) => ({
                 id: map.id,
                 mode: map.mode_int,
                 stars: map.difficulty_rating,
@@ -541,28 +547,30 @@ class BanchoAPIV2 implements IAPI {
     }
 
     async getUserRecentById(uid: number | string, mode: number, limit: number = 1): Promise<APIScore> {
-        let data = await this.get(`/users/${uid}/scores/recent`, { 
+        const data = await this.get(`/users/${uid}/scores/recent`, { 
             mode: getRuleset(mode), 
             include_fails: true,
-            limit: limit
+            limit
         });
 
         if (data[0]) {
-            let score = data[0];
+            const score = data[0];
 
             let fullInfo: Score = score;
             if (fullInfo.passed) {
                 try {
                     fullInfo = await this.getScoreByScoreId(score.id, !!score.legacy_total_score);
-                } catch { }
+                } catch { 
+                    // ignore
+                }
             }
 
-            let result = new V2Score(fullInfo);
+            const result = new V2Score(fullInfo);
             if (fullInfo.preserve && fullInfo.ranked) {
                 try {
-                    let topscores = await this.getUserTopById(uid, mode, 100);
+                    const topscores = await this.getUserTopById(uid, mode, 100);
                     for (let i = topscores.length - 1; i >= 0; i--) {
-                        let topScore = topscores[i];
+                        const topScore = topscores[i];
                         if (topScore.api_score_id == score.id) {
                             result.top100_number = i + 1;                            
                             break;
@@ -570,49 +578,53 @@ class BanchoAPIV2 implements IAPI {
                         if (topScore.pp > score.pp) {
                             break;
                         }
+                        
                     }
-                } catch { }
+                } catch { 
+                    // ignore
+                }
             }
 
             return result;
-        } else {
-            throw "No recent scores";
-        }
+        } 
+        throw 'No recent scores';
+        
     }
 
     async getUserTopById(uid: number | string, mode: number = 0, limit: number = 3): Promise<APIScore[]> {
-        let data = await this.get(`/users/${uid}/scores/best`, { 
+        const data = await this.get(`/users/${uid}/scores/best`, { 
             mode: getRuleset(mode), 
             limit
         });
 
         if (data[0]) {
-            return data.map(s => new V2Score(s));
-        } else {
-            throw "No top scores";
+            return data.map((s) => new V2Score(s));
         }
+         
+        throw 'No top scores';
+        
     }
 
     async getScoreByUid(uid: number | string, beatmapId: number, mode?: number, mods?: number, forceLazerScore = false): Promise<APIScore> {
-        let data: BeatmapUserScore = await this.get(`/beatmaps/${beatmapId}/scores/users/${uid}`, {
+        const data: BeatmapUserScore = await this.get(`/beatmaps/${beatmapId}/scores/users/${uid}`, {
             mode: getRuleset(mode),
-            mods: '' //TODO
+            mods: '' // TODO
         });
         
         if (!data) {
-            throw "No scores found";
+            throw 'No scores found';
         }
     
         return new V2Score(data.score, forceLazerScore);
     }
 
     private async getScoreByScoreId(scoreId: number | string, legacyOnly = false): Promise<Score> {
-        let data: Score = await this.get(`/scores/${scoreId}`, {
+        const data: Score = await this.get(`/scores/${scoreId}`, {
             legacy_only: legacyOnly
         });
         
         if (!data) {
-            throw "No scores found";
+            throw 'No scores found';
         }
     
         return data;

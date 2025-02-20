@@ -1,25 +1,25 @@
-import { InlineKeyboard } from "grammy";
-import { Command } from "../../Command";
-import { Module } from "../../Module";
-import Util from "../../Util";
+import { InlineKeyboard } from 'grammy';
+import { Command } from '../../Command';
+import { Module } from '../../Module';
+import Util from '../../Util';
 
 interface IHelpPage {
     keyboard: InlineKeyboard,
     text: string
 }
 
-type pageNames = "default" | "servers" | "prefixes" | "osucommands" | "basiccommands"
+type pageNames = 'default' | 'servers' | 'prefixes' | 'osucommands' | 'basiccommands'
 
-let button = (text: string, page: pageNames) => {
-    return {text, command: "osu help " + page}
-}
+const button = (text: string, page: pageNames) => {
+    return {text, command: `osu help ${page}`};
+};
 
 const pages: {[pageName in pageNames]: IHelpPage} = {
     'default': {
         keyboard: Util.createKeyboard([
-            [button("🌐 osu! servers", "servers")],
-            [button("📝 osu! commands", "osucommands")], 
-            [button("🔰 Basic commands", "basiccommands")]
+            [button('🌐 osu! servers', 'servers')],
+            [button('📝 osu! commands', 'osucommands')], 
+            [button('🔰 Basic commands', 'basiccommands')]
         ]),
         text: `Привет! 😊 Выберите, пожалуйста, раздел, по которому вы хотите получить помощь:
 
@@ -44,8 +44,8 @@ s user mrekk
 
 Здесь "s" - префикс сервера (Bancho), "user" - команда сервера, "mrekk" - аргумент команды сервера`,
         keyboard: Util.createKeyboard([
-            [button("Префиксы", "prefixes")],
-            [button("🏠 На главную", "default")]
+            [button('Префиксы', 'prefixes')],
+            [button('🏠 На главную', 'default')]
         ])
     },
     prefixes: {
@@ -57,9 +57,9 @@ s user mrekk
 • Akatsuki - a
 • Akatsuki!relax - ax`,
         keyboard: Util.createKeyboard([
-            [button("➡️ К командам", "osucommands")],
-            [button("⬅️ Назад", "servers")],
-            [button("🏠 На главную", "default")]
+            [button('➡️ К командам', 'osucommands')],
+            [button('⬅️ Назад', 'servers')],
+            [button('🏠 На главную', 'default')]
         ])
     },
     osucommands: {
@@ -83,8 +83,8 @@ s user mrekk
 
 ⚠️Внимание! Прочитайте помощь по osu! серверам чтобы использовать эти команды!`,
         keyboard: Util.createKeyboard([
-            [button("🌐 osu! servers", "servers")],
-            [button("🏠 На главную", "default")]
+            [button('🌐 osu! servers', 'servers')],
+            [button('🏠 На главную', 'default')]
         ])
     },
     basiccommands: {
@@ -97,15 +97,15 @@ osu disable - выключить бота в чате (необходимо бы
 osu enable - включить бота в чате (необходимо быть администратором чата)
 osu clear - очистить топ чата от вышедших участников (необходимо быть администратором чата)`,
         keyboard: Util.createKeyboard([
-            [button("🏠 На главную", "default")]
+            [button('🏠 На главную', 'default')]
         ])
     }
-}
+};
 
 export default class HelpCommand extends Command {
     constructor(module: Module) {
-        super(["help", "хелп", "рудз", "помощь"], module, async (ctx, self, args) => {
-            let arg = args.full[0];
+        super(['help', 'хелп', 'рудз', 'помощь'], module, async (ctx, self, args) => {
+            const arg = args.full[0];
             let page: IHelpPage = pages['default'];
             if (arg && pages[arg]) {
                 page = pages[arg];

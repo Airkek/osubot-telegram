@@ -1,6 +1,6 @@
 import {Bot, IBotConfig} from './src/Bot';
 
-var config: IBotConfig = {
+const config: IBotConfig = {
     tg: {
         token: process.env.TELEGRAM_TOKEN,
         owner: Number(process.env.TELEGRAM_OWNER_ID)
@@ -11,6 +11,6 @@ var config: IBotConfig = {
     }
 };
 
-var bot: Bot = new Bot(config);
+const bot: Bot = new Bot(config);
 
 bot.start();

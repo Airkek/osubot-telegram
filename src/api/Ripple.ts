@@ -1,11 +1,11 @@
-import IAPI from "./base";
-import * as axios from "axios";
-import { APIUser, HitCounts, APIScore, IDatabaseUser, LeaderboardResponse, APIBeatmap, LeaderboardScore, IDatabaseUserStats } from "../Types";
-import qs from "querystring";
-import Util from "../Util";
-import Mods from "../pp/Mods";
-import { isNullOrUndefined } from "util";
-import { Bot } from "../Bot"
+import IAPI from './base';
+import * as axios from 'axios';
+import { APIUser, HitCounts, APIScore, IDatabaseUser, LeaderboardResponse, APIBeatmap, LeaderboardScore } from '../Types';
+import qs from 'querystring';
+import Util from '../Util';
+import Mods from '../pp/Mods';
+import { isNullOrUndefined } from 'util';
+import { Bot } from '../Bot';
 
 class RippleUser implements APIUser {
     id: number;
@@ -20,7 +20,7 @@ class RippleUser implements APIUser {
     country: string;
     accuracy: number;
     level: number;
-    constructor(data: any) {
+    constructor(data) {
         this.id = Number(data.user_id);
         this.nickname = data.username;
         this.playcount = Number(data.playcount);
@@ -44,7 +44,7 @@ class RippleRecentScore implements APIScore {
     mods: Mods;
     rank: string;
     mode: number;
-    constructor(data: any, mode: number) {
+    constructor(data, mode: number) {
         this.beatmapId = Number(data.beatmap_id);
         this.score = Number(data.score);
         this.combo = Number(data.maxcombo);
@@ -76,7 +76,7 @@ class RippleScore implements APIScore {
     rank: string;
     date: Date;
     pp: number;
-    constructor(data: any, mode: number) {
+    constructor(data, mode: number) {
         this.beatmapId = Number(data.beatmap_id);;
         this.score = Number(data.score);
         this.combo = Number(data.maxcombo);
@@ -102,11 +102,11 @@ class RippleScore implements APIScore {
 
 export default class RippleAPI implements IAPI {
     bot: Bot;
-    api: axios.AxiosInstance
+    api: axios.AxiosInstance;
     constructor(bot: Bot) {
         this.bot = bot;
         this.api = axios.default.create({
-            baseURL: "https://ripple.moe/api",
+            baseURL: 'https://ripple.moe/api',
             timeout: 3000
         });
     }
@@ -116,126 +116,108 @@ export default class RippleAPI implements IAPI {
     }
 
     async getUser(nickname: string, mode: number = 0): Promise<APIUser> {
-        try {
-            let { data } = await this.api.get(`/get_user?${qs.stringify({u: nickname, m: mode, type: "string"})}`);
-            if(!data[0])
-                throw "User not found";
-            return new RippleUser(data[0]);
-        } catch(e) {
-            throw e;
+        const { data } = await this.api.get(`/get_user?${qs.stringify({u: nickname, m: mode, type: 'string'})}`);
+        if (!data[0]) {
+            throw 'User not found';
         }
+        return new RippleUser(data[0]);
     }
 
     async getUserById(id: number | string, mode: number = 0): Promise<APIUser> {
-        try {
-            let { data } = await this.api.get(`/get_user?${qs.stringify({u: id, m: mode})}`);
-            if(!data[0])
-                throw "User not found";
-            return new RippleUser(data[0]);
-        } catch(e) {
-            throw e;
+        const { data } = await this.api.get(`/get_user?${qs.stringify({u: id, m: mode})}`);
+        if (!data[0]) {
+            throw 'User not found';
         }
+        return new RippleUser(data[0]);
     }
 
     async getUserTop(nickname: string, mode: number = 0, limit: number = 3): Promise<APIScore[]> {
-        try {
-            let { data } = await this.api.get(`/get_user_best?${qs.stringify({u: nickname, m: mode, limit: limit, type: "string"})}`);
-            return data.map(s => new RippleScore(s, mode));
-        } catch(e) {
-            throw e;
-        }
+        const { data } = await this.api.get(`/get_user_best?${qs.stringify({u: nickname, m: mode, limit, type: 'string'})}`);
+        return data.map((s) => new RippleScore(s, mode));
     }
 
     async getUserTopById(id: number | string, mode: number = 0, limit: number = 3): Promise<APIScore[]> {
-        try {
-            let { data } = await this.api.get(`/get_user_best?${qs.stringify({u: id, m: mode, limit: limit})}`);
-            return data.map(s => new RippleScore(s, mode));
-        } catch(e) {
-            throw e;
-        }
+        const { data } = await this.api.get(`/get_user_best?${qs.stringify({u: id, m: mode, limit})}`);
+        return data.map((s) => new RippleScore(s, mode));
     }
 
     async getUserRecent(nickname: string, mode: number = 0): Promise<APIScore> {
-        try {
-            let { data } = await this.api.get(`/get_user_recent?${qs.stringify({u: nickname, m: mode, limit: 1, type: "string"})}`);
-            if(data[0])
-                return new RippleRecentScore(data[0], mode);
-            else
-                throw "No recent scores";
-        } catch(e) {
-            throw e;
+        const { data } = await this.api.get(`/get_user_recent?${qs.stringify({u: nickname, m: mode, limit: 1, type: 'string'})}`);
+        if (data[0]) {
+            return new RippleRecentScore(data[0], mode);
         }
+        throw 'No recent scores';
     }
 
     async getUserRecentById(id: number | string, mode: number = 0): Promise<APIScore> {
-        try {
-            let { data } = await this.api.get(`/get_user_recent?${qs.stringify({u: id, m: mode, limit: 1})}`);
-            if(data[0])
-                return new RippleRecentScore(data[0], mode);
-            else
-                throw "No recent scores";
-        } catch(e) {
-            throw e;
+        const { data } = await this.api.get(`/get_user_recent?${qs.stringify({u: id, m: mode, limit: 1})}`);
+        if (data[0]) {
+            return new RippleRecentScore(data[0], mode);
         }
+        throw 'No recent scores';
     }
 
     async getScore(nickname: string, beatmapId: number, mode: number = 0, mods: number = null): Promise<APIScore> {
-        let opts = {
+        const opts = {
             u: nickname,
             b: beatmapId,
             m: mode,
-            type: "string"
+            type: 'string'
         };
         try {
             let { data } = await this.api.get(`/get_scores?${qs.stringify(opts)}`);
-            if(!isNullOrUndefined(mods))
-                data = data.filter(p => p.enabled_mods == mods);
-            if(!data[0])
-                throw "No scores found";
+            if (!isNullOrUndefined(mods)) {
+                data = data.filter((p) => p.enabled_mods == mods);
+            }
+            if (!data[0]) {
+                throw 'No scores found';
+            }
             data[0].beatmap_id = beatmapId;
             return new RippleScore(data[0], mode);
-        } catch(e) {
-            throw e || "Unknown API error";
+        } catch (e) {
+            throw e || 'Unknown API error';
         }
     }
 
     async getScoreByUid(uid: number | string, beatmapId: number, mode: number = 0, mods: number = null): Promise<APIScore> {
-        let opts = {
+        const opts = {
             u: uid,
             b: beatmapId,
             m: mode
         };
         try {
             let { data } = await this.api.get(`/get_scores?${qs.stringify(opts)}`);
-            if(!isNullOrUndefined(mods))
-                data = data.filter(p => p.enabled_mods == mods);
-            if(!data[0])
-                throw "No scores found";
+            if (!isNullOrUndefined(mods)) {
+                data = data.filter((p) => p.enabled_mods == mods);
+            }
+            if (!data[0]) {
+                throw 'No scores found';
+            }
             data[0].beatmap_id = beatmapId;
             return new RippleScore(data[0], mode);
-        } catch(e) {
-            throw e || "Unknown API error";
+        } catch (e) {
+            throw e || 'Unknown API error';
         }
     }
     
     async getLeaderboard(beatmapId: number, users: IDatabaseUser[], mode: number = 0, mods: number = null): Promise<LeaderboardResponse> {
-        let map = await this.getBeatmap(beatmapId, mode, new Mods(0));
-        let scores: LeaderboardScore[] = [];
+        const map = await this.getBeatmap(beatmapId, mode, new Mods(0));
+        const scores: LeaderboardScore[] = [];
         try {
-            let lim = Math.ceil(users.length / 5);
-            for(var i = 0; i < lim; i++) {
+            const lim = Math.ceil(users.length / 5);
+            for (let i = 0; i < lim; i++) {
                 try {
-                    let usrs = users.splice(0, 5);
-                    let usPromise = usrs.map(
-                        u => this.getScoreByUid(u.game_id, beatmapId, mode, mods)
+                    const usrs = users.splice(0, 5);
+                    const usPromise = usrs.map(
+                        (u) => this.getScoreByUid(u.game_id, beatmapId, mode, mods)
                     );  
-                    let s: APIScore[] = (await Promise.all(usPromise.map(
-                            (p) => p.catch(e => e)
-                        ))
+                    const s: APIScore[] = (await Promise.all(usPromise.map(
+                        (p) => p.catch((e) => e)
+                    ))
                     );
-                    for(let j = s.length - 1; j >= 0; j--) {
-                        let ok = typeof s[j] != "string" && !(s[j] instanceof Error);
-                        if(!ok) {
+                    for (let j = s.length - 1; j >= 0; j--) {
+                        const ok = typeof s[j] !== 'string' && !(s[j] instanceof Error);
+                        if (!ok) {
                             s.splice(j, 1);
                             usrs.splice(j, 1);
                         }
@@ -246,20 +228,24 @@ export default class RippleAPI implements IAPI {
                             score
                         };
                     }));
-                }catch(e){} // Ignore "No scores"
-            }
+                } catch {
+                // Ignore "No scores"
+                }
+            } 
+            
             return {
                 map,
                 scores: scores.sort((a,b) => {
-                    if(a.score.score > b.score.score)
+                    if (a.score.score > b.score.score) {
                         return -1;
-                    else if(a.score.score < b.score.score)
+                    } else if (a.score.score < b.score.score) {
                         return 1;
+                    }
                     return 0;
                 })
-            }
+            };
         } catch (e) {
-            throw e || "Unknown error";
+            throw e || 'Unknown error';
         }
     }
 }

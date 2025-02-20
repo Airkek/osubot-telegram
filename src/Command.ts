@@ -4,14 +4,14 @@ import { ICommandArgs } from './Types';
 import UnifiedMessageContext from './TelegramSupport';
 
 export class Command {
-    readonly name: String | String[];
+    readonly name: string | string[];
     module: Module;
     disables: boolean = true;
     uses: number;
     function: (ctx: UnifiedMessageContext, self: Command, args: ICommandArgs) => void;
 
     permission: (ctx: UnifiedMessageContext) => boolean;
-    constructor(name: String | String[], module: Module, func: (ctx: UnifiedMessageContext, self: Command, args: ICommandArgs) => void) {
+    constructor(name: string | string[], module: Module, func: (ctx: UnifiedMessageContext, self: Command, args: ICommandArgs) => void) {
         this.name = name;
         this.module = module;
         this.function = func;
@@ -21,24 +21,27 @@ export class Command {
     }
 
     public process(ctx: UnifiedMessageContext) {
-        if(!this.permission(ctx)) return;
+        if (!this.permission(ctx)) {
+            return;
+        }
         this.uses++;
-        if(ctx.hasMessagePayload)
+        if (ctx.hasMessagePayload) {
             this.function(
                 ctx, this,
-                Util.parseArgs(ctx.messagePayload.split(" ").slice(2))
+                Util.parseArgs(ctx.messagePayload.split(' ').slice(2))
             );
-        else
+        } else {
             this.function(
                 ctx, this, 
-                Util.parseArgs(ctx.text.split(" ").slice(2))
+                Util.parseArgs(ctx.text.split(' ').slice(2))
             );
+        }
     }
 
-    public check(name: String) {
-        if(Array.isArray(this.name))
+    public check(name: string) {
+        if (Array.isArray(this.name)) {
             return this.name.includes(name.toLowerCase());
-        else
-            return this.name == name.toLowerCase();
+        }
+        return this.name == name.toLowerCase();
     }
 }

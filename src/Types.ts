@@ -45,45 +45,45 @@ class CalcArgs {
     counts?: IHitCounts;
     mods: Mods;
     mode: number;
-    fake: boolean
+    fake: boolean;
     constructor(args: PPArgs, mode: number) {
         this.fake = true;
         this.mods = args.mods;
         this.mode = mode;
         this.acc = args.acc;
         this.combo = args.combo;
-        switch(mode) {
-            case 0:
-            case 1:
-            case 2: {
-                this.acc = args.acc;
-                this.combo = args.combo;
-                this.counts = new HitCounts({
-                    300: args.hits - args.miss,
-                    100: 0,
-                    50: args.counts?.[50] ?? 0,
-                    katu: 0,
-                    geki: 0,
-                    miss: args.miss
-                }, mode);
-                this.mods = args.mods;
-                break;
-            }
+        switch (mode) {
+        case 0:
+        case 1:
+        case 2: {
+            this.acc = args.acc;
+            this.combo = args.combo;
+            this.counts = new HitCounts({
+                300: args.hits - args.miss,
+                100: 0,
+                50: args.counts?.[50] ?? 0,
+                katu: 0,
+                geki: 0,
+                miss: args.miss
+            }, mode);
+            this.mods = args.mods;
+            break;
+        }
 
-            case 3: {
-                this.counts = new HitCounts({
-                    300: args.hits,
-                    100: 0,
-                    50: 0,
-                    miss: 0,
-                    katu: 0,
-                    geki: 0
-                }, this.mode)
-                this.mods = args.mods;
-                this.acc = args.acc;
-                this.combo = args.combo;
-                break;
-            }
+        case 3: {
+            this.counts = new HitCounts({
+                300: args.hits,
+                100: 0,
+                50: 0,
+                miss: 0,
+                katu: 0,
+                geki: 0
+            }, this.mode);
+            this.mods = args.mods;
+            this.acc = args.acc;
+            this.combo = args.combo;
+            break;
+        }
         }
     }
 
@@ -110,10 +110,10 @@ enum ProfileMode {
 }
 
 enum Mode {
-    "osu!" = 0,
-    "osu!taiko" = 1,
-    "osu!catch" = 2,
-    "osu!mania" = 3
+    'osu!' = 0,
+    'osu!taiko' = 1,
+    'osu!catch' = 2,
+    'osu!mania' = 3
 }
 
 interface IHits {
@@ -160,30 +160,30 @@ class HitCounts implements IHitCounts {
     }
 
     totalHits(): number {
-        switch(this.mode) {
-            case 1:
-                return this[300] + this[100] + this[50] + this.miss;
-            case 2:
-                return 0;
-            case 3: 
-                return this.geki + this.katu + this[300] + this[100] + this[50] + this.miss;
-            default:
-                return this[300] + this[100] + this[50] + this.miss;
+        switch (this.mode) {
+        case 1:
+            return this[300] + this[100] + this[50] + this.miss;
+        case 2:
+            return 0;
+        case 3: 
+            return this.geki + this.katu + this[300] + this[100] + this[50] + this.miss;
+        default:
+            return this[300] + this[100] + this[50] + this.miss;
         }
     }
 
     toString(): string {
-        switch(this.mode) {
-            case 0:
-            case 1:
-            case 2:
-                return `${this[300]}/${this[100]}/${this[50]}/${this.miss}`;
+        switch (this.mode) {
+        case 0:
+        case 1:
+        case 2:
+            return `${this[300]}/${this[100]}/${this[50]}/${this.miss}`;
 
-            case 3:
-                return `${this.geki}/${this[300]}/${this.katu}/${this[100]}/${this[50]}/${this.miss}`;
+        case 3:
+            return `${this.geki}/${this[300]}/${this.katu}/${this[100]}/${this[50]}/${this.miss}`;
 
-            default:
-                return '';
+        default:
+            return '';
         }
     }
 }
@@ -261,8 +261,8 @@ class APIBeatmap {
     combo: number;
     mode: number;
     coverUrl?: string;
-    mapUrl?: string
-    constructor(data: any) {
+    mapUrl?: string;
+    constructor(data) {
         this.artist = data.artist;
         this.id = {
             set: Number(data.beatmapset_id),
@@ -306,7 +306,7 @@ class TrackTopScore {
     pp: number;
     mode: number;
     place: number;
-    constructor(data: any, mode: number) {
+    constructor(data, mode: number) {
         this.beatmapId = Number(data.beatmap_id);
         this.score = Number(data.score);
         this.combo = Number(data.maxcombo);
@@ -431,4 +431,4 @@ export {
     V2Mod,
     
     V2Beatmapset,
-}
+};

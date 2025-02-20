@@ -8,7 +8,6 @@ export default function formatTopScore(
     calc: ICalc
 ): string {
     const pp = calc.calculate(score);
-    const speedMultiplier = calc.speedMultiplier;
 
     const header = `Top score on ${Util.formatBeatmap(map)} ${score.mods}`;
 

@@ -1,10 +1,10 @@
-import { IAPI } from "../API";
-import * as axios from "axios";
-import qs from "querystring";
-import { APIUser, HitCounts, Mode, APIScore, APIBeatmap } from "../Types";
-import Mods from "../pp/Mods";
-import Util from "../Util";
-import { Bot } from "../Bot"
+import { IAPI } from '../API';
+import * as axios from 'axios';
+import qs from 'querystring';
+import { APIUser, HitCounts, APIScore, APIBeatmap } from '../Types';
+import Mods from '../pp/Mods';
+import Util from '../Util';
+import { Bot } from '../Bot';
 
 class AkatsukiUser implements APIUser {
     id: number;
@@ -19,7 +19,7 @@ class AkatsukiUser implements APIUser {
     country: string;
     accuracy: number;
     level: number;
-    constructor(data: any, mode: string) {
+    constructor(data, mode: string) {
         this.id = data.id;
         this.nickname = data.username;
         this.playcount = data.stats[0][mode].playcount;
@@ -45,7 +45,7 @@ class AkatsukiScore implements APIScore {
     pp: number;
     mode: number;
     date: Date;
-    constructor(data: any, mode: number) {
+    constructor(data, mode: number) {
         this.beatmapId = data.beatmap.beatmap_id;
         this.score = data.score;
         this.combo = data.max_combo;
@@ -77,7 +77,7 @@ class AkatsukiRecentScore implements APIScore {
     mods: Mods;
     rank: string;
     mode: number;
-    constructor(data: any, mode: number) {
+    constructor(data, mode: number) {
         this.beatmapId = data.beatmap.beatmap_id;
         this.score = data.score;
         this.combo = data.max_combo;
@@ -105,7 +105,7 @@ export default class AkatsukiAPI implements IAPI {
     constructor(bot: Bot) {
         this.bot = bot;
         this.api = axios.default.create({
-            baseURL: "https://akatsuki.gg/api/v1",
+            baseURL: 'https://akatsuki.gg/api/v1',
             timeout: 3000
         });
     }
@@ -116,65 +116,69 @@ export default class AkatsukiAPI implements IAPI {
 
     async getUser(nickname: string, mode: number = 0): Promise<APIUser> {
         try {
-            let { data } = await this.api.get(`/users/full?${qs.stringify({name: nickname})}`);
-            let m = ["std","taiko","ctb","mania"][mode];
+            const { data } = await this.api.get(`/users/full?${qs.stringify({name: nickname})}`);
+            const m = ['std','taiko','ctb','mania'][mode];
             return new AkatsukiUser(data, m);
-        } catch(e) {
-            throw e || "User not found";
+        } catch (e) {
+            throw e || 'User not found';
         }
     }
 
     async getUserById(id: number, mode?: number): Promise<APIUser> {
         try {
-            let { data } = await this.api.get(`/users/full?${qs.stringify({ id })}`);
-            let m = ["std","taiko","ctb","mania"][mode];
+            const { data } = await this.api.get(`/users/full?${qs.stringify({ id })}`);
+            const m = ['std','taiko','ctb','mania'][mode];
             return new AkatsukiUser(data, m);
-        } catch(e) {
-            throw e || "User not found";
+        } catch (e) {
+            throw e || 'User not found';
         }
     }
 
     async getUserTop(nickname: string, mode: number = 0, limit: number = 3): Promise<APIScore[]> {
         try {
-            let { data } = await this.api.get(`/users/scores/best?${qs.stringify({name: nickname, mode: mode, l: limit, rx: 0})}`);
-            if(data.code != 200 || !data.scores)
+            const { data } = await this.api.get(`/users/scores/best?${qs.stringify({name: nickname, mode, l: limit, rx: 0})}`);
+            if (data.code != 200 || !data.scores) {
                 throw data.message || undefined;
-            return data.scores.map(score => new AkatsukiScore(score, mode));
+            }
+            return data.scores.map((score) => new AkatsukiScore(score, mode));
         } catch (e) {
-            throw e || "No scores";
+            throw e || 'No scores';
         }
     }
 
     async getUserTopById(id: number, mode: number = 0, limit: number = 3): Promise<APIScore[]> {
         try {
-            let { data } = await this.api.get(`/users/scores/best?${qs.stringify({ id, mode: mode, l: limit, rx: 0})}`);
-            if(data.code != 200 || !data.scores)
+            const { data } = await this.api.get(`/users/scores/best?${qs.stringify({ id, mode, l: limit, rx: 0})}`);
+            if (data.code != 200 || !data.scores) {
                 throw data.message || undefined;
-            return data.scores.map(score => new AkatsukiScore(score, mode));
+            }
+            return data.scores.map((score) => new AkatsukiScore(score, mode));
         } catch (e) {
-            throw e || "No scores";
+            throw e || 'No scores';
         }
     }
 
     async getUserRecent(nickname: string, mode: number = 0): Promise<APIScore> {
         try {
-            let { data } = await this.api.get(`/users/scores/recent?${qs.stringify({name: nickname, mode: mode, l: 1, rx: 0})}`);
-            if(data.code != 200 || !data.scores)
-                throw data.message || undefined
+            const { data } = await this.api.get(`/users/scores/recent?${qs.stringify({name: nickname, mode, l: 1, rx: 0})}`);
+            if (data.code != 200 || !data.scores) {
+                throw data.message || undefined;
+            }
             return new AkatsukiRecentScore(data.scores[0], mode);
-        } catch(e) {
-            throw e || "No scores"
+        } catch (e) {
+            throw e || 'No scores';
         }
     }
 
     async getUserRecentById(id: number, mode?: number, limit?: number): Promise<APIScore> {
         try {
-            let { data } = await this.api.get(`/users/scores/recent?${qs.stringify({ id, mode: mode, l: limit, rx: 0})}`);
-            if(data.code != 200 || !data.scores)
-                throw data.message || undefined
+            const { data } = await this.api.get(`/users/scores/recent?${qs.stringify({ id, mode, l: limit, rx: 0})}`);
+            if (data.code != 200 || !data.scores) {
+                throw data.message || undefined;
+            }
             return new AkatsukiRecentScore(data.scores[0], mode);
-        } catch(e) {
-            throw e || "No scores"
+        } catch (e) {
+            throw e || 'No scores';
         }
     }
 }

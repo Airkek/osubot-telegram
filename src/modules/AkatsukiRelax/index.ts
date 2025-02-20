@@ -1,15 +1,15 @@
-import { Module } from "../../Module";
-import { Bot } from "../../Bot";
-import AbstractTop from "../BaseServerCommands/Top";
-import AbstractRecent from "../BaseServerCommands/Recent";
-import AbstractUser from "../BaseServerCommands/User";
+import { Module } from '../../Module';
+import { Bot } from '../../Bot';
+import AbstractTop from '../BaseServerCommands/Top';
+import AbstractRecent from '../BaseServerCommands/Recent';
+import AbstractUser from '../BaseServerCommands/User';
 
 export default class AkatsukiRelax extends Module {
     constructor(bot: Bot) {
-        super(["ax", "фч"], bot);
+        super(['ax', 'фч'], bot);
         
-        this.name = "Akatsuki!Relax";
-        this.link = "https://akatsuki.gg";
+        this.name = 'Akatsuki!Relax';
+        this.link = 'https://akatsuki.gg';
         this.api = bot.api.relax;
         this.db = bot.database.servers.akatsuki;
 

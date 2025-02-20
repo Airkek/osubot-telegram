@@ -1,10 +1,10 @@
-import { IAPI } from "../API";
-import * as axios from "axios";
-import qs from "querystring";
-import { APIBeatmap, APIScore, APIUser, HitCounts, IBeatmapObjects, IBeatmapStars, IHitCounts, IHits } from "../Types";
-import { Bot } from "../Bot"
-import Mods from "../pp/Mods";
-import { ICalcStats } from "../pp/Stats";
+import { IAPI } from '../API';
+import * as axios from 'axios';
+import qs from 'querystring';
+import { APIBeatmap, APIScore, APIUser, IBeatmapObjects, IBeatmapStars, IHitCounts } from '../Types';
+import { Bot } from '../Bot';
+import Mods from '../pp/Mods';
+import { ICalcStats } from '../pp/Stats';
 
 interface SSUserResponse {
     scoreStats: {
@@ -87,17 +87,19 @@ interface IRankedStatus {
     positiveModifiers: boolean,
 }
 function getStatus(data: IRankedStatus) {
-    let t = "Unranked";
+    let t = 'Unranked';
     if (data.ranked) {
-        t = "Ranked";
+        t = 'Ranked';
     } else if (data.loved) {
-        t = "Loved";
+        t = 'Loved';
     } else if (data.qualified) {
-        t = "Qualified";
+        t = 'Qualified';
     }
+    
     if (data.positiveModifiers) {
-        t += "+"
+        t += '+';
     }
+    
     return t;
 }
 
@@ -116,7 +118,7 @@ class ScoreSaberScoreMap implements APIBeatmap {
     combo: number;
     mode: number;
     coverUrl: string;
-    mapUrl: string
+    mapUrl: string;
 
     constructor(data: SSScoreData) {
         this.artist = data.leaderboard.songAuthorName;
@@ -135,8 +137,8 @@ class ScoreSaberScoreMap implements APIBeatmap {
             cs: 0,
             od: 0,
             hp: 0,
-            modify: (mods: Mods) => {},
-            toString: () => ""
+            modify: () => {},
+            toString: () => ''
         };
         this.diff = {
             stars: data.leaderboard.stars
@@ -152,7 +154,7 @@ class ScoreSaberScoreMap implements APIBeatmap {
         this.combo = data.score.fullCombo ? data.score.maxCombo : undefined;
         this.mode = 0;
         this.coverUrl = data.leaderboard.coverImage;
-        this.mapUrl = `https://scoresaber.com/leaderboard/${data.leaderboard.id}`
+        this.mapUrl = `https://scoresaber.com/leaderboard/${data.leaderboard.id}`;
     }
 }
 
@@ -178,7 +180,7 @@ class BSHitCounts implements IHitCounts {
         return NaN;
     }
     toString(): string {
-        return `${this.hitData.badCuts}xBad ${this.hitData.missedNotes}xMiss`
+        return `${this.hitData.badCuts}xBad ${this.hitData.missedNotes}xMiss`;
     }
 }
 
@@ -209,7 +211,7 @@ class BeatSaberScore implements APIScore {
         this.acc = data.score.baseScore / data.leaderboard.maxScore;
         this.pp = data.score.pp;
         this.fcPp = data.score.pp;
-        this.rank = data.score.fullCombo ? "FC" : "Pass" 
+        this.rank = data.score.fullCombo ? 'FC' : 'Pass'; 
         this.date = new Date(data.score.timeSet);
         this.mode = 0;
         this.beatmap = new ScoreSaberScoreMap(data);
@@ -226,29 +228,31 @@ export default class ScoreSaberAPI implements IAPI {
     constructor(bot: Bot) {
         this.bot = bot;
         this.api = axios.default.create({
-            baseURL: "https://scoresaber.com/api",
+            baseURL: 'https://scoresaber.com/api',
             timeout: 3000
         });
     }
 
-    async getUserById(id: string, mode?: number): Promise<APIUser> {
-        let { data } = await this.api.get(`/player/${id}/full`);
+    async getUserById(id: string): Promise<APIUser> {
+        const { data } = await this.api.get(`/player/${id}/full`);
         return new ScoreSaberUser(data);
     }
 
     async getUserRecentById(id: string, mode?: number, limit: number = 1): Promise<APIScore> {
-        let data: SSScoreResponse = (await this.api.get(`/player/${id}/scores?${qs.stringify({sort: 'recent', page: 1, limit, withMetadata: true})}`)).data;
+        const data: SSScoreResponse = (await this.api.get(`/player/${id}/scores?${qs.stringify({sort: 'recent', page: 1, limit, withMetadata: true})}`)).data;
         if (data && data.playerScores && data.playerScores[0]) {
             return new BeatSaberScore(data.playerScores[0]);
         }
-        throw "No recent scores";
+        
+        throw 'No recent scores';
     }
 
     async getUserTopById(id: string, mode?: number, limit: number = 3): Promise<APIScore[]> {
-        let data: SSScoreResponse = (await this.api.get(`/player/${id}/scores?${qs.stringify({sort: 'top', page: 1, limit, withMetadata: true})}`)).data;
+        const data: SSScoreResponse = (await this.api.get(`/player/${id}/scores?${qs.stringify({sort: 'top', page: 1, limit, withMetadata: true})}`)).data;
         if (data && data.playerScores && data.playerScores.length > 0) {
             return data.playerScores.map((scoreData: SSScoreData) => new BeatSaberScore(scoreData));
         }
-        throw "No top scores";
+        
+        throw 'No top scores';
     }
 }
