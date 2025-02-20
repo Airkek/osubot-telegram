@@ -18,8 +18,7 @@ export default class Maps {
     }
 
     getChat(id: number): Chat {
-        this.chats.find((chat) => chat.id == id);
-        return;
+        return this.chats.find((chat) => chat.id == id);
     }
 
     setMap(id: number, map: APIBeatmap) {
