@@ -22,7 +22,6 @@ export default class Bancho extends Module {
         this.link = "https://osu.ppy.sh";
         this.api = bot.api.v2;
         this.db = bot.database.servers.bancho;
-        this.statusGetter = "bancho";
         
         this.registerCommand([
             new AbstractUser(this),

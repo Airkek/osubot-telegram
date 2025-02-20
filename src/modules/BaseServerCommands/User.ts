@@ -15,10 +15,10 @@ export default class AbstractUser extends ServerCommand {
                 ? await self.module.api.getUser(self.user.username, mode) 
                 : await self.module.api.getUserById(self.user.id || self.user.dbUser.game_id, mode);
 
-            let status = self.module.bot.donaters.status(self.module.statusGetter, user.id);
             if (!this.ignoreDbUpdate) {
                 self.module.db.updateInfo(user, mode);
             }
+
             let keyboard = Util.createKeyboard([
                 self.module.api.getUserTopById ? [{
                     text: `Топ скоры ${user.nickname}`,
@@ -30,7 +30,7 @@ export default class AbstractUser extends ServerCommand {
                 }] : []
             ]);
 
-            self.reply(`${self.module.bot.templates.User(user, mode, status, self.module.link)}`, {
+            self.reply(`${self.module.bot.templates.User(user, mode, self.module.link)}`, {
                 keyboard 
             });
         }, true);

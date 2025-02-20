@@ -43,7 +43,7 @@ export default class AbstractChat extends ServerCommand {
             } else if (mode === 3) {
                 modeStr = "Mania"
             }
-            self.reply(`Топ${users.length > 15 ? '-15' : ''} беседы (ID ${id}) [${modeStr}]:\n${users.splice(0, 15).map((user, i) => `#${i+1} ${user.nickname} ${self.module.bot.donaters.status(self.module.statusGetter, user.id)} | ${Util.round(user.pp, 1)}pp | Ранк ${user.rank} | ${Util.round(user.acc, 2)}%`).join("\n")}`);
+            self.reply(`Топ${users.length > 15 ? '-15' : ''} беседы (ID ${id}) [${modeStr}]:\n${users.splice(0, 15).map((user, i) => `#${i+1} ${user.nickname} | ${Util.round(user.pp, 1)}pp | Ранк ${user.rank} | ${Util.round(user.acc, 2)}%`).join("\n")}`);
         });
     }
 }

@@ -15,7 +15,6 @@ export default class ScoreSaber extends Module {
         this.link = "https://scoresaber.com";
         this.api = bot.api.scoresaber;
         this.db = bot.database.servers.scoresaber;
-        this.statusGetter = "scoresaber";
 
         this.registerCommand([
             new Nick(this),

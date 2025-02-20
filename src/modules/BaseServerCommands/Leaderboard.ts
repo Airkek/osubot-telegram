@@ -23,7 +23,7 @@ export default class AbstractLeaderboard extends ServerCommand {
                     users.push(user);
             }
             let leaderboard = await self.module.api.getLeaderboard(chat.map.id.map, users, chat.map.mode, self.args.mods.length == 0 ? null : new Mods(self.args.mods).sum());
-            self.reply(self.module.bot.templates.Leaderboard(leaderboard, self.module.name, self.module.bot.donaters.status.bind(self.module.bot.donaters)));
+            self.reply(self.module.bot.templates.Leaderboard(leaderboard));
         });
     }
 }

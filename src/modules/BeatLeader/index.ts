@@ -15,7 +15,6 @@ export default class BeatLeader extends Module {
         this.link = "https://beatleader.xyz";
         this.api = bot.api.beatleader;
         this.db = bot.database.servers.beatleader;
-        this.statusGetter = "beatleader";
 
         this.registerCommand([
             new Nick(this),
