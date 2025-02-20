@@ -4,22 +4,16 @@ Port of OctoDumb's [osubot-old](https://github.com/OctoDumb/osubot-old) to teleg
 # Try it out!
 Telegram: https://t.me/osulegacybot
 
-## port TODO:
-- [X] all basic commands (nick/user/recent/top)
-- [X] replay file info
-- [X] chat leaderboard
-- [X] inline keyboard
-- [X] update calculator to new formula 
-- [X] make find command works 
-- [X] move help to telegraph
-- [ ] ~updates notify~ - wontfix
-
 # additional features:
 - [X] full lazer support (api v2)
+- [X] extended information about recent score (beatmap top, personal top score) 
 - [X] calculate pp using latest formula (by using rosu-pp.js)
 - [X] removed dead servers (r.i.p: kurikku, vudek, enjuu, sakuru)
-- [X] auth api v2 by client secret
+- [X] auth api v2 by client secret 
 - [X] BeatSaber support (BeatLeader + ScoreSaber)
+- [X] PostgreSQL, Docker
+- [ ] Refactoring
+  - Partially done, still a lot of work
 
 ## How to run:
 
