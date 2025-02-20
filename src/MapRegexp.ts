@@ -1,4 +1,4 @@
-var rs = [
+const rs = [
     /https?:\/\/osu\.ppy\.sh\/b\/(?<ID>\d+)/i,
     /(https?:\/\/)?osu\.ppy\.sh\/beatmaps\/(?<ID>\d+)/i,
     /(https?:\/\/)?osu\.ppy\.sh\/beatmapsets\/(\d+)#(osu|taiko|fruits|mania)+\/(?<ID>\d+)/i,
@@ -8,9 +8,11 @@ var rs = [
 ];
 
 export default function(text: string): number {
-    for(let i = 0; i < rs.length; i++) {
-        if(rs[i].test(text))
+    for (let i = 0; i < rs.length; i++) {
+        if (rs[i].test(text)) {
             return Number(text.match(rs[i]).groups.ID);
+        }
     }
+    
     return 0;
 }

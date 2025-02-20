@@ -11,6 +11,7 @@ export default function(score: APIScore, beatmap: APIBeatmap, calc: ICalc, link:
     if (pp.fc !== undefined && pp.fc !== pp.pp) {
         ppString += ` → FC: ${pp.fc.toFixed(2)}`;
     }
+    
     if (pp.ss !== undefined && pp.ss !== pp.pp) {
         ppString += ` → SS: ${pp.ss.toFixed(2)}`;
     }
@@ -19,6 +20,7 @@ export default function(score: APIScore, beatmap: APIBeatmap, calc: ICalc, link:
     if (score.mode === ProfileMode.Taiko) {
         hits -= beatmap.objects.sliders;
     }
+    
     if (score.mode === ProfileMode.Taiko || score.mode === ProfileMode.Mania) {
         hits -= beatmap.objects.spinners;
     }
@@ -30,7 +32,7 @@ export default function(score: APIScore, beatmap: APIBeatmap, calc: ICalc, link:
 
     const beatmapUrl = beatmap.mapUrl ?? `${link}/b/${beatmap.id.map}`;
 
-    let total = [
+    const total = [
         `${Util.formatBeatmap(beatmap)} ${score.mods}`,
         '',
         `Score: ${score.score.toLocaleString()} | Combo: ${Util.formatCombo(score.combo, beatmap.combo)}`,
@@ -53,6 +55,6 @@ export default function(score: APIScore, beatmap: APIBeatmap, calc: ICalc, link:
         total.push(`🏆 Персональный топскор #${score.top100_number}`);
     }
 
-    total.push(`\nBeatmap: ${beatmapUrl}`)
+    total.push(`\nBeatmap: ${beatmapUrl}`);
     return total.join('\n');
 }

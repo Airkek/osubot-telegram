@@ -3,10 +3,11 @@ import Mods from './Mods';
 function approachRateToMs(approachRate: number): number {
     if (approachRate <= 5) {
         return 1800 - approachRate * 120;
-    } else {
-        let remainder = approachRate - 5;
-        return 1200 - remainder * 150;
     }
+     
+    const remainder = approachRate - 5;
+    return 1200 - remainder * 150;
+    
 }
 
 function msToApproachRate(ms: number): number {
@@ -18,6 +19,7 @@ function msToApproachRate(ms: number): number {
         } else {
             return (AR - 1) / 10;
         }
+        
     }
     return 300; // fallback, though it should never reach here
 }
@@ -53,11 +55,12 @@ export default class AttributesCalculator {
         let newCs = this.cs;
 
         if (this.mods.isEasy()) {
-            newCs /= 2; // Easy halves CS
-        }
+            newCs /= 2;
+        } // Easy halves CS
+        
         if (this.mods.isHardRock()) {
-            newCs *= 1.3; // Hard Rock multiplies CS by 1.3
-        }
+            newCs *= 1.3;
+        } // Hard Rock multiplies CS by 1.3
 
         return clamp(newCs, 0, 10);
     }
@@ -66,11 +69,12 @@ export default class AttributesCalculator {
         let newHp = this.hp;
 
         if (this.mods.isEasy()) {
-            newHp /= 2; // Easy halves HP
-        }
+            newHp /= 2;
+        } // Easy halves HP
+        
         if (this.mods.isHardRock()) {
-            newHp *= 1.4; // Hard Rock multiplies HP by 1.4
-        }
+            newHp *= 1.4;
+        } // Hard Rock multiplies HP by 1.4
 
         return clamp(newHp, 0, 10);
     }
@@ -78,17 +82,19 @@ export default class AttributesCalculator {
     calculateMultipliedAR(): number {
         let newAr = this.ar;
         if (this.mods.isEasy()) {
-            newAr /= 2; // Easy halves AR
-        }
+            newAr /= 2;
+        } // Easy halves AR
+        
         if (this.mods.isHardRock()) {
-            newAr *= 1.4; // Hard Rock multiplies AR by 1.4
-        }
+            newAr *= 1.4;
+        } // Hard Rock multiplies AR by 1.4
+        
         newAr = clamp(newAr, 0, 10);
 
         const bpmMultiplier = this.mods.speed();
 
-        let newBpmMs = approachRateToMs(newAr) / bpmMultiplier;
-        let newBpmAR = msToApproachRate(newBpmMs);
+        const newBpmMs = approachRateToMs(newAr) / bpmMultiplier;
+        const newBpmAR = msToApproachRate(newBpmMs);
         
         return clamp(newBpmAR, 0, 11);
     }
@@ -96,15 +102,17 @@ export default class AttributesCalculator {
     calculateMultipliedOD(): number {
         let newOd = this.od;
         if (this.mods.isEasy()) {
-            newOd /= 2; // Easy halves OD
-        }
+            newOd /= 2;
+        } // Easy halves OD
+        
         if (this.mods.isHardRock()) {
-            newOd *= 1.4; // Hard Rock multiplies OD by 1.4
-        }
-        newOd = clamp(newOd, 0, 10)
+            newOd *= 1.4;
+        } // Hard Rock multiplies OD by 1.4
+        
+        newOd = clamp(newOd, 0, 10);
 
         const bpmMultiplier = this.mods.speed();
-        let newBpmMs = overallDifficultyToMs(newOd) / bpmMultiplier;
+        const newBpmMs = overallDifficultyToMs(newOd) / bpmMultiplier;
         let newBpmOD = msToOverallDifficulty(newBpmMs);
 
         newBpmOD = Math.round(newBpmOD * 10) / 10; // round to 1 decimal place

@@ -1,7 +1,7 @@
-import { ICommandArgs, APIBeatmap } from "../Types";
-import BanchoPP from "../pp/bancho";
-import Mods from "../pp/Mods";
-import Util from "../Util";
+import { ICommandArgs, APIBeatmap } from '../Types';
+import BanchoPP from '../pp/bancho';
+import Mods from '../pp/Mods';
+import Util from '../Util';
 
 export default function(map: APIBeatmap, args: ICommandArgs): string {
     const calc = new BanchoPP(map, new Mods(args.mods));
@@ -28,7 +28,7 @@ export default function(map: APIBeatmap, args: ICommandArgs): string {
         {
             acc: accuracy,
             combo: maxCombo,
-            hits: hits,
+            hits,
             miss: missCount,
             mods: new Mods(args.mods),
             counts: {

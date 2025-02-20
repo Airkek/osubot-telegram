@@ -1,12 +1,13 @@
-import { LeaderboardResponse } from "../Types";
-import Util from "../Util";
+import { LeaderboardResponse } from '../Types';
+import Util from '../Util';
 
 export default function(leaderboard: LeaderboardResponse): string {
-    if(!leaderboard.scores[0])
-        return `Ни у кого нет скоров на этой карте!`;
+    if (!leaderboard.scores[0]) {
+        return 'Ни у кого нет скоров на этой карте!';
+    }
     
     const map = leaderboard.map;
-    let result = `Топ беседы на карте:
+    const result = `Топ беседы на карте:
 ${Util.formatBeatmap(map)}\n`;
 
     return result + leaderboard.scores
@@ -20,5 +21,5 @@ ${Util.formatBeatmap(map)}\n`;
                 + `${Util.round(lbscore.score.pp, 2)}pp `
                 + `${lbscore.score.mods} | `
                 + `${Util.formatDate(lbscore.score.date, true)}`;
-        }).join("\n");
+        }).join('\n');
 }

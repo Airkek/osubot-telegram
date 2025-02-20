@@ -1,13 +1,13 @@
-import { Bot } from "./Bot"
+import { Bot } from './Bot';
 import IAPI from './api/base';
 
 import GatariAPI from './api/Gatari';
 import RippleAPI from './api/Ripple';
 import AkatsukiAPI from './api/Akatsuki';
 import AkatsukiRelaxAPI from './api/AkatsukiRelax';
-import BanchoAPIV2 from "./api/BanchoV2";
-import BeatLeaderAPI from "./api/BeatLeader";
-import ScoreSaberAPI from "./api/ScoreSaber";
+import BanchoAPIV2 from './api/BanchoV2';
+import BeatLeaderAPI from './api/BeatLeader';
+import ScoreSaberAPI from './api/ScoreSaber';
 
 class APICollection {
     gatari: GatariAPI;
@@ -16,7 +16,7 @@ class APICollection {
     relax: AkatsukiRelaxAPI;
     v2: BanchoAPIV2;
     beatleader: BeatLeaderAPI;
-    scoresaber: ScoreSaberAPI
+    scoresaber: ScoreSaberAPI;
     constructor(bot: Bot) {
         this.gatari = new GatariAPI(bot);
         this.ripple = new RippleAPI(bot);
@@ -31,4 +31,4 @@ class APICollection {
 export {
     IAPI,
     APICollection
-}
+};

@@ -1,17 +1,19 @@
-import { Command } from "../../Command";
-import { Module } from "../../Module";
+import { Command } from '../../Command';
+import { Module } from '../../Module';
 
 export default class DropCommand extends Command {
     constructor(module: Module) {
-        super(["drop", "вкщз"], module, async (ctx, self) => {
-            let context = ctx.replyMessage;
+        super(['drop', 'вкщз'], module, async (ctx, self) => {
+            const context = ctx.replyMessage;
 
-            if(!context)
-                return ctx.send("Перешлите сообщение!");
+            if (!context) {
+                await ctx.send('Перешлите сообщение!');
+                return;
+            }
             
             await self.module.bot.database.drop.dropUser(context.senderId);
 
-            ctx.send(`Привязки ников tg://user?id=${context.senderId} удалены!`, {
+            await ctx.send(`Привязки ников tg://user?id=${context.senderId} удалены!`, {
                 disable_mentions: 1
             });
         });

@@ -4,11 +4,11 @@ import TopSingle from './TopSingle';
 import RecentScore from './Recent';
 import Compare from './Compare';
 import ReplayT from './Replay';
-import Beatmap from "./Beatmap";
-import PP from "./PP";
-import Leaderboard from "./Leaderboard";
-import Track from "./Track";
-import Search from "./Search";
+import Beatmap from './Beatmap';
+import PP from './PP';
+import Leaderboard from './Leaderboard';
+import Track from './Track';
+import Search from './Search';
 import { Replay } from '../Replay';
 import { APIUser, APIBeatmap, APIScore, ICommandArgs, LeaderboardResponse, OsuTrackResponse, V2Beatmapset } from '../Types';
 import { IPPCalculator as ICalc } from '../pp/Calculator';
@@ -27,7 +27,7 @@ interface ITemplates {
     Search: (sets: V2Beatmapset[]) => string;
 }
 
-var Templates: ITemplates = {
+const Templates: ITemplates = {
     User,
     TopScore,
     TopSingle,
@@ -39,9 +39,9 @@ var Templates: ITemplates = {
     Leaderboard,
     Track,
     Search
-}
+};
 
 export {
     ITemplates,
     Templates
-}
+};

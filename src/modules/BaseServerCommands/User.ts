@@ -1,17 +1,14 @@
-import axios from "axios";
-import { Command } from "../../Command";
-import { Module } from "../../Module";
-import Util from "../../Util";
-import { APIUser, IDatabaseUser } from "../../Types";
-import { ServerCommand } from "./BasicServerCommand";
+import { Module } from '../../Module';
+import Util from '../../Util';
+import { ServerCommand } from './BasicServerCommand';
 
 export default class AbstractUser extends ServerCommand {
     ignoreDbUpdate: boolean;
 
     constructor(module: Module, ignoreDbUpdate: boolean = false) {
-        super(["user", "u", "г", "гыук"], module, async (self) => {
-            let mode = self.args.mode === null ? self.user.dbUser?.mode || 0 : self.args.mode;
-            let user = self.user.username 
+        super(['user', 'u', 'г', 'гыук'], module, async (self) => {
+            const mode = self.args.mode === null ? self.user.dbUser?.mode || 0 : self.args.mode;
+            const user = self.user.username 
                 ? await self.module.api.getUser(self.user.username, mode) 
                 : await self.module.api.getUserById(self.user.id || self.user.dbUser.game_id, mode);
 
@@ -19,7 +16,7 @@ export default class AbstractUser extends ServerCommand {
                 self.module.db.updateInfo(user, mode);
             }
 
-            let keyboard = Util.createKeyboard([
+            const keyboard = Util.createKeyboard([
                 self.module.api.getUserTopById ? [{
                     text: `Топ скоры ${user.nickname}`,
                     command: `${module.prefix[0]} top ${self.module.api.getUserTop ? user.nickname : user.id} ${Util.getModeArg(mode)}`
@@ -30,7 +27,7 @@ export default class AbstractUser extends ServerCommand {
                 }] : []
             ]);
 
-            self.reply(`${self.module.bot.templates.User(user, mode, self.module.link)}`, {
+            await self.reply(`${self.module.bot.templates.User(user, mode, self.module.link)}`, {
                 keyboard 
             });
         }, true);

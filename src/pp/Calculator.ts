@@ -1,6 +1,6 @@
 import { APIBeatmap, APIScore, CalcArgs } from '../Types';
 import { ICalcStats } from './Stats';
-import * as rosu from 'rosu-pp-js'
+import * as rosu from 'rosu-pp-js';
 import Mods from './Mods';
 import { Replay } from '../Replay';
 
@@ -8,12 +8,6 @@ interface IPP {
     pp: number,
     fc: number,
     ss: number
-}
-
-interface ModePP {
-    map: APIBeatmap,
-    mods: Mods,
-    value: IPP
 }
 
 interface IPPCalculator {
@@ -28,4 +22,4 @@ interface IPPCalculator {
 export {
     IPP,
     IPPCalculator
-}
+};

@@ -1,7 +1,7 @@
-import { APIBeatmap, ProfileMode } from "../Types";
-import BanchoPP from "../pp/bancho";
-import Util from "../Util";
-import Mods from "../pp/Mods";
+import { APIBeatmap, ProfileMode } from '../Types';
+import BanchoPP from '../pp/bancho';
+import Util from '../Util';
+import Mods from '../pp/Mods';
 
 interface PPResults {
     pp98: number;
@@ -41,25 +41,25 @@ export default function formatBeatmapInfo(map: APIBeatmap): string {
 
     let content: string;
     
-    switch(map.mode) {
-        case ProfileMode.STD:
-        case ProfileMode.Taiko:
-        case ProfileMode.Catch: {
-            const pp98 = getStandardPP(0.98);
-            const pp99 = getStandardPP(0.99);
-            const pp100 = getStandardPP(1.0);
-            content = formatPPResults({ pp98, pp99, pp100 });
-            break;
-        }
+    switch (map.mode) {
+    case ProfileMode.STD:
+    case ProfileMode.Taiko:
+    case ProfileMode.Catch: {
+        const pp98 = getStandardPP(0.98);
+        const pp99 = getStandardPP(0.99);
+        const pp100 = getStandardPP(1.0);
+        content = formatPPResults({ pp98, pp99, pp100 });
+        break;
+    }
 
-        case ProfileMode.Mania: {
-            const pp = getManiaPP();
-            content = `PP (1M score): ${Util.round(pp, 2)}`;
-            break;
-        }
+    case ProfileMode.Mania: {
+        const pp = getManiaPP();
+        content = `PP (1M score): ${Util.round(pp, 2)}`;
+        break;
+    }
 
-        default:
-            return "Произошла ошибка: неизвестный режим игры!";
+    default:
+        return 'Произошла ошибка: неизвестный режим игры!';
     }
 
     return `${mapText}\n${content}`;

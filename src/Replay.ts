@@ -1,9 +1,9 @@
-import { isBuffer } from "util";
-import leb from "leb";
-import int64 from "int64-buffer";
-import { HitCounts } from "./Types";
-import Mods from "./pp/Mods";
-import Util from "./Util";
+import { isBuffer } from 'util';
+import leb from 'leb';
+import int64 from 'int64-buffer';
+import { HitCounts } from './Types';
+import Mods from './pp/Mods';
+import Util from './Util';
 
 class Replay {
     mode: number;
@@ -33,7 +33,7 @@ class ReplayParser {
     }
 
     getReplay(): Replay {
-        let replay = new Replay();
+        const replay = new Replay();
         replay.mode = this.byte();
         replay.version = this.int();
         replay.beatmapHash = this.string();
@@ -79,20 +79,20 @@ class ReplayParser {
     }
 
     string() {
-        if(this.raw_data.readInt8(this.offset) == 0x0b) {
+        if (this.raw_data.readInt8(this.offset) == 0x0b) {
             this.offset += 1;
-            let ulString = leb.decodeUInt64(this.raw_data.slice(this.offset, this.offset + 8));
-            let strLength = ulString.value;
+            const ulString = leb.decodeUInt64(this.raw_data.slice(this.offset, this.offset + 8));
+            const strLength = ulString.value;
             this.offset += strLength + ulString.nextIndex;
             return this.raw_data.slice(this.offset - strLength, this.offset).toString();
-        } else {
-            this.offset += 1;
-            return "";
-        }
+        } 
+        this.offset += 1;
+        return '';
+        
     }
 }
 
 export {
     Replay,
     ReplayParser
-}
+};

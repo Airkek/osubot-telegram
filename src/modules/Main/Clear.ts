@@ -1,27 +1,30 @@
-import { Command } from "../../Command";
-import { Module } from "../../Module";
+import { Command } from '../../Command';
+import { Module } from '../../Module';
 
 export default class ClearCommand extends Command {
     constructor(module: Module) {
-        super(["clear", "сдуфк"], module, async (ctx, self, args) => {
+        super(['clear', 'сдуфк'], module, async (ctx, self) => {
             if (!ctx.isChat) {
-                return ctx.reply("Эту команду можно вводить только в чате");
+                await ctx.reply('Эту команду можно вводить только в чате');
+                return;
             }
 
             const isAdmin = await ctx.isAdmin();
             if (!isAdmin) {
-                return ctx.reply("Эту команду может использовать только администратор чата");
+                await ctx.reply('Эту команду может использовать только администратор чата');
+                return;
             }
 
             const origMembers = await self.module.bot.database.chats.getChatUsers(ctx.chatId);
             const duplicates = new Set<number>();
             const members = new Set<number>();
 
-            for (const member of origMembers) { 
+            for (const member of origMembers) {
                 if (members.has(member)) {
                     if (!duplicates.has(member)) {
                         duplicates.add(member);
                     }
+                    
                 } else {
                     members.add(member);
                 }
@@ -38,9 +41,9 @@ export default class ClearCommand extends Command {
             let kicked = 0;
 
             const estimate = count / 8;
-            let estimateStr = `${Math.ceil(estimate)} сек.`
+            let estimateStr = `${Math.ceil(estimate)} сек.`;
             if (estimate > 60) {
-                estimateStr = `${Math.floor(estimate / 60)} мин. ${Math.ceil(estimate % 60)} сек.`
+                estimateStr = `${Math.floor(estimate / 60)} мин. ${Math.ceil(estimate % 60)} сек.`;
             }
 
             await ctx.reply(`Проводится чистка топа от вышедших пользователей.
@@ -53,8 +56,8 @@ export default class ClearCommand extends Command {
 
             for (const member of members) {
                 if (member == ctx.senderId) {
-                    continue; // dont do useless request
-                }
+                    continue;
+                } // dont do useless request
 
                 const inGroup = await ctx.isUserInChat(member);
 
