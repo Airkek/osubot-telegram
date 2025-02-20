@@ -19,7 +19,6 @@ export class Module implements ICommandsModule {
     bot: Bot;
     api?: IAPI;
     db?: IDatabaseServer;
-    statusGetter?: string
 
     constructor(prefix: String[], bot: Bot) {
         this.prefix = prefix;

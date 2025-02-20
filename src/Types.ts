@@ -103,17 +103,17 @@ enum BeatmapStatus {
 }
 
 enum ProfileMode {
-    STD,
-    Taiko,
-    Catch,
-    Mania
+    STD = 0,
+    Taiko = 1,
+    Catch = 2,
+    Mania = 3
 }
 
 enum Mode {
-    "osu!",
-    "osu!taiko",
-    "osu!catch",
-    "osu!mania"
+    "osu!" = 0,
+    "osu!taiko" = 1,
+    "osu!catch" = 2,
+    "osu!mania" = 3
 }
 
 interface IHits {
