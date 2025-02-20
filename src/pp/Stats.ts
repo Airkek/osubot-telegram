@@ -1,15 +1,15 @@
-import { IBeatmapStats } from '../Types';
-import Util from '../Util';
-import Mods from './Mods';
+import { IBeatmapStats } from "../Types";
+import Util from "../Util";
+import Mods from "./Mods";
 
 interface ICalcStats {
-    ar: number,
-    cs: number,
-    od: number,
-    hp: number,
-    modify(mods: Mods): void,
-    toString?(): string
-    hitWindow?(): number
+    ar: number;
+    cs: number;
+    od: number;
+    hp: number;
+    modify(mods: Mods): void;
+    toString?(): string;
+    hitWindow?(): number;
 }
 
 class OsuStats implements ICalcStats {
@@ -26,36 +26,28 @@ class OsuStats implements ICalcStats {
 
     modify(mods: Mods) {
         let speedMul = 1;
-        if (mods.has('DoubleTime')) {
+        if (mods.has("DoubleTime")) {
             speedMul *= 1.5;
         }
-        if (mods.has('HalfTime')) {
+        if (mods.has("HalfTime")) {
             speedMul *= 0.75;
         }
-        
+
         let multiplier = 1;
-        if (mods.has('Easy')) {
+        if (mods.has("Easy")) {
             multiplier *= 0.5;
         }
-        if (mods.has('HardRock')) {
+        if (mods.has("HardRock")) {
             multiplier *= 1.4;
         }
-        
+
         // Modify AR
         let baseAR = this.ar;
         baseAR *= multiplier;
-        let arms = (
-            baseAR < 5 ?
-                1800 - 120 * baseAR
-                : 1200 - 150 * (baseAR - 5)
-        );
+        let arms = baseAR < 5 ? 1800 - 120 * baseAR : 1200 - 150 * (baseAR - 5);
         arms = Math.min(1800, Math.max(450, arms));
         arms /= speedMul;
-        this.ar = (
-            arms > 1200 ?
-                (1800 - arms) / 120
-                : 5 + (1200 - arms) / 150
-        );
+        this.ar = arms > 1200 ? (1800 - arms) / 120 : 5 + (1200 - arms) / 150;
 
         // Modify OD
         let baseOD = this.od;
@@ -66,10 +58,10 @@ class OsuStats implements ICalcStats {
         this.od = (80 - odms) / 6;
 
         // Modify CS
-        if (mods.has('HardRock')) {
+        if (mods.has("HardRock")) {
             this.cs *= 1.3;
         }
-        if (mods.has('Easy')) {
+        if (mods.has("Easy")) {
             this.cs *= 0.5;
         }
         this.cs = Math.min(this.cs, 10);
@@ -100,10 +92,10 @@ class TaikoStats implements ICalcStats {
     }
 
     modify(mods: Mods) {
-        if (mods.has('Easy')) {
+        if (mods.has("Easy")) {
             this.od *= 0.5;
         }
-        if (mods.has('HardRock')) {
+        if (mods.has("HardRock")) {
             this.od *= 1.4;
         }
         this.od = Math.max(0, Math.min(10, this.od));
@@ -114,7 +106,7 @@ class TaikoStats implements ICalcStats {
     }
 
     hitWindow(): number {
-        return Math.floor(50 + (20 - 50) * this.od / 10) - 0.5;
+        return Math.floor(50 + ((20 - 50) * this.od) / 10) - 0.5;
     }
 }
 
@@ -131,7 +123,7 @@ class CatchStats implements ICalcStats {
     }
 
     modify(mods: Mods) {
-        if (mods.has('DoubleTime')) {
+        if (mods.has("DoubleTime")) {
             let ms = 0;
             if (this.ar > 5) {
                 ms = 200 + (11 - this.ar) * 100;
@@ -167,7 +159,7 @@ class ManiaStats implements ICalcStats {
     }
 
     modify(mods: Mods) {
-        if (mods.has('Easy')) {
+        if (mods.has("Easy")) {
             this.od *= 0.5;
             this.hp *= 0.5;
         }
@@ -178,14 +170,8 @@ class ManiaStats implements ICalcStats {
     }
 
     hitWindow(): number {
-        return 34 + 3 * (Math.min(10, Math.max(0, 10 - this.od)));
+        return 34 + 3 * Math.min(10, Math.max(0, 10 - this.od));
     }
 }
 
-export {
-    ICalcStats,
-    OsuStats,
-    TaikoStats,
-    CatchStats,
-    ManiaStats
-};
+export { ICalcStats, OsuStats, TaikoStats, CatchStats, ManiaStats };

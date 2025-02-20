@@ -1,3 +1,3 @@
-import BanchoPP from './Calculator';
+import BanchoPP from "./Calculator";
 
 export default BanchoPP;

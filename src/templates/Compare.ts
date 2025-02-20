@@ -1,6 +1,6 @@
-import { APIScore, APIBeatmap } from '../Types';
-import Util from '../Util';
-import { IPPCalculator as ICalc } from '../pp/Calculator';
+import { APIScore, APIBeatmap } from "../Types";
+import Util from "../Util";
+import { IPPCalculator as ICalc } from "../pp/Calculator";
 
 export default function formatTopScore(
     score: APIScore,
@@ -15,31 +15,32 @@ export default function formatTopScore(
 
     const gameStats = [
         `Score: ${score.score.toLocaleString()}`,
-        `Combo: ${Util.formatCombo(score.combo, map.combo)}`
-    ].join(' | ');
+        `Combo: ${Util.formatCombo(score.combo, map.combo)}`,
+    ].join(" | ");
     const accuracy = `Accuracy: ${Util.round(score.accuracy() * 100, 2)}%`;
 
     const basePP = score.pp !== undefined ? score.pp : Util.round(pp.pp, 2);
     let ppInfo = `PP: ${basePP}`;
-    
+
     if (pp.ss !== pp.pp) {
-        ppInfo += pp.fc === pp.pp 
-            ? ` → SS: ${Util.round(pp.ss, 2)}`
-            : ` → FC: ${Util.round(pp.fc, 2)} → SS: ${Util.round(pp.ss, 2)}`;
+        ppInfo +=
+            pp.fc === pp.pp
+                ? ` → SS: ${Util.round(pp.ss, 2)}`
+                : ` → FC: ${Util.round(pp.fc, 2)} → SS: ${Util.round(pp.ss, 2)}`;
     }
 
     const additionalInfo = [
         `Hitcounts: ${score.counts}`,
-        `Grade: ${score.rank}`
-    ].join('\n');
+        `Grade: ${score.rank}`,
+    ].join("\n");
 
     return [
         header,
-        '',
+        "",
         dateInfo,
         gameStats,
         accuracy,
         ppInfo,
-        additionalInfo
-    ].join('\n');
+        additionalInfo,
+    ].join("\n");
 }

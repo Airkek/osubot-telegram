@@ -1,9 +1,9 @@
-import { isBuffer } from 'util';
-import leb from 'leb';
-import int64 from 'int64-buffer';
-import { HitCounts } from './Types';
-import Mods from './pp/Mods';
-import Util from './Util';
+import { isBuffer } from "util";
+import leb from "leb";
+import int64 from "int64-buffer";
+import { HitCounts } from "./Types";
+import Mods from "./pp/Mods";
+import Util from "./Util";
 
 class Replay {
     mode: number;
@@ -17,7 +17,7 @@ class Replay {
     perfect: number;
     mods: Mods;
     fake?: boolean;
-    constructor() { }
+    constructor() {}
 
     accuracy() {
         return Util.accuracy(this.counts);
@@ -40,14 +40,17 @@ class ReplayParser {
         replay.player = this.string();
         replay.replayHash = this.string();
 
-        replay.counts = new HitCounts({
-            300: this.short(),
-            100: this.short(),
-            50: this.short(),
-            geki: this.short(),
-            katu: this.short(),
-            miss: this.short()
-        }, replay.mode);
+        replay.counts = new HitCounts(
+            {
+                300: this.short(),
+                100: this.short(),
+                50: this.short(),
+                geki: this.short(),
+                katu: this.short(),
+                miss: this.short(),
+            },
+            replay.mode
+        );
 
         replay.score = this.int();
         replay.combo = this.short();
@@ -75,24 +78,26 @@ class ReplayParser {
 
     long() {
         this.offset += 8;
-        return new int64.Uint64LE(this.raw_data.slice(this.offset - 8, this.offset)).toNumber();
+        return new int64.Uint64LE(
+            this.raw_data.slice(this.offset - 8, this.offset)
+        ).toNumber();
     }
 
     string() {
         if (this.raw_data.readInt8(this.offset) == 0x0b) {
             this.offset += 1;
-            const ulString = leb.decodeUInt64(this.raw_data.slice(this.offset, this.offset + 8));
+            const ulString = leb.decodeUInt64(
+                this.raw_data.slice(this.offset, this.offset + 8)
+            );
             const strLength = ulString.value;
             this.offset += strLength + ulString.nextIndex;
-            return this.raw_data.slice(this.offset - strLength, this.offset).toString();
-        } 
+            return this.raw_data
+                .slice(this.offset - strLength, this.offset)
+                .toString();
+        }
         this.offset += 1;
-        return '';
-        
+        return "";
     }
 }
 
-export {
-    Replay,
-    ReplayParser
-};
+export { Replay, ReplayParser };

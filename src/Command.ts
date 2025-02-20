@@ -1,17 +1,29 @@
-import { Module } from './Module';
-import Util from './Util';
-import { ICommandArgs } from './Types';
-import UnifiedMessageContext from './TelegramSupport';
+import { Module } from "./Module";
+import Util from "./Util";
+import { ICommandArgs } from "./Types";
+import UnifiedMessageContext from "./TelegramSupport";
 
 export class Command {
     readonly name: string | string[];
     module: Module;
     disables: boolean = true;
     uses: number;
-    function: (ctx: UnifiedMessageContext, self: Command, args: ICommandArgs) => void;
+    function: (
+        ctx: UnifiedMessageContext,
+        self: Command,
+        args: ICommandArgs
+    ) => void;
 
     permission: (ctx: UnifiedMessageContext) => boolean;
-    constructor(name: string | string[], module: Module, func: (ctx: UnifiedMessageContext, self: Command, args: ICommandArgs) => void) {
+    constructor(
+        name: string | string[],
+        module: Module,
+        func: (
+            ctx: UnifiedMessageContext,
+            self: Command,
+            args: ICommandArgs
+        ) => void
+    ) {
         this.name = name;
         this.module = module;
         this.function = func;
@@ -27,13 +39,15 @@ export class Command {
         this.uses++;
         if (ctx.hasMessagePayload) {
             this.function(
-                ctx, this,
-                Util.parseArgs(ctx.messagePayload.split(' ').slice(2))
+                ctx,
+                this,
+                Util.parseArgs(ctx.messagePayload.split(" ").slice(2))
             );
         } else {
             this.function(
-                ctx, this, 
-                Util.parseArgs(ctx.text.split(' ').slice(2))
+                ctx,
+                this,
+                Util.parseArgs(ctx.text.split(" ").slice(2))
             );
         }
     }

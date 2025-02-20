@@ -1,14 +1,14 @@
-import { Command } from './Command';
-import { Bot } from './Bot';
-import { IAPI } from './API';
-import { IDatabaseServer } from './Types';
-import UnifiedMessageContext from './TelegramSupport';
+import { Command } from "./Command";
+import { Bot } from "./Bot";
+import { IAPI } from "./API";
+import { IDatabaseServer } from "./Types";
+import UnifiedMessageContext from "./TelegramSupport";
 
 interface ICommandsModule {
-    name: string,
-    prefix: string | string[],
-    commands: Command[],
-    bot: Bot
+    name: string;
+    prefix: string | string[];
+    commands: Command[];
+    bot: Bot;
 }
 
 export class Module implements ICommandsModule {
@@ -34,24 +34,32 @@ export class Module implements ICommandsModule {
         }
     }
 
-    checkContext(ctx: UnifiedMessageContext): {command: Command, map?: number} {
-        const args = ctx.hasMessagePayload ? ctx.messagePayload.split(' ') : ctx.text.split(' ');
+    checkContext(ctx: UnifiedMessageContext): {
+        command: Command;
+        map?: number;
+    } {
+        const args = ctx.hasMessagePayload
+            ? ctx.messagePayload.split(" ")
+            : ctx.text.split(" ");
         let map: number;
-        if (args[0].startsWith('{map')) {
-            map = Number(args[0].split('}')[0].slice(4));
-            args[0] = args[0].split('}')[1];
+        if (args[0].startsWith("{map")) {
+            map = Number(args[0].split("}")[0].slice(4));
+            args[0] = args[0].split("}")[1];
         }
         if (args.length < 2) {
             return null;
         }
         const prefix = args.shift();
         const command = args.shift();
-        if (!this.checkPrefix(prefix.toLowerCase()) || !this.findCommand(command)) {
+        if (
+            !this.checkPrefix(prefix.toLowerCase()) ||
+            !this.findCommand(command)
+        ) {
             return null;
         }
         return {
             command: this.findCommand(command),
-            map
+            map,
         };
     }
 

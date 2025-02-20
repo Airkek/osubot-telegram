@@ -1,10 +1,18 @@
-import IAPI from './base';
-import * as axios from 'axios';
-import qs from 'querystring';
-import { APIUser, HitCounts, APIScore, IDatabaseUser, LeaderboardResponse, APIBeatmap, LeaderboardScore } from '../Types';
-import Mods from '../pp/Mods';
-import Util from '../Util';
-import { Bot } from '../Bot';
+import IAPI from "./base";
+import * as axios from "axios";
+import qs from "querystring";
+import {
+    APIUser,
+    HitCounts,
+    APIScore,
+    IDatabaseUser,
+    LeaderboardResponse,
+    APIBeatmap,
+    LeaderboardScore,
+} from "../Types";
+import Mods from "../pp/Mods";
+import Util from "../Util";
+import { Bot } from "../Bot";
 
 class GatariUser implements APIUser {
     id: number;
@@ -13,8 +21,8 @@ class GatariUser implements APIUser {
     playtime: number;
     pp: number;
     rank: {
-        total: number,
-        country: number
+        total: number;
+        country: number;
     };
     country: string;
     accuracy: number;
@@ -27,7 +35,7 @@ class GatariUser implements APIUser {
         this.pp = stats.pp;
         this.rank = {
             total: stats.rank,
-            country: stats.country_rank
+            country: stats.country_rank,
         };
         this.country = user.country;
         this.accuracy = stats.avg_accuracy;
@@ -49,16 +57,19 @@ class GatariTopScore implements APIScore {
         this.beatmapId = score.beatmap.beatmap_id;
         this.score = score.score;
         this.combo = score.max_combo;
-        this.counts = new HitCounts({
-            300: score.count_300,
-            100: score.count_100,
-            50: score.count_50,
-            miss: score.count_miss,
-            geki: score.count_gekis,
-            katu: score.count_katu
-        }, score.play_mode);
+        this.counts = new HitCounts(
+            {
+                300: score.count_300,
+                100: score.count_100,
+                50: score.count_50,
+                miss: score.count_miss,
+                geki: score.count_gekis,
+                katu: score.count_katu,
+            },
+            score.play_mode
+        );
         this.mods = new Mods(score.mods);
-        this.rank = score.ranking.replace('X', 'SS');
+        this.rank = score.ranking.replace("X", "SS");
         this.pp = score.pp;
         this.mode = score.play_mode;
         this.date = new Date(score.time);
@@ -81,16 +92,19 @@ class GatariRecentScore implements APIScore {
         this.beatmapId = data.beatmap.beatmap_id;
         this.score = data.score;
         this.combo = data.max_combo;
-        this.counts = new HitCounts({
-            300: data.count_300,
-            100: data.count_100,
-            50: data.count_50,
-            miss: data.count_miss,
-            geki: data.count_gekis,
-            katu: data.count_katu
-        }, data.play_mode);
+        this.counts = new HitCounts(
+            {
+                300: data.count_300,
+                100: data.count_100,
+                50: data.count_50,
+                miss: data.count_miss,
+                geki: data.count_gekis,
+                katu: data.count_katu,
+            },
+            data.play_mode
+        );
         this.mods = new Mods(data.mods);
-        this.rank = data.ranking.replace('X', 'SS');
+        this.rank = data.ranking.replace("X", "SS");
         this.mode = data.play_mode;
     }
 
@@ -113,15 +127,18 @@ class GatariScore implements APIScore {
         this.beatmapId = id;
         this.score = data.score;
         this.combo = data.max_combo;
-        this.counts = new HitCounts({
-            300: data.count_300,
-            100: data.count_100,
-            50: data.count_50,
-            miss: data.count_miss
-        }, data.play_mode);
+        this.counts = new HitCounts(
+            {
+                300: data.count_300,
+                100: data.count_100,
+                50: data.count_50,
+                miss: data.count_miss,
+            },
+            data.play_mode
+        );
         this.mods = new Mods(data.mods);
         this.mode = data.play_mode;
-        this.rank = data.rank.replace('X', 'SS');
+        this.rank = data.rank.replace("X", "SS");
         this.mode = data.play_mode;
         this.date = new Date(data.time * 1e3);
         this.pp = Number(data.pp);
@@ -138,82 +155,128 @@ export default class GatariAPI implements IAPI {
     constructor(bot: Bot) {
         this.bot = bot;
         this.api = axios.default.create({
-            baseURL: 'https://api.gatari.pw',
-            timeout: 3000
+            baseURL: "https://api.gatari.pw",
+            timeout: 3000,
         });
     }
 
-    async getBeatmap(id: number | string, mode?: number, mods?: Mods): Promise<APIBeatmap> {
+    async getBeatmap(
+        id: number | string,
+        mode?: number,
+        mods?: Mods
+    ): Promise<APIBeatmap> {
         return await this.bot.api.v2.getBeatmap(id, mode, mods);
     }
 
     async getUser(nickname: string, mode: number = 0): Promise<APIUser> {
-        const { data: user } = await this.api.get(`/users/get?${qs.stringify({u: nickname})}`);
-        const { data: stats } = await this.api.get(`/user/stats?${qs.stringify({u: nickname, mode})}`);
+        const { data: user } = await this.api.get(
+            `/users/get?${qs.stringify({ u: nickname })}`
+        );
+        const { data: stats } = await this.api.get(
+            `/user/stats?${qs.stringify({ u: nickname, mode })}`
+        );
         if (user.code != 200 || stats.code != 200) {
-            throw 'Unknown API error';
+            throw "Unknown API error";
         }
         if (!user.users[0]) {
-            throw 'User not found';
+            throw "User not found";
         }
         return new GatariUser(user.users[0], stats.stats);
     }
 
     async getUserById(id: number | string, mode?: number): Promise<APIUser> {
-        const { data: user } = await this.api.get(`/users/get?${qs.stringify({id})}`);
-        const { data: stats } = await this.api.get(`/user/stats?${qs.stringify({id, mode})}`);
+        const { data: user } = await this.api.get(
+            `/users/get?${qs.stringify({ id })}`
+        );
+        const { data: stats } = await this.api.get(
+            `/user/stats?${qs.stringify({ id, mode })}`
+        );
         if (user.code != 200 || stats.code != 200) {
-            throw 'Unknown API error';
+            throw "Unknown API error";
         }
         if (!user.users[0]) {
-            throw 'User not found';
+            throw "User not found";
         }
         return new GatariUser(user.users[0], stats.stats);
     }
 
-    async getUserTop(nickname: string, mode: number = 0, limit: number = 3): Promise<APIScore[]> {
+    async getUserTop(
+        nickname: string,
+        mode: number = 0,
+        limit: number = 3
+    ): Promise<APIScore[]> {
         const user = await this.getUser(nickname);
         return await this.getUserTopById(user.id as number, mode, limit);
     }
 
-    async getUserTopById(id: number | string, mode?: number, limit: number = 3): Promise<APIScore[]> {
-        const { data } = await this.api.get(`/user/scores/best?${qs.stringify({id, mode, p: 1, l: limit})}`);
+    async getUserTopById(
+        id: number | string,
+        mode?: number,
+        limit: number = 3
+    ): Promise<APIScore[]> {
+        const { data } = await this.api.get(
+            `/user/scores/best?${qs.stringify({ id, mode, p: 1, l: limit })}`
+        );
         if (!data.scores) {
-            throw 'No scores';
+            throw "No scores";
         }
         return data.scores.map((s) => new GatariTopScore(s));
     }
 
-    async getUserRecent(nickname: string, mode: number = 0, limit: number = 1): Promise<APIScore> {
+    async getUserRecent(
+        nickname: string,
+        mode: number = 0,
+        limit: number = 1
+    ): Promise<APIScore> {
         const user = await this.getUser(nickname);
         return await this.getUserRecentById(user.id as number, mode, limit);
     }
 
-    async getUserRecentById(id: number | string, mode: number = 0, limit: number = 1): Promise<APIScore> {
-        const { data } = await this.api.get(`/user/scores/recent?${qs.stringify({id , mode, p: 1, l: limit, f: 1})}`);
+    async getUserRecentById(
+        id: number | string,
+        mode: number = 0,
+        limit: number = 1
+    ): Promise<APIScore> {
+        const { data } = await this.api.get(
+            `/user/scores/recent?${qs.stringify({ id, mode, p: 1, l: limit, f: 1 })}`
+        );
         if (!data.scores[0]) {
-            throw 'No scores';
+            throw "No scores";
         }
         return new GatariRecentScore(data.scores[0]);
     }
 
-    async getScore(nickname: string, beatmapId: number, mode: number = 0): Promise<APIScore> {
+    async getScore(
+        nickname: string,
+        beatmapId: number,
+        mode: number = 0
+    ): Promise<APIScore> {
         const user = await this.getUser(nickname);
         return await this.getScoreByUid(user.id as number, beatmapId, mode);
     }
 
-    async getScoreByUid(uid: number | string, beatmapId: number, mode: number = 0): Promise<APIScore> {
+    async getScoreByUid(
+        uid: number | string,
+        beatmapId: number,
+        mode: number = 0
+    ): Promise<APIScore> {
         if (mode > 1) {
-            throw 'Mode is not supported';
+            throw "Mode is not supported";
         }
-        const { data } = await this.api.get(`/beatmap/user/score?${qs.stringify({b: beatmapId, u: uid, mode})}`);
+        const { data } = await this.api.get(
+            `/beatmap/user/score?${qs.stringify({ b: beatmapId, u: uid, mode })}`
+        );
         if (!data.score) {
-            throw 'No score';
+            throw "No score";
         }
         return new GatariScore(data.score, beatmapId);
     }
 
-    async getLeaderboard(beatmapId: number, users: IDatabaseUser[], mode: number = 0): Promise<LeaderboardResponse> {
+    async getLeaderboard(
+        beatmapId: number,
+        users: IDatabaseUser[],
+        mode: number = 0
+    ): Promise<LeaderboardResponse> {
         const map = await this.getBeatmap(beatmapId, mode, new Mods(0));
         const scores: LeaderboardScore[] = [];
         try {
@@ -221,44 +284,47 @@ export default class GatariAPI implements IAPI {
             for (let i = 0; i < lim; i++) {
                 try {
                     const usrs = users.splice(0, 5);
-                    const usPromise = usrs.map(
-                        (u) => this.getScoreByUid(u.game_id, beatmapId, mode)
-                    );  
-                    const s: APIScore[] = (await Promise.all(usPromise.map(
-                        (p) => p.catch((e) => e)
-                    ))
+                    const usPromise = usrs.map((u) =>
+                        this.getScoreByUid(u.game_id, beatmapId, mode)
+                    );
+                    const s: APIScore[] = await Promise.all(
+                        usPromise.map((p) => p.catch((e) => e))
                     );
                     for (let j = s.length - 1; j >= 0; j--) {
-                        const ok = typeof s[j] !== 'string' && !(s[j] instanceof Error);
+                        const ok =
+                            typeof s[j] !== "string" &&
+                            !(s[j] instanceof Error);
                         if (!ok) {
                             s.splice(j, 1);
                             usrs.splice(j, 1);
                         }
                     }
-                    scores.push(...s.map((score, j) => {
-                        return {
-                            user: usrs[j],
-                            score
-                        };
-                    }));
+                    scores.push(
+                        ...s.map((score, j) => {
+                            return {
+                                user: usrs[j],
+                                score,
+                            };
+                        })
+                    );
                 } catch {
                     // ignore
                 }
             } // Ignore "No scores"
-            
+
             return {
                 map,
-                scores: scores.sort((a,b) => {
+                scores: scores.sort((a, b) => {
                     if (a.score.score > b.score.score) {
                         return -1;
                     } else if (a.score.score < b.score.score) {
                         return 1;
                     }
                     return 0;
-                })
+                }),
             };
         } catch (e) {
-            throw e || 'Unknown error';
+            throw e || "Unknown error";
         }
     }
 }
