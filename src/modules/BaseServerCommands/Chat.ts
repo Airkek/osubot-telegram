@@ -23,7 +23,7 @@ export default class AbstractChat extends ServerCommand {
             let users = [];
             for (let i = 0; i < members.length; i++) {
                 const u = await self.module.db.getUserStats(members[i], mode);
-                if (u.id && !users.some((uu) => uu.id == u.id)) {
+                if (u && !users.some((uu) => uu.id == u.id)) {
                     users.push(u);
                 }
             }

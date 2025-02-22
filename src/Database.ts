@@ -15,19 +15,14 @@ class DatabaseServer implements IDatabaseServer {
     }
 
     async getUser(id: number): Promise<IDatabaseUser | null> {
-        const user: IDatabaseUser = await this.db.get("SELECT * FROM users WHERE id = $1 AND server = $2", [
-            id,
-            this.serverName,
-        ]);
-        return user;
+        return await this.db.get("SELECT * FROM users WHERE id = $1 AND server = $2", [id, this.serverName]);
     }
 
     async findByUserId(id: number | string): Promise<IDatabaseUser[]> {
-        const users: IDatabaseUser[] = await this.db.all(
-            "SELECT * FROM users WHERE game_id = $1 AND server = $2 COLLATE NOCASE",
-            [id, this.serverName]
-        );
-        return users;
+        return await this.db.all("SELECT * FROM users WHERE game_id = $1 AND server = $2 COLLATE NOCASE", [
+            id,
+            this.serverName,
+        ]);
     }
 
     async setNickname(id: number, game_id: number | string, nickname: string, mode: number = 0): Promise<void> {
@@ -80,11 +75,14 @@ class DatabaseServer implements IDatabaseServer {
 
     async getUserStats(id: number, mode: number): Promise<IDatabaseUserStats> {
         const u = await this.getUser(id);
-        const stats: IDatabaseUserStats = await this.db.get(
-            "SELECT * FROM stats WHERE id = $1 AND mode = $2 AND server = $3",
-            [u.game_id, mode, this.serverName]
-        );
-        return stats;
+        if (!u) {
+            return null;
+        }
+        return await this.db.get("SELECT * FROM stats WHERE id = $1 AND mode = $2 AND server = $3", [
+            u.game_id,
+            mode,
+            this.serverName,
+        ]);
     }
 }
 

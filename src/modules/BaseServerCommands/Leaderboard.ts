@@ -21,7 +21,7 @@ export default class AbstractLeaderboard extends ServerCommand {
             for (let i = 0; i < profiles.length; i++) {
                 const profile = profiles[i];
                 const user = await self.module.db.getUser(profile);
-                if (user.id && !users.some((u) => u.game_id == user.game_id)) {
+                if (user && !users.some((u) => u.game_id == user.game_id)) {
                     users.push(user);
                 }
             }
