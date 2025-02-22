@@ -1,8 +1,6 @@
 import User from "./User";
 import TopScore from "./TopScore";
-import TopSingle from "./TopSingle";
-import RecentScore from "./Recent";
-import Compare from "./Compare";
+import ScoreFull from "./ScoreFull";
 import ReplayT from "./Replay";
 import Beatmap from "./Beatmap";
 import PP from "./PP";
@@ -30,21 +28,12 @@ interface ITemplates {
         calc: ICalc,
         link: string
     ) => string;
-    TopSingle: (
-        score: APIScore,
-        beatmap: APIBeatmap,
-        user: APIUser,
-        place: number,
-        calc: ICalc,
-        link: string
-    ) => string;
-    RecentScore: (
+    ScoreFull: (
         score: APIScore,
         beatmap: APIBeatmap,
         calc: ICalc,
         link: string
     ) => string;
-    Compare: (score: APIScore, beatmap: APIBeatmap, calc: ICalc) => string;
     Replay: (replay: Replay, map: APIBeatmap, calc: ICalc) => string;
     Beatmap: (map: APIBeatmap) => string;
     PP: (map: APIBeatmap, args: ICommandArgs) => string;
@@ -56,9 +45,7 @@ interface ITemplates {
 const Templates: ITemplates = {
     User,
     TopScore,
-    TopSingle,
-    RecentScore,
-    Compare,
+    ScoreFull,
     Replay: ReplayT,
     Beatmap,
     PP,

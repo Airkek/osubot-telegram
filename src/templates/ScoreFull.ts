@@ -6,13 +6,13 @@ export default function (
     score: APIScore,
     beatmap: APIBeatmap,
     calc: ICalc,
-    link: string
+    serverLink: string
 ) {
     const pp = score.fcPp
         ? { pp: score.pp, fc: score.fcPp, ss: undefined }
         : calc.calculate(score);
 
-    let ppString = `PP: ${pp.pp.toFixed(2)}`;
+    let ppString = `PP: ${score.pp ? score.pp.toFixed(2) : pp.pp.toFixed(2)}`;
     if (pp.fc !== undefined && pp.fc !== pp.pp) {
         ppString += ` → FC: ${pp.fc.toFixed(2)}`;
     }
@@ -37,16 +37,18 @@ export default function (
     const gradeProgress =
         score.rank === "F" ? ` (${Util.round(progress * 100, 2)}%)` : "";
 
-    const beatmapUrl = beatmap.mapUrl ?? `${link}/b/${beatmap.id.map}`;
+    const beatmapUrl = beatmap.mapUrl ?? `${serverLink}/b/${beatmap.id.map}`;
 
     const total = [
         `${Util.formatBeatmap(beatmap)} ${score.mods}`,
         "",
-        `Score: ${score.score.toLocaleString()} | Combo: ${Util.formatCombo(score.combo, beatmap.combo)}`,
+        `Score: ${score.score.toLocaleString()}`,
+        `Combo: ${Util.formatCombo(score.combo, beatmap.combo)}`,
         `Accuracy: ${Util.round(score.accuracy() * 100, 2)}%`,
         ppString,
         `Hitcounts: ${score.counts.toString()}`,
         `Grade: ${score.rank}${gradeProgress}`,
+        `Date: ${Util.formatDate(score.date)}`,
     ];
 
     if (score.rank_global && score.rank_global <= 1000) {

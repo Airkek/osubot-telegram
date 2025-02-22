@@ -47,7 +47,12 @@ export default class AbstractCompare extends ServerCommand {
                 );
                 const calc = new Calculator(map, score.mods);
                 await self.reply(
-                    `${self.module.bot.templates.Compare(score, map, calc)}`,
+                    `Лучший скор игрока на этой карте:\n${self.module.bot.templates.ScoreFull(
+                        score,
+                        map,
+                        calc,
+                        self.module.link
+                    )}`,
                     {
                         attachment: cover,
                     }
