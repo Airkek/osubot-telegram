@@ -132,7 +132,7 @@ export default class RippleAPI implements IAPI {
     async getUser(nickname: string, mode: number = 0): Promise<APIUser> {
         const { data } = await this.api.get(`/get_user?${qs.stringify({ u: nickname, m: mode, type: "string" })}`);
         if (!data[0]) {
-            throw "User not found";
+            throw new Error("User not found");
         }
         return new RippleUser(data[0]);
     }
@@ -140,7 +140,7 @@ export default class RippleAPI implements IAPI {
     async getUserById(id: number | string, mode: number = 0): Promise<APIUser> {
         const { data } = await this.api.get(`/get_user?${qs.stringify({ u: id, m: mode })}`);
         if (!data[0]) {
-            throw "User not found";
+            throw new Error("User not found");
         }
         return new RippleUser(data[0]);
     }
@@ -164,7 +164,7 @@ export default class RippleAPI implements IAPI {
         if (data[0]) {
             return new RippleRecentScore(data[0], mode);
         }
-        throw "No recent scores";
+        throw new Error("No recent scores");
     }
 
     async getUserRecentById(id: number | string, mode: number = 0): Promise<APIScore> {
@@ -172,7 +172,7 @@ export default class RippleAPI implements IAPI {
         if (data[0]) {
             return new RippleRecentScore(data[0], mode);
         }
-        throw "No recent scores";
+        throw new Error("No recent scores");
     }
 
     async getScore(nickname: string, beatmapId: number, mode: number = 0, mods: number = null): Promise<APIScore> {
@@ -188,12 +188,12 @@ export default class RippleAPI implements IAPI {
                 data = data.filter((p) => p.enabled_mods == mods);
             }
             if (!data[0]) {
-                throw "No scores found";
+                throw new Error("No scores found");
             }
             data[0].beatmap_id = beatmapId;
             return new RippleScore(data[0], mode);
         } catch (e) {
-            throw e || "Unknown API error";
+            throw e || new Error("Unknown API error");
         }
     }
 
@@ -214,12 +214,12 @@ export default class RippleAPI implements IAPI {
                 data = data.filter((p) => p.enabled_mods == mods);
             }
             if (!data[0]) {
-                throw "No scores found";
+                throw new Error("No scores found");
             }
             data[0].beatmap_id = beatmapId;
             return new RippleScore(data[0], mode);
         } catch (e) {
-            throw e || "Unknown API error";
+            throw e || new Error("Unknown API error");
         }
     }
 
@@ -270,7 +270,7 @@ export default class RippleAPI implements IAPI {
                 }),
             };
         } catch (e) {
-            throw e || "Unknown error";
+            throw e || new Error("Unknown error");
         }
     }
 }

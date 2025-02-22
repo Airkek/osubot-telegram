@@ -126,7 +126,7 @@ export default class AkatsukiAPI implements IAPI {
             const m = ["std", "taiko", "ctb", "mania"][mode];
             return new AkatsukiUser(data, m);
         } catch (e) {
-            throw e || "User not found";
+            throw e || new Error("User not found");
         }
     }
 
@@ -136,7 +136,7 @@ export default class AkatsukiAPI implements IAPI {
             const m = ["std", "taiko", "ctb", "mania"][mode];
             return new AkatsukiUser(data, m);
         } catch (e) {
-            throw e || "User not found";
+            throw e || new Error("User not found");
         }
     }
 
@@ -146,11 +146,11 @@ export default class AkatsukiAPI implements IAPI {
                 `/users/scores/best?${qs.stringify({ name: nickname, mode, l: limit, rx: 0 })}`
             );
             if (data.code != 200 || !data.scores) {
-                throw data.message || undefined;
+                throw new Error(data.message || "Unknown error");
             }
             return data.scores.map((score) => new AkatsukiScore(score, mode));
         } catch (e) {
-            throw e || "No scores";
+            throw e || new Error("No scores");
         }
     }
 
@@ -158,11 +158,11 @@ export default class AkatsukiAPI implements IAPI {
         try {
             const { data } = await this.api.get(`/users/scores/best?${qs.stringify({ id, mode, l: limit, rx: 0 })}`);
             if (data.code != 200 || !data.scores) {
-                throw data.message || undefined;
+                throw new Error(data.message || "Unknown error");
             }
             return data.scores.map((score) => new AkatsukiScore(score, mode));
         } catch (e) {
-            throw e || "No scores";
+            throw e || new Error("No scores");
         }
     }
 
@@ -172,11 +172,11 @@ export default class AkatsukiAPI implements IAPI {
                 `/users/scores/recent?${qs.stringify({ name: nickname, mode, l: 1, rx: 0 })}`
             );
             if (data.code != 200 || !data.scores) {
-                throw data.message || undefined;
+                throw new Error(data.message || "Unknown error");
             }
             return new AkatsukiRecentScore(data.scores[0], mode);
         } catch (e) {
-            throw e || "No scores";
+            throw e || new Error("No scores");
         }
     }
 
@@ -184,11 +184,11 @@ export default class AkatsukiAPI implements IAPI {
         try {
             const { data } = await this.api.get(`/users/scores/recent?${qs.stringify({ id, mode, l: limit, rx: 0 })}`);
             if (data.code != 200 || !data.scores) {
-                throw data.message || undefined;
+                throw new Error(data.message || "Unknown error");
             }
             return new AkatsukiRecentScore(data.scores[0], mode);
         } catch (e) {
-            throw e || "No scores";
+            throw e || new Error("No scores");
         }
     }
 }

@@ -435,7 +435,7 @@ class BanchoAPIV2 implements IAPI {
 
     async refresh() {
         if (this.logged != 1) {
-            throw "Not logged in";
+            throw new Error("Not logged in");
         }
         return await this.login();
     }
@@ -449,7 +449,7 @@ class BanchoAPIV2 implements IAPI {
         );
 
         if (data === undefined) {
-            throw "User not found";
+            throw new Error("User not found");
         }
 
         return new V2User(data);
@@ -461,7 +461,7 @@ class BanchoAPIV2 implements IAPI {
         });
 
         if (data === undefined) {
-            throw "User not found";
+            throw new Error("User not found");
         }
 
         return new V2User(data);
@@ -494,7 +494,7 @@ class BanchoAPIV2 implements IAPI {
         }
 
         if (data === undefined) {
-            throw "Beatmap not found";
+            throw new Error("Beatmap not found");
         }
 
         const attributes: BeatmapDifficultyAttributesResponse = await this.post(
@@ -507,7 +507,7 @@ class BanchoAPIV2 implements IAPI {
                 : undefined
         );
         if (attributes === undefined) {
-            throw "Beatmap not found";
+            throw new Error("Beatmap not found");
         }
 
         const beatmap = new V2Beatmap(data, attributes.attributes, mods);
@@ -575,7 +575,7 @@ class BanchoAPIV2 implements IAPI {
                 }),
             };
         } catch (e) {
-            throw e || "Unknown error";
+            throw e || new Error("Unknown error");
         }
     }
 
@@ -640,7 +640,7 @@ class BanchoAPIV2 implements IAPI {
 
             return result;
         }
-        throw "No recent scores";
+        throw new Error("No recent scores");
     }
 
     async getUserTopById(uid: number | string, mode: number = 0, limit: number = 3): Promise<APIScore[]> {
@@ -653,7 +653,7 @@ class BanchoAPIV2 implements IAPI {
             return data.map((s) => new V2Score(s));
         }
 
-        throw "No top scores";
+        throw new Error("No top scores");
     }
 
     async getScoreByUid(
@@ -669,7 +669,7 @@ class BanchoAPIV2 implements IAPI {
         });
 
         if (!data) {
-            throw "No scores found";
+            throw new Error("No scores found");
         }
 
         return new V2Score(data.score, forceLazerScore);
@@ -686,7 +686,7 @@ class BanchoAPIV2 implements IAPI {
         });
 
         if (!data) {
-            throw "No scores found";
+            throw new Error("No scores found");
         }
 
         return data;

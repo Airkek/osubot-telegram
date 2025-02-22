@@ -1,29 +1,27 @@
+import { Bot as TG, GrammyError, HttpError } from "grammy";
+import * as axios from "axios";
 import { Module } from "./Module";
 import Database from "./Database";
-import Bancho from "./modules/Bancho";
 import { APICollection } from "./API";
 import { Templates, ITemplates } from "./templates";
 import Maps from "./Maps";
 import { ReplayParser } from "./Replay";
-import * as axios from "axios";
-import { Bot as TG, GrammyError, HttpError } from "grammy";
+import Calculator from "./pp/bancho";
 import Admin from "./modules/Admin";
 import Main from "./modules/Main";
-import BanchoPP from "./pp/bancho";
-import Gatari from "./modules/Gatari";
-import Ripple from "./modules/Ripple";
 import Akatsuki from "./modules/Akatsuki";
 import AkatsukiRelax from "./modules/AkatsukiRelax";
+import Bancho from "./modules/Bancho";
+import Gatari from "./modules/Gatari";
+import Ripple from "./modules/Ripple";
+import BeatLeader from "./modules/BeatLeader";
+import ScoreSaber from "./modules/ScoreSaber";
 import OsuTrackAPI from "./Track";
-import BanchoV2 from "./api/BanchoV2";
 import Util from "./Util";
 import IgnoreList from "./Ignore";
 import UnifiedMessageContext from "./TelegramSupport";
-import BeatLeader from "./modules/BeatLeader";
-import ScoreSaber from "./modules/ScoreSaber";
 import IsMap from "./regexes/MapRegexp";
 import IsScore from "./regexes/ScoreRegexp";
-import Calculator from "./pp/bancho";
 
 export interface IBotConfig {
     tg: {
@@ -47,7 +45,6 @@ export class Bot {
     disabled: number[] = [];
     ignored: IgnoreList;
     track: OsuTrackAPI;
-    v2: BanchoV2;
     startTime: number;
     totalMessages: number;
     version: string;
@@ -96,14 +93,15 @@ export class Bot {
 
         this.tg.on("message:new_chat_members", async (context) => {
             for (const user of context.message.new_chat_members) {
-                if (!this.database.chats.isUserInChat(user.id, context.chatId)) {
-                    this.database.chats.userJoined(user.id, context.chat.id);
+                const inChat = await this.database.chats.isUserInChat(user.id, context.chatId);
+                if (!inChat) {
+                    await this.database.chats.userJoined(user.id, context.chat.id);
                 }
             }
         });
 
         this.tg.on("message:left_chat_member", async (context) => {
-            this.database.chats.userLeft(context.message.left_chat_member.id, context.chat.id);
+            await this.database.chats.userLeft(context.message.left_chat_member.id, context.chat.id);
         });
 
         this.basicOverride = (cmd, override) => {
@@ -179,7 +177,7 @@ export class Bot {
                         map = await this.api.v2.getBeatmap(map.id.map, replay.mode, replay.mods);
                     }
                     const cover = await this.database.covers.getCover(map.id.set);
-                    const calc = new BanchoPP(map, replay.mods);
+                    const calc = new Calculator(map, replay.mods);
                     const keyboard = Util.createKeyboard(
                         [
                             ["B", "s"],

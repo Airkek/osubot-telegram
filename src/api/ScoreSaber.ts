@@ -149,7 +149,7 @@ class ScoreSaberScoreMap implements APIBeatmap {
             spinners: 0,
         };
         this.title = data.leaderboard.songName;
-        this.length = 0;
+        this.length = NaN;
         this.version = data.leaderboard.difficulty.difficultyRaw;
         this.combo = data.score.fullCombo ? data.score.maxCombo : undefined;
         this.mode = 0;
@@ -248,7 +248,7 @@ export default class ScoreSaberAPI implements IAPI {
             return new BeatSaberScore(data.playerScores[0]);
         }
 
-        throw "No recent scores";
+        throw new Error("No recent scores");
     }
 
     async getUserTopById(id: string, mode?: number, limit: number = 3): Promise<APIScore[]> {
@@ -261,6 +261,6 @@ export default class ScoreSaberAPI implements IAPI {
             return data.playerScores.map((scoreData: SSScoreData) => new BeatSaberScore(scoreData));
         }
 
-        throw "No top scores";
+        throw new Error("No top scores");
     }
 }

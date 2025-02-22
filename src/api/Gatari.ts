@@ -168,10 +168,10 @@ export default class GatariAPI implements IAPI {
         const { data: user } = await this.api.get(`/users/get?${qs.stringify({ u: nickname })}`);
         const { data: stats } = await this.api.get(`/user/stats?${qs.stringify({ u: nickname, mode })}`);
         if (user.code != 200 || stats.code != 200) {
-            throw "Unknown API error";
+            throw new Error("Unknown API error");
         }
         if (!user.users[0]) {
-            throw "User not found";
+            throw new Error("User not found");
         }
         return new GatariUser(user.users[0], stats.stats);
     }
@@ -180,10 +180,10 @@ export default class GatariAPI implements IAPI {
         const { data: user } = await this.api.get(`/users/get?${qs.stringify({ id })}`);
         const { data: stats } = await this.api.get(`/user/stats?${qs.stringify({ id, mode })}`);
         if (user.code != 200 || stats.code != 200) {
-            throw "Unknown API error";
+            throw new Error("Unknown API error");
         }
         if (!user.users[0]) {
-            throw "User not found";
+            throw new Error("User not found");
         }
         return new GatariUser(user.users[0], stats.stats);
     }
@@ -196,7 +196,7 @@ export default class GatariAPI implements IAPI {
     async getUserTopById(id: number | string, mode?: number, limit: number = 3): Promise<APIScore[]> {
         const { data } = await this.api.get(`/user/scores/best?${qs.stringify({ id, mode, p: 1, l: limit })}`);
         if (!data.scores) {
-            throw "No scores";
+            throw new Error("No scores");
         }
         return data.scores.map((s) => new GatariTopScore(s));
     }
@@ -209,7 +209,7 @@ export default class GatariAPI implements IAPI {
     async getUserRecentById(id: number | string, mode: number = 0, limit: number = 1): Promise<APIScore> {
         const { data } = await this.api.get(`/user/scores/recent?${qs.stringify({ id, mode, p: 1, l: limit, f: 1 })}`);
         if (!data.scores[0]) {
-            throw "No scores";
+            throw new Error("No scores");
         }
         return new GatariRecentScore(data.scores[0]);
     }
@@ -221,11 +221,11 @@ export default class GatariAPI implements IAPI {
 
     async getScoreByUid(uid: number | string, beatmapId: number, mode: number = 0): Promise<APIScore> {
         if (mode > 1) {
-            throw "Mode is not supported";
+            throw new Error("Mode is not supported");
         }
         const { data } = await this.api.get(`/beatmap/user/score?${qs.stringify({ b: beatmapId, u: uid, mode })}`);
         if (!data.score) {
-            throw "No score";
+            throw new Error("No score");
         }
         return new GatariScore(data.score, beatmapId);
     }
@@ -272,7 +272,7 @@ export default class GatariAPI implements IAPI {
                 }),
             };
         } catch (e) {
-            throw e || "Unknown error";
+            throw e || new Error("Unknown error");
         }
     }
 }

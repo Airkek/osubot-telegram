@@ -237,7 +237,7 @@ export default class BeatLeaderAPI implements IAPI {
             return new BeatSaberScore(data.data[0]);
         }
 
-        throw "No recent scores";
+        throw new Error("No recent scores");
     }
 
     async getUserTopById(id: string, mode?: number, limit: number = 3): Promise<APIScore[]> {
@@ -250,6 +250,6 @@ export default class BeatLeaderAPI implements IAPI {
             return data.data.map((scoreData: BLScoreData) => new BeatSaberScore(scoreData));
         }
 
-        throw "No top scores";
+        throw new Error("No top scores");
     }
 }

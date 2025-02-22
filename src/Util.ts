@@ -1,4 +1,4 @@
-import { IBeatmapStats, HitCounts, ICommandArgs, IHits, PPArgs, CalcArgs, APIBeatmap } from "./Types";
+import { IBeatmapStats, HitCounts, ICommandArgs, PPArgs, CalcArgs, APIBeatmap } from "./Types";
 import { ICalcStats, OsuStats, TaikoStats, CatchStats, ManiaStats } from "./pp/Stats";
 import { InlineKeyboard } from "grammy";
 
@@ -40,15 +40,6 @@ const errors: Err[] = [
 ];
 
 export default {
-    hash(length: number = 10): string {
-        const characters = "0123456789abcdef";
-        let string = "";
-        for (let i = 0; i < length; i++) {
-            string += characters[Math.floor(Math.random() * characters.length)];
-        }
-
-        return string;
-    },
     round(num: number, p: number): number {
         return Math.round(num * 10 ** p) / 10 ** p;
     },
@@ -152,74 +143,37 @@ export default {
 
         return iArg;
     },
-    getHitsFromAcc: {
-        osu(acc: number, miss: number, obj: number, c50 = 0): IHits {
-            const hits = {
-                300: -1,
-                100: 0,
-                50: c50,
-                miss,
-            };
-            let n300 = hits[300];
-            if (n300 < 0) {
-                n300 = Math.max(0, obj - hits[100] - hits[50] - hits.miss);
-            }
-
-            let hitcount = n300 + hits[100] + hits[50] + hits.miss;
-
-            if (hitcount > obj) {
-                n300 -= Math.min(n300, hitcount - obj);
-            }
-
-            hitcount = n300 + hits[100] + hits[50] + hits.miss;
-
-            if (hitcount > obj) {
-                hits[100] -= Math.min(hits[100], hitcount - obj);
-            }
-
-            hitcount = n300 + hits[100] + hits[50] + hits.miss;
-
-            if (hitcount > obj) {
-                hits[50] -= Math.min(hits[50], hitcount - obj);
-            }
-
-            hitcount = n300 + hits[100] + hits[50] + hits.miss;
-
-            hits[300] = obj - hits[100] - hits[50] - hits.miss;
-
-            const max300 = obj - hits.miss;
-
-            hits[100] = Math.round(-3 * ((acc * 0.01 - 1) * obj + hits.miss) * 0.5);
-
-            if (hits[100] > max300) {
-                hits[100] = 0;
-                hits[50] = Math.round(-6 * ((acc * 0.01 - 1) * obj + hits.miss) * 0.5);
-                hits[50] = Math.min(max300, hits[50]);
-            }
-
-            hits[300] = obj - hits[100] - hits[50] - hits.miss;
-
-            return hits;
-        },
-    },
     formatCombo(combo: number, full: number): string {
         if (!full) {
             return `${combo}x`;
         }
         return `${combo}x/${full}x`;
     },
-    formatBeatmap(map: APIBeatmap): string {
-        return `${map.artist} - ${map.title} [${map.version}] by ${map.creator.nickname} (${map.status})
-${this.formatBeatmapLength(map.length)} | ${map.stats} ${Math.round(map.bpm)}BPM | ${this.round(map.diff.stars, 2)}✩`;
+    formatBeatmap: function (map: APIBeatmap): string {
+        const data: string[] = [];
+
+        data.push(`${map.artist} - ${map.title} [${map.version}] by ${map.creator.nickname} (${map.status})`);
+
+        if (map.length !== undefined && !isNaN(map.length)) {
+            data.push(this.formatBeatmapLength(map.length));
+        }
+        if (map.stats !== undefined && map.stats.toString() !== "") {
+            data.push(map.stats.toString());
+        }
+        if (map.bpm !== undefined && !isNaN(map.bpm)) {
+            data.push(`${Math.round(map.bpm)}BPM`);
+        }
+        if (map.diff.stars !== undefined && !isNaN(map.diff.stars)) {
+            data.push(`${this.round(map.diff.stars, 2)}✩`);
+        }
+
+        return data.join(" | ");
     },
-    formatDate(d: Date, crop: boolean = false) {
+    formatDate(d: Date, crop: boolean = false): string {
         if (!crop) {
             return `${this.fixNumberLength(d.getDate())}.${this.fixNumberLength(d.getMonth() + 1)}.${this.fixNumberLength(d.getFullYear())} ${this.fixNumberLength(d.getHours())}:${this.fixNumberLength(d.getMinutes())}`;
         }
         return `${this.fixNumberLength(d.getDate())}.${this.fixNumberLength(d.getMonth() + 1)}.${this.fixNumberLength(d.getFullYear())}`;
-    },
-    async sleep(ms: number): Promise<void> {
-        return new Promise((r) => setTimeout(r, ms));
     },
     createPPArgs(args: PPArgs, mode: number): CalcArgs {
         return new CalcArgs(args, mode);
@@ -227,39 +181,6 @@ ${this.formatBeatmapLength(map.length)} | ${map.stats} ${Math.round(map.bpm)}BPM
     error(e: string): string {
         const f = errors.find((er) => er.e == e);
         return f ? f.t : "Неизвестная ошибка!";
-    },
-    donater(status: number | string): string {
-        const icons = {
-            poop: "💩",
-            1001: "💩",
-            frog: "🐸",
-            1002: "🐸",
-            pig: "🐷",
-            1003: "🐷",
-            sunglasses: "😎",
-            1004: "😎",
-            stop: "⛔",
-            1005: "⛔",
-            verified: "✅",
-            1006: "✅",
-            jp: "🇯🇵",
-            1007: "🇯🇵",
-            skull: "💀",
-            1008: "💀",
-            car: "🚓",
-            1009: "🚓",
-            orange: "🍊",
-            1010: "✨",
-            sparkles: "✨",
-            0: "",
-            supporter: "💖",
-            heart: "💖",
-            1: "💖",
-            crown: "👑",
-            owner: "👑",
-            228: "👑",
-        };
-        return icons[status] || "";
     },
     scoreNum(amount: number): string {
         if (amount > 10 && amount < 20) {

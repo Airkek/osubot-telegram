@@ -13,7 +13,7 @@ export default class BanchoTrack extends ServerCommand {
             if (self.args.nickname[0]) {
                 dbUser.nickname = self.args.nickname.join(" ");
             }
-            if (!dbUser.nickname) {
+            if (!dbUser) {
                 await self.ctx.reply(`Не указан ник!\nПривяжите через ${module.prefix[0]} nick <ник>`);
                 return;
             }
