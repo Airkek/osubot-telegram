@@ -42,8 +42,8 @@ export default class Maps {
             });
             this.setMap(ctx.peerId, map);
         } catch (e) {
-            const err = await this.bot.database.errors.addError("b", ctx, String(e));
-            await ctx.reply(`${Util.error(String(e))} (${err})`);
+            const err = await this.bot.database.errors.addError(ctx, e);
+            await ctx.reply(`${Util.error(e.message)} (${err})`);
         }
     }
 

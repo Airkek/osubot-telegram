@@ -17,7 +17,7 @@ ${Util.formatBeatmap(map)}\n`;
             .map((lbscore, i) => {
                 return (
                     `#${i + 1} ${lbscore.user.nickname} | ` +
-                    `${lbscore.score.score.toLocaleString()} | ` +
+                    `${lbscore.score.score?.toLocaleString()} | ` +
                     `${Util.formatCombo(lbscore.score.combo, map.combo)} | ` +
                     `${Util.round(lbscore.score.accuracy() * 100, 2)}% | ` +
                     `${lbscore.score.counts.miss} misses | ` +

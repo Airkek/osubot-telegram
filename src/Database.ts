@@ -2,9 +2,9 @@
 
 import { Bot as TG, InputFile } from "grammy";
 import { Pool, QueryResult } from "pg";
-import util from "./Util";
-import { APIUser, IDatabaseUser, IDatabaseUserStats, IDatabaseServer } from "./Types";
+import { APIUser, IDatabaseServer, IDatabaseUser, IDatabaseUserStats } from "./Types";
 import UnifiedMessageContext from "./TelegramSupport";
+import { createHash } from "node:crypto";
 
 class DatabaseServer implements IDatabaseServer {
     serverName: string;
@@ -32,7 +32,7 @@ class DatabaseServer implements IDatabaseServer {
 
     async setNickname(id: number, game_id: number | string, nickname: string, mode: number = 0): Promise<void> {
         const user: IDatabaseUser = await this.getUser(id);
-        if (!user.id) {
+        if (!user) {
             await this.db.run("INSERT INTO users (id, game_id, nickname, mode, server) VALUES ($1, $2, $3, $4, $5)", [
                 id,
                 game_id,
@@ -65,7 +65,7 @@ class DatabaseServer implements IDatabaseServer {
             mode,
             this.serverName,
         ]);
-        if (!dbUser.id) {
+        if (!dbUser) {
             await this.db.run(
                 "INSERT INTO stats (id, nickname, pp, rank, acc, mode, server) VALUES ($1, $2, $3, $4, $5, $6, $7)",
                 [user.id, user.nickname, user.pp, user.rank.total, user.accuracy, mode, this.serverName]
@@ -110,7 +110,7 @@ class DatabaseCovers {
 
     async getCover(id: number): Promise<string> {
         const cover = await this.db.get("SELECT * FROM covers WHERE id = $1", [id]);
-        if (!cover.id) {
+        if (!cover) {
             return this.addCover(id);
         }
         return cover.attachment;
@@ -132,7 +132,7 @@ class DatabaseCovers {
 
     async getPhotoDoc(photoUrl: string): Promise<string> {
         const cover = await this.db.get("SELECT * FROM photos WHERE url = $1", [photoUrl]);
-        if (!cover.url) {
+        if (!cover) {
             return this.addPhotoDoc(photoUrl);
         }
         return cover.attachment;
@@ -215,27 +215,37 @@ class DatabaseErrors {
         this.db = db;
     }
 
-    async addError(prefix: string, ctx: UnifiedMessageContext, error: string): Promise<string> {
-        const code = `${prefix}.${util.hash()}`;
-        const check = this.getError(code);
-        if (!check) {
-            return this.addError(prefix, ctx, error);
-        }
+    async addError(ctx: UnifiedMessageContext, error: unknown): Promise<string> {
         let info = `Sent by: ${ctx.senderId}; Text: ${ctx.text}`;
         if (ctx.hasReplyMessage) {
             info += `; Replied to: ${ctx.replyMessage.senderId}`;
         }
-        await this.db.run("INSERT INTO errors (code, info, error) VALUES ($1, $2, $3)", [code, info, error]);
-        return code;
+
+        let errorText: string;
+
+        if (error instanceof Error) {
+            errorText = error.stack;
+        } else if (error instanceof String) {
+            errorText = String(error);
+        }
+
+        const hash = createHash("sha3-256")
+            .update(info + errorText)
+            .digest("hex")
+            .slice(0, 10);
+        const check = await this.getError(hash);
+        if (!check) {
+            await this.db.run("INSERT INTO errors (code, info, error) VALUES ($1, $2, $3)", [hash, info, errorText]);
+        }
+        return hash;
     }
 
     async getError(code: string): Promise<IDatabaseError | null> {
-        const error = this.db.get("SELECT * FROM errors WHERE code = $1", [code]);
-        return error;
+        return await this.db.get("SELECT * FROM errors WHERE code = $1", [code]);
     }
 
-    clear() {
-        this.db.run("DELETE FROM errors");
+    async clear() {
+        await this.db.run("DELETE FROM errors");
     }
 }
 
@@ -364,7 +374,7 @@ export default class Database {
                 if (err) {
                     reject(err);
                 } else {
-                    resolve(res.rows[0] || {});
+                    resolve(res.rows[0] || null);
                 }
             });
         });

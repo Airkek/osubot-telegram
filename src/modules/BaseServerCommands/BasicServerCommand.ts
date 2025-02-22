@@ -54,13 +54,13 @@ const createServerCommandRunner = (
             if (context.ctx.hasReplyMessage) {
                 context.user.dbUser = await self.module.db.getUser(context.ctx.replyMessage.senderId);
 
-                if (!context.user.dbUser.nickname && !args.nickname[0]) {
+                if (!context.user.dbUser && !args.nickname[0]) {
                     await context.reply(
                         `У этого пользователя не указан ник!\nПривяжите через ${context.module.prefix[0]} nick <ник>`
                     );
                     return;
                 }
-            } else if (!context.user.dbUser.nickname && !args.nickname[0]) {
+            } else if (!context.user.dbUser && !args.nickname[0]) {
                 await context.reply(`Не указан ник!\nПривяжите через ${context.module.prefix[0]} nick <ник>`);
                 return;
             }
@@ -76,9 +76,17 @@ const createServerCommandRunner = (
 
         try {
             await func(context);
-        } catch (e) {
-            const err = await self.module.bot.database.errors.addError(self.module.prefix[0], ctx, String(e));
-            await context.reply(`${Util.error(String(e))} (${err})`);
+        } catch (e: unknown) {
+            const err = await self.module.bot.database.errors.addError(ctx, e);
+
+            let errorText: string;
+            if (e instanceof Error) {
+                errorText = e.message;
+            } else if (e instanceof String) {
+                errorText = String(e);
+            }
+
+            await context.reply(`${Util.error(errorText)} (${err})`);
         }
     };
 };

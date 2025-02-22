@@ -10,7 +10,7 @@ export default function formatReplay(replay: Replay, map: APIBeatmap, calc: ICal
     const mapLine = `${Util.formatBeatmap(map)} ${replay.mods}`;
 
     const gameStats = [
-        `Score: ${replay.score.toLocaleString()}`,
+        `Score: ${replay.score?.toLocaleString()}`,
         `Combo: ${Util.formatCombo(replay.combo, map.combo)}`,
     ].join(" | ");
 

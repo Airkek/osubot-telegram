@@ -28,8 +28,6 @@ export default class UnifiedMessageContext {
     readonly messagePayload: any;
     readonly hasReplyMessage: boolean;
     readonly replyMessage: ReplyToMessage;
-    readonly hasForwards: boolean;
-    readonly forwards: any[];
     readonly isChat: boolean;
     readonly senderId: number;
     readonly peerId: number;

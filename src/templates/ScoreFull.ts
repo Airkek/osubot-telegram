@@ -31,7 +31,7 @@ export default function (score: APIScore, beatmap: APIBeatmap, calc: ICalc, serv
     const total = [
         `${Util.formatBeatmap(beatmap)} ${score.mods}`,
         "",
-        `Score: ${score.score.toLocaleString()}`,
+        `Score: ${score.score?.toLocaleString()}`,
         `Combo: ${Util.formatCombo(score.combo, beatmap.combo)}`,
         `Accuracy: ${Util.round(score.accuracy() * 100, 2)}%`,
         ppString,
