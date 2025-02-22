@@ -16,7 +16,7 @@ export default class AbstractUser extends ServerCommand {
                     : await self.module.api.getUserById(self.user.id || self.user.dbUser.game_id, mode);
 
                 if (!this.ignoreDbUpdate) {
-                    self.module.db.updateInfo(user, mode);
+                    await self.module.db.updateInfo(user, mode);
                 }
 
                 const keyboard = Util.createKeyboard([

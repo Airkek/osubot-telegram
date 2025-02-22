@@ -18,7 +18,7 @@ interface ParsedUser {
     dbUser: IDatabaseUser;
 }
 
-class CommandContext {
+export class CommandContext {
     readonly name: string | string[];
     readonly module: Module;
     readonly ctx: UnifiedMessageContext;
