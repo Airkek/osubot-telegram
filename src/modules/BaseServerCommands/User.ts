@@ -10,16 +10,10 @@ export default class AbstractUser extends ServerCommand {
             ["user", "u", "г", "гыук"],
             module,
             async (self) => {
-                const mode =
-                    self.args.mode === null
-                        ? self.user.dbUser?.mode || 0
-                        : self.args.mode;
+                const mode = self.args.mode === null ? self.user.dbUser?.mode || 0 : self.args.mode;
                 const user = self.user.username
                     ? await self.module.api.getUser(self.user.username, mode)
-                    : await self.module.api.getUserById(
-                          self.user.id || self.user.dbUser.game_id,
-                          mode
-                      );
+                    : await self.module.api.getUserById(self.user.id || self.user.dbUser.game_id, mode);
 
                 if (!this.ignoreDbUpdate) {
                     self.module.db.updateInfo(user, mode);
@@ -44,12 +38,9 @@ export default class AbstractUser extends ServerCommand {
                         : [],
                 ]);
 
-                await self.reply(
-                    `${self.module.bot.templates.User(user, mode, self.module.link)}`,
-                    {
-                        keyboard,
-                    }
-                );
+                await self.reply(`${self.module.bot.templates.User(user, mode, self.module.link)}`, {
+                    keyboard,
+                });
             },
             true
         );

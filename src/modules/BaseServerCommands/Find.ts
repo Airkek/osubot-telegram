@@ -10,9 +10,7 @@ export default class AbstractFind extends ServerCommand {
                 return;
             }
 
-            const u = await self.module.api.getUser(
-                self.args.nickname.join(" ")
-            );
+            const u = await self.module.api.getUser(self.args.nickname.join(" "));
             const users = await self.module.db.findByUserId(u.id);
             if (!users[0]) {
                 await self.reply("Не найдено пользователей с таким ником!");

@@ -12,8 +12,7 @@ interface PPResults {
 export default function formatBeatmapInfo(map: APIBeatmap): string {
     const mapText = Util.formatBeatmap(map);
 
-    const totalHits =
-        map.objects.circles + map.objects.sliders + map.objects.spinners;
+    const totalHits = map.objects.circles + map.objects.sliders + map.objects.spinners;
     const calculator = new BanchoPP(map, new Mods(0));
 
     const getStandardPP = (accuracy: number): number => {

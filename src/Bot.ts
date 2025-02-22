@@ -83,9 +83,7 @@ export class Bot {
 
         this.tg.catch((err) => {
             const ctx = err.ctx;
-            console.error(
-                `Error while handling update ${ctx.update.update_id}:`
-            );
+            console.error(`Error while handling update ${ctx.update.update_id}:`);
             const e = err.error;
             if (e instanceof GrammyError) {
                 console.error("Error in request:", e.description);
@@ -98,19 +96,14 @@ export class Bot {
 
         this.tg.on("message:new_chat_members", async (context) => {
             for (const user of context.message.new_chat_members) {
-                if (
-                    !this.database.chats.isUserInChat(user.id, context.chatId)
-                ) {
+                if (!this.database.chats.isUserInChat(user.id, context.chatId)) {
                     this.database.chats.userJoined(user.id, context.chat.id);
                 }
             }
         });
 
         this.tg.on("message:left_chat_member", async (context) => {
-            this.database.chats.userLeft(
-                context.message.left_chat_member.id,
-                context.chat.id
-            );
+            this.database.chats.userLeft(context.message.left_chat_member.id, context.chat.id);
         });
 
         this.basicOverride = (cmd, override) => {
@@ -148,10 +141,7 @@ export class Bot {
                             this.maps.setMap(ctx.peerId, map);
                         }
                     }
-                    if (
-                        this.disabled.includes(ctx.peerId) &&
-                        check.command.disables
-                    ) {
+                    if (this.disabled.includes(ctx.peerId) && check.command.disables) {
                         return;
                     }
                     check.command.process(ctx);
@@ -163,12 +153,7 @@ export class Bot {
 
         this.tg.on("message", async (context) => {
             const ctx = new UnifiedMessageContext(context, this.tg);
-            if (
-                ctx.isGroup ||
-                ctx.isFromGroup ||
-                ctx.isEvent ||
-                this.ignored.isIgnored(ctx.senderId)
-            ) {
+            if (ctx.isGroup || ctx.isFromGroup || ctx.isEvent || this.ignored.isIgnored(ctx.senderId)) {
                 return;
             }
             this.totalMessages++;
@@ -191,15 +176,9 @@ export class Bot {
                     const replay = parser.getReplay();
                     let map = await this.api.v2.getBeatmap(replay.beatmapHash);
                     if (replay.mods.diff()) {
-                        map = await this.api.v2.getBeatmap(
-                            map.id.map,
-                            replay.mode,
-                            replay.mods
-                        );
+                        map = await this.api.v2.getBeatmap(map.id.map, replay.mode, replay.mods);
                     }
-                    const cover = await this.database.covers.getCover(
-                        map.id.set
-                    );
+                    const cover = await this.database.covers.getCover(map.id.set);
                     const calc = new BanchoPP(map, replay.mods);
                     const keyboard = Util.createKeyboard(
                         [
@@ -239,21 +218,12 @@ export class Bot {
                     return;
                 }
                 const score = await this.api.v2.getScoreByScoreId(hasScore);
-                const map = await this.api.v2.getBeatmap(
-                    score.beatmapId,
-                    score.mode,
-                    score.mods
-                );
+                const map = await this.api.v2.getBeatmap(score.beatmapId, score.mode, score.mods);
                 const user = await this.api.v2.getUserById(score.player_id);
                 const cover = await this.database.covers.getCover(map.id.set);
                 const calc = new Calculator(map, score.mods);
                 await ctx.reply(
-                    `Player: ${user.nickname}\n\n${this.templates.ScoreFull(
-                        score,
-                        map,
-                        calc,
-                        "https://osu.ppy.sh"
-                    )}`,
+                    `Player: ${user.nickname}\n\n${this.templates.ScoreFull(score, map, calc, "https://osu.ppy.sh")}`,
                     {
                         attachment: cover,
                     }
@@ -277,32 +247,20 @@ export class Bot {
                         const check = module.checkContext(ctx);
                         if (check) {
                             if (ctx.isChat) {
-                                const inChat =
-                                    await this.database.chats.isUserInChat(
-                                        ctx.senderId,
-                                        ctx.chatId
-                                    );
+                                const inChat = await this.database.chats.isUserInChat(ctx.senderId, ctx.chatId);
                                 if (!inChat) {
-                                    await this.database.chats.userJoined(
-                                        ctx.senderId,
-                                        ctx.chatId
-                                    );
+                                    await this.database.chats.userJoined(ctx.senderId, ctx.chatId);
                                 }
                             }
 
                             if (check.map) {
                                 const chat = this.maps.getChat(ctx.peerId);
                                 if (!chat || chat.map.id.map != check.map) {
-                                    const map = await this.api.v2.getBeatmap(
-                                        check.map
-                                    );
+                                    const map = await this.api.v2.getBeatmap(check.map);
                                     this.maps.setMap(ctx.peerId, map);
                                 }
                             }
-                            if (
-                                this.disabled.includes(ctx.peerId) &&
-                                check.command.disables
-                            ) {
+                            if (this.disabled.includes(ctx.peerId) && check.command.disables) {
                                 return;
                             }
                             check.command.process(ctx);
@@ -349,15 +307,11 @@ export class Bot {
         console.log("Stopped");
     }
 
-    async checkReplay(
-        ctx: UnifiedMessageContext
-    ): Promise<import("@grammyjs/types/message.js").File> {
+    async checkReplay(ctx: UnifiedMessageContext): Promise<import("@grammyjs/types/message.js").File> {
         if (!ctx.hasAttachments("doc")) {
             return null;
         }
-        const replays = ctx
-            .getAttachments("doc")
-            .filter((doc) => doc.file_name?.endsWith(".osr"));
+        const replays = ctx.getAttachments("doc").filter((doc) => doc.file_name?.endsWith(".osr"));
         if (replays.length == 0) {
             return null;
         }

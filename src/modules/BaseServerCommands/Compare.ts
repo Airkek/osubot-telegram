@@ -9,10 +9,7 @@ export default class AbstractCompare extends ServerCommand {
             ["compare", "c", "с", "сщьзфку"],
             module,
             async (self) => {
-                const mode =
-                    self.args.mode === null
-                        ? self.user.dbUser?.mode || 0
-                        : self.args.mode;
+                const mode = self.args.mode === null ? self.user.dbUser?.mode || 0 : self.args.mode;
                 const chat = self.module.bot.maps.getChat(self.ctx.peerId);
                 if (!chat) {
                     await self.ctx.reply("Сначала отправьте карту!");
@@ -23,28 +20,16 @@ export default class AbstractCompare extends ServerCommand {
                           self.user.username,
                           chat.map.id.map,
                           mode,
-                          self.args.mods.length == 0
-                              ? undefined
-                              : new Mods(self.args.mods).sum()
+                          self.args.mods.length == 0 ? undefined : new Mods(self.args.mods).sum()
                       )
                     : await self.module.api.getScoreByUid(
                           self.user.id || self.user.dbUser.game_id,
                           chat.map.id.map,
                           mode,
-                          self.args.mods.length == 0
-                              ? undefined
-                              : new Mods(self.args.mods).sum()
+                          self.args.mods.length == 0 ? undefined : new Mods(self.args.mods).sum()
                       );
-                const map =
-                    score.beatmap ??
-                    (await self.module.api.getBeatmap(
-                        chat.map.id.map,
-                        mode,
-                        score.mods
-                    ));
-                const cover = await self.module.bot.database.covers.getCover(
-                    map.id.set
-                );
+                const map = score.beatmap ?? (await self.module.api.getBeatmap(chat.map.id.map, mode, score.mods));
+                const cover = await self.module.bot.database.covers.getCover(map.id.set);
                 const calc = new Calculator(map, score.mods);
                 await self.reply(
                     `Лучший скор игрока на этой карте:\n${self.module.bot.templates.ScoreFull(

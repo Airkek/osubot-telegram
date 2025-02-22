@@ -10,10 +10,6 @@ export default class Admin extends Module {
 
         this.name = "Admin";
 
-        this.registerCommand([
-            new ErrorCommand(this),
-            new IgnoreCommand(this),
-            new DropCommand(this),
-        ]);
+        this.registerCommand([new ErrorCommand(this), new IgnoreCommand(this), new DropCommand(this)]);
     }
 }

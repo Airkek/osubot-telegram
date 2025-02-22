@@ -78,22 +78,16 @@ class ReplayParser {
 
     long() {
         this.offset += 8;
-        return new int64.Uint64LE(
-            this.raw_data.slice(this.offset - 8, this.offset)
-        ).toNumber();
+        return new int64.Uint64LE(this.raw_data.slice(this.offset - 8, this.offset)).toNumber();
     }
 
     string() {
         if (this.raw_data.readInt8(this.offset) == 0x0b) {
             this.offset += 1;
-            const ulString = leb.decodeUInt64(
-                this.raw_data.slice(this.offset, this.offset + 8)
-            );
+            const ulString = leb.decodeUInt64(this.raw_data.slice(this.offset, this.offset + 8));
             const strLength = ulString.value;
             this.offset += strLength + ulString.nextIndex;
-            return this.raw_data
-                .slice(this.offset - strLength, this.offset)
-                .toString();
+            return this.raw_data.slice(this.offset - strLength, this.offset).toString();
         }
         this.offset += 1;
         return "";

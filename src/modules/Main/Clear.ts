@@ -11,14 +11,11 @@ export default class ClearCommand extends Command {
 
             const isAdmin = await ctx.isAdmin();
             if (!isAdmin) {
-                await ctx.reply(
-                    "Эту команду может использовать только администратор чата"
-                );
+                await ctx.reply("Эту команду может использовать только администратор чата");
                 return;
             }
 
-            const origMembers =
-                await self.module.bot.database.chats.getChatUsers(ctx.chatId);
+            const origMembers = await self.module.bot.database.chats.getChatUsers(ctx.chatId);
             const duplicates = new Set<number>();
             const members = new Set<number>();
 
@@ -33,14 +30,8 @@ export default class ClearCommand extends Command {
             }
 
             for (const member of duplicates) {
-                await self.module.bot.database.chats.userLeft(
-                    member,
-                    ctx.chatId
-                );
-                await self.module.bot.database.chats.userJoined(
-                    member,
-                    ctx.chatId
-                );
+                await self.module.bot.database.chats.userLeft(member, ctx.chatId);
+                await self.module.bot.database.chats.userJoined(member, ctx.chatId);
             }
 
             const realCount = await ctx.countMembers();
@@ -70,10 +61,7 @@ export default class ClearCommand extends Command {
                 const inGroup = await ctx.isUserInChat(member);
 
                 if (!inGroup) {
-                    await self.module.bot.database.chats.userLeft(
-                        member,
-                        ctx.chatId
-                    );
+                    await self.module.bot.database.chats.userLeft(member, ctx.chatId);
                     kicked++;
                 }
             }

@@ -160,21 +160,13 @@ export default class GatariAPI implements IAPI {
         });
     }
 
-    async getBeatmap(
-        id: number | string,
-        mode?: number,
-        mods?: Mods
-    ): Promise<APIBeatmap> {
+    async getBeatmap(id: number | string, mode?: number, mods?: Mods): Promise<APIBeatmap> {
         return await this.bot.api.v2.getBeatmap(id, mode, mods);
     }
 
     async getUser(nickname: string, mode: number = 0): Promise<APIUser> {
-        const { data: user } = await this.api.get(
-            `/users/get?${qs.stringify({ u: nickname })}`
-        );
-        const { data: stats } = await this.api.get(
-            `/user/stats?${qs.stringify({ u: nickname, mode })}`
-        );
+        const { data: user } = await this.api.get(`/users/get?${qs.stringify({ u: nickname })}`);
+        const { data: stats } = await this.api.get(`/user/stats?${qs.stringify({ u: nickname, mode })}`);
         if (user.code != 200 || stats.code != 200) {
             throw "Unknown API error";
         }
@@ -185,12 +177,8 @@ export default class GatariAPI implements IAPI {
     }
 
     async getUserById(id: number | string, mode?: number): Promise<APIUser> {
-        const { data: user } = await this.api.get(
-            `/users/get?${qs.stringify({ id })}`
-        );
-        const { data: stats } = await this.api.get(
-            `/user/stats?${qs.stringify({ id, mode })}`
-        );
+        const { data: user } = await this.api.get(`/users/get?${qs.stringify({ id })}`);
+        const { data: stats } = await this.api.get(`/user/stats?${qs.stringify({ id, mode })}`);
         if (user.code != 200 || stats.code != 200) {
             throw "Unknown API error";
         }
@@ -200,83 +188,49 @@ export default class GatariAPI implements IAPI {
         return new GatariUser(user.users[0], stats.stats);
     }
 
-    async getUserTop(
-        nickname: string,
-        mode: number = 0,
-        limit: number = 3
-    ): Promise<APIScore[]> {
+    async getUserTop(nickname: string, mode: number = 0, limit: number = 3): Promise<APIScore[]> {
         const user = await this.getUser(nickname);
         return await this.getUserTopById(user.id as number, mode, limit);
     }
 
-    async getUserTopById(
-        id: number | string,
-        mode?: number,
-        limit: number = 3
-    ): Promise<APIScore[]> {
-        const { data } = await this.api.get(
-            `/user/scores/best?${qs.stringify({ id, mode, p: 1, l: limit })}`
-        );
+    async getUserTopById(id: number | string, mode?: number, limit: number = 3): Promise<APIScore[]> {
+        const { data } = await this.api.get(`/user/scores/best?${qs.stringify({ id, mode, p: 1, l: limit })}`);
         if (!data.scores) {
             throw "No scores";
         }
         return data.scores.map((s) => new GatariTopScore(s));
     }
 
-    async getUserRecent(
-        nickname: string,
-        mode: number = 0,
-        limit: number = 1
-    ): Promise<APIScore> {
+    async getUserRecent(nickname: string, mode: number = 0, limit: number = 1): Promise<APIScore> {
         const user = await this.getUser(nickname);
         return await this.getUserRecentById(user.id as number, mode, limit);
     }
 
-    async getUserRecentById(
-        id: number | string,
-        mode: number = 0,
-        limit: number = 1
-    ): Promise<APIScore> {
-        const { data } = await this.api.get(
-            `/user/scores/recent?${qs.stringify({ id, mode, p: 1, l: limit, f: 1 })}`
-        );
+    async getUserRecentById(id: number | string, mode: number = 0, limit: number = 1): Promise<APIScore> {
+        const { data } = await this.api.get(`/user/scores/recent?${qs.stringify({ id, mode, p: 1, l: limit, f: 1 })}`);
         if (!data.scores[0]) {
             throw "No scores";
         }
         return new GatariRecentScore(data.scores[0]);
     }
 
-    async getScore(
-        nickname: string,
-        beatmapId: number,
-        mode: number = 0
-    ): Promise<APIScore> {
+    async getScore(nickname: string, beatmapId: number, mode: number = 0): Promise<APIScore> {
         const user = await this.getUser(nickname);
         return await this.getScoreByUid(user.id as number, beatmapId, mode);
     }
 
-    async getScoreByUid(
-        uid: number | string,
-        beatmapId: number,
-        mode: number = 0
-    ): Promise<APIScore> {
+    async getScoreByUid(uid: number | string, beatmapId: number, mode: number = 0): Promise<APIScore> {
         if (mode > 1) {
             throw "Mode is not supported";
         }
-        const { data } = await this.api.get(
-            `/beatmap/user/score?${qs.stringify({ b: beatmapId, u: uid, mode })}`
-        );
+        const { data } = await this.api.get(`/beatmap/user/score?${qs.stringify({ b: beatmapId, u: uid, mode })}`);
         if (!data.score) {
             throw "No score";
         }
         return new GatariScore(data.score, beatmapId);
     }
 
-    async getLeaderboard(
-        beatmapId: number,
-        users: IDatabaseUser[],
-        mode: number = 0
-    ): Promise<LeaderboardResponse> {
+    async getLeaderboard(beatmapId: number, users: IDatabaseUser[], mode: number = 0): Promise<LeaderboardResponse> {
         const map = await this.getBeatmap(beatmapId, mode, new Mods(0));
         const scores: LeaderboardScore[] = [];
         try {
@@ -284,16 +238,10 @@ export default class GatariAPI implements IAPI {
             for (let i = 0; i < lim; i++) {
                 try {
                     const usrs = users.splice(0, 5);
-                    const usPromise = usrs.map((u) =>
-                        this.getScoreByUid(u.game_id, beatmapId, mode)
-                    );
-                    const s: APIScore[] = await Promise.all(
-                        usPromise.map((p) => p.catch((e) => e))
-                    );
+                    const usPromise = usrs.map((u) => this.getScoreByUid(u.game_id, beatmapId, mode));
+                    const s: APIScore[] = await Promise.all(usPromise.map((p) => p.catch((e) => e)));
                     for (let j = s.length - 1; j >= 0; j--) {
-                        const ok =
-                            typeof s[j] !== "string" &&
-                            !(s[j] instanceof Error);
+                        const ok = typeof s[j] !== "string" && !(s[j] instanceof Error);
                         if (!ok) {
                             s.splice(j, 1);
                             usrs.splice(j, 1);

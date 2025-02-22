@@ -25,11 +25,7 @@ class CommandContext {
     readonly args: ICommandArgs;
     user: ParsedUser;
 
-    constructor(
-        command: ServerCommand,
-        ctx: UnifiedMessageContext,
-        args: ICommandArgs
-    ) {
+    constructor(command: ServerCommand, ctx: UnifiedMessageContext, args: ICommandArgs) {
         this.ctx = ctx;
         this.args = args;
         this.name = command.name;
@@ -37,28 +33,17 @@ class CommandContext {
     }
 
     reply(text: string, options?: SendOptions): Promise<void> {
-        return this.ctx.reply(
-            `[Server: ${this.module.name}]\n${text}`,
-            options
-        );
+        return this.ctx.reply(`[Server: ${this.module.name}]\n${text}`, options);
     }
     send(text: string, options?: SendOptions, replyTo?: number): Promise<void> {
-        return this.ctx.send(
-            `[Server: ${this.module.name}]\n${text}`,
-            options,
-            replyTo
-        );
+        return this.ctx.send(`[Server: ${this.module.name}]\n${text}`, options, replyTo);
     }
 }
 
 const createServerCommandRunner = (
     func: (self: CommandContext) => Promise<void>,
     needUserParse: boolean
-): ((
-    ctx: UnifiedMessageContext,
-    self: Command,
-    args: ICommandArgs
-) => Promise<void>) => {
+): ((ctx: UnifiedMessageContext, self: Command, args: ICommandArgs) => Promise<void>) => {
     return async (ctx, self, args) => {
         const context = new CommandContext(self, ctx, args);
 
@@ -67,9 +52,7 @@ const createServerCommandRunner = (
         };
         if (needUserParse) {
             if (context.ctx.hasReplyMessage) {
-                context.user.dbUser = await self.module.db.getUser(
-                    context.ctx.replyMessage.senderId
-                );
+                context.user.dbUser = await self.module.db.getUser(context.ctx.replyMessage.senderId);
 
                 if (!context.user.dbUser.nickname && !args.nickname[0]) {
                     await context.reply(
@@ -78,9 +61,7 @@ const createServerCommandRunner = (
                     return;
                 }
             } else if (!context.user.dbUser.nickname && !args.nickname[0]) {
-                await context.reply(
-                    `Не указан ник!\nПривяжите через ${context.module.prefix[0]} nick <ник>`
-                );
+                await context.reply(`Не указан ник!\nПривяжите через ${context.module.prefix[0]} nick <ник>`);
                 return;
             }
 
@@ -96,11 +77,7 @@ const createServerCommandRunner = (
         try {
             await func(context);
         } catch (e) {
-            const err = await self.module.bot.database.errors.addError(
-                self.module.prefix[0],
-                ctx,
-                String(e)
-            );
+            const err = await self.module.bot.database.errors.addError(self.module.prefix[0], ctx, String(e));
             await context.reply(`${Util.error(String(e))} (${err})`);
         }
     };

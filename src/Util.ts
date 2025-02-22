@@ -1,19 +1,5 @@
-import {
-    IBeatmapStats,
-    HitCounts,
-    ICommandArgs,
-    IHits,
-    PPArgs,
-    CalcArgs,
-    APIBeatmap,
-} from "./Types";
-import {
-    ICalcStats,
-    OsuStats,
-    TaikoStats,
-    CatchStats,
-    ManiaStats,
-} from "./pp/Stats";
+import { IBeatmapStats, HitCounts, ICommandArgs, IHits, PPArgs, CalcArgs, APIBeatmap } from "./Types";
+import { ICalcStats, OsuStats, TaikoStats, CatchStats, ManiaStats } from "./pp/Stats";
 import { InlineKeyboard } from "grammy";
 
 interface Err {
@@ -92,32 +78,16 @@ export default {
     accuracy(counts: HitCounts): number {
         switch (counts.mode) {
             case 1:
-                return (
-                    (counts[300] * 2 + counts[100]) /
-                    ((counts[300] + counts[100] + counts[50] + counts.miss) * 2)
-                );
+                return (counts[300] * 2 + counts[100]) / ((counts[300] + counts[100] + counts[50] + counts.miss) * 2);
             case 2:
                 return (
                     (counts[50] + counts[100] + counts[300]) /
-                    (counts[50] +
-                        counts[100] +
-                        counts[300] +
-                        counts.miss +
-                        counts.katu)
+                    (counts[50] + counts[100] + counts[300] + counts.miss + counts.katu)
                 );
             case 3:
                 return (
-                    ((counts[300] + counts.geki) * 6 +
-                        counts.katu * 4 +
-                        counts[100] * 2 +
-                        counts[50]) /
-                    ((counts[300] +
-                        counts[100] +
-                        counts.geki +
-                        counts.katu +
-                        counts[50] +
-                        counts.miss) *
-                        6)
+                    ((counts[300] + counts.geki) * 6 + counts.katu * 4 + counts[100] * 2 + counts[50]) /
+                    ((counts[300] + counts[100] + counts.geki + counts.katu + counts[50] + counts.miss) * 6)
                 );
             default:
                 return (
@@ -148,12 +118,7 @@ export default {
                 iArg.mode = 0;
             } else if (arg == "-taiko" || arg == "-drums" || arg == "-t") {
                 iArg.mode = 1;
-            } else if (
-                arg == "-fruits" ||
-                arg == "-ctb" ||
-                arg == "-c" ||
-                arg == "-catch"
-            ) {
+            } else if (arg == "-fruits" || arg == "-ctb" || arg == "-c" || arg == "-catch") {
                 iArg.mode = 2;
             } else if (arg == "-mania" || arg == "-m") {
                 iArg.mode = 3;
@@ -224,15 +189,11 @@ export default {
 
             const max300 = obj - hits.miss;
 
-            hits[100] = Math.round(
-                -3 * ((acc * 0.01 - 1) * obj + hits.miss) * 0.5
-            );
+            hits[100] = Math.round(-3 * ((acc * 0.01 - 1) * obj + hits.miss) * 0.5);
 
             if (hits[100] > max300) {
                 hits[100] = 0;
-                hits[50] = Math.round(
-                    -6 * ((acc * 0.01 - 1) * obj + hits.miss) * 0.5
-                );
+                hits[50] = Math.round(-6 * ((acc * 0.01 - 1) * obj + hits.miss) * 0.5);
                 hits[50] = Math.min(max300, hits[50]);
             }
 
@@ -316,11 +277,7 @@ ${this.formatBeatmapLength(map.length)} | ${map.stats} ${Math.round(map.bpm)}BPM
         }
     },
     createKeyboard(rows: IKBButton[][]): InlineKeyboard {
-        const buttonRows = rows.map((row) =>
-            row.map((button) =>
-                InlineKeyboard.text(button.text, button.command)
-            )
-        );
+        const buttonRows = rows.map((row) => row.map((button) => InlineKeyboard.text(button.text, button.command)));
         return InlineKeyboard.from(buttonRows);
     },
     getModeArg(mode: number) {

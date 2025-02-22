@@ -39,11 +39,7 @@ class BanchoPP implements ICalc {
     }
 
     calculate(score: APIScore | CalcArgs | Replay): IPP {
-        if (
-            this.mods.has("Relax") ||
-            this.mods.has("Relax2") ||
-            this.mods.has("Autoplay")
-        ) {
+        if (this.mods.has("Relax") || this.mods.has("Relax2") || this.mods.has("Autoplay")) {
             return { pp: 0, fc: 0, ss: 0 };
         }
 
@@ -105,8 +101,7 @@ class BanchoPP implements ICalc {
             score.counts[100] === 0 &&
             score.counts[50] === 0 &&
             score.counts.miss === 0 &&
-            (score.mode != 3 ||
-                (score.counts.katu === 0 && score.counts[300] === 0))
+            (score.mode != 3 || (score.counts.katu === 0 && score.counts[300] === 0))
                 ? currAttrs
                 : new rosu.Performance({
                       mods: this.mods.flags,

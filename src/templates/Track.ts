@@ -14,12 +14,7 @@ ${
         ? ""
         : `${response.highscores.length} new highscores:\n${response.highscores
               .slice(0, 3)
-              .map(
-                  (score) =>
-                      `#${score.place + 1}. ${score.pp}pp https://osu.ppy.sh/b/${score.beatmapId}`
-              )
-              .join(
-                  "\n"
-              )}${response.highscores.length > 3 ? " and more.." : ""}`
+              .map((score) => `#${score.place + 1}. ${score.pp}pp https://osu.ppy.sh/b/${score.beatmapId}`)
+              .join("\n")}${response.highscores.length > 3 ? " and more.." : ""}`
 }`;
 }

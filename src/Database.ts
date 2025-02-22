@@ -3,12 +3,7 @@
 import { Bot as TG, InputFile } from "grammy";
 import { Pool, QueryResult } from "pg";
 import util from "./Util";
-import {
-    APIUser,
-    IDatabaseUser,
-    IDatabaseUserStats,
-    IDatabaseServer,
-} from "./Types";
+import { APIUser, IDatabaseUser, IDatabaseUserStats, IDatabaseServer } from "./Types";
 import UnifiedMessageContext from "./TelegramSupport";
 
 class DatabaseServer implements IDatabaseServer {
@@ -20,10 +15,10 @@ class DatabaseServer implements IDatabaseServer {
     }
 
     async getUser(id: number): Promise<IDatabaseUser | null> {
-        const user: IDatabaseUser = await this.db.get(
-            "SELECT * FROM users WHERE id = $1 AND server = $2",
-            [id, this.serverName]
-        );
+        const user: IDatabaseUser = await this.db.get("SELECT * FROM users WHERE id = $1 AND server = $2", [
+            id,
+            this.serverName,
+        ]);
         return user;
     }
 
@@ -35,23 +30,23 @@ class DatabaseServer implements IDatabaseServer {
         return users;
     }
 
-    async setNickname(
-        id: number,
-        game_id: number | string,
-        nickname: string,
-        mode: number = 0
-    ): Promise<void> {
+    async setNickname(id: number, game_id: number | string, nickname: string, mode: number = 0): Promise<void> {
         const user: IDatabaseUser = await this.getUser(id);
         if (!user.id) {
-            await this.db.run(
-                "INSERT INTO users (id, game_id, nickname, mode, server) VALUES ($1, $2, $3, $4, $5)",
-                [id, game_id, nickname, mode, this.serverName]
-            );
+            await this.db.run("INSERT INTO users (id, game_id, nickname, mode, server) VALUES ($1, $2, $3, $4, $5)", [
+                id,
+                game_id,
+                nickname,
+                mode,
+                this.serverName,
+            ]);
         } else {
-            await this.db.run(
-                "UPDATE users SET nickname = $1, game_id = $2 WHERE id = $3 AND server = $4",
-                [nickname, game_id, id, this.serverName]
-            );
+            await this.db.run("UPDATE users SET nickname = $1, game_id = $2 WHERE id = $3 AND server = $4", [
+                nickname,
+                game_id,
+                id,
+                this.serverName,
+            ]);
         }
     }
 
@@ -60,43 +55,25 @@ class DatabaseServer implements IDatabaseServer {
         if (!user) {
             return false;
         }
-        await this.db.run(
-            "UPDATE users SET mode = $1 WHERE id = $2 AND server = $3",
-            [mode, id, this.serverName]
-        );
+        await this.db.run("UPDATE users SET mode = $1 WHERE id = $2 AND server = $3", [mode, id, this.serverName]);
         return true;
     }
 
     async updateInfo(user: APIUser, mode: number): Promise<void> {
-        const dbUser = await this.db.get(
-            "SELECT * FROM stats WHERE id = $1 AND mode = $2 AND server = $3 LIMIT 1",
-            [user.id, mode, this.serverName]
-        );
+        const dbUser = await this.db.get("SELECT * FROM stats WHERE id = $1 AND mode = $2 AND server = $3 LIMIT 1", [
+            user.id,
+            mode,
+            this.serverName,
+        ]);
         if (!dbUser.id) {
             await this.db.run(
                 "INSERT INTO stats (id, nickname, pp, rank, acc, mode, server) VALUES ($1, $2, $3, $4, $5, $6, $7)",
-                [
-                    user.id,
-                    user.nickname,
-                    user.pp,
-                    user.rank.total,
-                    user.accuracy,
-                    mode,
-                    this.serverName,
-                ]
+                [user.id, user.nickname, user.pp, user.rank.total, user.accuracy, mode, this.serverName]
             );
         } else {
             await this.db.run(
                 "UPDATE stats SET nickname = $1, pp = $2, rank = $3, acc = $4 WHERE id = $5 AND mode = $6 AND server = $7",
-                [
-                    user.nickname,
-                    user.pp,
-                    user.rank.total,
-                    user.accuracy,
-                    user.id,
-                    mode,
-                    this.serverName,
-                ]
+                [user.nickname, user.pp, user.rank.total, user.accuracy, user.id, mode, this.serverName]
             );
         }
     }
@@ -119,16 +96,11 @@ class DatabaseCovers {
 
     async addCover(id: number): Promise<string> {
         try {
-            const file = new InputFile(
-                new URL(`https://assets.ppy.sh/beatmaps/${id}/covers/raw.jpg`)
-            );
+            const file = new InputFile(new URL(`https://assets.ppy.sh/beatmaps/${id}/covers/raw.jpg`));
             const send = await this.db.tg.api.sendPhoto(this.db.owner, file);
             const photo = send.photo[0].file_id;
 
-            await this.db.run(
-                "INSERT INTO covers (id, attachment) VALUES ($1, $2)",
-                [id, photo.toString()]
-            );
+            await this.db.run("INSERT INTO covers (id, attachment) VALUES ($1, $2)", [id, photo.toString()]);
 
             return photo.toString();
         } catch {
@@ -137,9 +109,7 @@ class DatabaseCovers {
     }
 
     async getCover(id: number): Promise<string> {
-        const cover = await this.db.get("SELECT * FROM covers WHERE id = $1", [
-            id,
-        ]);
+        const cover = await this.db.get("SELECT * FROM covers WHERE id = $1", [id]);
         if (!cover.id) {
             return this.addCover(id);
         }
@@ -152,10 +122,7 @@ class DatabaseCovers {
             const send = await this.db.tg.api.sendPhoto(this.db.owner, file);
             const photo = send.photo[0].file_id;
 
-            await this.db.run(
-                "INSERT INTO photos (url, attachment) VALUES ($1, $2)",
-                [photoUrl, photo.toString()]
-            );
+            await this.db.run("INSERT INTO photos (url, attachment) VALUES ($1, $2)", [photoUrl, photo.toString()]);
 
             return photo.toString();
         } catch {
@@ -164,9 +131,7 @@ class DatabaseCovers {
     }
 
     async getPhotoDoc(photoUrl: string): Promise<string> {
-        const cover = await this.db.get("SELECT * FROM photos WHERE url = $1", [
-            photoUrl,
-        ]);
+        const cover = await this.db.get("SELECT * FROM photos WHERE url = $1", [photoUrl]);
         if (!cover.url) {
             return this.addPhotoDoc(photoUrl);
         }
@@ -186,32 +151,23 @@ class DatabaseUsersToChat {
     }
 
     async userJoined(userId: number, chatId: number): Promise<void> {
-        await this.db.run(
-            "INSERT INTO users_to_chat (user_id, chat_id) VALUES ($1, $2)",
-            [userId, chatId]
-        );
+        await this.db.run("INSERT INTO users_to_chat (user_id, chat_id) VALUES ($1, $2)", [userId, chatId]);
     }
 
     async userLeft(userId: number, chatId: number): Promise<void> {
-        await this.db.run(
-            "DELETE FROM users_to_chat WHERE user_id = $1 AND chat_id = $2",
-            [userId, chatId]
-        );
+        await this.db.run("DELETE FROM users_to_chat WHERE user_id = $1 AND chat_id = $2", [userId, chatId]);
     }
 
     async getChatUsers(chatId: number): Promise<number[]> {
-        const users = await this.db.all(
-            "SELECT * FROM users_to_chat WHERE chat_id = $1",
-            [chatId]
-        );
+        const users = await this.db.all("SELECT * FROM users_to_chat WHERE chat_id = $1", [chatId]);
         return users.map((u) => u.user_id);
     }
 
     async isUserInChat(userId: number, chatId: number): Promise<boolean> {
-        const user = await this.db.get(
-            "SELECT * FROM users_to_chat WHERE user_id = $1 AND chat_id = $2",
-            [userId, chatId]
-        );
+        const user = await this.db.get("SELECT * FROM users_to_chat WHERE user_id = $1 AND chat_id = $2", [
+            userId,
+            chatId,
+        ]);
         return !!user.user_id;
     }
 }
@@ -232,9 +188,7 @@ class DatabaseIgnore {
     }
 
     async ignoreUser(userId: number): Promise<void> {
-        await this.db.run("INSERT INTO ignored_users (id) VALUES ($1)", [
-            userId,
-        ]);
+        await this.db.run("INSERT INTO ignored_users (id) VALUES ($1)", [userId]);
     }
 }
 
@@ -261,11 +215,7 @@ class DatabaseErrors {
         this.db = db;
     }
 
-    async addError(
-        prefix: string,
-        ctx: UnifiedMessageContext,
-        error: string
-    ): Promise<string> {
+    async addError(prefix: string, ctx: UnifiedMessageContext, error: string): Promise<string> {
         const code = `${prefix}.${util.hash()}`;
         const check = this.getError(code);
         if (!check) {
@@ -275,17 +225,12 @@ class DatabaseErrors {
         if (ctx.hasReplyMessage) {
             info += `; Replied to: ${ctx.replyMessage.senderId}`;
         }
-        await this.db.run(
-            "INSERT INTO errors (code, info, error) VALUES ($1, $2, $3)",
-            [code, info, error]
-        );
+        await this.db.run("INSERT INTO errors (code, info, error) VALUES ($1, $2, $3)", [code, info, error]);
         return code;
     }
 
     async getError(code: string): Promise<IDatabaseError | null> {
-        const error = this.db.get("SELECT * FROM errors WHERE code = $1", [
-            code,
-        ]);
+        const error = this.db.get("SELECT * FROM errors WHERE code = $1", [code]);
         return error;
     }
 
@@ -314,18 +259,10 @@ const migrations: IMigration[] = [
         version: 1,
         name: "Create tables",
         process: async (db: Database) => {
-            await db.run(
-                "CREATE TABLE IF NOT EXISTS covers (id BIGINT, attachment TEXT)"
-            );
-            await db.run(
-                "CREATE TABLE IF NOT EXISTS photos (url TEXT, attachment TEXT)"
-            );
-            await db.run(
-                "CREATE TABLE IF NOT EXISTS errors (code TEXT, info TEXT, error TEXT)"
-            );
-            await db.run(
-                "CREATE TABLE IF NOT EXISTS users_to_chat (user_id BIGINT, chat_id TEXT)"
-            );
+            await db.run("CREATE TABLE IF NOT EXISTS covers (id BIGINT, attachment TEXT)");
+            await db.run("CREATE TABLE IF NOT EXISTS photos (url TEXT, attachment TEXT)");
+            await db.run("CREATE TABLE IF NOT EXISTS errors (code TEXT, info TEXT, error TEXT)");
+            await db.run("CREATE TABLE IF NOT EXISTS users_to_chat (user_id BIGINT, chat_id TEXT)");
             await db.run(
                 "CREATE TABLE IF NOT EXISTS users (id BIGINT, game_id TEXT, nickname TEXT, mode SMALLINT, server TEXT)"
             );
@@ -339,9 +276,7 @@ const migrations: IMigration[] = [
         version: 2,
         name: "Create table for Ignore List",
         process: async (db: Database) => {
-            await db.run(
-                "CREATE TABLE IF NOT EXISTS ignored_users (id BIGINT)"
-            );
+            await db.run("CREATE TABLE IF NOT EXISTS ignored_users (id BIGINT)");
             return true;
         },
     },
@@ -360,9 +295,7 @@ async function applyMigrations(db: Database) {
             continue;
         }
 
-        console.log(
-            `Processing migration #${migration.version}: ${migration.name}`
-        );
+        console.log(`Processing migration #${migration.version}: ${migration.name}`);
 
         let res = false;
         try {
@@ -373,9 +306,7 @@ async function applyMigrations(db: Database) {
 
         if (res) {
             console.log("Success");
-            await db.run("INSERT INTO migrations (version) VALUES ($1)", [
-                migration.version,
-            ]);
+            await db.run("INSERT INTO migrations (version) VALUES ($1)", [migration.version]);
         } else {
             console.log("Failed. Aborting");
             process.abort();
@@ -464,9 +395,7 @@ export default class Database {
     }
 
     async init() {
-        await this.run(
-            "CREATE TABLE IF NOT EXISTS migrations (version INTEGER)"
-        );
+        await this.run("CREATE TABLE IF NOT EXISTS migrations (version INTEGER)");
 
         await applyMigrations(this);
     }

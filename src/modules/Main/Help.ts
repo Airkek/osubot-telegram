@@ -8,12 +8,7 @@ interface IHelpPage {
     text: string;
 }
 
-type pageNames =
-    | "default"
-    | "servers"
-    | "prefixes"
-    | "osucommands"
-    | "basiccommands";
+type pageNames = "default" | "servers" | "prefixes" | "osucommands" | "basiccommands";
 
 const button = (text: string, page: pageNames) => {
     return { text, command: `osu help ${page}` };
@@ -48,10 +43,7 @@ s user mrekk
 \`\`\`
 
 Здесь "s" - префикс сервера (Bancho), "user" - команда сервера, "mrekk" - аргумент команды сервера`,
-        keyboard: Util.createKeyboard([
-            [button("Префиксы", "prefixes")],
-            [button("🏠 На главную", "default")],
-        ]),
+        keyboard: Util.createKeyboard([[button("Префиксы", "prefixes")], [button("🏠 На главную", "default")]]),
     },
     prefixes: {
         text: `Сервер - префикс:
@@ -87,10 +79,7 @@ s user mrekk
 • compare {username?} - Скор игрока на последней карте, которую видел бот
 
 ⚠️Внимание! Прочитайте помощь по osu! серверам чтобы использовать эти команды!`,
-        keyboard: Util.createKeyboard([
-            [button("🌐 osu! servers", "servers")],
-            [button("🏠 На главную", "default")],
-        ]),
+        keyboard: Util.createKeyboard([[button("🌐 osu! servers", "servers")], [button("🏠 На главную", "default")]]),
     },
     basiccommands: {
         text: `Команды Basic модуля:
@@ -107,29 +96,25 @@ osu clear - очистить топ чата от вышедших участн�
 
 export default class HelpCommand extends Command {
     constructor(module: Module) {
-        super(
-            ["help", "хелп", "рудз", "помощь"],
-            module,
-            async (ctx, self, args) => {
-                const arg = args.full[0];
-                let page: IHelpPage = pages["default"];
-                if (arg && pages[arg]) {
-                    page = pages[arg];
-                }
+        super(["help", "хелп", "рудз", "помощь"], module, async (ctx, self, args) => {
+            const arg = args.full[0];
+            let page: IHelpPage = pages["default"];
+            if (arg && pages[arg]) {
+                page = pages[arg];
+            }
 
-                if (ctx.hasMessagePayload) {
-                    await ctx.edit(page.text, {
-                        keyboard: page.keyboard,
-                        dont_parse_links: false,
-                    });
-                    return;
-                }
-
-                await ctx.reply(page.text, {
+            if (ctx.hasMessagePayload) {
+                await ctx.edit(page.text, {
                     keyboard: page.keyboard,
                     dont_parse_links: false,
                 });
+                return;
             }
-        );
+
+            await ctx.reply(page.text, {
+                keyboard: page.keyboard,
+                dont_parse_links: false,
+            });
+        });
     }
 }

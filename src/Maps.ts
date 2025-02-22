@@ -42,11 +42,7 @@ export default class Maps {
             });
             this.setMap(ctx.peerId, map);
         } catch (e) {
-            const err = await this.bot.database.errors.addError(
-                "b",
-                ctx,
-                String(e)
-            );
+            const err = await this.bot.database.errors.addError("b", ctx, String(e));
             await ctx.reply(`${Util.error(String(e))} (${err})`);
         }
     }
@@ -59,11 +55,7 @@ export default class Maps {
             return;
         }
         const mods = new Mods(args.mods);
-        const map = await this.bot.api.v2.getBeatmap(
-            chat.map.id.map,
-            chat.map.mode,
-            mods
-        );
+        const map = await this.bot.api.v2.getBeatmap(chat.map.id.map, chat.map.mode, mods);
         const cover = await this.bot.database.covers.getCover(map.id.set);
         await ctx.reply(this.bot.templates.PP(map, args), {
             attachment: cover,

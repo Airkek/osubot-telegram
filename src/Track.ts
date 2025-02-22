@@ -11,13 +11,8 @@ export default class OsuTrackAPI {
         });
     }
 
-    async getChanges(
-        nickname: string,
-        mode: number
-    ): Promise<OsuTrackResponse> {
-        const { data: res } = await this.api.get(
-            `/get_changes.php?${qs.stringify({ user: nickname, mode })}`
-        );
+    async getChanges(nickname: string, mode: number): Promise<OsuTrackResponse> {
+        const { data: res } = await this.api.get(`/get_changes.php?${qs.stringify({ user: nickname, mode })}`);
         return {
             username: res.username,
             mode: res.mode,

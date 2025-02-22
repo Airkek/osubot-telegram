@@ -1,14 +1,7 @@
 import { IAPI } from "../API";
 import * as axios from "axios";
 import qs from "querystring";
-import {
-    APIBeatmap,
-    APIScore,
-    APIUser,
-    IBeatmapObjects,
-    IBeatmapStars,
-    IHitCounts,
-} from "../Types";
+import { APIBeatmap, APIScore, APIUser, IBeatmapObjects, IBeatmapStars, IHitCounts } from "../Types";
 import { Bot } from "../Bot";
 import Mods from "../pp/Mods";
 import { ICalcStats } from "../pp/Stats";
@@ -121,8 +114,7 @@ class BeatLeaderScoreMap implements APIBeatmap {
             nickname: data.leaderboard.song.mapper,
             id: data.leaderboard.song.mapperId,
         };
-        this.status =
-            data.leaderboard.difficulty.status == 3 ? "Ranked" : "Unranked";
+        this.status = data.leaderboard.difficulty.status == 3 ? "Ranked" : "Unranked";
         this.stats = {
             ar: 0,
             cs: 0,
@@ -231,17 +223,11 @@ export default class BeatLeaderAPI implements IAPI {
     }
 
     async getUserById(id: string): Promise<APIUser> {
-        const { data } = await this.api.get(
-            `/player/${id}?stats=true&keepOriginalId=false`
-        );
+        const { data } = await this.api.get(`/player/${id}?stats=true&keepOriginalId=false`);
         return new BeatSaberUser(data);
     }
 
-    async getUserRecentById(
-        id: string,
-        mode?: number,
-        limit: number = 1
-    ): Promise<APIScore> {
+    async getUserRecentById(id: string, mode?: number, limit: number = 1): Promise<APIScore> {
         const data: BLScoreResponse = (
             await this.api.get(
                 `/player/${id}/scores?${qs.stringify({ sortBy: "date", order: "desc", page: 1, count: limit })}`
@@ -254,20 +240,14 @@ export default class BeatLeaderAPI implements IAPI {
         throw "No recent scores";
     }
 
-    async getUserTopById(
-        id: string,
-        mode?: number,
-        limit: number = 3
-    ): Promise<APIScore[]> {
+    async getUserTopById(id: string, mode?: number, limit: number = 3): Promise<APIScore[]> {
         const data: BLScoreResponse = (
             await this.api.get(
                 `/player/${id}/scores?${qs.stringify({ sortBy: "pp", order: "desc", page: 1, count: limit })}`
             )
         ).data;
         if (data && data.data && data.data.length > 0) {
-            return data.data.map(
-                (scoreData: BLScoreData) => new BeatSaberScore(scoreData)
-            );
+            return data.data.map((scoreData: BLScoreData) => new BeatSaberScore(scoreData));
         }
 
         throw "No top scores";
