@@ -3,6 +3,7 @@ import Util from "../../Util";
 import BanchoPP from "../../pp/bancho";
 import Mods from "../../pp/Mods";
 import { ServerCommand } from "./BasicServerCommand";
+import { Mode } from "../../Types";
 
 export default class AbstractTop extends ServerCommand {
     ignoreDbUpdate: boolean;
@@ -46,14 +47,13 @@ export default class AbstractTop extends ServerCommand {
                         }
                     }
                     let nearest = top[0];
-                    let place = 1;
                     for (let i = 0; i < top.length; i++) {
                         if (
                             Math.abs(top[i].pp - self.args.apx) <
                             Math.abs(nearest.pp - self.args.apx)
                         ) {
                             nearest = top[i];
-                            place = i + 1;
+                            top[i].top100_number = i + 1;
                         }
                     }
 
@@ -71,7 +71,7 @@ export default class AbstractTop extends ServerCommand {
                     const calc = new BanchoPP(map, nearest.mods);
                     self.module.bot.maps.setMap(self.ctx.peerId, map);
                     await self.reply(
-                        `Ближайшее к ${self.args.apx}pp\n${self.module.bot.templates.TopSingle(nearest, map, user, place, calc, self.module.link)}`,
+                        `Ближайший к ${self.args.apx}pp скор игрока ${user.nickname} (${Mode[nearest.mode]}):\n${self.module.bot.templates.ScoreFull(nearest, map, calc, self.module.link)}`,
                         {
                             attachment: cover,
                         }
@@ -141,7 +141,7 @@ export default class AbstractTop extends ServerCommand {
                             : undefined;
 
                     await self.reply(
-                        `${self.module.bot.templates.TopSingle(score, map, user, self.args.place, calc, self.module.link)}`,
+                        `Топ #${self.args.place} скор игрока ${user.nickname} (${Mode[score.mode]}):\n${self.module.bot.templates.ScoreFull(score, map, calc, self.module.link)}`,
                         {
                             attachment: cover,
                             keyboard,

@@ -61,7 +61,7 @@ export default class AbstractRecent extends ServerCommand {
                           ])
                         : undefined;
                 await self.reply(
-                    `${self.module.bot.templates.RecentScore(recent, map, calc, self.module.link)}`,
+                    `${self.module.bot.templates.ScoreFull(recent, map, calc, self.module.link)}`,
                     {
                         attachment: cover,
                         keyboard,

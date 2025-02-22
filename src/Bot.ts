@@ -11,7 +11,6 @@ import Admin from "./modules/Admin";
 import Main from "./modules/Main";
 import BanchoPP from "./pp/bancho";
 import Gatari from "./modules/Gatari";
-import IsMap from "./MapRegexp";
 import Ripple from "./modules/Ripple";
 import Akatsuki from "./modules/Akatsuki";
 import AkatsukiRelax from "./modules/AkatsukiRelax";
@@ -22,6 +21,9 @@ import IgnoreList from "./Ignore";
 import UnifiedMessageContext from "./TelegramSupport";
 import BeatLeader from "./modules/BeatLeader";
 import ScoreSaber from "./modules/ScoreSaber";
+import IsMap from "./regexes/MapRegexp";
+import IsScore from "./regexes/ScoreRegexp";
+import Calculator from "./pp/bancho";
 
 export interface IBotConfig {
     tg: {
@@ -171,6 +173,7 @@ export class Bot {
             }
             this.totalMessages++;
             const replayDoc = await this.checkReplay(ctx);
+            const hasScore = this.checkScore(ctx);
             const hasMap = this.checkMap(ctx);
             if (replayDoc && replayDoc.file_path) {
                 if (this.disabled.includes(ctx.peerId)) {
@@ -231,11 +234,35 @@ export class Bot {
                     console.log(e);
                     await ctx.reply("Произошла ошибка при обработке реплея!");
                 }
+            } else if (hasScore) {
+                if (this.disabled.includes(ctx.peerId)) {
+                    return;
+                }
+                const score = await this.api.v2.getScoreByScoreId(hasScore);
+                const map = await this.api.v2.getBeatmap(
+                    score.beatmapId,
+                    score.mode,
+                    score.mods
+                );
+                const user = await this.api.v2.getUserById(score.player_id);
+                const cover = await this.database.covers.getCover(map.id.set);
+                const calc = new Calculator(map, score.mods);
+                await ctx.reply(
+                    `Player: ${user.nickname}\n\n${this.templates.ScoreFull(
+                        score,
+                        map,
+                        calc,
+                        "https://osu.ppy.sh"
+                    )}`,
+                    {
+                        attachment: cover,
+                    }
+                );
             } else if (hasMap) {
                 if (this.disabled.includes(ctx.peerId)) {
                     return;
                 }
-                this.maps.sendMap(hasMap, ctx);
+                await this.maps.sendMap(hasMap, ctx);
             } else {
                 if (!ctx.hasText) {
                     return;
@@ -244,7 +271,7 @@ export class Bot {
                     if (this.disabled.includes(ctx.peerId)) {
                         return;
                     }
-                    this.maps.stats(ctx);
+                    await this.maps.stats(ctx);
                 } else {
                     for (const module of this.modules) {
                         const check = module.checkContext(ctx);
@@ -349,6 +376,22 @@ export class Bot {
             hasMap = IsMap(url);
             if (hasMap) {
                 return hasMap;
+            }
+        }
+        return null;
+    }
+
+    checkScore(ctx: UnifiedMessageContext): number {
+        let hasScore = IsScore(ctx.text);
+        const hasAtt = ctx.hasAttachments("link");
+        if (hasScore) {
+            return hasScore;
+        }
+        if (hasAtt) {
+            const url = ctx.getAttachments("link")[0].url;
+            hasScore = IsMap(url);
+            if (hasScore) {
+                return hasScore;
             }
         }
         return null;

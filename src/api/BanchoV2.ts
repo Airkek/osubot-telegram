@@ -58,6 +58,7 @@ interface Score {
     processed?: boolean;
     preserve?: boolean;
     ranked?: boolean;
+    user_id?: number;
 }
 
 interface Beatmap {
@@ -271,6 +272,7 @@ class V2Score implements APIScore {
     rank_global?: number;
     v2_acc: number;
     top100_number?: number;
+    player_id?: number;
     constructor(data: Score, forceLazerScore = false) {
         this.api_score_id = data.id;
         this.beatmapId = data.beatmap.id;
@@ -299,6 +301,7 @@ class V2Score implements APIScore {
         this.date = new Date(data.ended_at);
         this.pp = data.pp;
         this.v2_acc = data.accuracy;
+        this.player_id = data.user_id;
     }
 
     accuracy() {
@@ -524,7 +527,7 @@ class BanchoAPIV2 implements IAPI {
         mode?: number,
         mods?: Mods
     ): Promise<APIBeatmap> {
-        let data: BeatmapExtended = undefined;
+        let data: BeatmapExtended;
 
         if (typeof id === "string") {
             data = await this.get("https://osu.ppy.sh/api/v2/beatmaps/lookup", {
@@ -562,7 +565,9 @@ class BanchoAPIV2 implements IAPI {
         if (!fs.existsSync(filePath)) {
             const response = await axios.default.get(
                 `https://osu.ppy.sh/osu/${beatmap.id.map}`,
-                { responseType: "arraybuffer" }
+                {
+                    responseType: "arraybuffer",
+                }
             );
             const buffer = Buffer.from(response.data, "binary");
             fs.writeFileSync(filePath, buffer);
@@ -673,7 +678,7 @@ class BanchoAPIV2 implements IAPI {
             let fullInfo: Score = score;
             if (fullInfo.passed) {
                 try {
-                    fullInfo = await this.getScoreByScoreId(
+                    fullInfo = await this.getScoreByScoreId_internal(
                         score.id,
                         !!score.legacy_total_score
                     );
@@ -745,7 +750,15 @@ class BanchoAPIV2 implements IAPI {
         return new V2Score(data.score, forceLazerScore);
     }
 
-    private async getScoreByScoreId(
+    async getScoreByScoreId(
+        scoreId: number | string,
+        legacyOnly = false
+    ): Promise<V2Score> {
+        const data = await this.getScoreByScoreId_internal(scoreId, legacyOnly);
+        return new V2Score(data);
+    }
+
+    private async getScoreByScoreId_internal(
         scoreId: number | string,
         legacyOnly = false
     ): Promise<Score> {

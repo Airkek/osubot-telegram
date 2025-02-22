@@ -254,6 +254,7 @@ interface APIScore {
     pp?: number;
     fcPp?: number;
     beatmap?: APIBeatmap;
+    player_id?: number;
     fake?: boolean;
     accuracy(): number;
 }
