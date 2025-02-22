@@ -17,9 +17,7 @@ export default function (map: APIBeatmap, args: ICommandArgs): string {
     }
 
     const accuracy = args.acc / 100 || 1;
-    const maxCombo = args.combo
-        ? Math.min(map.combo, Math.max(1, args.combo))
-        : map.combo;
+    const maxCombo = args.combo ? Math.min(map.combo, Math.max(1, args.combo)) : map.combo;
     const missCount = args.miss ? Math.min(hits, Math.max(0, args.miss)) : 0;
 
     const ppArgs = Util.createPPArgs(

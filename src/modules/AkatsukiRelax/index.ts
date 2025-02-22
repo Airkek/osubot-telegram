@@ -13,10 +13,6 @@ export default class AkatsukiRelax extends Module {
         this.api = bot.api.relax;
         this.db = bot.database.servers.akatsuki;
 
-        this.registerCommand([
-            new AbstractUser(this, true),
-            new AbstractTop(this, true),
-            new AbstractRecent(this),
-        ]);
+        this.registerCommand([new AbstractUser(this, true), new AbstractTop(this, true), new AbstractRecent(this)]);
     }
 }

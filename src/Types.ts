@@ -20,12 +20,7 @@ interface ICommandArgs {
 interface IDatabaseServer {
     getUser(id: number): Promise<IDatabaseUser | null>;
     findByUserId(id: number | string): Promise<IDatabaseUser[]>;
-    setNickname(
-        id: number,
-        uid: number | string,
-        nickname: string,
-        mode?: number
-    ): Promise<void>;
+    setNickname(id: number, uid: number | string, nickname: string, mode?: number): Promise<void>;
     setMode(id: number, mode: number): Promise<boolean>;
     updateInfo(user: APIUser, mode: number): Promise<void>;
     getUserStats(id: number, mode: number): Promise<IDatabaseUserStats>;
@@ -177,14 +172,7 @@ class HitCounts implements IHitCounts {
             case 2:
                 return 0;
             case 3:
-                return (
-                    this.geki +
-                    this.katu +
-                    this[300] +
-                    this[100] +
-                    this[50] +
-                    this.miss
-                );
+                return this.geki + this.katu + this[300] + this[100] + this[50] + this.miss;
             default:
                 return this[300] + this[100] + this[50] + this.miss;
         }
@@ -313,8 +301,7 @@ class APIBeatmap {
         this.title = data.title;
         this.length = Number(data.total_length);
         this.version = data.version;
-        this.combo =
-            data.mode == 1 ? this.objects.circles : Number(data.max_combo);
+        this.combo = data.mode == 1 ? this.objects.circles : Number(data.max_combo);
         this.mode = Number(data.mode);
     }
 }

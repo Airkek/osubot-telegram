@@ -16,10 +16,7 @@ interface IPPCalculator {
     mods: Mods;
     stats: ICalcStats;
     calculate(score: APIScore | APIScore | APIScore | Replay | CalcArgs): IPP;
-    PP(
-        score: APIScore | APIScore | APIScore | Replay | CalcArgs,
-        rmap: rosu.Beatmap
-    ): IPP;
+    PP(score: APIScore | APIScore | APIScore | Replay | CalcArgs, rmap: rosu.Beatmap): IPP;
 }
 
 export { IPP, IPPCalculator };

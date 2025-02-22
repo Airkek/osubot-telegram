@@ -3,11 +3,7 @@ import { APIBeatmap } from "../Types";
 import Util from "../Util";
 import { IPPCalculator as ICalc } from "../pp/Calculator";
 
-export default function formatReplay(
-    replay: Replay,
-    map: APIBeatmap,
-    calc: ICalc
-): string {
+export default function formatReplay(replay: Replay, map: APIBeatmap, calc: ICalc): string {
     const pp = calc.calculate(replay);
 
     const header = `${replay.player}'s replay:`;
@@ -30,14 +26,5 @@ export default function formatReplay(
 
     const additionalInfo = `Hitcounts: ${replay.counts.toString()}`;
 
-    return [
-        header,
-        "",
-        mapLine,
-        "",
-        gameStats,
-        accuracy,
-        ppInfo,
-        additionalInfo,
-    ].join("\n");
+    return [header, "", mapLine, "", gameStats, accuracy, ppInfo, additionalInfo].join("\n");
 }

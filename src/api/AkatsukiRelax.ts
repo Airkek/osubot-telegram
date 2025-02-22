@@ -116,19 +116,13 @@ export default class AkatsukiRelaxAPI implements IAPI {
         });
     }
 
-    async getBeatmap(
-        id: number | string,
-        mode?: number,
-        mods?: Mods
-    ): Promise<APIBeatmap> {
+    async getBeatmap(id: number | string, mode?: number, mods?: Mods): Promise<APIBeatmap> {
         return await this.bot.api.v2.getBeatmap(id, mode, mods);
     }
 
     async getUser(nickname: string, mode: number = 0): Promise<APIUser> {
         try {
-            const { data } = await this.api.get(
-                `/users/full?${qs.stringify({ name: nickname })}`
-            );
+            const { data } = await this.api.get(`/users/full?${qs.stringify({ name: nickname })}`);
             const m = ["std", "taiko", "ctb", "mania"][mode];
             return new AkatsukiRelaxUser(data, m);
         } catch (e) {
@@ -138,9 +132,7 @@ export default class AkatsukiRelaxAPI implements IAPI {
 
     async getUserById(id: number, mode?: number): Promise<APIUser> {
         try {
-            const { data } = await this.api.get(
-                `/users/full?${qs.stringify({ id })}`
-            );
+            const { data } = await this.api.get(`/users/full?${qs.stringify({ id })}`);
             const m = ["std", "taiko", "ctb", "mania"][mode];
             return new AkatsukiRelaxUser(data, m);
         } catch (e) {
@@ -148,11 +140,7 @@ export default class AkatsukiRelaxAPI implements IAPI {
         }
     }
 
-    async getUserTop(
-        nickname: string,
-        mode: number = 0,
-        limit: number = 3
-    ): Promise<APIScore[]> {
+    async getUserTop(nickname: string, mode: number = 0, limit: number = 3): Promise<APIScore[]> {
         try {
             const { data } = await this.api.get(
                 `/users/scores/best?${qs.stringify({ name: nickname, mode, l: limit, rx: 1 })}`
@@ -160,29 +148,19 @@ export default class AkatsukiRelaxAPI implements IAPI {
             if (data.code != 200 || !data.scores) {
                 throw data.message || undefined;
             }
-            return data.scores.map(
-                (score) => new AkatsukiRelaxScore(score, mode)
-            );
+            return data.scores.map((score) => new AkatsukiRelaxScore(score, mode));
         } catch (e) {
             throw e || "No scores";
         }
     }
 
-    async getUserTopById(
-        id: number,
-        mode: number = 0,
-        limit: number = 3
-    ): Promise<APIScore[]> {
+    async getUserTopById(id: number, mode: number = 0, limit: number = 3): Promise<APIScore[]> {
         try {
-            const { data } = await this.api.get(
-                `/users/scores/best?${qs.stringify({ id, mode, l: limit, rx: 1 })}`
-            );
+            const { data } = await this.api.get(`/users/scores/best?${qs.stringify({ id, mode, l: limit, rx: 1 })}`);
             if (data.code != 200 || !data.scores) {
                 throw data.message || undefined;
             }
-            return data.scores.map(
-                (score) => new AkatsukiRelaxScore(score, mode)
-            );
+            return data.scores.map((score) => new AkatsukiRelaxScore(score, mode));
         } catch (e) {
             throw e || "No scores";
         }
@@ -202,15 +180,9 @@ export default class AkatsukiRelaxAPI implements IAPI {
         }
     }
 
-    async getUserRecentById(
-        id: number,
-        mode?: number,
-        limit?: number
-    ): Promise<APIScore> {
+    async getUserRecentById(id: number, mode?: number, limit?: number): Promise<APIScore> {
         try {
-            const { data } = await this.api.get(
-                `/users/scores/recent?${qs.stringify({ id, mode, l: limit, rx: 1 })}`
-            );
+            const { data } = await this.api.get(`/users/scores/recent?${qs.stringify({ id, mode, l: limit, rx: 1 })}`);
             if (data.code != 200 || !data.scores) {
                 throw data.message || undefined;
             }

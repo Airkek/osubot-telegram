@@ -125,18 +125,12 @@ export default class RippleAPI implements IAPI {
         });
     }
 
-    async getBeatmap(
-        id: number | string,
-        mode?: number,
-        mods?: Mods
-    ): Promise<APIBeatmap> {
+    async getBeatmap(id: number | string, mode?: number, mods?: Mods): Promise<APIBeatmap> {
         return await this.bot.api.v2.getBeatmap(id, mode, mods);
     }
 
     async getUser(nickname: string, mode: number = 0): Promise<APIUser> {
-        const { data } = await this.api.get(
-            `/get_user?${qs.stringify({ u: nickname, m: mode, type: "string" })}`
-        );
+        const { data } = await this.api.get(`/get_user?${qs.stringify({ u: nickname, m: mode, type: "string" })}`);
         if (!data[0]) {
             throw "User not found";
         }
@@ -144,34 +138,22 @@ export default class RippleAPI implements IAPI {
     }
 
     async getUserById(id: number | string, mode: number = 0): Promise<APIUser> {
-        const { data } = await this.api.get(
-            `/get_user?${qs.stringify({ u: id, m: mode })}`
-        );
+        const { data } = await this.api.get(`/get_user?${qs.stringify({ u: id, m: mode })}`);
         if (!data[0]) {
             throw "User not found";
         }
         return new RippleUser(data[0]);
     }
 
-    async getUserTop(
-        nickname: string,
-        mode: number = 0,
-        limit: number = 3
-    ): Promise<APIScore[]> {
+    async getUserTop(nickname: string, mode: number = 0, limit: number = 3): Promise<APIScore[]> {
         const { data } = await this.api.get(
             `/get_user_best?${qs.stringify({ u: nickname, m: mode, limit, type: "string" })}`
         );
         return data.map((s) => new RippleScore(s, mode));
     }
 
-    async getUserTopById(
-        id: number | string,
-        mode: number = 0,
-        limit: number = 3
-    ): Promise<APIScore[]> {
-        const { data } = await this.api.get(
-            `/get_user_best?${qs.stringify({ u: id, m: mode, limit })}`
-        );
+    async getUserTopById(id: number | string, mode: number = 0, limit: number = 3): Promise<APIScore[]> {
+        const { data } = await this.api.get(`/get_user_best?${qs.stringify({ u: id, m: mode, limit })}`);
         return data.map((s) => new RippleScore(s, mode));
     }
 
@@ -185,25 +167,15 @@ export default class RippleAPI implements IAPI {
         throw "No recent scores";
     }
 
-    async getUserRecentById(
-        id: number | string,
-        mode: number = 0
-    ): Promise<APIScore> {
-        const { data } = await this.api.get(
-            `/get_user_recent?${qs.stringify({ u: id, m: mode, limit: 1 })}`
-        );
+    async getUserRecentById(id: number | string, mode: number = 0): Promise<APIScore> {
+        const { data } = await this.api.get(`/get_user_recent?${qs.stringify({ u: id, m: mode, limit: 1 })}`);
         if (data[0]) {
             return new RippleRecentScore(data[0], mode);
         }
         throw "No recent scores";
     }
 
-    async getScore(
-        nickname: string,
-        beatmapId: number,
-        mode: number = 0,
-        mods: number = null
-    ): Promise<APIScore> {
+    async getScore(nickname: string, beatmapId: number, mode: number = 0, mods: number = null): Promise<APIScore> {
         const opts = {
             u: nickname,
             b: beatmapId,
@@ -211,9 +183,7 @@ export default class RippleAPI implements IAPI {
             type: "string",
         };
         try {
-            let { data } = await this.api.get(
-                `/get_scores?${qs.stringify(opts)}`
-            );
+            let { data } = await this.api.get(`/get_scores?${qs.stringify(opts)}`);
             if (!isNullOrUndefined(mods)) {
                 data = data.filter((p) => p.enabled_mods == mods);
             }
@@ -239,9 +209,7 @@ export default class RippleAPI implements IAPI {
             m: mode,
         };
         try {
-            let { data } = await this.api.get(
-                `/get_scores?${qs.stringify(opts)}`
-            );
+            let { data } = await this.api.get(`/get_scores?${qs.stringify(opts)}`);
             if (!isNullOrUndefined(mods)) {
                 data = data.filter((p) => p.enabled_mods == mods);
             }
@@ -268,16 +236,10 @@ export default class RippleAPI implements IAPI {
             for (let i = 0; i < lim; i++) {
                 try {
                     const usrs = users.splice(0, 5);
-                    const usPromise = usrs.map((u) =>
-                        this.getScoreByUid(u.game_id, beatmapId, mode, mods)
-                    );
-                    const s: APIScore[] = await Promise.all(
-                        usPromise.map((p) => p.catch((e) => e))
-                    );
+                    const usPromise = usrs.map((u) => this.getScoreByUid(u.game_id, beatmapId, mode, mods));
+                    const s: APIScore[] = await Promise.all(usPromise.map((p) => p.catch((e) => e)));
                     for (let j = s.length - 1; j >= 0; j--) {
-                        const ok =
-                            typeof s[j] !== "string" &&
-                            !(s[j] instanceof Error);
+                        const ok = typeof s[j] !== "string" && !(s[j] instanceof Error);
                         if (!ok) {
                             s.splice(j, 1);
                             usrs.splice(j, 1);

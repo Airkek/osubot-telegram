@@ -21,19 +21,8 @@ import { IPPCalculator as ICalc } from "../pp/Calculator";
 
 interface ITemplates {
     User: (user: APIUser, mode: number, link: string) => string;
-    TopScore: (
-        score: APIScore,
-        beatmap: APIBeatmap,
-        place: number,
-        calc: ICalc,
-        link: string
-    ) => string;
-    ScoreFull: (
-        score: APIScore,
-        beatmap: APIBeatmap,
-        calc: ICalc,
-        link: string
-    ) => string;
+    TopScore: (score: APIScore, beatmap: APIBeatmap, place: number, calc: ICalc, link: string) => string;
+    ScoreFull: (score: APIScore, beatmap: APIBeatmap, calc: ICalc, link: string) => string;
     Replay: (replay: Replay, map: APIBeatmap, calc: ICalc) => string;
     Beatmap: (map: APIBeatmap) => string;
     PP: (map: APIBeatmap, args: ICommandArgs) => string;

@@ -38,9 +38,7 @@ export class Module implements ICommandsModule {
         command: Command;
         map?: number;
     } {
-        const args = ctx.hasMessagePayload
-            ? ctx.messagePayload.split(" ")
-            : ctx.text.split(" ");
+        const args = ctx.hasMessagePayload ? ctx.messagePayload.split(" ") : ctx.text.split(" ");
         let map: number;
         if (args[0].startsWith("{map")) {
             map = Number(args[0].split("}")[0].slice(4));
@@ -51,10 +49,7 @@ export class Module implements ICommandsModule {
         }
         const prefix = args.shift();
         const command = args.shift();
-        if (
-            !this.checkPrefix(prefix.toLowerCase()) ||
-            !this.findCommand(command)
-        ) {
+        if (!this.checkPrefix(prefix.toLowerCase()) || !this.findCommand(command)) {
             return null;
         }
         return {

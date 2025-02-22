@@ -37,9 +37,7 @@ export default class AbstractMode extends ServerCommand {
                     break;
             }
             if (isNaN(m) || m > 3 || m < 0) {
-                await self.reply(
-                    "Некорректный режим!\nДоступные моды:\n0 - osu!\n1 - Taiko\n2 - Fruits\n3 - Mania"
-                );
+                await self.reply("Некорректный режим!\nДоступные моды:\n0 - osu!\n1 - Taiko\n2 - Fruits\n3 - Mania");
                 return;
             }
             await self.module.db.setMode(self.ctx.senderId, m);

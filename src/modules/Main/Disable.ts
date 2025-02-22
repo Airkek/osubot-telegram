@@ -17,14 +17,10 @@ export default class DisableCommand extends Command {
                     return;
                 }
 
-                const isDisabled = self.module.bot.disabled.includes(
-                    ctx.peerId
-                );
+                const isDisabled = self.module.bot.disabled.includes(ctx.peerId);
 
                 if (isDisabled) {
-                    self.module.bot.disabled = self.module.bot.disabled.filter(
-                        (d) => d != ctx.peerId
-                    );
+                    self.module.bot.disabled = self.module.bot.disabled.filter((d) => d != ctx.peerId);
                 } else {
                     self.module.bot.disabled.push(ctx.peerId);
                 }

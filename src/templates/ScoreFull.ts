@@ -2,15 +2,8 @@ import { APIScore, APIBeatmap, ProfileMode } from "../Types";
 import Util from "../Util";
 import { IPPCalculator as ICalc } from "../pp/Calculator";
 
-export default function (
-    score: APIScore,
-    beatmap: APIBeatmap,
-    calc: ICalc,
-    serverLink: string
-) {
-    const pp = score.fcPp
-        ? { pp: score.pp, fc: score.fcPp, ss: undefined }
-        : calc.calculate(score);
+export default function (score: APIScore, beatmap: APIBeatmap, calc: ICalc, serverLink: string) {
+    const pp = score.fcPp ? { pp: score.pp, fc: score.fcPp, ss: undefined } : calc.calculate(score);
 
     let ppString = `PP: ${score.pp ? score.pp.toFixed(2) : pp.pp.toFixed(2)}`;
     if (pp.fc !== undefined && pp.fc !== pp.pp) {
@@ -21,10 +14,7 @@ export default function (
         ppString += ` → SS: ${pp.ss.toFixed(2)}`;
     }
 
-    let hits =
-        beatmap.objects.circles +
-        beatmap.objects.sliders +
-        beatmap.objects.spinners;
+    let hits = beatmap.objects.circles + beatmap.objects.sliders + beatmap.objects.spinners;
     if (score.mode === ProfileMode.Taiko) {
         hits -= beatmap.objects.sliders;
     }
@@ -34,8 +24,7 @@ export default function (
     }
 
     const progress = score.counts.totalHits() / hits;
-    const gradeProgress =
-        score.rank === "F" ? ` (${Util.round(progress * 100, 2)}%)` : "";
+    const gradeProgress = score.rank === "F" ? ` (${Util.round(progress * 100, 2)}%)` : "";
 
     const beatmapUrl = beatmap.mapUrl ?? `${serverLink}/b/${beatmap.id.map}`;
 
