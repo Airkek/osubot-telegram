@@ -166,7 +166,7 @@ class DatabaseUsersToChat {
             userId,
             chatId,
         ]);
-        return !!user.user_id;
+        return !!user;
     }
 }
 
