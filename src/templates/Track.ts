@@ -33,7 +33,7 @@ ${
         ? ""
         : `${response.highscores.length} new highscores:\n${response.highscores
               .slice(0, MAX_SCORES)
-              .map((score) => `${score.place + 1}) ${score.pp.toFixed(2)}pp https://osu.ppy.sh/b/${score.beatmapId}`)
+              .map((score) => `#${score.place + 1}. ${score.pp.toFixed(2)}pp https://osu.ppy.sh/b/${score.beatmapId}`)
               .join(
                   "\n"
               )}${response.highscores.length > MAX_SCORES ? ` and ${response.highscores.length - MAX_SCORES} scores more...` : ""}`
