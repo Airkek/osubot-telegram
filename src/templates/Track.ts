@@ -51,6 +51,6 @@ ${
               .map((score) => `#${score.place + 1}. ${score.pp.toFixed(2)}pp https://osu.ppy.sh/b/${score.beatmapId}`)
               .join(
                   "\n"
-              )}${response.highscores.length > MAX_SCORES ? ` and ${response.highscores.length - MAX_SCORES} scores more...` : ""}`
+              )}${response.highscores.length > MAX_SCORES ? `\nand ${response.highscores.length - MAX_SCORES} scores more...` : ""}`
 }`.trim();
 }
