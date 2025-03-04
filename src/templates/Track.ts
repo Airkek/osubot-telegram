@@ -18,6 +18,21 @@ function modeStr(mode: number): string {
             return "osu!catch";
         case 3:
             return "osu!mania";
+        default:
+            return "unknown mode";
+    }
+}
+
+function modeUrl(mode: number): string {
+    switch (mode) {
+        case 1:
+            return "/taiko";
+        case 2:
+            return "/ctb";
+        case 3:
+            return "/mania";
+        default:
+            return "";
     }
 }
 
@@ -26,7 +41,7 @@ const MAX_SCORES: number = 5;
 export default function (response: OsuTrackResponse): string {
     return `User ${response.username} (${modeStr(response.mode)}):
 Rank: ${formatChange(response.rank)} (${formatChangeFloat(response.pp)} pp) in ${response.playcount} plays
-View detailed data here: https://ameobea.me/osutrack/user/${encodeURI(response.username)}
+View detailed data here: https://ameobea.me/osutrack/user/${encodeURI(response.username)}${modeUrl(response.mode)}
 
 ${
     response.highscores.length == 0
