@@ -120,6 +120,12 @@ export default class AbstractTop extends ServerCommand {
         const page = context.args.page ?? 1;
 
         const scoresOnPage = 3;
+        const maxPage = Math.ceil(scores.length / scoresOnPage);
+
+        if (page < 1 || page > maxPage) {
+            return await context.reply(`Такой страницы нет, всего страниц: ${maxPage}`);
+        }
+
         const startI = (page - 1) * scoresOnPage;
         const endI = startI + scoresOnPage;
 
@@ -139,7 +145,7 @@ export default class AbstractTop extends ServerCommand {
             })
             .join("\n");
 
-        const keyboard = this.createPageKeyboard(context, scores.length, scoresOnPage, page, user, mode);
+        const keyboard = this.createPageKeyboard(context, maxPage, page, user, mode);
         const message = `Топ скоры игрока ${user.nickname} [${Util.profileModes[mode]}]:\n${response}`;
         if (context.isPayload) {
             try {
@@ -210,8 +216,7 @@ export default class AbstractTop extends ServerCommand {
 
     private createPageKeyboard(
         context: CommandContext,
-        scoresCount: number,
-        pageSize: number,
+        maxPage: number,
         currentPage: number,
         user: APIUser,
         mode: number
@@ -219,14 +224,15 @@ export default class AbstractTop extends ServerCommand {
         if (!context.module.api.getScore) {
             return undefined;
         }
-
-        const maxPage = Math.ceil(scoresCount / pageSize);
         const prefix = context.module.prefix[0];
         const modeArg = this.modeArg(mode);
 
+        const prevPage = Math.min(currentPage - 1, 1);
+        const nextPage = Math.max(currentPage + 1, maxPage);
+
         const buttonPrev = {
             text: "⬅️",
-            command: `${prefix} t ${user.nickname} --p${currentPage - 1} ${modeArg}`,
+            command: `${prefix} t ${user.nickname} --p${prevPage} ${modeArg}`,
         };
         const buttonPage = {
             text: `${currentPage}/${maxPage} 🔄`,
@@ -234,17 +240,10 @@ export default class AbstractTop extends ServerCommand {
         };
         const buttonNext = {
             text: "➡️",
-            command: `${prefix} t ${user.nickname} --p${currentPage + 1} ${modeArg}`,
+            command: `${prefix} t ${user.nickname} --p${nextPage} ${modeArg}`,
         };
 
-        const buttons = [];
-        if (currentPage > 1) {
-            buttons.push(buttonPrev);
-        }
-        buttons.push(buttonPage);
-        if (currentPage < maxPage) {
-            buttons.push(buttonNext);
-        }
+        const buttons = [buttonPrev, buttonPage, buttonNext];
 
         return Util.createKeyboard([buttons]);
     }
