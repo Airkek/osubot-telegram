@@ -19,10 +19,7 @@ class DatabaseServer implements IDatabaseServer {
     }
 
     async findByUserId(id: number | string): Promise<IDatabaseUser[]> {
-        return await this.db.all("SELECT * FROM users WHERE game_id = $1 AND server = $2 COLLATE NOCASE", [
-            id,
-            this.serverName,
-        ]);
+        return await this.db.all("SELECT * FROM users WHERE game_id = $1 AND server = $2", [id, this.serverName]);
     }
 
     async setNickname(id: number, game_id: number | string, nickname: string, mode: number = 0): Promise<void> {
