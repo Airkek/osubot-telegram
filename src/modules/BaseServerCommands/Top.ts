@@ -227,8 +227,8 @@ export default class AbstractTop extends ServerCommand {
         const prefix = context.module.prefix[0];
         const modeArg = this.modeArg(mode);
 
-        const prevPage = Math.min(currentPage - 1, 1);
-        const nextPage = Math.max(currentPage + 1, maxPage);
+        const prevPage = Math.max(currentPage - 1, 1);
+        const nextPage = Math.min(currentPage + 1, maxPage);
 
         const buttonPrev = {
             text: "⬅️",
