@@ -111,7 +111,7 @@ export class Bot {
                 for (const module of this.modules) {
                     const check = module.checkContext(ctx);
                     if (check) {
-                        await check.command.process(ctx);
+                        check.command.process(ctx).then();
                     }
                 }
             });
@@ -133,7 +133,7 @@ export class Bot {
                 const check = module.checkContext(ctx);
                 if (check) {
                     if (this.disabled.includes(ctx.peerId) && check.command.disables) {
-                        await context.answerCallbackQuery();
+                        context.answerCallbackQuery().then();
                         return;
                     }
                     if (check.map) {
@@ -143,8 +143,9 @@ export class Bot {
                             this.maps.setMap(ctx.peerId, map);
                         }
                     }
-                    await check.command.process(ctx);
-                    await context.answerCallbackQuery();
+                    check.command.process(ctx).then(async () => {
+                        await context.answerCallbackQuery();
+                    });
                 }
             }
         });

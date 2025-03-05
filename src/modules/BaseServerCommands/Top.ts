@@ -4,6 +4,7 @@ import BanchoPP from "../../pp/bancho";
 import Mods from "../../pp/Mods";
 import { ServerCommand, CommandContext } from "./BasicServerCommand";
 import { Mode, APIUser, APIScore } from "../../Types";
+import { GrammyError } from "grammy";
 
 interface ScoreProcessingOptions {
     context: CommandContext;
@@ -141,7 +142,15 @@ export default class AbstractTop extends ServerCommand {
         const keyboard = this.createPageKeyboard(context, scores.length, scoresOnPage, page, user, mode);
         const message = `Топ скоры игрока ${user.nickname} [${Util.profileModes[mode]}]:\n${response}`;
         if (context.isPayload) {
-            await context.edit(message, { keyboard });
+            try {
+                await context.edit(message, { keyboard });
+            } catch (e) {
+                if (e instanceof GrammyError && e.message.includes("message is not modified")) {
+                    await context.answer("Обновлений нет");
+                    return;
+                }
+                throw e;
+            }
         } else {
             await context.reply(message, { keyboard });
         }

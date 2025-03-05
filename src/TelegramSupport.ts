@@ -43,6 +43,7 @@ export default class UnifiedMessageContext {
     reply: (text: string, options?: SendOptions) => Promise<any>;
     edit: (text: string, options?: SendOptions) => Promise<any>;
     send: (text: string, options?: SendOptions, replyTo?: number) => Promise<any>;
+    answer: (text: string) => Promise<any>;
     isAdmin: () => Promise<boolean>;
     isUserInChat: (userId: number) => Promise<boolean>;
     countMembers: () => Promise<number>;
@@ -105,6 +106,13 @@ export default class UnifiedMessageContext {
 
             // TODO: support media
             return await this.tgCtx.editMessageText(text, opts);
+        };
+
+        this.answer = async (text: string) => {
+            if (!this.hasMessagePayload) {
+                return;
+            }
+            return await this.tgCtx.answerCallbackQuery(text);
         };
 
         this.send = async (text: string, options?: SendOptions, replyTo?: number) => {

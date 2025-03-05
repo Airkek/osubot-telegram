@@ -43,6 +43,9 @@ export class CommandContext {
     async edit(text: string, options?: SendOptions): Promise<void> {
         return this.ctx.edit(`[Server: ${this.module.name}]\n${text}`, options);
     }
+    async answer(text: string) {
+        return this.ctx.answer(text);
+    }
 }
 
 const createServerCommandRunner = (
