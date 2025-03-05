@@ -3,17 +3,22 @@ import { Module } from "../../Module";
 
 export default class DropCommand extends Command {
     constructor(module: Module) {
-        super(["drop", "вкщз"], module, async (ctx, self) => {
-            const context = ctx.replyMessage;
-
-            if (!context) {
-                await ctx.send("Перешлите сообщение!");
+        super(["drop", "вкщз"], module, async (ctx, self, args) => {
+            const arg = args.full[0];
+            if (arg === undefined && !ctx.replyMessage) {
+                await ctx.send("Перешлите сообщение или напишите id пользователя!");
                 return;
             }
 
-            await self.module.bot.database.drop.dropUser(context.senderId);
+            const id = arg !== undefined ? Number(arg) : ctx.replyMessage.senderId;
+            if (isNaN(id)) {
+                await ctx.send("Невалидный id");
+                return;
+            }
 
-            await ctx.send(`Привязки ников tg://user?id=${context.senderId} удалены!`, {
+            await self.module.bot.database.drop.dropUser(id);
+
+            await ctx.send(`Привязки ников tg://user?id=${id} удалены!`, {
                 disable_mentions: 1,
             });
         });
