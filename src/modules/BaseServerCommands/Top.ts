@@ -24,7 +24,7 @@ export default class AbstractTop extends ServerCommand {
                 const user = await this.fetchUserData(context, mode);
 
                 if (!this.ignoreDbUpdate) {
-                    context.module.db.updateInfo(user, mode);
+                    await context.module.db.updateInfo(user, mode);
                 }
 
                 await this.handleCommandArguments(context, user, mode);
@@ -116,17 +116,35 @@ export default class AbstractTop extends ServerCommand {
             return;
         }
 
-        const topThree = scores.slice(0, 3);
+        const page = context.args.page ?? 1;
+
+        const scoresOnPage = 3;
+        const startI = (page - 1) * scoresOnPage;
+        const endI = startI + scoresOnPage;
+
+        const topThree = scores.slice(startI, endI);
         const maps = await Promise.all(topThree.map((score) => this.resolveBeatmap(context, score, mode)));
 
         const response = maps
             .map((map, i) => {
                 const calc = new BanchoPP(map, topThree[i].mods);
-                return context.module.bot.templates.TopScore(topThree[i], map, i + 1, calc, context.module.link);
+                return context.module.bot.templates.TopScore(
+                    topThree[i],
+                    map,
+                    startI + i + 1,
+                    calc,
+                    context.module.link
+                );
             })
             .join("\n");
 
-        await context.reply(`Топ скоры игрока ${user.nickname} [${Util.profileModes[mode]}]:\n${response}`);
+        const keyboard = this.createPageKeyboard(context, scores.length, scoresOnPage, page, user, mode);
+        const message = `Топ скоры игрока ${user.nickname} [${Util.profileModes[mode]}]:\n${response}`;
+        if (context.isPayload) {
+            await context.edit(message, { keyboard });
+        } else {
+            await context.reply(message, { keyboard });
+        }
     }
 
     private createModsFilter(context: CommandContext): ((score: APIScore) => boolean) | undefined {
@@ -179,6 +197,62 @@ export default class AbstractTop extends ServerCommand {
         }
 
         return Util.createKeyboard([buttons]);
+    }
+
+    private createPageKeyboard(
+        context: CommandContext,
+        scoresCount: number,
+        pageSize: number,
+        currentPage: number,
+        user: APIUser,
+        mode: number
+    ) {
+        if (!context.module.api.getScore) {
+            return undefined;
+        }
+
+        const maxPage = Math.ceil(scoresCount / pageSize);
+        const prefix = context.module.prefix[0];
+        const modeArg = this.modeArg(mode);
+
+        const buttonPrev = {
+            text: "⬅️",
+            command: `${prefix} t ${user.nickname} --p${currentPage - 1} ${modeArg}`,
+        };
+        const buttonPage = {
+            text: `${currentPage}/${maxPage} 🔄`,
+            command: `${prefix} t ${user.nickname} --p${currentPage} ${modeArg}`,
+        };
+        const buttonNext = {
+            text: "➡️",
+            command: `${prefix} t ${user.nickname} --p${currentPage + 1} ${modeArg}`,
+        };
+
+        const buttons = [];
+        if (currentPage > 1) {
+            buttons.push(buttonPrev);
+        }
+        buttons.push(buttonPage);
+        if (currentPage < maxPage) {
+            buttons.push(buttonNext);
+        }
+
+        return Util.createKeyboard([buttons]);
+    }
+
+    private modeArg(mode: number) {
+        switch (mode) {
+            case 0:
+                return "-std";
+            case 1:
+                return "-t";
+            case 2:
+                return "-ctb";
+            case 3:
+                return "-m";
+            default:
+                return "-std";
+        }
     }
 
     private async resolveBeatmap(context: CommandContext, score: APIScore, mode: number) {

@@ -100,6 +100,7 @@ export default {
             apx: 0,
             more: 0,
             c50: 0,
+            page: 1,
             mode: null,
         };
 
@@ -130,6 +131,8 @@ export default {
                 iArg.place = Number(arg.slice(1));
             } else if (arg.startsWith("~")) {
                 iArg.apx = Math.max(Number(arg.slice(1)), 1);
+            } else if (arg.startsWith("--p")) {
+                iArg.page = Math.max(Number(arg.slice(3)), 1);
             } else if (arg.startsWith(">")) {
                 iArg.more = Math.max(Number(arg.slice(1)), 1);
             } else {

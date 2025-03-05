@@ -12,6 +12,7 @@ interface ICommandArgs {
     miss: number;
     place: number;
     apx: number;
+    page: number;
     more: number;
     c50: number;
     mode?: number;

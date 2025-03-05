@@ -23,6 +23,7 @@ export class CommandContext {
     readonly module: Module;
     readonly ctx: UnifiedMessageContext;
     readonly args: ICommandArgs;
+    readonly isPayload: boolean;
     user: ParsedUser;
 
     constructor(command: ServerCommand, ctx: UnifiedMessageContext, args: ICommandArgs) {
@@ -30,13 +31,17 @@ export class CommandContext {
         this.args = args;
         this.name = command.name;
         this.module = command.module;
+        this.isPayload = ctx.hasMessagePayload;
     }
 
-    reply(text: string, options?: SendOptions): Promise<void> {
-        return this.ctx.reply(`[Server: ${this.module.name}]\n${text}`, options);
+    async reply(text: string, options?: SendOptions): Promise<void> {
+        await this.ctx.reply(`[Server: ${this.module.name}]\n${text}`, options);
     }
-    send(text: string, options?: SendOptions, replyTo?: number): Promise<void> {
+    async send(text: string, options?: SendOptions, replyTo?: number): Promise<void> {
         return this.ctx.send(`[Server: ${this.module.name}]\n${text}`, options, replyTo);
+    }
+    async edit(text: string, options?: SendOptions): Promise<void> {
+        return this.ctx.edit(`[Server: ${this.module.name}]\n${text}`, options);
     }
 }
 
