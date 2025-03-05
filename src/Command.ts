@@ -8,13 +8,13 @@ export class Command {
     module: Module;
     disables: boolean = true;
     uses: number;
-    function: (ctx: UnifiedMessageContext, self: Command, args: ICommandArgs) => void;
+    function: (ctx: UnifiedMessageContext, self: Command, args: ICommandArgs) => Promise<void>;
 
     permission: (ctx: UnifiedMessageContext) => boolean;
     constructor(
         name: string | string[],
         module: Module,
-        func: (ctx: UnifiedMessageContext, self: Command, args: ICommandArgs) => void
+        func: (ctx: UnifiedMessageContext, self: Command, args: ICommandArgs) => Promise<void>
     ) {
         this.name = name;
         this.module = module;
@@ -24,15 +24,15 @@ export class Command {
         this.permission = () => true;
     }
 
-    public process(ctx: UnifiedMessageContext) {
+    public async process(ctx: UnifiedMessageContext) {
         if (!this.permission(ctx)) {
             return;
         }
         this.uses++;
         if (ctx.hasMessagePayload) {
-            this.function(ctx, this, Util.parseArgs(ctx.messagePayload.split(" ").slice(2)));
+            await this.function(ctx, this, Util.parseArgs(ctx.messagePayload.split(" ").slice(2)));
         } else {
-            this.function(ctx, this, Util.parseArgs(ctx.text.split(" ").slice(2)));
+            await this.function(ctx, this, Util.parseArgs(ctx.text.split(" ").slice(2)));
         }
     }
 

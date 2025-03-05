@@ -111,7 +111,7 @@ export class Bot {
                 for (const module of this.modules) {
                     const check = module.checkContext(ctx);
                     if (check) {
-                        check.command.process(ctx);
+                        await check.command.process(ctx);
                     }
                 }
             });
@@ -132,6 +132,10 @@ export class Bot {
             for (const module of this.modules) {
                 const check = module.checkContext(ctx);
                 if (check) {
+                    if (this.disabled.includes(ctx.peerId) && check.command.disables) {
+                        await context.answerCallbackQuery();
+                        return;
+                    }
                     if (check.map) {
                         const chat = this.maps.getChat(ctx.peerId);
                         if (!chat || chat.map.id.map != check.map) {
@@ -139,14 +143,10 @@ export class Bot {
                             this.maps.setMap(ctx.peerId, map);
                         }
                     }
-                    if (this.disabled.includes(ctx.peerId) && check.command.disables) {
-                        return;
-                    }
-                    check.command.process(ctx);
+                    await check.command.process(ctx);
+                    await context.answerCallbackQuery();
                 }
             }
-
-            await context.answerCallbackQuery();
         });
 
         this.tg.on("message", async (context) => {
@@ -261,7 +261,7 @@ export class Bot {
                             if (this.disabled.includes(ctx.peerId) && check.command.disables) {
                                 return;
                             }
-                            check.command.process(ctx);
+                            await check.command.process(ctx);
                         }
                     }
                 }
