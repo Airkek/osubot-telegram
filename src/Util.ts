@@ -1,5 +1,5 @@
-import { IBeatmapStats, HitCounts, ICommandArgs, PPArgs, CalcArgs, APIBeatmap } from "./Types";
-import { ICalcStats, OsuStats, TaikoStats, CatchStats, ManiaStats } from "./pp/Stats";
+import { APIBeatmap, CalcArgs, HitCounts, IBeatmapStats, ICommandArgs, PPArgs } from "./Types";
+import { CatchStats, ICalcStats, ManiaStats, OsuStats, TaikoStats } from "./pp/Stats";
 import { InlineKeyboard } from "grammy";
 
 interface Err {
@@ -214,5 +214,19 @@ export default {
         const days = Math.floor(time / (60 * 24));
 
         return `${days}d ${hours}h ${minutes}m`;
+    },
+    timer() {
+        let timeStart = new Date().getTime();
+        return {
+            get seconds() {
+                return Math.ceil((new Date().getTime() - timeStart) / 1000) + "s";
+            },
+            get ms() {
+                return new Date().getTime() - timeStart + "ms";
+            },
+            reset() {
+                timeStart = new Date().getTime();
+            },
+        };
     },
 };

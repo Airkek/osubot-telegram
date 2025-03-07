@@ -141,7 +141,7 @@ export default class UnifiedMessageContext {
                 }
                 return await this.tgCtx.reply(text, opts);
             } catch (e) {
-                console.log(e);
+                global.logger.error(e);
                 return undefined;
             }
         };

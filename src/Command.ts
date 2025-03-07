@@ -4,19 +4,21 @@ import { ICommandArgs } from "./Types";
 import UnifiedMessageContext from "./TelegramSupport";
 
 export class Command {
-    readonly name: string | string[];
-    module: Module;
-    disables: boolean = true;
+    readonly name: string;
+    readonly prefixes: string[];
+    readonly module: Module;
+    readonly disables: boolean = true;
     uses: number;
     function: (ctx: UnifiedMessageContext, self: Command, args: ICommandArgs) => Promise<void>;
 
     permission: (ctx: UnifiedMessageContext) => boolean;
     constructor(
-        name: string | string[],
+        prefixes: string[],
         module: Module,
         func: (ctx: UnifiedMessageContext, self: Command, args: ICommandArgs) => Promise<void>
     ) {
-        this.name = name;
+        this.name = prefixes[0];
+        this.prefixes = prefixes;
         this.module = module;
         this.function = func;
 
@@ -28,18 +30,18 @@ export class Command {
         if (!this.permission(ctx)) {
             return;
         }
+        const timer = Util.timer();
         this.uses++;
         if (ctx.hasMessagePayload) {
             await this.function(ctx, this, Util.parseArgs(ctx.messagePayload.split(" ").slice(2)));
         } else {
             await this.function(ctx, this, Util.parseArgs(ctx.text.split(" ").slice(2)));
         }
+
+        global.logger.trace(`[${this.module.name}::${this.name}] command processing took ${timer.ms}`);
     }
 
     public check(name: string) {
-        if (Array.isArray(this.name)) {
-            return this.name.includes(name.toLowerCase());
-        }
-        return this.name == name.toLowerCase();
+        return this.prefixes.includes(name.toLowerCase());
     }
 }
