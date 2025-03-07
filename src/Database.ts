@@ -288,7 +288,7 @@ const migrations: IMigration[] = [
 ];
 
 async function applyMigrations(db: Database) {
-    console.log("Applying migrations");
+    global.logger.info("Applying migrations");
     const applied = new Set<number>();
     const dbData: IMigration[] = await db.all("SELECT version FROM migrations");
     for (const m of dbData) {
@@ -300,20 +300,20 @@ async function applyMigrations(db: Database) {
             continue;
         }
 
-        console.log(`Processing migration #${migration.version}: ${migration.name}`);
+        global.logger.info(`Processing migration #${migration.version}: ${migration.name}`);
 
         let res = false;
         try {
             res = await migration.process(db);
         } catch (e) {
-            console.log(e);
+            global.logger.error(e);
         }
 
         if (res) {
-            console.log("Success");
+            global.logger.info("Success");
             await db.run("INSERT INTO migrations (version) VALUES ($1)", [migration.version]);
         } else {
-            console.log("Failed. Aborting");
+            global.logger.fatal("Failed. Aborting");
             process.abort();
             return;
         }
@@ -400,8 +400,10 @@ export default class Database {
     }
 
     async init() {
+        global.logger.info("Initializing database");
         await this.run("CREATE TABLE IF NOT EXISTS migrations (version INTEGER)");
 
         await applyMigrations(this);
+        global.logger.info("Database initialized successfully");
     }
 }

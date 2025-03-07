@@ -1,3 +1,4 @@
+import { Logger, ILogObj } from "tslog";
 import { Bot, IBotConfig } from "./src/Bot";
 
 const config: IBotConfig = {
@@ -11,6 +12,15 @@ const config: IBotConfig = {
     },
 };
 
+declare global {
+    interface Global {
+        logger: Logger<ILogObj>;
+    }
+}
+
+global.logger = new Logger<ILogObj>();
+
+global.logger.info("Starting...");
 const bot: Bot = new Bot(config);
 
 bot.start();

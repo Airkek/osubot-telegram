@@ -1,5 +1,5 @@
-import { Bot as TG, GrammyError, HttpError } from "grammy";
-import * as axios from "axios";
+import { Bot as TelegramBot, GrammyError, HttpError } from "grammy";
+import axios from "axios";
 import { Module } from "./Module";
 import Database from "./Database";
 import { APICollection } from "./API";
@@ -35,38 +35,52 @@ export interface IBotConfig {
 }
 
 export class Bot {
-    config: IBotConfig;
-    tg: TG;
-    modules: Module[];
-    database: Database;
-    api: APICollection;
-    templates: ITemplates;
-    maps: Maps;
-    disabled: number[] = [];
-    ignored: IgnoreList;
-    track: OsuTrackAPI;
-    startTime: number;
-    totalMessages: number;
-    version: string;
-    basicOverride: (cmd: string, override: string) => void;
+    public readonly config: IBotConfig;
+    public readonly tg: TelegramBot;
+    public readonly database: Database;
+    public readonly api: APICollection;
+    public readonly templates: ITemplates = Templates;
+    public readonly maps: Maps;
+    public readonly ignored: IgnoreList;
+    public readonly track: OsuTrackAPI;
+
+    public modules: Module[] = [];
+    public disabled: number[] = [];
+    public startTime: number = 0;
+    public totalMessages: number = 0;
+    public readonly version: string;
+
     constructor(config: IBotConfig) {
         this.config = config;
+        global.logger.info("Set owner id: ", config.tg.owner);
 
-        this.tg = new TG(config.tg.token);
-        this.modules = [];
-
-        this.database = new Database(this.tg, this.config.tg.owner);
+        this.tg = new TelegramBot(config.tg.token);
+        this.database = new Database(this.tg, config.tg.owner);
         this.ignored = new IgnoreList(this.database);
-
-        this.initDB();
-
         this.api = new APICollection(this);
-
-        this.templates = Templates;
-
         this.maps = new Maps(this);
+        this.track = new OsuTrackAPI();
 
-        this.registerModule([
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        this.version = require("../../package.json").version;
+
+        this.initialize();
+    }
+
+    private initialize(): void {
+        this.setupDatabase();
+        this.registerModules();
+        this.setupErrorHandling();
+        this.setupEventHandlers();
+        this.configureCommandAliases();
+    }
+
+    private setupDatabase(): void {
+        this.database.init().then(() => this.ignored.init());
+    }
+
+    private registerModules(): void {
+        this.modules = [
             new Bancho(this),
             new Gatari(this),
             new Ripple(this),
@@ -76,277 +90,264 @@ export class Bot {
             new ScoreSaber(this),
             new Admin(this),
             new Main(this),
-        ]);
+        ];
+    }
 
+    private setupErrorHandling(): void {
         this.tg.catch((err) => {
             const ctx = err.ctx;
-            console.error(`Error while handling update ${ctx.update.update_id}:`);
-            const e = err.error;
-            if (e instanceof GrammyError) {
-                console.error("Error in request:", e.description);
-            } else if (e instanceof HttpError) {
-                console.error("Could not contact Telegram:", e);
+            console.error(`Error handling update ${ctx.update.update_id}:`);
+
+            if (err.error instanceof GrammyError) {
+                console.error("Telegram API error:", err.error.description);
+            } else if (err.error instanceof HttpError) {
+                console.error("HTTP error:", err.error);
             } else {
-                console.error("Unknown error:", e);
+                console.error("Unexpected error:", err.error);
             }
         });
+    }
 
-        this.tg.on("message:new_chat_members", async (context) => {
-            for (const user of context.message.new_chat_members) {
-                const inChat = await this.database.chats.isUserInChat(user.id, context.chatId);
+    private setupEventHandlers(): void {
+        this.tg.on("message:new_chat_members", this.handleNewChatMembers);
+        this.tg.on("message:left_chat_member", this.handleLeftChatMember);
+
+        this.tg.on("callback_query:data", this.handleCallbackQuery);
+
+        this.tg.on("message", this.handleMessage);
+    }
+
+    private handleNewChatMembers = async (ctx): Promise<void> => {
+        for (const user of ctx.message.new_chat_members) {
+            this.database.chats.isUserInChat(user.id, ctx.chat.id).then(async (inChat: boolean) => {
                 if (!inChat) {
-                    await this.database.chats.userJoined(user.id, context.chat.id);
-                }
-            }
-        });
-
-        this.tg.on("message:left_chat_member", async (context) => {
-            await this.database.chats.userLeft(context.message.left_chat_member.id, context.chat.id);
-        });
-
-        this.basicOverride = (cmd, override) => {
-            this.tg.command(cmd, async (context) => {
-                context.message.text = override;
-                const ctx = new UnifiedMessageContext(context, this.tg);
-                for (const module of this.modules) {
-                    const check = module.checkContext(ctx);
-                    if (check) {
-                        check.command.process(ctx).then();
-                    }
+                    await this.database.chats.userJoined(user.id, ctx.chat.id);
                 }
             });
-        };
+        }
+    };
 
-        this.basicOverride("start", "osu help");
-        this.basicOverride("help", "osu help");
-        this.basicOverride("user", "s u");
-        this.basicOverride("recent", "s r");
-        this.basicOverride("top_scores", "s t");
-        this.basicOverride("chat_leaderboard", "s chat");
-        this.basicOverride("chat_leaderboard_mania", "s chat -mania");
-        this.basicOverride("chat_leaderboard_taiko", "s chat -taiko");
-        this.basicOverride("chat_leaderboard_fruits", "s chat -ctb");
+    private handleLeftChatMember = async (ctx): Promise<void> => {
+        this.database.chats.userLeft(ctx.message.left_chat_member.id, ctx.chat.id);
+    };
 
-        this.tg.on("callback_query:data", async (context) => {
-            const ctx = new UnifiedMessageContext(context, this.tg);
-            for (const module of this.modules) {
-                const check = module.checkContext(ctx);
-                if (check) {
-                    if (this.disabled.includes(ctx.peerId) && check.command.disables) {
-                        context.answerCallbackQuery().then();
-                        return;
-                    }
-                    if (check.map) {
-                        const chat = this.maps.getChat(ctx.peerId);
-                        if (!chat || chat.map.id.map != check.map) {
-                            const map = await this.api.v2.getBeatmap(check.map);
-                            this.maps.setMap(ctx.peerId, map);
-                        }
-                    }
-                    check.command.process(ctx).then(async () => {
-                        await context.answerCallbackQuery();
-                    });
-                }
+    private handleCallbackQuery = async (ctx): Promise<void> => {
+        const context = new UnifiedMessageContext(ctx, this.tg);
+
+        for (const module of this.modules) {
+            const match = module.checkContext(context);
+            if (!match) {
+                continue;
             }
-        });
 
-        this.tg.on("message", async (context) => {
-            const ctx = new UnifiedMessageContext(context, this.tg);
-            if (ctx.isGroup || ctx.isFromGroup || ctx.isEvent || this.ignored.isIgnored(ctx.senderId)) {
+            if (this.disabled.includes(context.peerId) && match.command.disables) {
+                ctx.answerCallbackQuery();
                 return;
             }
-            this.totalMessages++;
-            const replayDoc = await this.checkReplay(ctx);
-            const hasScore = this.checkScore(ctx);
-            const hasMap = this.checkMap(ctx);
-            if (replayDoc && replayDoc.file_path) {
-                if (this.disabled.includes(ctx.peerId)) {
-                    return;
-                }
-                try {
-                    const { data: file } = await axios.default.get(
-                        `https://api.telegram.org/file/bot${this.tg.token}/${replayDoc.file_path}`,
-                        {
-                            responseType: "arraybuffer",
-                        }
-                    );
 
-                    const parser = new ReplayParser(file);
-                    const replay = parser.getReplay();
-                    let map = await this.api.v2.getBeatmap(replay.beatmapHash);
-                    if (replay.mods.diff()) {
-                        map = await this.api.v2.getBeatmap(map.id.map, replay.mode, replay.mods);
-                    }
-                    const cover = await this.database.covers.getCover(map.id.set);
-                    const calc = new Calculator(map, replay.mods);
-                    const keyboard = Util.createKeyboard(
-                        [
-                            ["B", "s"],
-                            ["G", "g"],
-                            ["R", "r"],
-                        ].map((s) =>
-                            Array.prototype.concat(
-                                [
-                                    {
-                                        text: `[${s[0]}] Мой скор на карте`,
-                                        command: `${s[1]} c ${Util.getModeArg(replay.mode)}`,
-                                    },
-                                ],
-                                ctx.isChat
-                                    ? [
-                                          {
-                                              text: `[${s[0]}] Топ чата на карте`,
-                                              command: `${s[1]} lb ${Util.getModeArg(replay.mode)}`,
-                                          },
-                                      ]
-                                    : []
-                            )
-                        )
-                    );
-                    await ctx.reply(this.templates.Replay(replay, map, calc), {
-                        attachment: cover,
-                        keyboard,
-                    });
-                    this.maps.setMap(ctx.peerId, map);
-                } catch (e) {
-                    console.log(e);
-                    await ctx.reply("Произошла ошибка при обработке реплея!");
-                }
-            } else if (hasScore) {
-                if (this.disabled.includes(ctx.peerId)) {
-                    return;
-                }
-                const score = await this.api.v2.getScoreByScoreId(hasScore);
-                const map = await this.api.v2.getBeatmap(score.beatmapId, score.mode, score.mods);
-                const user = await this.api.v2.getUserById(score.player_id);
-                const cover = await this.database.covers.getCover(map.id.set);
-                const calc = new Calculator(map, score.mods);
-                await ctx.reply(
-                    `Player: ${user.nickname}\n\n${this.templates.ScoreFull(score, map, calc, "https://osu.ppy.sh")}`,
-                    {
-                        attachment: cover,
-                    }
-                );
-            } else if (hasMap) {
-                if (this.disabled.includes(ctx.peerId)) {
-                    return;
-                }
-                await this.maps.sendMap(hasMap, ctx);
-            } else {
-                if (!ctx.hasText) {
-                    return;
-                }
-                if (ctx.text.toLowerCase().startsWith("map ")) {
-                    if (this.disabled.includes(ctx.peerId)) {
-                        return;
-                    }
-                    await this.maps.stats(ctx);
-                } else {
-                    for (const module of this.modules) {
-                        const check = module.checkContext(ctx);
-                        if (check) {
-                            if (ctx.isChat) {
-                                const inChat = await this.database.chats.isUserInChat(ctx.senderId, ctx.chatId);
-                                if (!inChat) {
-                                    await this.database.chats.userJoined(ctx.senderId, ctx.chatId);
-                                }
-                            }
-
-                            if (check.map) {
-                                const chat = this.maps.getChat(ctx.peerId);
-                                if (!chat || chat.map.id.map != check.map) {
-                                    const map = await this.api.v2.getBeatmap(check.map);
-                                    this.maps.setMap(ctx.peerId, map);
-                                }
-                            }
-                            if (this.disabled.includes(ctx.peerId) && check.command.disables) {
-                                return;
-                            }
-                            await check.command.process(ctx);
-                        }
-                    }
+            if (match.map) {
+                const chatMap = this.maps.getChat(context.peerId);
+                if (!chatMap || chatMap.map.id.map !== match.map) {
+                    const beatmap = await this.api.v2.getBeatmap(match.map);
+                    this.maps.setMap(context.peerId, beatmap);
                 }
             }
-        });
 
-        this.track = new OsuTrackAPI();
+            match.command.process(context).then(async () => {
+                await ctx.answerCallbackQuery();
+            });
+        }
+    };
 
-        this.startTime = 0;
+    private handleMessage = async (ctx): Promise<void> => {
+        const context = new UnifiedMessageContext(ctx, this.tg);
 
-        this.totalMessages = 0;
+        if (this.shouldSkipMessage(context)) return;
 
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        this.version = require("../../package.json").version;
+        this.totalMessages++;
+
+        if (this.checkReplay(context)) {
+            this.processReplay(context);
+            return;
+        }
+        if (this.processScore(context)) return;
+        if (this.processMap(context)) return;
+
+        this.processRegularMessage(context);
+    };
+
+    private shouldSkipMessage(ctx: UnifiedMessageContext): boolean {
+        return (
+            ctx.isGroup ||
+            ctx.isFromGroup ||
+            ctx.isEvent ||
+            this.ignored.isIgnored(ctx.senderId) ||
+            this.disabled.includes(ctx.peerId)
+        );
     }
 
-    registerModule(module: Module | Module[]) {
-        if (Array.isArray(module)) {
-            this.modules.push(...module);
-        } else {
-            this.modules.push(module);
+    private async processReplay(ctx: UnifiedMessageContext): Promise<boolean> {
+        const replayFile = await ctx.tgCtx.getFile();
+        if (!replayFile?.file_path) return false;
+
+        try {
+            const { data: file } = await axios.get(
+                `https://api.telegram.org/file/bot${this.tg.token}/${replayFile.file_path}`,
+                { responseType: "arraybuffer" }
+            );
+
+            const replay = new ReplayParser(file).getReplay();
+            let beatmap = await this.api.v2.getBeatmap(replay.beatmapHash);
+
+            if (replay.mods.diff()) {
+                beatmap = await this.api.v2.getBeatmap(beatmap.id.map, replay.mode, replay.mods);
+            }
+
+            const cover = await this.database.covers.getCover(beatmap.id.set);
+            const calculator = new Calculator(beatmap, replay.mods);
+
+            const keyboard = Util.createKeyboard(
+                [
+                    ["B", "s"],
+                    ["G", "g"],
+                    ["R", "r"],
+                ].map((group) => [
+                    { text: `[${group[0]}] Мой скор`, command: `${group[1]} c ${Util.getModeArg(replay.mode)}` },
+                    ...(ctx.isChat
+                        ? [
+                              {
+                                  text: `[${group[0]}] Топ чата`,
+                                  command: `${group[1]} lb ${Util.getModeArg(replay.mode)}`,
+                              },
+                          ]
+                        : []),
+                ])
+            );
+
+            await ctx.reply(this.templates.Replay(replay, beatmap, calculator), {
+                attachment: cover,
+                keyboard,
+            });
+
+            this.maps.setMap(ctx.peerId, beatmap);
+            return true;
+        } catch (error) {
+            global.logger.error(error);
+            await ctx.reply("Ошибка обработки реплея!");
+            return true;
         }
     }
 
-    initDB(): void {
-        this.database.init().then(() => {
-            this.ignored.init();
+    private processScore(ctx: UnifiedMessageContext): boolean {
+        const scoreId = IsScore(ctx.text) || this.getScoreFromAttachments(ctx);
+        if (!scoreId) return false;
+
+        this.processScoreInternal(ctx, scoreId);
+        return true;
+    }
+
+    private async processScoreInternal(ctx: UnifiedMessageContext, scoreId: number) {
+        const score = await this.api.v2.getScoreByScoreId(scoreId);
+        const map = await this.api.v2.getBeatmap(score.beatmapId, score.mode, score.mods);
+        const user = await this.api.v2.getUserById(score.player_id);
+        const cover = await this.database.covers.getCover(map.id.set);
+        this.maps.setMap(ctx.peerId, map);
+        const calc = new Calculator(map, score.mods);
+        await ctx.reply(
+            `Player: ${user.nickname}\n\n${this.templates.ScoreFull(score, map, calc, "https://osu.ppy.sh")}`,
+            {
+                attachment: cover,
+            }
+        );
+    }
+
+    private processMap(ctx: UnifiedMessageContext): boolean {
+        const mapId = IsMap(ctx.text) || this.getMapFromAttachments(ctx);
+        if (!mapId) return false;
+
+        this.maps.sendMap(mapId, ctx);
+        return true;
+    }
+
+    private async processRegularMessage(ctx: UnifiedMessageContext): Promise<void> {
+        if (!ctx.hasText) return;
+
+        if (ctx.text.toLowerCase().startsWith("map ")) {
+            await this.maps.stats(ctx);
+            return;
+        }
+
+        for (const module of this.modules) {
+            const match = module.checkContext(ctx);
+            if (!match) continue;
+
+            if (ctx.isChat) {
+                const inChat = await this.database.chats.isUserInChat(ctx.senderId, ctx.chatId);
+                if (!inChat) {
+                    await this.database.chats.userJoined(ctx.senderId, ctx.chatId);
+                }
+            }
+
+            if (match.map) {
+                const chatMap = this.maps.getChat(ctx.peerId);
+                if (!chatMap || chatMap.map.id.map !== match.map) {
+                    const beatmap = await this.api.v2.getBeatmap(match.map);
+                    this.maps.setMap(ctx.peerId, beatmap);
+                }
+            }
+
+            await match.command.process(ctx);
+        }
+    }
+
+    private configureCommandAliases(): void {
+        const aliases: Record<string, string> = {
+            start: "osu help",
+            help: "osu help",
+            user: "s u",
+            recent: "s r",
+            top_scores: "s t",
+            chat_leaderboard: "s chat",
+            chat_leaderboard_mania: "s chat -mania",
+            chat_leaderboard_taiko: "s chat -taiko",
+            chat_leaderboard_fruits: "s chat -ctb",
+        };
+
+        Object.entries(aliases).forEach(([command, alias]) => {
+            this.tg.command(command, async (ctx) => {
+                ctx.message.text = alias;
+                const context = new UnifiedMessageContext(ctx, this.tg);
+                for (const module of this.modules) {
+                    const match = module.checkContext(context);
+                    if (match) await match.command.process(context);
+                }
+            });
         });
     }
 
-    async start() {
+    public async start(): Promise<void> {
         await this.api.v2.login();
-        console.log(this.api.v2.logged ? "Logged in" : "Failed to login");
         this.startTime = Date.now();
-        console.log("Started");
         await this.tg.start({ drop_pending_updates: true });
+        global.logger.info("Bot started");
     }
 
-    async stop() {
+    public async stop(): Promise<void> {
         await this.tg.stop();
-        console.log("Stopped");
+        global.logger.info("Bot stopped");
     }
 
-    async checkReplay(ctx: UnifiedMessageContext): Promise<import("@grammyjs/types/message.js").File> {
-        if (!ctx.hasAttachments("doc")) {
-            return null;
-        }
-        const replays = ctx.getAttachments("doc").filter((doc) => doc.file_name?.endsWith(".osr"));
-        if (replays.length == 0) {
-            return null;
-        }
-
-        return await ctx.tgCtx.getFile();
+    private checkReplay(ctx: UnifiedMessageContext): boolean {
+        if (!ctx.hasAttachments("doc")) return null;
+        const replays = ctx.getAttachments("doc").filter((d) => d.file_name?.endsWith(".osr"));
+        return replays.length > 0;
     }
 
-    checkMap(ctx: UnifiedMessageContext): number {
-        let hasMap = IsMap(ctx.text);
-        const hasAtt = ctx.hasAttachments("link");
-        if (hasMap) {
-            return hasMap;
-        }
-        if (hasAtt) {
-            const url = ctx.getAttachments("link")[0].url;
-            hasMap = IsMap(url);
-            if (hasMap) {
-                return hasMap;
-            }
-        }
-        return null;
+    private getMapFromAttachments(ctx: UnifiedMessageContext): number | null {
+        return ctx.hasAttachments("link") ? IsMap(ctx.getAttachments("link")[0].url) : null;
     }
 
-    checkScore(ctx: UnifiedMessageContext): number {
-        let hasScore = IsScore(ctx.text);
-        const hasAtt = ctx.hasAttachments("link");
-        if (hasScore) {
-            return hasScore;
-        }
-        if (hasAtt) {
-            const url = ctx.getAttachments("link")[0].url;
-            hasScore = IsMap(url);
-            if (hasScore) {
-                return hasScore;
-            }
-        }
-        return null;
+    private getScoreFromAttachments(ctx: UnifiedMessageContext): number | null {
+        return ctx.hasAttachments("link") ? IsScore(ctx.getAttachments("link")[0].url) : null;
     }
 }
