@@ -16,7 +16,18 @@ export class OsuBeatmapStats implements IBeatmapStats {
     readonly length: number;
     readonly stars: number;
 
-    constructor(ar: number, hp: number, od: number, cs: number, bpm: number, length: number, stars: number) {
+    private mode: number;
+
+    constructor(
+        ar: number,
+        hp: number,
+        od: number,
+        cs: number,
+        bpm: number,
+        length: number,
+        stars: number,
+        mode: number
+    ) {
         this.ar = ar;
         this.hp = hp;
         this.od = od;
@@ -24,11 +35,17 @@ export class OsuBeatmapStats implements IBeatmapStats {
         this.bpm = bpm;
         this.length = length;
         this.stars = stars;
+        this.mode = mode;
     }
 
     toString(): string {
         const time = Util.formatBeatmapLength(this.length);
-        const attrs = `AR:${Util.round(this.ar, 2)} CS:${Util.round(this.cs, 2)} OD:${Util.round(this.od, 2)} HP:${Util.round(this.hp, 2)}`;
+        let attrs: string;
+        if (this.mode == 3) {
+            attrs = `Keys: ${Util.round(this.cs, 2)} OD:${Util.round(this.od, 2)} HP:${Util.round(this.hp, 2)}`;
+        } else {
+            attrs = `AR:${Util.round(this.ar, 2)} CS:${Util.round(this.cs, 2)} OD:${Util.round(this.od, 2)} HP:${Util.round(this.hp, 2)}`;
+        }
         const bpm = `${this.bpm.toFixed(0)}BPM`;
         const stars = `${this.stars.toFixed(2)}✩`;
 
@@ -54,7 +71,10 @@ export class OsuBeatmap implements IBeatmap {
 
     stats: OsuBeatmapStats;
 
-    constructor(apiBeatmap: APIBeatmap) {
+    constructor(apiBeatmap: APIBeatmap = undefined) {
+        if (apiBeatmap === undefined) {
+            return;
+        }
         this.id = apiBeatmap.id.map;
         this.setId = apiBeatmap.id.set;
         this.hash = apiBeatmap.id.hash;
@@ -73,7 +93,8 @@ export class OsuBeatmap implements IBeatmap {
             apiBeatmap.stats.cs,
             apiBeatmap.bpm,
             apiBeatmap.length,
-            apiBeatmap.diff.stars
+            apiBeatmap.diff.stars,
+            this.mode
         );
     }
 
@@ -106,7 +127,8 @@ export class OsuBeatmap implements IBeatmap {
             calc.calculateMultipliedCS(),
             rmap.bpm * mods.speed(),
             this.stats.length / mods.speed(),
-            diffCalc.stars
+            diffCalc.stars,
+            this.mode
         );
     }
 }

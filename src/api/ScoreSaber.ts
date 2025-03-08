@@ -1,10 +1,9 @@
 import { IAPI } from "../API";
 import * as axios from "axios";
 import qs from "querystring";
-import { APIBeatmap, APIScore, APIUser, IBeatmapObjects, IBeatmapStars, IHitCounts } from "../Types";
+import { APIBeatmap, APIScore, APIUser, IBeatmapObjects, IBeatmapStars, IBeatmapStats, IHitCounts } from "../Types";
 import { Bot } from "../Bot";
 import Mods from "../pp/Mods";
-import { ICalcStats } from "../pp/Stats";
 import { ScoreSaberBeatmap } from "../beatmaps/beatsaber/ScoreSaberBeatmap";
 
 interface SSUserResponse {
@@ -110,7 +109,7 @@ class ScoreSaberScoreMap implements APIBeatmap {
     bpm: number;
     creator: { nickname: string; id: number };
     status: string;
-    stats: ICalcStats;
+    stats: IBeatmapStats;
     diff: IBeatmapStars;
     objects: IBeatmapObjects;
     title: string;
@@ -139,8 +138,6 @@ class ScoreSaberScoreMap implements APIBeatmap {
             cs: 0,
             od: 0,
             hp: 0,
-            modify: () => {},
-            toString: () => "",
         };
         this.diff = {
             stars: data.leaderboard.stars,

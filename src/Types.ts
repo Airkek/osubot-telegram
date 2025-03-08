@@ -1,5 +1,4 @@
 import Mods from "./pp/Mods";
-import { ICalcStats } from "./pp/Stats";
 import Util from "./Util";
 import { IBeatmap } from "./beatmaps/BeatmapTypes";
 
@@ -262,7 +261,7 @@ interface APIBeatmap {
         id: number;
     };
     status: string;
-    stats: ICalcStats;
+    stats: IBeatmapStats;
     diff: IBeatmapStars;
     objects: IBeatmapObjects;
     title: string;

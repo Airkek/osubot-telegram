@@ -1,5 +1,4 @@
-import { CalcArgs, HitCounts, IBeatmapStats, ICommandArgs, PPArgs } from "./Types";
-import { CatchStats, ICalcStats, ManiaStats, OsuStats, TaikoStats } from "./pp/Stats";
+import { CalcArgs, HitCounts, ICommandArgs, PPArgs } from "./Types";
 import { InlineKeyboard } from "grammy";
 import { IBeatmap } from "./beatmaps/BeatmapTypes";
 
@@ -45,18 +44,6 @@ export default {
         return Math.round(num * 10 ** p) / 10 ** p;
     },
     profileModes: ["STD", "Taiko", "Catch", "Mania"],
-    getStats(stats: IBeatmapStats, mode: number): ICalcStats {
-        switch (mode) {
-            case 1:
-                return new TaikoStats(stats);
-            case 2:
-                return new CatchStats(stats);
-            case 3:
-                return new ManiaStats(stats);
-            default:
-                return new OsuStats(stats);
-        }
-    },
     fixNumberLength(num: number): string {
         if (num > 9) {
             return String(num);
