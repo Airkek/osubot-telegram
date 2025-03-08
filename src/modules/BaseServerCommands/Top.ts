@@ -5,6 +5,7 @@ import Mods from "../../pp/Mods";
 import { ServerCommand, CommandContext } from "./BasicServerCommand";
 import { Mode, APIUser, APIScore } from "../../Types";
 import { GrammyError } from "grammy";
+import { IBeatmap } from "../../beatmaps/BeatmapTypes";
 
 interface ScoreProcessingOptions {
     context: CommandContext;
@@ -180,13 +181,18 @@ export default class AbstractTop extends ServerCommand {
     ) {
         const map = await this.resolveBeatmap(context, score, mode);
         const ppCalc = new BanchoPP(map, score.mods);
-        const cover = await context.module.bot.database.covers.getCover(map.id.set);
+        let cover: string;
+        if (map.coverUrl) {
+            cover = await context.module.bot.database.covers.getPhotoDoc(map.coverUrl);
+        } else {
+            cover = await context.module.bot.database.covers.getCover(map.setId);
+        }
 
         const message =
             `${header} ${user.nickname} (${Mode[score.mode]}):\n` +
             context.module.bot.templates.ScoreFull(score, map, ppCalc, context.module.link);
 
-        const keyboard = this.createScoreKeyboard(context, map.id.map);
+        const keyboard = this.createScoreKeyboard(context, map.id);
 
         await context.reply(message, { attachment: cover, keyboard });
         context.module.bot.maps.setMap(context.ctx.peerId, map);
@@ -264,6 +270,11 @@ export default class AbstractTop extends ServerCommand {
     }
 
     private async resolveBeatmap(context: CommandContext, score: APIScore, mode: number) {
-        return score.beatmap ?? (await context.module.api.getBeatmap(score.beatmapId, mode, score.mods));
+        let map: IBeatmap = score.beatmap;
+        if (!map) {
+            map = await context.module.beatmapProvider.getBeatmapById(score.beatmapId, mode);
+            await map.applyMods(score.mods);
+        }
+        return map;
     }
 }

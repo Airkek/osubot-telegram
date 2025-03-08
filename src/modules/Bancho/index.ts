@@ -20,6 +20,7 @@ export default class Bancho extends Module {
         this.name = "Bancho";
         this.link = "https://osu.ppy.sh";
         this.api = bot.api.v2;
+        this.beatmapProvider = bot.osuBeatmapProvider;
         this.db = bot.database.servers.bancho;
 
         this.registerCommand([

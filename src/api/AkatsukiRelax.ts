@@ -1,7 +1,7 @@
 import { IAPI } from "../API";
 import * as axios from "axios";
 import qs from "querystring";
-import { APIUser, HitCounts, APIScore, APIBeatmap } from "../Types";
+import { APIUser, HitCounts, APIScore } from "../Types";
 import Mods from "../pp/Mods";
 import Util from "../Util";
 import { Bot } from "../Bot";
@@ -114,10 +114,6 @@ export default class AkatsukiRelaxAPI implements IAPI {
             baseURL: "https://akatsuki.gg/api/v1",
             timeout: 3000,
         });
-    }
-
-    async getBeatmap(id: number | string, mode?: number, mods?: Mods): Promise<APIBeatmap> {
-        return await this.bot.api.v2.getBeatmap(id, mode, mods);
     }
 
     async getUser(nickname: string, mode: number = 0): Promise<APIUser> {

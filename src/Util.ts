@@ -1,6 +1,6 @@
-import { APIBeatmap, CalcArgs, HitCounts, IBeatmapStats, ICommandArgs, PPArgs } from "./Types";
-import { CatchStats, ICalcStats, ManiaStats, OsuStats, TaikoStats } from "./pp/Stats";
+import { CalcArgs, HitCounts, ICommandArgs, PPArgs } from "./Types";
 import { InlineKeyboard } from "grammy";
+import { IBeatmap } from "./beatmaps/BeatmapTypes";
 
 interface Err {
     e: string;
@@ -44,18 +44,6 @@ export default {
         return Math.round(num * 10 ** p) / 10 ** p;
     },
     profileModes: ["STD", "Taiko", "Catch", "Mania"],
-    getStats(stats: IBeatmapStats, mode: number): ICalcStats {
-        switch (mode) {
-            case 1:
-                return new TaikoStats(stats);
-            case 2:
-                return new CatchStats(stats);
-            case 3:
-                return new ManiaStats(stats);
-            default:
-                return new OsuStats(stats);
-        }
-    },
     fixNumberLength(num: number): string {
         if (num > 9) {
             return String(num);
@@ -152,25 +140,8 @@ export default {
         }
         return `${combo}x/${full}x`;
     },
-    formatBeatmap: function (map: APIBeatmap): string {
-        const data: string[] = [];
-
-        data.push(`${map.artist} - ${map.title} [${map.version}] by ${map.creator.nickname} (${map.status})`);
-
-        if (map.length !== undefined && !isNaN(map.length)) {
-            data.push(this.formatBeatmapLength(map.length));
-        }
-        if (map.stats !== undefined && map.stats.toString() !== "") {
-            data.push(map.stats.toString());
-        }
-        if (map.bpm !== undefined && !isNaN(map.bpm)) {
-            data.push(`${Math.round(map.bpm)}BPM`);
-        }
-        if (map.diff.stars !== undefined && !isNaN(map.diff.stars)) {
-            data.push(`${this.round(map.diff.stars, 2)}✩`);
-        }
-
-        return data.join(" | ");
+    formatBeatmap: function (map: IBeatmap): string {
+        return `${map.artist} - ${map.title} [${map.version}] by ${map.author} (${map.status}) | ${map.stats.toString()}`;
     },
     formatDate(d: Date, crop: boolean = false): string {
         if (!crop) {

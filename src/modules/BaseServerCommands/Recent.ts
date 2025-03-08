@@ -2,8 +2,9 @@ import { Module } from "../../Module";
 import Calculator from "../../pp/bancho";
 import Util from "../../Util";
 import { ServerCommand } from "./BasicServerCommand";
-import { APIBeatmap, APIScore } from "../../Types";
+import { APIScore } from "../../Types";
 import { InlineKeyboard } from "grammy";
+import { IBeatmap } from "../../beatmaps/BeatmapTypes";
 
 export default class AbstractRecent extends ServerCommand {
     constructor(module: Module) {
@@ -26,16 +27,16 @@ export default class AbstractRecent extends ServerCommand {
                     recent = await self.module.api.getUserRecentById(userId, mode, 1);
                 }
 
-                let map: APIBeatmap = recent.beatmap;
+                let map: IBeatmap = recent.beatmap;
                 if (!map) {
-                    map = await self.module.api.getBeatmap(recent.beatmapId, recent.mode, recent.mods);
+                    map = await self.module.beatmapProvider.getBeatmapById(recent.beatmapId, recent.mode);
+                    await map.applyMods(recent.mods);
                 }
-
                 let cover: string;
                 if (map.coverUrl) {
                     cover = await self.module.bot.database.covers.getPhotoDoc(map.coverUrl);
                 } else {
-                    cover = await self.module.bot.database.covers.getCover(map.id.set);
+                    cover = await self.module.bot.database.covers.getCover(map.setId);
                 }
 
                 const calculator = new Calculator(map, recent.mods);
@@ -44,7 +45,7 @@ export default class AbstractRecent extends ServerCommand {
                 if (self.module.api.getScore !== undefined) {
                     const firstButton = {
                         text: `[${self.module.prefix[0].toUpperCase()}] Мой скор на карте`,
-                        command: `{map${map.id.map}}${self.module.prefix[0]} c`,
+                        command: `{map${map.id}}${self.module.prefix[0]} c`,
                     };
 
                     const keyboardRows = [[firstButton]];
@@ -52,7 +53,7 @@ export default class AbstractRecent extends ServerCommand {
                     if (self.ctx.isChat) {
                         const secondButton = {
                             text: `[${self.module.prefix[0].toUpperCase()}] Топ чата на карте`,
-                            command: `{map${map.id.map}}${self.module.prefix[0]} lb`,
+                            command: `{map${map.id}}${self.module.prefix[0]} lb`,
                         };
                         keyboardRows.push([secondButton]);
                     }

@@ -19,6 +19,7 @@ export default class Ripple extends Module {
         this.name = "Ripple";
         this.link = "https://ripple.moe";
         this.api = bot.api.ripple;
+        this.beatmapProvider = bot.osuBeatmapProvider;
         this.db = bot.database.servers.ripple;
 
         this.registerCommand([

@@ -1,12 +1,12 @@
 import { Bot } from "./Bot";
 import UnifiedMessageContext from "./TelegramSupport";
-import { APIBeatmap } from "./Types";
 import Util from "./Util";
 import Mods from "./pp/Mods";
+import { IBeatmap } from "./beatmaps/BeatmapTypes";
 
 interface Chat {
     id: number;
-    map: APIBeatmap;
+    map: IBeatmap;
 }
 
 export default class Maps {
@@ -21,7 +21,7 @@ export default class Maps {
         return this.chats.find((chat) => chat.id == id);
     }
 
-    setMap(id: number, map: APIBeatmap) {
+    setMap(id: number, map: IBeatmap) {
         if (!this.getChat(id)) {
             this.chats.push({
                 id,
@@ -35,8 +35,8 @@ export default class Maps {
 
     async sendMap(beatmapId: number, ctx: UnifiedMessageContext) {
         try {
-            const map = await this.bot.api.v2.getBeatmap(beatmapId);
-            const cover = await this.bot.database.covers.getCover(map.id.set);
+            const map = await this.bot.osuBeatmapProvider.getBeatmapById(beatmapId);
+            const cover = await this.bot.database.covers.getCover(map.setId);
             await ctx.reply(this.bot.templates.Beatmap(map), {
                 attachment: cover,
             });
@@ -55,8 +55,9 @@ export default class Maps {
             return;
         }
         const mods = new Mods(args.mods);
-        const map = await this.bot.api.v2.getBeatmap(chat.map.id.map, chat.map.mode, mods);
-        const cover = await this.bot.database.covers.getCover(map.id.set);
+        const map = await this.bot.osuBeatmapProvider.getBeatmapById(chat.map.id, chat.map.mode);
+        await map.applyMods(mods);
+        const cover = await this.bot.database.covers.getCover(map.setId);
         await ctx.reply(this.bot.templates.PP(map, args), {
             attachment: cover,
         });

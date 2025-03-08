@@ -1,23 +1,16 @@
-import { ICommandArgs, APIBeatmap } from "../Types";
+import { ICommandArgs } from "../Types";
 import BanchoPP from "../pp/bancho";
 import Mods from "../pp/Mods";
 import Util from "../Util";
+import { IBeatmap } from "../beatmaps/BeatmapTypes";
 
-export default function (map: APIBeatmap, args: ICommandArgs): string {
+export default function (map: IBeatmap, args: ICommandArgs): string {
     const calc = new BanchoPP(map, new Mods(args.mods));
 
-    let hits = map.objects.circles + map.objects.sliders + map.objects.spinners;
-
-    if (map.mode === 1) {
-        hits -= map.objects.sliders;
-    }
-
-    if (map.mode === 1 || map.mode === 3) {
-        hits -= map.objects.spinners;
-    }
+    const hits = map.hitObjectsCount;
 
     const accuracy = args.acc / 100 || 1;
-    const maxCombo = args.combo ? Math.min(map.combo, Math.max(1, args.combo)) : map.combo;
+    const maxCombo = args.combo ? Math.min(map.maxCombo, Math.max(1, args.combo)) : map.maxCombo;
     const missCount = args.miss ? Math.min(hits, Math.max(0, args.miss)) : 0;
 
     const ppArgs = Util.createPPArgs(
@@ -40,7 +33,7 @@ export default function (map: APIBeatmap, args: ICommandArgs): string {
 Accuracy: ${Util.round(ppArgs.acc * 100, 2)}%${
         map.mode !== 3
             ? `
-Combo: ${Util.formatCombo(ppArgs.combo, map.combo)} | ${ppArgs.counts.miss} misses`
+Combo: ${Util.formatCombo(ppArgs.combo, map.maxCombo)} | ${ppArgs.counts.miss} misses`
             : ""
     }
 - PP: ${Util.round(pp.pp, 2)}

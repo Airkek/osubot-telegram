@@ -2,6 +2,7 @@ import { Module } from "../../Module";
 import Mods from "../../pp/Mods";
 import Calculator from "../../pp/bancho";
 import { ServerCommand } from "./BasicServerCommand";
+import { IBeatmap } from "../../beatmaps/BeatmapTypes";
 
 export default class AbstractCompare extends ServerCommand {
     constructor(module: Module) {
@@ -18,18 +19,27 @@ export default class AbstractCompare extends ServerCommand {
                 const score = self.user.username
                     ? await self.module.api.getScore(
                           self.user.username,
-                          chat.map.id.map,
+                          chat.map.id,
                           mode,
                           self.args.mods.length == 0 ? undefined : new Mods(self.args.mods).sum()
                       )
                     : await self.module.api.getScoreByUid(
                           self.user.id || self.user.dbUser.game_id,
-                          chat.map.id.map,
+                          chat.map.id,
                           mode,
                           self.args.mods.length == 0 ? undefined : new Mods(self.args.mods).sum()
                       );
-                const map = score.beatmap ?? (await self.module.api.getBeatmap(chat.map.id.map, mode, score.mods));
-                const cover = await self.module.bot.database.covers.getCover(map.id.set);
+                let map: IBeatmap = score.beatmap;
+                if (!map) {
+                    map = await self.module.beatmapProvider.getBeatmapById(chat.map.id, score.mode);
+                    await map.applyMods(score.mods);
+                }
+                let cover: string;
+                if (map.coverUrl) {
+                    cover = await self.module.bot.database.covers.getPhotoDoc(map.coverUrl);
+                } else {
+                    cover = await self.module.bot.database.covers.getCover(map.setId);
+                }
                 const calc = new Calculator(map, score.mods);
                 await self.reply(
                     `Лучший скор игрока на этой карте:\n${self.module.bot.templates.ScoreFull(

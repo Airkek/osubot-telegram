@@ -22,6 +22,7 @@ import IgnoreList from "./Ignore";
 import UnifiedMessageContext from "./TelegramSupport";
 import IsMap from "./regexes/MapRegexp";
 import IsScore from "./regexes/ScoreRegexp";
+import { OsuBeatmapProvider } from "./beatmaps/osu/OsuBeatmapProvider";
 
 export interface IBotConfig {
     tg: {
@@ -39,6 +40,7 @@ export class Bot {
     public readonly tg: TelegramBot;
     public readonly database: Database;
     public readonly api: APICollection;
+    public readonly osuBeatmapProvider: OsuBeatmapProvider; // TODO: move somewhere out of there
     public readonly templates: ITemplates = Templates;
     public readonly maps: Maps;
     public readonly ignored: IgnoreList;
@@ -58,6 +60,7 @@ export class Bot {
         this.database = new Database(this.tg, config.tg.owner);
         this.ignored = new IgnoreList(this.database);
         this.api = new APICollection(this);
+        this.osuBeatmapProvider = new OsuBeatmapProvider(this.api.v2);
         this.maps = new Maps(this);
         this.track = new OsuTrackAPI();
 
@@ -147,8 +150,8 @@ export class Bot {
 
             if (match.map) {
                 const chatMap = this.maps.getChat(context.peerId);
-                if (!chatMap || chatMap.map.id.map !== match.map) {
-                    const beatmap = await this.api.v2.getBeatmap(match.map);
+                if (!chatMap || chatMap.map.id !== match.map) {
+                    const beatmap = await this.osuBeatmapProvider.getBeatmapById(match.map);
                     this.maps.setMap(context.peerId, beatmap);
                 }
             }
@@ -197,13 +200,9 @@ export class Bot {
             );
 
             const replay = new ReplayParser(file).getReplay();
-            let beatmap = await this.api.v2.getBeatmap(replay.beatmapHash);
-
-            if (replay.mods.diff()) {
-                beatmap = await this.api.v2.getBeatmap(beatmap.id.map, replay.mode, replay.mods);
-            }
-
-            const cover = await this.database.covers.getCover(beatmap.id.set);
+            const beatmap = await this.osuBeatmapProvider.getBeatmapByHash(replay.beatmapHash, replay.mode);
+            await beatmap.applyMods(replay.mods);
+            const cover = await this.database.covers.getCover(beatmap.setId);
             const calculator = new Calculator(beatmap, replay.mods);
 
             const keyboard = Util.createKeyboard(
@@ -248,9 +247,10 @@ export class Bot {
 
     private async processScoreInternal(ctx: UnifiedMessageContext, scoreId: number) {
         const score = await this.api.v2.getScoreByScoreId(scoreId);
-        const map = await this.api.v2.getBeatmap(score.beatmapId, score.mode, score.mods);
+        const map = await this.osuBeatmapProvider.getBeatmapById(score.beatmapId, score.mode);
+        await map.applyMods(score.mods);
         const user = await this.api.v2.getUserById(score.player_id);
-        const cover = await this.database.covers.getCover(map.id.set);
+        const cover = await this.database.covers.getCover(map.setId);
         this.maps.setMap(ctx.peerId, map);
         const calc = new Calculator(map, score.mods);
         await ctx.reply(
@@ -290,8 +290,8 @@ export class Bot {
 
             if (match.map) {
                 const chatMap = this.maps.getChat(ctx.peerId);
-                if (!chatMap || chatMap.map.id.map !== match.map) {
-                    const beatmap = await this.api.v2.getBeatmap(match.map);
+                if (!chatMap || chatMap.map.id !== match.map) {
+                    const beatmap = await this.osuBeatmapProvider.getBeatmapById(match.map);
                     this.maps.setMap(ctx.peerId, beatmap);
                 }
             }
@@ -338,7 +338,9 @@ export class Bot {
     }
 
     private checkReplay(ctx: UnifiedMessageContext): boolean {
-        if (!ctx.hasAttachments("doc")) return null;
+        if (!ctx.hasAttachments("doc")) {
+            return false;
+        }
         const replays = ctx.getAttachments("doc").filter((d) => d.file_name?.endsWith(".osr"));
         return replays.length > 0;
     }

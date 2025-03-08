@@ -8,24 +8,17 @@ import Leaderboard from "./Leaderboard";
 import Track from "./Track";
 import Search from "./Search";
 import { Replay } from "../Replay";
-import {
-    APIUser,
-    APIBeatmap,
-    APIScore,
-    ICommandArgs,
-    LeaderboardResponse,
-    OsuTrackResponse,
-    V2Beatmapset,
-} from "../Types";
+import { APIUser, APIScore, ICommandArgs, LeaderboardResponse, OsuTrackResponse, V2Beatmapset } from "../Types";
 import { IPPCalculator as ICalc } from "../pp/Calculator";
+import { IBeatmap } from "../beatmaps/BeatmapTypes";
 
 interface ITemplates {
     User: (user: APIUser, mode: number, link: string) => string;
-    TopScore: (score: APIScore, beatmap: APIBeatmap, place: number, calc: ICalc, link: string) => string;
-    ScoreFull: (score: APIScore, beatmap: APIBeatmap, calc: ICalc, link: string) => string;
-    Replay: (replay: Replay, map: APIBeatmap, calc: ICalc) => string;
-    Beatmap: (map: APIBeatmap) => string;
-    PP: (map: APIBeatmap, args: ICommandArgs) => string;
+    TopScore: (score: APIScore, beatmap: IBeatmap, place: number, calc: ICalc, link: string) => string;
+    ScoreFull: (score: APIScore, beatmap: IBeatmap, calc: ICalc, link: string) => string;
+    Replay: (replay: Replay, map: IBeatmap, calc: ICalc) => string;
+    Beatmap: (map: IBeatmap) => string;
+    PP: (map: IBeatmap, args: ICommandArgs) => string;
     Leaderboard: (leaderboard: LeaderboardResponse) => string;
     Track: (response: OsuTrackResponse) => string;
     Search: (sets: V2Beatmapset[]) => string;

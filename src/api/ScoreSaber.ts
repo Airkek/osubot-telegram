@@ -1,10 +1,10 @@
 import { IAPI } from "../API";
 import * as axios from "axios";
 import qs from "querystring";
-import { APIBeatmap, APIScore, APIUser, IBeatmapObjects, IBeatmapStars, IHitCounts } from "../Types";
+import { APIBeatmap, APIScore, APIUser, IBeatmapObjects, IBeatmapStars, IBeatmapStats, IHitCounts } from "../Types";
 import { Bot } from "../Bot";
 import Mods from "../pp/Mods";
-import { ICalcStats } from "../pp/Stats";
+import { ScoreSaberBeatmap } from "../beatmaps/beatsaber/ScoreSaberBeatmap";
 
 interface SSUserResponse {
     scoreStats: {
@@ -105,11 +105,11 @@ function getStatus(data: IRankedStatus) {
 
 class ScoreSaberScoreMap implements APIBeatmap {
     artist: string;
-    id: { set: number; map: number };
+    id: { set: number; map: number; hash: string };
     bpm: number;
     creator: { nickname: string; id: number };
     status: string;
-    stats: ICalcStats;
+    stats: IBeatmapStats;
     diff: IBeatmapStars;
     objects: IBeatmapObjects;
     title: string;
@@ -125,6 +125,7 @@ class ScoreSaberScoreMap implements APIBeatmap {
         this.id = {
             set: 0,
             map: 0,
+            hash: "ss_0_0",
         };
         this.bpm = NaN;
         this.creator = {
@@ -137,8 +138,6 @@ class ScoreSaberScoreMap implements APIBeatmap {
             cs: 0,
             od: 0,
             hp: 0,
-            modify: () => {},
-            toString: () => "",
         };
         this.diff = {
             stars: data.leaderboard.stars,
@@ -193,7 +192,7 @@ class BeatSaberScore implements APIScore {
     mode: number;
     pp?: number;
     fcPp?: number;
-    beatmap?: APIBeatmap;
+    beatmap?: ScoreSaberBeatmap;
     rank: string;
     date: Date;
 
@@ -214,7 +213,7 @@ class BeatSaberScore implements APIScore {
         this.rank = data.score.fullCombo ? "FC" : "Pass";
         this.date = new Date(data.score.timeSet);
         this.mode = 0;
-        this.beatmap = new ScoreSaberScoreMap(data);
+        this.beatmap = new ScoreSaberBeatmap(new ScoreSaberScoreMap(data));
     }
 
     accuracy(): number {

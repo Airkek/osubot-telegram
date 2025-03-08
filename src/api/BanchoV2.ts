@@ -14,14 +14,12 @@ import {
     IBeatmapStars,
     BeatmapStatus,
     LeaderboardScore,
+    IBeatmapStats,
 } from "../Types";
 import Mods from "../pp/Mods";
-import AttributesCalculator from "../pp/AttributesCalculator";
-import Util from "../Util";
-import * as fs from "fs";
 import IAPI from "./base";
 import { Bot } from "../Bot";
-import { ICalcStats } from "../pp/Stats";
+import { OsuBeatmap } from "../beatmaps/osu/OsuBeatmap";
 
 type Ruleset = "osu" | "mania" | "taiko" | "fruits";
 
@@ -71,6 +69,7 @@ interface Beatmap {
     user_id: number;
     version: string;
     beatmapset: Beatmapset;
+    checksum: string;
 }
 
 interface BeatmapExtended extends Beatmap {
@@ -92,6 +91,7 @@ interface BeatmapExtended extends Beatmap {
     playcount: number;
     ranked: BeatmapStatus;
     url: string;
+    max_combo: number;
 }
 
 interface UserStats {
@@ -175,26 +175,13 @@ interface Beatmapset {
     video?: boolean;
 }
 
-interface BeatmapDifficultyAttributesResponse {
-    attributes: BeatmapDifficultyAttributes;
-}
-
-interface BeatmapDifficultyAttributes {
-    max_combo: number;
-    star_rating: number;
-    overall_difficulty?: number;
-    approach_rate?: number;
-    aim_difficulty?: number;
-    speed_difficulty?: number;
-}
-
 class V2Beatmap implements APIBeatmap {
     artist: string;
-    id: { set: number; map: number };
+    id: { set: number; map: number; hash: string };
     bpm: number;
     creator: { nickname: string; id: number };
     status: string;
-    stats: ICalcStats;
+    stats: IBeatmapStats;
     diff: IBeatmapStars;
     objects: IBeatmapObjects;
     title: string;
@@ -203,33 +190,30 @@ class V2Beatmap implements APIBeatmap {
     combo: number;
     mode: number;
 
-    constructor(beatmap: BeatmapExtended, attributes: BeatmapDifficultyAttributes, mods: Mods) {
-        const calc = new AttributesCalculator(beatmap.ar, beatmap.accuracy, beatmap.drain, beatmap.cs, mods);
+    constructor(beatmap: BeatmapExtended) {
         this.artist = beatmap.beatmapset.artist;
         this.id = {
             set: beatmap.beatmapset_id,
             map: beatmap.id,
+            hash: beatmap.checksum,
         };
 
-        this.bpm = beatmap.bpm * (mods?.speed() ?? 1);
-        this.length = beatmap.hit_length / (mods?.speed() ?? 1);
+        this.bpm = beatmap.bpm;
+        this.length = beatmap.hit_length;
 
         this.creator = {
             nickname: beatmap.beatmapset.creator,
             id: beatmap.beatmapset.user_id,
         };
         this.status = BeatmapStatus[Number(beatmap.ranked)];
-        this.stats = Util.getStats(
-            {
-                ar: calc.calculateMultipliedAR(),
-                cs: calc.calculateMultipliedCS(),
-                od: calc.calculateMultipliedOD(),
-                hp: calc.calculateMultipliedHP(),
-            },
-            beatmap.mode_int
-        );
+        this.stats = {
+            ar: beatmap.ar,
+            cs: beatmap.cs,
+            od: beatmap.accuracy,
+            hp: beatmap.drain,
+        };
         this.diff = {
-            stars: attributes.star_rating || beatmap.difficulty_rating,
+            stars: 0, // deprecated
         };
         this.objects = {
             circles: beatmap.count_circles,
@@ -238,7 +222,7 @@ class V2Beatmap implements APIBeatmap {
         };
         this.title = beatmap.beatmapset.title;
         this.version = beatmap.version;
-        this.combo = attributes.max_combo;
+        this.combo = beatmap.max_combo;
         this.mode = beatmap.mode_int;
     }
 }
@@ -482,7 +466,7 @@ class BanchoAPIV2 implements IAPI {
         return await this.getScoreByUid(user.id as number, beatmapId, mode, mods);
     }
 
-    async getBeatmap(id: number | string, mode?: number, mods?: Mods): Promise<APIBeatmap> {
+    async getBeatmap(id: number | string): Promise<APIBeatmap> {
         let data: BeatmapExtended;
 
         if (typeof id === "string") {
@@ -497,35 +481,7 @@ class BanchoAPIV2 implements IAPI {
             throw new Error("Beatmap not found");
         }
 
-        const attributes: BeatmapDifficultyAttributesResponse = await this.post(
-            `/beatmaps/${data.id}/attributes`,
-            mods !== undefined && mode !== undefined
-                ? {
-                      mods: mods.diff(), // TODO: lazer
-                      ruleset_id: mode,
-                  }
-                : undefined
-        );
-        if (attributes === undefined) {
-            throw new Error("Beatmap not found");
-        }
-
-        const beatmap = new V2Beatmap(data, attributes.attributes, mods);
-
-        const folderPath = "beatmap_cache";
-        if (!fs.existsSync(folderPath)) {
-            fs.mkdirSync(folderPath);
-        }
-
-        const filePath = `beatmap_cache/${beatmap.id.map}.osu`;
-        if (!fs.existsSync(filePath)) {
-            const response = await axios.default.get(`https://osu.ppy.sh/osu/${beatmap.id.map}`, {
-                responseType: "arraybuffer",
-            });
-            const buffer = Buffer.from(response.data, "binary");
-            fs.writeFileSync(filePath, buffer);
-        }
-        return beatmap;
+        return new V2Beatmap(data);
     }
 
     async getLeaderboard(
@@ -534,7 +490,9 @@ class BanchoAPIV2 implements IAPI {
         mode?: number,
         mods?: number
     ): Promise<LeaderboardResponse> {
-        const map = await this.getBeatmap(beatmapId);
+        const apiMap = await this.getBeatmap(beatmapId);
+        const map = new OsuBeatmap(apiMap);
+        await map.applyMods(new Mods(0));
         const scores: LeaderboardScore[] = [];
         try {
             const lim = Math.ceil(users.length / 5);

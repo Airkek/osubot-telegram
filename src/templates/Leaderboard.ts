@@ -18,7 +18,7 @@ ${Util.formatBeatmap(map)}\n`;
                 return (
                     `#${i + 1} ${lbscore.user.nickname} | ` +
                     `${lbscore.score.score?.toLocaleString()} | ` +
-                    `${Util.formatCombo(lbscore.score.combo, map.combo)} | ` +
+                    `${Util.formatCombo(lbscore.score.combo, map.maxCombo)} | ` +
                     `${Util.round(lbscore.score.accuracy() * 100, 2)}% | ` +
                     `${lbscore.score.counts.miss} misses | ` +
                     `${Util.round(lbscore.score.pp, 2)}pp ` +
