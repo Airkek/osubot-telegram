@@ -92,6 +92,7 @@ interface BeatmapExtended extends Beatmap {
     playcount: number;
     ranked: BeatmapStatus;
     url: string;
+    max_combo: number;
 }
 
 interface UserStats {
@@ -175,19 +176,6 @@ interface Beatmapset {
     video?: boolean;
 }
 
-interface BeatmapDifficultyAttributesResponse {
-    attributes: BeatmapDifficultyAttributes;
-}
-
-interface BeatmapDifficultyAttributes {
-    max_combo: number;
-    star_rating: number;
-    overall_difficulty?: number;
-    approach_rate?: number;
-    aim_difficulty?: number;
-    speed_difficulty?: number;
-}
-
 class V2Beatmap implements APIBeatmap {
     artist: string;
     id: { set: number; map: number; hash: string };
@@ -203,7 +191,7 @@ class V2Beatmap implements APIBeatmap {
     combo: number;
     mode: number;
 
-    constructor(beatmap: BeatmapExtended, attributes: BeatmapDifficultyAttributes) {
+    constructor(beatmap: BeatmapExtended) {
         this.artist = beatmap.beatmapset.artist;
         this.id = {
             set: beatmap.beatmapset_id,
@@ -226,7 +214,7 @@ class V2Beatmap implements APIBeatmap {
             hp: beatmap.drain,
         };
         this.diff = {
-            stars: attributes.star_rating || beatmap.difficulty_rating,
+            stars: 0, // deprecated
         };
         this.objects = {
             circles: beatmap.count_circles,
@@ -235,7 +223,7 @@ class V2Beatmap implements APIBeatmap {
         };
         this.title = beatmap.beatmapset.title;
         this.version = beatmap.version;
-        this.combo = attributes.max_combo;
+        this.combo = beatmap.max_combo;
         this.mode = beatmap.mode_int;
     }
 }
@@ -479,7 +467,7 @@ class BanchoAPIV2 implements IAPI {
         return await this.getScoreByUid(user.id as number, beatmapId, mode, mods);
     }
 
-    async getBeatmap(id: number | string, mode?: number): Promise<APIBeatmap> {
+    async getBeatmap(id: number | string): Promise<APIBeatmap> {
         let data: BeatmapExtended;
 
         if (typeof id === "string") {
@@ -494,14 +482,7 @@ class BanchoAPIV2 implements IAPI {
             throw new Error("Beatmap not found");
         }
 
-        const attributes: BeatmapDifficultyAttributesResponse = await this.post(`/beatmaps/${data.id}/attributes`, {
-            ruleset_id: mode,
-        });
-        if (attributes === undefined) {
-            throw new Error("Beatmap not found");
-        }
-
-        const beatmap = new V2Beatmap(data, attributes.attributes);
+        const beatmap = new V2Beatmap(data);
 
         const folderPath = "beatmap_cache";
         if (!fs.existsSync(folderPath)) {

@@ -12,18 +12,18 @@ export class OsuBeatmapProvider implements IBeatmapProvider {
     }
 
     async getBeatmapByHash(hash: string, mode?: number): Promise<OsuBeatmap> {
-        const beatmap = await this.api.getBeatmap(hash, mode);
-        return await this.getBeatmap(beatmap);
+        const beatmap = await this.api.getBeatmap(hash);
+        return await this.getBeatmap(beatmap, mode);
     }
 
     async getBeatmapById(id: number, mode?: number): Promise<OsuBeatmap> {
-        const beatmap = await this.api.getBeatmap(id, mode);
-        return await this.getBeatmap(beatmap);
+        const beatmap = await this.api.getBeatmap(id);
+        return await this.getBeatmap(beatmap, mode);
     }
 
-    private async getBeatmap(beatmap: APIBeatmap): Promise<OsuBeatmap> {
+    private async getBeatmap(beatmap: APIBeatmap, mode?: number): Promise<OsuBeatmap> {
         const osuBeatmap = new OsuBeatmap(beatmap);
-        await osuBeatmap.applyMods(new Mods([])); // ensure osu file downloaded and calculate star rating
+        await osuBeatmap.asMode(mode ?? osuBeatmap.mode);
         return osuBeatmap;
     }
 }

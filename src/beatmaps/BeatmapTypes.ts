@@ -24,5 +24,7 @@ export interface IBeatmap {
 
     readonly url?: string;
     readonly coverUrl?: string;
+
+    asMode(mode: number): Promise<void>;
     applyMods(mods: Mods): Promise<void>;
 }

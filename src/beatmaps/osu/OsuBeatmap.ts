@@ -57,7 +57,7 @@ export class OsuBeatmap implements IBeatmap {
     readonly id: number;
     readonly setId: number;
     readonly hash: string;
-    readonly mode: number;
+    mode: number;
 
     readonly title: string;
     readonly artist: string;
@@ -66,19 +66,21 @@ export class OsuBeatmap implements IBeatmap {
     readonly author: string;
     readonly status: string;
 
-    readonly maxCombo: number;
+    maxCombo: number;
     readonly hitObjectsCount: number;
 
     stats: OsuBeatmapStats;
 
-    constructor(apiBeatmap: APIBeatmap = undefined) {
+    private mods: Mods;
+
+    constructor(apiBeatmap?: APIBeatmap) {
         if (apiBeatmap === undefined) {
             return;
         }
+        this.mode = apiBeatmap.mode;
         this.id = apiBeatmap.id.map;
         this.setId = apiBeatmap.id.set;
         this.hash = apiBeatmap.id.hash;
-        this.mode = apiBeatmap.mode;
         this.title = apiBeatmap.title;
         this.artist = apiBeatmap.artist;
         this.version = apiBeatmap.version;
@@ -96,9 +98,17 @@ export class OsuBeatmap implements IBeatmap {
             apiBeatmap.diff.stars,
             this.mode
         );
+
+        this.mods = new Mods([]);
+    }
+
+    async asMode(mode: number): Promise<void> {
+        this.mode = mode;
+        await this.applyMods(this.mods);
     }
 
     async applyMods(mods: Mods): Promise<void> {
+        this.mods = mods;
         const rmap = await getRosuBeatmap(this.id);
         switch (this.mode) {
             case 1:
@@ -119,6 +129,8 @@ export class OsuBeatmap implements IBeatmap {
             mods: mods.flags,
             clockRate: mods.speed(),
         }).calculate(rmap);
+
+        this.maxCombo = diffCalc.maxCombo;
 
         this.stats = new OsuBeatmapStats(
             calc.calculateMultipliedAR(),
