@@ -60,7 +60,7 @@ export class Bot {
         this.database = new Database(this.tg, config.tg.owner);
         this.ignored = new IgnoreList(this.database);
         this.api = new APICollection(this);
-        this.osuBeatmapProvider = new OsuBeatmapProvider(this.api.v2);
+        this.osuBeatmapProvider = new OsuBeatmapProvider(this.api.v2, this.database.osuBeatmapMeta);
         this.maps = new Maps(this);
         this.track = new OsuTrackAPI();
 

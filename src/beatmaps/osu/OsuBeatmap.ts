@@ -5,6 +5,7 @@ import AttributesCalculator from "../../pp/AttributesCalculator";
 import { getRosuBeatmap } from "../../pp/RosuUtils";
 import * as rosu from "rosu-pp-js";
 import { APIBeatmap } from "../../Types";
+import { IOsuBeatmapMetadata } from "../../Database";
 
 export class OsuBeatmapStats implements IBeatmapStats {
     readonly ar: number;
@@ -67,37 +68,53 @@ export class OsuBeatmap implements IBeatmap {
     readonly status: string;
 
     maxCombo: number;
-    readonly hitObjectsCount: number;
+    hitObjectsCount: number;
 
     stats: OsuBeatmapStats;
 
     private mods: Mods;
 
-    constructor(apiBeatmap?: APIBeatmap) {
-        if (apiBeatmap === undefined) {
-            return;
+    readonly native_mode: number;
+    readonly native_length: number;
+
+    constructor(apiBeatmap?: APIBeatmap, dbBeatmap?: IOsuBeatmapMetadata) {
+        if (apiBeatmap) {
+            this.mode = apiBeatmap.mode;
+            this.native_mode = apiBeatmap.mode;
+            this.native_length = apiBeatmap.length;
+            this.id = apiBeatmap.id.map;
+            this.setId = apiBeatmap.id.set;
+            this.hash = apiBeatmap.id.hash;
+            this.title = apiBeatmap.title;
+            this.artist = apiBeatmap.artist;
+            this.version = apiBeatmap.version;
+            this.author = apiBeatmap.creator.nickname;
+            this.status = String(apiBeatmap.status);
+            this.maxCombo = apiBeatmap.combo;
+            this.hitObjectsCount =
+                apiBeatmap.objects.circles + apiBeatmap.objects.sliders + apiBeatmap.objects.spinners;
+            this.stats = new OsuBeatmapStats(
+                apiBeatmap.stats.ar,
+                apiBeatmap.stats.hp,
+                apiBeatmap.stats.od,
+                apiBeatmap.stats.cs,
+                apiBeatmap.bpm,
+                apiBeatmap.length,
+                apiBeatmap.diff.stars,
+                this.mode
+            );
+        } else if (dbBeatmap) {
+            this.native_mode = dbBeatmap.native_mode;
+            this.native_length = dbBeatmap.native_length;
+            this.id = dbBeatmap.id;
+            this.setId = dbBeatmap.set_id;
+            this.hash = dbBeatmap.hash;
+            this.title = dbBeatmap.title;
+            this.artist = dbBeatmap.artist;
+            this.version = dbBeatmap.version;
+            this.author = dbBeatmap.author;
+            this.status = dbBeatmap.status;
         }
-        this.mode = apiBeatmap.mode;
-        this.id = apiBeatmap.id.map;
-        this.setId = apiBeatmap.id.set;
-        this.hash = apiBeatmap.id.hash;
-        this.title = apiBeatmap.title;
-        this.artist = apiBeatmap.artist;
-        this.version = apiBeatmap.version;
-        this.author = apiBeatmap.creator.nickname;
-        this.status = apiBeatmap.status;
-        this.maxCombo = apiBeatmap.combo;
-        this.hitObjectsCount = apiBeatmap.objects.circles + apiBeatmap.objects.sliders + apiBeatmap.objects.spinners;
-        this.stats = new OsuBeatmapStats(
-            apiBeatmap.stats.ar,
-            apiBeatmap.stats.hp,
-            apiBeatmap.stats.od,
-            apiBeatmap.stats.cs,
-            apiBeatmap.bpm,
-            apiBeatmap.length,
-            apiBeatmap.diff.stars,
-            this.mode
-        );
 
         this.mods = new Mods([]);
     }
@@ -130,6 +147,7 @@ export class OsuBeatmap implements IBeatmap {
             clockRate: mods.speed(),
         }).calculate(rmap);
 
+        this.hitObjectsCount = diffCalc.nObjects;
         this.maxCombo = diffCalc.maxCombo;
 
         this.stats = new OsuBeatmapStats(
@@ -138,7 +156,7 @@ export class OsuBeatmap implements IBeatmap {
             calc.calculateMultipliedOD(),
             calc.calculateMultipliedCS(),
             rmap.bpm * mods.speed(),
-            this.stats.length / mods.speed(),
+            this.native_length / mods.speed(),
             diffCalc.stars,
             this.mode
         );

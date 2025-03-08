@@ -5,6 +5,7 @@ import { Pool, QueryResult } from "pg";
 import { APIUser, IDatabaseServer, IDatabaseUser, IDatabaseUserStats } from "./Types";
 import UnifiedMessageContext from "./TelegramSupport";
 import { createHash } from "node:crypto";
+import { OsuBeatmap } from "./beatmaps/osu/OsuBeatmap";
 
 class DatabaseServer implements IDatabaseServer {
     serverName: string;
@@ -293,6 +294,31 @@ const migrations: IMigration[] = [
             return true;
         },
     },
+    {
+        version: 4,
+        name: "Create table for osu! beatmap metadata cache",
+        process: async (db: Database) => {
+            await db.run(
+                `CREATE TABLE IF NOT EXISTS osu_beatmap_metadata
+                 (
+                     id            BIGINT,
+                     set_id        BIGINT,
+                     hash          TEXT,
+
+                     title         TEXT,
+                     artist        TEXT,
+
+                     version       TEXT,
+                     author        TEXT,
+                     status        TEXT,
+
+                     native_mode   SMALLINT,
+                     native_length BIGINT
+                 )`
+            );
+            return true;
+        },
+    },
 ];
 
 async function applyMigrations(db: Database) {
@@ -328,6 +354,91 @@ async function applyMigrations(db: Database) {
     }
 }
 
+export interface IOsuBeatmapMetadata {
+    id: number;
+    set_id: number;
+    hash: string;
+
+    title: string;
+    artist: string;
+
+    version: string;
+    author: string;
+    status: string;
+
+    native_mode: number;
+    native_length: number;
+}
+
+export class DatabaseOsuBeatmapMetadataCache {
+    private db: Database;
+    constructor(db: Database) {
+        this.db = db;
+    }
+
+    async getBeatmapById(id: number): Promise<IOsuBeatmapMetadata | null> {
+        return await this.db.get("SELECT * FROM osu_beatmap_metadata WHERE id = $1", [id]);
+    }
+
+    async getBeatmapByHash(hash: string): Promise<IOsuBeatmapMetadata | null> {
+        return await this.db.get("SELECT * FROM osu_beatmap_metadata WHERE hash = $1", [hash]);
+    }
+
+    async addToCache(map: OsuBeatmap): Promise<void> {
+        const byId = await this.getBeatmapById(map.id);
+        if (byId) {
+            if (byId.hash === map.hash) {
+                return;
+            }
+
+            await this.db.run(
+                `UPDATE osu_beatmap_metadata SET 
+                                set_id = $1,
+                                hash = $2,
+                                title = $3,
+                                artist = $4,
+                                version = $5,
+                                author = $6,
+                                status = $7,
+                                native_mode = $8
+                                native_length = $9,
+                                WHERE id = $10`,
+                [
+                    map.setId,
+                    map.hash,
+                    map.title,
+                    map.artist,
+                    map.version,
+                    map.author,
+                    map.status,
+                    map.native_mode,
+                    map.native_length,
+                    map.id,
+                ]
+            );
+            return;
+        }
+
+        await this.db.run(
+            `INSERT INTO osu_beatmap_metadata 
+                            (id, set_id, hash, title, artist, version, author, status, native_mode, native_length) 
+                            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+            [
+                map.id,
+                map.setId,
+                map.hash,
+                map.title,
+                map.artist,
+                map.version,
+                map.author,
+                map.status,
+                map.native_mode,
+                map.native_length,
+            ]
+        );
+    }
+}
+
 export default class Database {
     servers: IServersList;
     covers: DatabaseCovers;
@@ -335,6 +446,7 @@ export default class Database {
     chats: DatabaseUsersToChat;
     ignore: DatabaseIgnore;
     drop: DatabaseDrop;
+    osuBeatmapMeta: DatabaseOsuBeatmapMetadataCache;
 
     db: Pool;
     tg: TG;
@@ -350,14 +462,11 @@ export default class Database {
         };
 
         this.covers = new DatabaseCovers(this);
-
         this.errors = new DatabaseErrors(this);
-
         this.chats = new DatabaseUsersToChat(this);
-
         this.ignore = new DatabaseIgnore(this);
-
         this.drop = new DatabaseDrop(this);
+        this.osuBeatmapMeta = new DatabaseOsuBeatmapMetadataCache(this);
 
         this.db = new Pool({
             user: process.env.DB_USERNAME,

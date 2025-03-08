@@ -5,10 +5,11 @@ export interface IBeatmapStats {
 }
 
 export interface IBeatmap {
+    readonly mode: number;
+
     readonly id: number;
     readonly setId: number;
     readonly hash: string;
-    readonly mode: number;
 
     readonly title: string;
     readonly artist: string;
@@ -24,6 +25,8 @@ export interface IBeatmap {
 
     readonly url?: string;
     readonly coverUrl?: string;
+
+    readonly native_mode: number;
 
     asMode(mode: number): Promise<void>;
     applyMods(mods: Mods): Promise<void>;

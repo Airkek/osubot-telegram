@@ -24,6 +24,7 @@ export class BeatLeaderBeatmap implements IBeatmap {
     readonly setId: number;
     readonly hash: string;
     readonly mode: number;
+    readonly native_mode: number;
 
     readonly title: string;
     readonly artist: string;
@@ -45,6 +46,7 @@ export class BeatLeaderBeatmap implements IBeatmap {
         this.setId = apiBeatmap.id.set;
         this.hash = apiBeatmap.id.hash;
         this.mode = apiBeatmap.mode;
+        this.native_mode = apiBeatmap.mode;
         this.title = apiBeatmap.title;
         this.artist = apiBeatmap.artist;
         this.version = apiBeatmap.version;
