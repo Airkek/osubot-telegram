@@ -1,4 +1,5 @@
 import { Bot as TelegramBot, GrammyError, HttpError } from "grammy";
+import { autoRetry } from "@grammyjs/auto-retry";
 import axios from "axios";
 import { Module } from "./Module";
 import Database from "./Database";
@@ -109,6 +110,8 @@ export class Bot {
                 console.error("Unexpected error:", err.error);
             }
         });
+
+        this.tg.api.config.use(autoRetry());
     }
 
     private setupEventHandlers(): void {

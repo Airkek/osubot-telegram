@@ -20,6 +20,7 @@
   },
   "homepage": "https://github.com/Airkek/osubot-telegram#readme",
   "dependencies": {
+    "@grammyjs/auto-retry": "^2.0.2",
     "axios": "^1.7.9",
     "grammy": "^1.35.0",
     "int64-buffer": "^1.1.0",
