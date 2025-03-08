@@ -2,7 +2,6 @@ import { IBeatmapProvider } from "../IBeatmapProvider";
 import { OsuBeatmap } from "./OsuBeatmap";
 import BanchoAPIV2 from "../../api/BanchoV2";
 import { APIBeatmap } from "../../Types";
-import Mods from "../../pp/Mods";
 
 export class OsuBeatmapProvider implements IBeatmapProvider {
     private api: BanchoAPIV2;
