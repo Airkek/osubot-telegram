@@ -17,7 +17,6 @@ import {
     IBeatmapStats,
 } from "../Types";
 import Mods from "../pp/Mods";
-import * as fs from "fs";
 import IAPI from "./base";
 import { Bot } from "../Bot";
 import { OsuBeatmap } from "../beatmaps/osu/OsuBeatmap";
@@ -482,22 +481,7 @@ class BanchoAPIV2 implements IAPI {
             throw new Error("Beatmap not found");
         }
 
-        const beatmap = new V2Beatmap(data);
-
-        const folderPath = "beatmap_cache";
-        if (!fs.existsSync(folderPath)) {
-            fs.mkdirSync(folderPath);
-        }
-
-        const filePath = `beatmap_cache/${beatmap.id.map}.osu`;
-        if (!fs.existsSync(filePath)) {
-            const response = await axios.default.get(`https://osu.ppy.sh/osu/${beatmap.id.map}`, {
-                responseType: "arraybuffer",
-            });
-            const buffer = Buffer.from(response.data, "binary");
-            fs.writeFileSync(filePath, buffer);
-        }
-        return beatmap;
+        return new V2Beatmap(data);
     }
 
     async getLeaderboard(

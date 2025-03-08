@@ -54,5 +54,8 @@ export class ScoreSaberBeatmap implements IBeatmap {
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    async asMode(mode: number): Promise<void> {}
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     async applyMods(mods: Mods): Promise<void> {}
 }
