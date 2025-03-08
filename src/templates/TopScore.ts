@@ -1,13 +1,14 @@
-import { APIScore, APIBeatmap } from "../Types";
+import { APIScore } from "../Types";
 import Util from "../Util";
 import { IPPCalculator as ICalc } from "../pp/Calculator";
+import { IBeatmap } from "../beatmaps/BeatmapTypes";
 
-export default function (score: APIScore, beatmap: APIBeatmap, place: number, calc: ICalc, link: string) {
+export default function (score: APIScore, beatmap: IBeatmap, place: number, calc: ICalc, link: string) {
     return `#${place}
 ${Util.formatBeatmap(beatmap)} ${score.mods}
-Grade: ${score.rank} → ${Util.formatCombo(score.combo, beatmap.combo)} → ${Util.formatBeatmapLength(beatmap.length / calc.speedMultiplier)}
+Grade: ${score.rank} → ${Util.formatCombo(score.combo, beatmap.maxCombo)}
 Accuracy: ${Util.round(score.accuracy() * 100, 2)}% → ${score.counts}
 PP: ${Util.round(score.pp, 2)}
 ${Util.formatDate(score.date)}
-${beatmap.mapUrl ?? `${link}/b/${beatmap.id.map}`}`;
+${beatmap.url ?? `${link}/b/${beatmap.id}`}`;
 }

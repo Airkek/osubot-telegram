@@ -1,7 +1,8 @@
-import { APIBeatmap, ProfileMode } from "../Types";
+import { ProfileMode } from "../Types";
 import BanchoPP from "../pp/bancho";
 import Util from "../Util";
 import Mods from "../pp/Mods";
+import { IBeatmap } from "../beatmaps/BeatmapTypes";
 
 interface PPResults {
     pp98: number;
@@ -9,10 +10,8 @@ interface PPResults {
     pp100: number;
 }
 
-export default function formatBeatmapInfo(map: APIBeatmap): string {
+export default function formatBeatmapInfo(map: IBeatmap): string {
     const mapText = Util.formatBeatmap(map);
-
-    const totalHits = map.objects.circles + map.objects.sliders + map.objects.spinners;
     const calculator = new BanchoPP(map, new Mods(0));
 
     const getStandardPP = (accuracy: number): number => {
@@ -20,8 +19,8 @@ export default function formatBeatmapInfo(map: APIBeatmap): string {
             Util.createPPArgs(
                 {
                     acc: accuracy,
-                    combo: map.combo,
-                    hits: totalHits,
+                    combo: map.maxCombo,
+                    hits: map.hitObjectsCount,
                     miss: 0,
                     mods: new Mods(0),
                 },
@@ -34,7 +33,7 @@ export default function formatBeatmapInfo(map: APIBeatmap): string {
         return calculator.calculate(
             Util.createPPArgs(
                 {
-                    hits: map.objects.circles + map.objects.sliders,
+                    hits: map.hitObjectsCount,
                     score: 1_000_000,
                     mods: new Mods(0),
                 },

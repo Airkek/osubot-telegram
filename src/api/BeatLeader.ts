@@ -5,6 +5,7 @@ import { APIBeatmap, APIScore, APIUser, IBeatmapObjects, IBeatmapStars, IHitCoun
 import { Bot } from "../Bot";
 import Mods from "../pp/Mods";
 import { ICalcStats } from "../pp/Stats";
+import { BeatLeaderBeatmap } from "../beatmaps/beatsaber/BeatLeaderBeatmap";
 
 interface BLUserResponse {
     scoreStats: {
@@ -88,7 +89,7 @@ class BeatSaberUser implements APIUser {
 
 class BeatLeaderScoreMap implements APIBeatmap {
     artist: string;
-    id: { set: number; map: number };
+    id: { set: number; map: number; hash: string };
     bpm: number;
     creator: { nickname: string; id: number };
     status: string;
@@ -108,6 +109,7 @@ class BeatLeaderScoreMap implements APIBeatmap {
         this.id = {
             set: ~~data.leaderboard.song.id,
             map: data.leaderboard.difficulty.id,
+            hash: `bl_${data.leaderboard.song.id}_${data.leaderboard.difficulty.id}`,
         };
         this.bpm = data.leaderboard.song.bpm;
         this.creator = {
@@ -179,7 +181,7 @@ class BeatSaberScore implements APIScore {
     mode: number;
     pp?: number;
     fcPp?: number;
-    beatmap?: APIBeatmap;
+    beatmap?: BeatLeaderBeatmap;
     rank: string;
     date: Date;
 
@@ -203,7 +205,7 @@ class BeatSaberScore implements APIScore {
         this.rank = data.fullCombo ? "FC" : "Pass";
         this.date = new Date(data.timepost * 1000);
         this.mode = data.leaderboard.difficulty.mode;
-        this.beatmap = new BeatLeaderScoreMap(data);
+        this.beatmap = new BeatLeaderBeatmap(new BeatLeaderScoreMap(data));
     }
 
     accuracy(): number {

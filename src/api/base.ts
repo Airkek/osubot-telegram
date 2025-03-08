@@ -1,12 +1,6 @@
-import * as axios from "axios";
-import { APIUser, APIBeatmap, APIScore, IDatabaseUser, LeaderboardResponse } from "../Types";
-import { Bot } from "../Bot";
-import Mods from "../pp/Mods";
+import { APIUser, APIScore, IDatabaseUser, LeaderboardResponse } from "../Types";
 
 interface IAPI {
-    bot: Bot;
-    api: axios.AxiosInstance;
-    getBeatmap?(id: number | string, mode?: number, mods?: Mods): Promise<APIBeatmap>;
     getUser?(nickname: string, mode?: number): Promise<APIUser>;
     getUserById(id: number | string, mode?: number): Promise<APIUser>;
     getUserTop?(nickname: string, mode?: number, limit?: number): Promise<APIScore[]>;

@@ -1,10 +1,10 @@
 import { IPPCalculator as ICalc } from "../Calculator";
 import * as rosu from "rosu-pp-js";
-import * as fs from "fs";
 import Mods from "../Mods";
-import { APIScore, APIBeatmap, CalcArgs } from "../../Types";
-import { ICalcStats } from "../Stats";
+import { APIScore, CalcArgs } from "../../Types";
 import { Replay } from "../../Replay";
+import { getRosuBeatmapSync } from "../RosuUtils";
+import { IBeatmap } from "../../beatmaps/BeatmapTypes";
 
 interface IPP {
     pp: number;
@@ -12,29 +12,13 @@ interface IPP {
     ss: number;
 }
 
-export function getRosuBeatmap(id: number): rosu.Beatmap {
-    const folderPath = "beatmap_cache";
-    if (!fs.existsSync(folderPath)) {
-        fs.mkdirSync(folderPath);
-    }
-
-    const filePath = `beatmap_cache/${id}.osu`;
-    if (fs.existsSync(filePath)) {
-        return new rosu.Beatmap(fs.readFileSync(filePath, "utf-8"));
-    }
-
-    return null;
-}
-
 class BanchoPP implements ICalc {
-    map: APIBeatmap;
+    map: IBeatmap;
     mods: Mods;
     speedMultiplier: number = 1;
-    stats: ICalcStats;
-    constructor(map: APIBeatmap, mods: Mods) {
+    constructor(map: IBeatmap, mods: Mods) {
         this.map = map;
         this.mods = mods;
-        this.stats = map.stats;
         this.speedMultiplier = mods.speed();
     }
 
@@ -43,7 +27,7 @@ class BanchoPP implements ICalc {
             return { pp: 0, fc: 0, ss: 0 };
         }
 
-        const map = getRosuBeatmap(this.map.id.map);
+        const map = getRosuBeatmapSync(this.map.id);
         if (map == null) {
             return { pp: 0, fc: 0, ss: 0 };
         }

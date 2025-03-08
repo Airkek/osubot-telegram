@@ -22,6 +22,7 @@ import * as fs from "fs";
 import IAPI from "./base";
 import { Bot } from "../Bot";
 import { ICalcStats } from "../pp/Stats";
+import { OsuBeatmap } from "../beatmaps/osu/OsuBeatmap";
 
 type Ruleset = "osu" | "mania" | "taiko" | "fruits";
 
@@ -71,6 +72,7 @@ interface Beatmap {
     user_id: number;
     version: string;
     beatmapset: Beatmapset;
+    checksum: string;
 }
 
 interface BeatmapExtended extends Beatmap {
@@ -190,7 +192,7 @@ interface BeatmapDifficultyAttributes {
 
 class V2Beatmap implements APIBeatmap {
     artist: string;
-    id: { set: number; map: number };
+    id: { set: number; map: number; hash: string };
     bpm: number;
     creator: { nickname: string; id: number };
     status: string;
@@ -204,11 +206,12 @@ class V2Beatmap implements APIBeatmap {
     mode: number;
 
     constructor(beatmap: BeatmapExtended, attributes: BeatmapDifficultyAttributes, mods: Mods) {
-        const calc = new AttributesCalculator(beatmap.ar, beatmap.accuracy, beatmap.drain, beatmap.cs, mods);
+        const attrCalc = new AttributesCalculator(beatmap.ar, beatmap.accuracy, beatmap.drain, beatmap.cs, mods);
         this.artist = beatmap.beatmapset.artist;
         this.id = {
             set: beatmap.beatmapset_id,
             map: beatmap.id,
+            hash: beatmap.checksum,
         };
 
         this.bpm = beatmap.bpm * (mods?.speed() ?? 1);
@@ -221,10 +224,10 @@ class V2Beatmap implements APIBeatmap {
         this.status = BeatmapStatus[Number(beatmap.ranked)];
         this.stats = Util.getStats(
             {
-                ar: calc.calculateMultipliedAR(),
-                cs: calc.calculateMultipliedCS(),
-                od: calc.calculateMultipliedOD(),
-                hp: calc.calculateMultipliedHP(),
+                ar: attrCalc.calculateMultipliedAR(),
+                cs: attrCalc.calculateMultipliedCS(),
+                od: attrCalc.calculateMultipliedOD(),
+                hp: attrCalc.calculateMultipliedHP(),
             },
             beatmap.mode_int
         );
@@ -534,7 +537,9 @@ class BanchoAPIV2 implements IAPI {
         mode?: number,
         mods?: number
     ): Promise<LeaderboardResponse> {
-        const map = await this.getBeatmap(beatmapId);
+        const apiMap = await this.getBeatmap(beatmapId);
+        const map = new OsuBeatmap(apiMap);
+        await map.applyMods(new Mods(0));
         const scores: LeaderboardScore[] = [];
         try {
             const lim = Math.ceil(users.length / 5);

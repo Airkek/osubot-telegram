@@ -14,6 +14,7 @@ export default class Akatsuki extends Module {
         this.name = "Akatsuki";
         this.link = "https://akatsuki.gg";
         this.api = bot.api.akatsuki;
+        this.beatmapProvider = bot.osuBeatmapProvider;
         this.db = bot.database.servers.akatsuki;
 
         this.registerCommand([

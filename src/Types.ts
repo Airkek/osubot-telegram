@@ -1,6 +1,7 @@
 import Mods from "./pp/Mods";
 import { ICalcStats } from "./pp/Stats";
 import Util from "./Util";
+import { IBeatmap } from "./beatmaps/BeatmapTypes";
 
 interface ICommandArgs {
     full: string[];
@@ -242,17 +243,18 @@ interface APIScore {
     date?: Date;
     pp?: number;
     fcPp?: number;
-    beatmap?: APIBeatmap;
+    beatmap?: IBeatmap;
     player_id?: number;
     fake?: boolean;
     accuracy(): number;
 }
 
-class APIBeatmap {
+interface APIBeatmap {
     artist: string;
     id: {
         set: number;
         map: number;
+        hash: string;
     };
     bpm: number;
     creator: {
@@ -270,41 +272,6 @@ class APIBeatmap {
     mode: number;
     coverUrl?: string;
     mapUrl?: string;
-    constructor(data) {
-        this.artist = data.artist;
-        this.id = {
-            set: Number(data.beatmapset_id),
-            map: Number(data.beatmap_id),
-        };
-        this.bpm = Number(data.bpm);
-        this.creator = {
-            nickname: data.creator,
-            id: Number(data.creator_id),
-        };
-        this.status = BeatmapStatus[Number(data.approved)];
-        this.stats = Util.getStats(
-            {
-                cs: Number(data.diff_size),
-                od: Number(data.diff_overall),
-                ar: Number(data.diff_approach),
-                hp: Number(data.diff_drain),
-            },
-            Number(data.mode)
-        );
-        this.diff = {
-            stars: Number(data.difficultyrating),
-        };
-        this.objects = {
-            circles: Number(data.count_normal),
-            sliders: Number(data.count_slider),
-            spinners: Number(data.count_spinner),
-        };
-        this.title = data.title;
-        this.length = Number(data.total_length);
-        this.version = data.version;
-        this.combo = data.mode == 1 ? this.objects.circles : Number(data.max_combo);
-        this.mode = Number(data.mode);
-    }
 }
 
 class TrackTopScore {
@@ -368,7 +335,7 @@ interface LeaderboardScore {
 }
 
 interface LeaderboardResponse {
-    map: APIBeatmap;
+    map: IBeatmap;
     scores: LeaderboardScore[];
 }
 

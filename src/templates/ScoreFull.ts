@@ -1,8 +1,9 @@
-import { APIScore, APIBeatmap, ProfileMode } from "../Types";
+import { APIScore } from "../Types";
 import Util from "../Util";
 import { IPPCalculator as ICalc } from "../pp/Calculator";
+import { IBeatmap } from "../beatmaps/BeatmapTypes";
 
-export default function (score: APIScore, beatmap: APIBeatmap, calc: ICalc, serverLink: string) {
+export default function (score: APIScore, beatmap: IBeatmap, calc: ICalc, serverLink: string) {
     const pp = score.fcPp ? { pp: score.pp, fc: score.fcPp, ss: undefined } : calc.calculate(score);
 
     let ppString = `PP: ${score.pp ? score.pp.toFixed(2) : pp.pp.toFixed(2)}`;
@@ -14,25 +15,17 @@ export default function (score: APIScore, beatmap: APIBeatmap, calc: ICalc, serv
         ppString += ` → SS: ${pp.ss.toFixed(2)}`;
     }
 
-    let hits = beatmap.objects.circles + beatmap.objects.sliders + beatmap.objects.spinners;
-    if (score.mode === ProfileMode.Taiko) {
-        hits -= beatmap.objects.sliders;
-    }
-
-    if (score.mode === ProfileMode.Taiko || score.mode === ProfileMode.Mania) {
-        hits -= beatmap.objects.spinners;
-    }
-
+    const hits = beatmap.hitObjectsCount;
     const progress = score.counts.totalHits() / hits;
     const gradeProgress = score.rank === "F" ? ` (${Util.round(progress * 100, 2)}%)` : "";
 
-    const beatmapUrl = beatmap.mapUrl ?? `${serverLink}/b/${beatmap.id.map}`;
+    const beatmapUrl = beatmap.url ?? `${serverLink}/b/${beatmap.id}`;
 
     const total = [
         `${Util.formatBeatmap(beatmap)} ${score.mods}`,
         "",
         `Score: ${score.score?.toLocaleString()}`,
-        `Combo: ${Util.formatCombo(score.combo, beatmap.combo)}`,
+        `Combo: ${Util.formatCombo(score.combo, beatmap.maxCombo)}`,
         `Accuracy: ${Util.round(score.accuracy() * 100, 2)}%`,
         ppString,
         `Hitcounts: ${score.counts.toString()}`,

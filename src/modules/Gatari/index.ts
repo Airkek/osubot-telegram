@@ -19,6 +19,7 @@ export default class Gatari extends Module {
         this.name = "Gatari";
         this.link = "https://osu.gatari.pw";
         this.api = bot.api.gatari;
+        this.beatmapProvider = bot.osuBeatmapProvider;
         this.db = bot.database.servers.gatari;
 
         this.registerCommand([

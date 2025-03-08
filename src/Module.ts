@@ -3,6 +3,7 @@ import { Bot } from "./Bot";
 import { IAPI } from "./API";
 import { IDatabaseServer } from "./Types";
 import UnifiedMessageContext from "./TelegramSupport";
+import { IBeatmapProvider } from "./beatmaps/IBeatmapProvider";
 
 interface ICommandsModule {
     name: string;
@@ -18,6 +19,7 @@ export class Module implements ICommandsModule {
     commands: Command[];
     bot: Bot;
     api?: IAPI;
+    beatmapProvider?: IBeatmapProvider;
     db?: IDatabaseServer;
 
     constructor(prefix: string[], bot: Bot) {

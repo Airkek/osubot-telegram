@@ -1,9 +1,9 @@
 import { Replay } from "../Replay";
-import { APIBeatmap } from "../Types";
 import Util from "../Util";
 import { IPPCalculator as ICalc } from "../pp/Calculator";
+import { IBeatmap } from "../beatmaps/BeatmapTypes";
 
-export default function formatReplay(replay: Replay, map: APIBeatmap, calc: ICalc): string {
+export default function formatReplay(replay: Replay, map: IBeatmap, calc: ICalc): string {
     const pp = calc.calculate(replay);
 
     const header = `${replay.player}'s replay:`;
@@ -11,7 +11,7 @@ export default function formatReplay(replay: Replay, map: APIBeatmap, calc: ICal
 
     const gameStats = [
         `Score: ${replay.score?.toLocaleString()}`,
-        `Combo: ${Util.formatCombo(replay.combo, map.combo)}`,
+        `Combo: ${Util.formatCombo(replay.combo, map.maxCombo)}`,
     ].join(" | ");
 
     const accuracy = `Accuracy: ${Util.round(replay.accuracy() * 100, 2)}%`;

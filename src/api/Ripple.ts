@@ -1,14 +1,6 @@
 import IAPI from "./base";
 import * as axios from "axios";
-import {
-    APIUser,
-    HitCounts,
-    APIScore,
-    IDatabaseUser,
-    LeaderboardResponse,
-    APIBeatmap,
-    LeaderboardScore,
-} from "../Types";
+import { APIUser, HitCounts, APIScore, IDatabaseUser, LeaderboardResponse, LeaderboardScore } from "../Types";
 import qs from "querystring";
 import Util from "../Util";
 import Mods from "../pp/Mods";
@@ -125,10 +117,6 @@ export default class RippleAPI implements IAPI {
         });
     }
 
-    async getBeatmap(id: number | string, mode?: number, mods?: Mods): Promise<APIBeatmap> {
-        return await this.bot.api.v2.getBeatmap(id, mode, mods);
-    }
-
     async getUser(nickname: string, mode: number = 0): Promise<APIUser> {
         const { data } = await this.api.get(`/get_user?${qs.stringify({ u: nickname, m: mode, type: "string" })}`);
         if (!data[0]) {
@@ -229,7 +217,7 @@ export default class RippleAPI implements IAPI {
         mode: number = 0,
         mods: number = null
     ): Promise<LeaderboardResponse> {
-        const map = await this.getBeatmap(beatmapId, mode, new Mods(0));
+        const map = await this.bot.osuBeatmapProvider.getBeatmapById(beatmapId, mode);
         const scores: LeaderboardScore[] = [];
         try {
             const lim = Math.ceil(users.length / 5);
