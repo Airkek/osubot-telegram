@@ -91,7 +91,7 @@ class DatabaseCovers {
 
     async addCover(id: number): Promise<string> {
         try {
-            const file = new InputFile(new URL(`https://assets.ppy.sh/beatmaps/${id}/covers/raw.jpg`));
+            const file = new InputFile(new URL(`https://assets.ppy.sh/beatmaps/${id}/covers/cover@2x.jpg`));
             const send = await this.db.tg.api.sendPhoto(this.db.owner, file);
             const photo = send.photo[0].file_id;
 
@@ -282,6 +282,14 @@ const migrations: IMigration[] = [
         name: "Create table for Ignore List",
         process: async (db: Database) => {
             await db.run("CREATE TABLE IF NOT EXISTS ignored_users (id BIGINT)");
+            return true;
+        },
+    },
+    {
+        version: 3,
+        name: "Remove all cached covers (migrate from raw to cover@2x)",
+        process: async (db: Database) => {
+            await db.run("DELETE FROM covers");
             return true;
         },
     },
