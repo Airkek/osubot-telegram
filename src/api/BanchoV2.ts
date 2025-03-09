@@ -19,7 +19,6 @@ import {
 import Mods from "../pp/Mods";
 import IAPI from "./base";
 import { Bot } from "../Bot";
-import { OsuBeatmap } from "../beatmaps/osu/OsuBeatmap";
 
 type Ruleset = "osu" | "mania" | "taiko" | "fruits";
 
