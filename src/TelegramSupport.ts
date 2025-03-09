@@ -1,6 +1,6 @@
 /* eslint-disable  @typescript-eslint/no-explicit-any */
 /* eslint-disable  @typescript-eslint/no-unused-vars */
-import { Bot, Context, InlineKeyboard } from "grammy";
+import { Bot, Context, InlineKeyboard, InputFile } from "grammy";
 import { UserFromGetMe } from "@grammyjs/types";
 
 class ReplyToMessage {
@@ -18,6 +18,7 @@ class ReplyToMessage {
 interface SendOptions {
     keyboard?: InlineKeyboard;
     attachment?: string;
+    video_url?: string;
     dont_parse_links?: number | boolean;
     disable_mentions?: number | boolean;
 }
@@ -156,6 +157,9 @@ export default class UnifiedMessageContext {
                 if (options?.attachment !== undefined && options.attachment.length != 0) {
                     opts["caption"] = text;
                     return await this.tgCtx.replyWithPhoto(options.attachment, opts);
+                } else if (options?.video_url) {
+                    opts["caption"] = text;
+                    return await this.tgCtx.replyWithVideo(new InputFile(new URL(options.video_url)), opts);
                 }
                 return await this.tgCtx.reply(text, opts);
             } catch (e) {
