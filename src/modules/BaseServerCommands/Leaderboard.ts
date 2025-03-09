@@ -31,7 +31,15 @@ export default class AbstractLeaderboard extends ServerCommand {
                 chat.map.mode,
                 self.args.mods.length == 0 ? null : new Mods(self.args.mods).sum()
             );
-            await self.reply(self.module.bot.templates.Leaderboard(leaderboard));
+
+            let text = self.module.bot.templates.Leaderboard(leaderboard);
+
+            const isBotAdmin = await self.ctx.isBotAdmin();
+            if (!isBotAdmin) {
+                text += `\n\nВнимание! Бот не является администратором беседы, потому в топе могут находиться игроки, покинувшие беседу. Рекомендуется выдать боту права администратора и написать команду 'osu clear' для очистки топа от вышедших игроков.`;
+            }
+
+            await self.reply(text);
         });
     }
 }

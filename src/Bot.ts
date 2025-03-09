@@ -1,5 +1,6 @@
 import { Bot as TelegramBot, GrammyError, HttpError } from "grammy";
 import { autoRetry } from "@grammyjs/auto-retry";
+import { chatMemberFilter } from "@grammyjs/chat-members";
 import axios from "axios";
 import { Module } from "./Module";
 import Database from "./Database";
@@ -74,6 +75,7 @@ export class Bot {
     private initialize(): void {
         this.setupDatabase();
         this.registerModules();
+        this.setupBot();
         this.setupErrorHandling();
         this.setupEventHandlers();
         this.configureCommandAliases();
@@ -97,6 +99,8 @@ export class Bot {
         ];
     }
 
+    private setupBot(): void {}
+
     private setupErrorHandling(): void {
         this.tg.catch((err) => {
             const ctx = err.ctx;
@@ -115,13 +119,33 @@ export class Bot {
     }
 
     private setupEventHandlers(): void {
-        this.tg.on("message:new_chat_members", this.handleNewChatMembers);
-        this.tg.on("message:left_chat_member", this.handleLeftChatMember);
+        const groups = this.tg.chatType(["group", "supergroup"]);
+        groups.filter(chatMemberFilter("out", "in"), this.handleNewChatMember);
+        groups.filter(chatMemberFilter("in", "out"), this.handleLeftChatMember);
+
+        groups.on("message:new_chat_members", this.handleNewChatMembers);
 
         this.tg.on("callback_query:data", this.handleCallbackQuery);
-
         this.tg.on("message", this.handleMessage);
     }
+
+    private handleNewChatMember = async (ctx): Promise<void> => {
+        const {
+            new_chat_member: { user },
+        } = ctx.chatMember;
+        this.database.chats.isUserInChat(user.id, ctx.chat.id).then(async (inChat: boolean) => {
+            if (!inChat) {
+                await this.database.chats.userJoined(user.id, ctx.chat.id);
+            }
+        });
+    };
+
+    private handleLeftChatMember = async (ctx): Promise<void> => {
+        const {
+            new_chat_member: { user },
+        } = ctx.chatMember;
+        this.database.chats.userLeft(user.id, ctx.chat.id);
+    };
 
     private handleNewChatMembers = async (ctx): Promise<void> => {
         for (const user of ctx.message.new_chat_members) {
@@ -131,10 +155,6 @@ export class Bot {
                 }
             });
         }
-    };
-
-    private handleLeftChatMember = async (ctx): Promise<void> => {
-        this.database.chats.userLeft(ctx.message.left_chat_member.id, ctx.chat.id);
     };
 
     private handleCallbackQuery = async (ctx): Promise<void> => {
@@ -331,7 +351,10 @@ export class Bot {
     public async start(): Promise<void> {
         await this.api.v2.login();
         this.startTime = Date.now();
-        await this.tg.start({ drop_pending_updates: true });
+        await this.tg.start({
+            drop_pending_updates: true,
+            allowed_updates: ["chat_member", "callback_query", "message"],
+        });
         global.logger.info("Bot started");
     }
 

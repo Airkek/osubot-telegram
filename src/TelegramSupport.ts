@@ -45,6 +45,7 @@ export default class UnifiedMessageContext {
     send: (text: string, options?: SendOptions, replyTo?: number) => Promise<any>;
     answer: (text: string) => Promise<any>;
     isAdmin: () => Promise<boolean>;
+    isBotAdmin: () => Promise<boolean>;
     isUserInChat: (userId: number) => Promise<boolean>;
     countMembers: () => Promise<number>;
     hasAttachments: (type: string) => boolean;
@@ -69,9 +70,24 @@ export default class UnifiedMessageContext {
         this.isFromGroup = ctx.from.is_bot;
         this.isEvent = false;
         this.isFromUser = !ctx.from.is_bot;
+
         this.isAdmin = async () => {
             const user = await this.tg.api.getChatMember(this.chatId, this.senderId);
             return user.status == "creator" || user.status == "administrator";
+        };
+
+        this.isBotAdmin = async () => {
+            try {
+                const me = await this.tg.api.getMe();
+                const res = await this.tg.api.getChatMember(ctx.message.chat.id, me.id);
+                return res.status == "creator" || res.status == "administrator";
+            } catch (e) {
+                if (e.message.includes("CHAT_ADMIN_REQUIRED")) {
+                    return false;
+                }
+
+                throw e;
+            }
         };
 
         this.isUserInChat = async (userId: number) => {

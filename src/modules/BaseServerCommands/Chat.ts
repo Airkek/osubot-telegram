@@ -46,15 +46,20 @@ export default class AbstractChat extends ServerCommand {
                 modeStr = "Mania";
             }
 
-            await self.reply(
-                `Топ${users.length > 15 ? "-15" : ""} беседы (ID ${id}) [${modeStr}]:\n${users
-                    .splice(0, 15)
-                    .map(
-                        (user, i) =>
-                            `#${i + 1} ${user.nickname} | ${Util.round(user.pp, 1)}pp | Ранк ${user.rank} | ${Util.round(user.acc, 2)}%`
-                    )
-                    .join("\n")}`
-            );
+            let text = `Топ${users.length > 15 ? "-15" : ""} беседы (ID ${id}) [${modeStr}]:\n${users
+                .splice(0, 15)
+                .map(
+                    (user, i) =>
+                        `#${i + 1} ${user.nickname} | ${Util.round(user.pp, 1)}pp | Ранк ${user.rank} | ${Util.round(user.acc, 2)}%`
+                )
+                .join("\n")}`;
+
+            const isBotAdmin = await self.ctx.isBotAdmin();
+            if (!isBotAdmin) {
+                text += `\n\nВнимание! Бот не является администратором беседы, потому в топе могут находиться игроки, покинувшие беседу. Рекомендуется выдать боту права администратора и написать команду 'osu clear' для очистки топа от вышедших игроков.`;
+            }
+
+            await self.reply(text);
         });
     }
 }
