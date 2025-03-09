@@ -82,7 +82,7 @@ export default class UnifiedMessageContext {
 
         this.isBotAdmin = async () => {
             try {
-                const res = await this.tg.api.getChatMember(ctx.message.chat.id, me.id);
+                const res = await this.tg.api.getChatMember(this.chatId, me.id);
                 return res.status == "creator" || res.status == "administrator";
             } catch (e) {
                 if (e.message.includes("CHAT_ADMIN_REQUIRED")) {
