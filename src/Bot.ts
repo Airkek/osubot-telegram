@@ -82,8 +82,8 @@ export class Bot {
         this.registerModules();
         this.setupBot();
         this.setupErrorHandling();
-        this.setupEventHandlers();
         this.configureCommandAliases();
+        this.setupEventHandlers();
     }
 
     private setupDatabase(): void {
