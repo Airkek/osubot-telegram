@@ -5,8 +5,11 @@ import axios from "axios";
 import { ReplayParser } from "../../../osu_specific/OsuReplay";
 import Calculator from "../../../osu_specific/pp/bancho";
 import Util from "../../../Util";
+import { IReplayRenderer } from "../../../osu_specific/replay_render/IReplayRenderer";
+import { IssouBestRenderer } from "../../../osu_specific/replay_render/IssouBestRenderer";
 
 export class OsuReplay extends Command {
+    renderer: IReplayRenderer;
     constructor(module: SimpleCommandsModule) {
         super(["osu_replay"], module, async (ctx) => {
             const replayFile = await ctx.tgCtx.getFile();
@@ -43,13 +46,28 @@ export class OsuReplay extends Command {
                 ])
             );
 
-            await ctx.reply(module.bot.templates.Replay(replay, beatmap, calculator), {
-                attachment: cover,
-                keyboard,
-            });
+            await ctx.reply(
+                module.bot.templates.Replay(replay, beatmap, calculator) + "\n\nРендер реплея в процессе...",
+                {
+                    attachment: cover,
+                    keyboard,
+                }
+            );
+
+            const replayResponse = await this.renderer.render(file);
+
+            if (replayResponse.success) {
+                await ctx.reply("", {
+                    video_url: replayResponse.video_url,
+                });
+            } else {
+                await ctx.reply(`Ошибка при рендере реплея: ${replayResponse.error}`);
+            }
 
             module.bot.maps.setMap(ctx.peerId, beatmap);
         });
+
+        this.renderer = new IssouBestRenderer();
     }
 
     check(name: string, ctx: UnifiedMessageContext): boolean {

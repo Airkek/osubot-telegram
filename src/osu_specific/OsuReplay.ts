@@ -1,4 +1,3 @@
-import { isBuffer } from "node:util";
 import leb from "leb";
 import int64 from "int64-buffer";
 import { HitCounts } from "../Types";
@@ -27,8 +26,8 @@ class OsuReplay {
 class ReplayParser {
     raw_data: Buffer;
     offset: number;
-    constructor(replay: string | Buffer) {
-        this.raw_data = isBuffer(replay) ? replay : Buffer.from(replay);
+    constructor(replay: Buffer) {
+        this.raw_data = replay;
         this.offset = 0x00;
     }
 

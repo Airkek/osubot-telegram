@@ -130,11 +130,17 @@ export default {
     timer() {
         let timeStart = new Date().getTime();
         return {
-            get seconds() {
+            get seconds(): string {
                 return Math.ceil((new Date().getTime() - timeStart) / 1000) + "s";
             },
-            get ms() {
+            get ms(): string {
                 return new Date().getTime() - timeStart + "ms";
+            },
+            get seconds_raw(): number {
+                return Math.ceil((new Date().getTime() - timeStart) / 1000);
+            },
+            get ms_raw(): number {
+                return new Date().getTime() - timeStart;
             },
             reset() {
                 timeStart = new Date().getTime();
