@@ -5,7 +5,6 @@ import UptimeCommand from "./Uptime";
 import TopCmdsCommand from "./TopCmds";
 import StatusCommand from "./Status";
 import SearchCommand from "./Search";
-import DisableCommand from "./Disable";
 import ClearCommand from "./Clear";
 
 export default class Main extends Module {
@@ -20,7 +19,6 @@ export default class Main extends Module {
             new TopCmdsCommand(this),
             new StatusCommand(this),
             new SearchCommand(this),
-            new DisableCommand(this),
             new ClearCommand(this),
         ]);
     }

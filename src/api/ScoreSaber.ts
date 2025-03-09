@@ -1,8 +1,7 @@
-import { IAPI } from "../API";
+import IAPI from "./base";
 import * as axios from "axios";
 import qs from "querystring";
 import { APIBeatmap, APIScore, APIUser, IBeatmapObjects, IBeatmapStars, IBeatmapStats, IHitCounts } from "../Types";
-import { Bot } from "../Bot";
 import Mods from "../pp/Mods";
 import { ScoreSaberBeatmap } from "../beatmaps/beatsaber/ScoreSaberBeatmap";
 
@@ -222,10 +221,8 @@ class BeatSaberScore implements APIScore {
 }
 
 export default class ScoreSaberAPI implements IAPI {
-    bot: Bot;
     api: axios.AxiosInstance;
-    constructor(bot: Bot) {
-        this.bot = bot;
+    constructor() {
         this.api = axios.default.create({
             baseURL: "https://scoresaber.com/api",
             timeout: 3000,

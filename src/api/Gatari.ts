@@ -4,7 +4,7 @@ import qs from "querystring";
 import { APIUser, HitCounts, APIScore, IDatabaseUser, LeaderboardResponse, LeaderboardScore } from "../Types";
 import Mods from "../pp/Mods";
 import Util from "../Util";
-import { Bot } from "../Bot";
+import { IBeatmapProvider } from "../beatmaps/IBeatmapProvider";
 
 class GatariUser implements APIUser {
     id: number;
@@ -142,10 +142,10 @@ class GatariScore implements APIScore {
 }
 
 export default class GatariAPI implements IAPI {
-    bot: Bot;
+    beatmapProvider: IBeatmapProvider;
     api: axios.AxiosInstance;
-    constructor(bot: Bot) {
-        this.bot = bot;
+    constructor(beatmapProvider: IBeatmapProvider) {
+        this.beatmapProvider = beatmapProvider;
         this.api = axios.default.create({
             baseURL: "https://api.gatari.pw",
             timeout: 3000,
@@ -219,7 +219,7 @@ export default class GatariAPI implements IAPI {
     }
 
     async getLeaderboard(beatmapId: number, users: IDatabaseUser[], mode: number = 0): Promise<LeaderboardResponse> {
-        const map = await this.bot.osuBeatmapProvider.getBeatmapById(beatmapId, mode);
+        const map = await this.beatmapProvider.getBeatmapById(beatmapId, mode);
         const scores: LeaderboardScore[] = [];
         try {
             const lim = Math.ceil(users.length / 5);

@@ -353,7 +353,7 @@ class BanchoAPIV2 implements IAPI {
     token?: string;
     app_id: number;
     client_secret: string;
-    bot: Bot;
+    bot: Bot; // TODO: remove
     constructor(bot: Bot) {
         this.api = axios.default.create({
             baseURL: "https://osu.ppy.sh/api/v2",

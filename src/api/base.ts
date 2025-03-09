@@ -9,7 +9,7 @@ interface IAPI {
     getUserRecentById?(id: number | string, mode?: number, limit?: number): Promise<APIScore>;
     getScore?(nickname: string, beatmapId: number, mode?: number, mods?: number): Promise<APIScore>;
     getScoreByUid?(uid: number | string, beatmapId: number, mode?: number, mods?: number): Promise<APIScore>;
-    getLeaderboard?(
+    getLeaderboard?( // TODO: do not handle this in api
         beatmapId: number,
         users: IDatabaseUser[],
         mode?: number,

@@ -1,6 +1,6 @@
 import { Command } from "./Command";
 import { Bot } from "./Bot";
-import { IAPI } from "./API";
+import IAPI from "./api/base";
 import { IDatabaseServer } from "./Types";
 import UnifiedMessageContext from "./TelegramSupport";
 import { IBeatmapProvider } from "./beatmaps/IBeatmapProvider";
