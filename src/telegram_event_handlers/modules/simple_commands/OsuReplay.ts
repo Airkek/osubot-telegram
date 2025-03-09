@@ -46,13 +46,18 @@ export class OsuReplay extends Command {
                 ])
             );
 
-            await ctx.reply(
-                module.bot.templates.Replay(replay, beatmap, calculator) + "\n\nРендер реплея в процессе...",
-                {
-                    attachment: cover,
-                    keyboard,
-                }
-            );
+            const needRender = replay.mode == 0;
+
+            const renderAdd = needRender ? "\n\nРендер реплея в процессе..." : "";
+            await ctx.reply(module.bot.templates.Replay(replay, beatmap, calculator) + renderAdd, {
+                attachment: cover,
+                keyboard,
+            });
+            module.bot.maps.setMap(ctx.peerId, beatmap);
+
+            if (!needRender) {
+                return;
+            }
 
             const replayResponse = await this.renderer.render(file);
 
@@ -63,8 +68,6 @@ export class OsuReplay extends Command {
             } else {
                 await ctx.reply(`Ошибка при рендере реплея: ${replayResponse.error}`);
             }
-
-            module.bot.maps.setMap(ctx.peerId, beatmap);
         });
 
         this.renderer = new IssouBestRenderer();
