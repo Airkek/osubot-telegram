@@ -400,8 +400,8 @@ export class DatabaseOsuBeatmapMetadataCache {
                                 version = $5,
                                 author = $6,
                                 status = $7,
-                                native_mode = $8
-                                native_length = $9,
+                                native_mode = $8,
+                                native_length = $9
                                 WHERE id = $10`,
                 [
                     map.setId,
