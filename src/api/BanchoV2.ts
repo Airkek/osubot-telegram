@@ -490,7 +490,7 @@ class BanchoAPIV2 implements IAPI {
         mods?: number
     ): Promise<LeaderboardResponse> {
         const map = await this.bot.osuBeatmapProvider.getBeatmapById(beatmapId);
-        if (mods !== undefined) {
+        if (mods) {
             await map.applyMods(new Mods(mods));
         }
         const scores: LeaderboardScore[] = [];
