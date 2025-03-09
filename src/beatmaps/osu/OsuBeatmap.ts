@@ -79,7 +79,6 @@ export class OsuBeatmap implements IBeatmap {
 
     constructor(apiBeatmap?: APIBeatmap, dbBeatmap?: IOsuBeatmapMetadata) {
         if (apiBeatmap) {
-            this.mode = apiBeatmap.mode;
             this.native_mode = apiBeatmap.mode;
             this.native_length = apiBeatmap.length;
             this.id = apiBeatmap.id.map;
@@ -89,20 +88,7 @@ export class OsuBeatmap implements IBeatmap {
             this.artist = apiBeatmap.artist;
             this.version = apiBeatmap.version;
             this.author = apiBeatmap.creator.nickname;
-            this.status = String(apiBeatmap.status);
-            this.maxCombo = apiBeatmap.combo;
-            this.hitObjectsCount =
-                apiBeatmap.objects.circles + apiBeatmap.objects.sliders + apiBeatmap.objects.spinners;
-            this.stats = new OsuBeatmapStats(
-                apiBeatmap.stats.ar,
-                apiBeatmap.stats.hp,
-                apiBeatmap.stats.od,
-                apiBeatmap.stats.cs,
-                apiBeatmap.bpm,
-                apiBeatmap.length,
-                apiBeatmap.diff.stars,
-                this.mode
-            );
+            this.status = apiBeatmap.status;
         } else if (dbBeatmap) {
             this.native_mode = dbBeatmap.native_mode;
             this.native_length = dbBeatmap.native_length;
@@ -120,12 +106,22 @@ export class OsuBeatmap implements IBeatmap {
     }
 
     async asMode(mode: number): Promise<void> {
+        if (this.mode == mode) {
+            return;
+        }
         this.mode = mode;
-        await this.applyMods(this.mods);
+        await this.calculate();
     }
 
     async applyMods(mods: Mods): Promise<void> {
+        if (mods == this.mods) {
+            return;
+        }
         this.mods = mods;
+        await this.calculate();
+    }
+
+    async calculate(): Promise<void> {
         const rmap = await getRosuBeatmap(this.id);
         switch (this.mode) {
             case 1:
@@ -141,13 +137,13 @@ export class OsuBeatmap implements IBeatmap {
                 rmap.convert(rosu.GameMode.Osu);
                 break;
         }
-        const calc = new AttributesCalculator(rmap.ar, rmap.od, rmap.hp, rmap.cs, mods);
+        const calc = new AttributesCalculator(rmap.ar, rmap.od, rmap.hp, rmap.cs, this.mods);
         const diffCalc = new rosu.Difficulty({
-            mods: mods.flags,
-            clockRate: mods.speed(),
+            mods: this.mods.flags,
+            clockRate: this.mods.speed(),
         }).calculate(rmap);
 
-        this.hitObjectsCount = diffCalc.nObjects;
+        this.hitObjectsCount = rmap.nObjects;
         this.maxCombo = diffCalc.maxCombo;
 
         this.stats = new OsuBeatmapStats(
@@ -155,8 +151,8 @@ export class OsuBeatmap implements IBeatmap {
             calc.calculateMultipliedHP(),
             calc.calculateMultipliedOD(),
             calc.calculateMultipliedCS(),
-            rmap.bpm * mods.speed(),
-            this.native_length / mods.speed(),
+            rmap.bpm * this.mods.speed(),
+            this.native_length / this.mods.speed(),
             diffCalc.stars,
             this.mode
         );
