@@ -2,7 +2,7 @@ import IAPI from "./base";
 import * as axios from "axios";
 import qs from "querystring";
 import { APIUser, HitCounts, APIScore } from "../Types";
-import Mods from "../pp/Mods";
+import Mods from "../osu_specific/pp/Mods";
 import Util from "../Util";
 
 class AkatsukiUser implements APIUser {

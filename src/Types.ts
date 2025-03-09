@@ -1,22 +1,6 @@
-import Mods from "./pp/Mods";
+import Mods from "./osu_specific/pp/Mods";
 import Util from "./Util";
 import { IBeatmap } from "./beatmaps/BeatmapTypes";
-
-interface ICommandArgs {
-    full: string[];
-    string: string[];
-    nickname: string[];
-    mods: string;
-    combo: number;
-    acc: number;
-    miss: number;
-    place: number;
-    apx: number;
-    page: number;
-    more: number;
-    c50: number;
-    mode?: number;
-}
 
 interface IDatabaseServer {
     getUser(id: number): Promise<IDatabaseUser | null>;
@@ -394,7 +378,6 @@ export {
     IBeatmapStars,
     IBeatmapObjects,
     IDatabaseServer,
-    ICommandArgs,
     PPArgs,
     CalcArgs,
     IDatabaseUser,

@@ -1,4 +1,4 @@
-import Mods from "../pp/Mods";
+import Mods from "../osu_specific/pp/Mods";
 
 export interface IBeatmapStats {
     toString(): string;

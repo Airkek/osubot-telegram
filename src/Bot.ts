@@ -3,31 +3,26 @@ import { autoRetry } from "@grammyjs/auto-retry";
 import { chatMemberFilter } from "@grammyjs/chat-members";
 import { run, RunnerHandle } from "@grammyjs/runner";
 import { UserFromGetMe } from "@grammyjs/types";
-import axios from "axios";
-import { Module } from "./Module";
+import { Module } from "./telegram_event_handlers/modules/Module";
 import Database from "./Database";
-import { APICollection } from "./APICollection";
-import { Templates, ITemplates } from "./templates";
+import { APICollection } from "./api/APICollection";
+import { Templates, ITemplates } from "./telegram_event_handlers/templates";
 import Maps from "./Maps";
-import { ReplayParser } from "./Replay";
-import Calculator from "./pp/bancho";
-import Admin from "./modules/Admin";
-import Main from "./modules/Main";
-import Akatsuki from "./modules/Akatsuki";
-import AkatsukiRelax from "./modules/AkatsukiRelax";
-import Bancho from "./modules/Bancho";
-import Gatari from "./modules/Gatari";
-import Ripple from "./modules/Ripple";
-import BeatLeader from "./modules/BeatLeader";
-import ScoreSaber from "./modules/ScoreSaber";
-import OsuTrackAPI from "./Track";
-import Util from "./Util";
+import Admin from "./telegram_event_handlers/modules/Admin";
+import Main from "./telegram_event_handlers/modules/Main";
+import Akatsuki from "./telegram_event_handlers/modules/Akatsuki";
+import AkatsukiRelax from "./telegram_event_handlers/modules/AkatsukiRelax";
+import Bancho from "./telegram_event_handlers/modules/Bancho";
+import Gatari from "./telegram_event_handlers/modules/Gatari";
+import Ripple from "./telegram_event_handlers/modules/Ripple";
+import BeatLeader from "./telegram_event_handlers/modules/BeatLeader";
+import ScoreSaber from "./telegram_event_handlers/modules/ScoreSaber";
+import OsuTrackAPI from "./osu_specific/OsuTrackAPI";
 import IgnoreList from "./Ignore";
 import UnifiedMessageContext from "./TelegramSupport";
-import IsMap from "./regexes/MapRegexp";
-import IsScore from "./regexes/ScoreRegexp";
 import { OsuBeatmapProvider } from "./beatmaps/osu/OsuBeatmapProvider";
 import BanchoAPIV2 from "./api/BanchoV2";
+import { SimpleCommandsModule } from "./telegram_event_handlers/modules/simple_commands";
 
 export interface IBotConfig {
     tg: {
@@ -73,7 +68,7 @@ export class Bot {
         this.osuBeatmapProvider = new OsuBeatmapProvider(this.banchoApi, this.database.osuBeatmapMeta);
 
         this.api = new APICollection(this.banchoApi, this.osuBeatmapProvider);
-        this.maps = new Maps(this);
+        this.maps = new Maps();
         this.track = new OsuTrackAPI();
 
         // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -106,6 +101,7 @@ export class Bot {
             new ScoreSaber(this),
             new Admin(this),
             new Main(this),
+            new SimpleCommandsModule(this),
         ];
     }
 
@@ -195,18 +191,6 @@ export class Bot {
         }
 
         this.totalMessages++;
-
-        if (this.checkReplay(context)) {
-            await this.processReplay(context);
-            return;
-        }
-        if (await this.processScore(context)) {
-            return;
-        }
-        if (await this.processMap(context)) {
-            return;
-        }
-
         await this.processRegularMessage(context);
     };
 
@@ -214,103 +198,12 @@ export class Bot {
         return ctx.isGroup || ctx.isFromGroup || ctx.isEvent || this.ignored.isIgnored(ctx.senderId);
     }
 
-    private async processReplay(ctx: UnifiedMessageContext): Promise<boolean> {
-        const replayFile = await ctx.tgCtx.getFile();
-        if (!replayFile?.file_path) return false;
-
-        try {
-            const { data: file } = await axios.get(
-                `https://api.telegram.org/file/bot${this.tg.token}/${replayFile.file_path}`,
-                { responseType: "arraybuffer" }
-            );
-
-            const replay = new ReplayParser(file).getReplay();
-            const beatmap = await this.osuBeatmapProvider.getBeatmapByHash(replay.beatmapHash, replay.mode);
-            await beatmap.applyMods(replay.mods);
-            const cover = await this.database.covers.getCover(beatmap.setId);
-            const calculator = new Calculator(beatmap, replay.mods);
-
-            const keyboard = Util.createKeyboard(
-                [
-                    ["B", "s"],
-                    ["G", "g"],
-                    ["R", "r"],
-                ].map((group) => [
-                    { text: `[${group[0]}] Мой скор`, command: `${group[1]} c ${Util.getModeArg(replay.mode)}` },
-                    ...(ctx.isChat
-                        ? [
-                              {
-                                  text: `[${group[0]}] Топ чата`,
-                                  command: `${group[1]} lb ${Util.getModeArg(replay.mode)}`,
-                              },
-                          ]
-                        : []),
-                ])
-            );
-
-            await ctx.reply(this.templates.Replay(replay, beatmap, calculator), {
-                attachment: cover,
-                keyboard,
-            });
-
-            this.maps.setMap(ctx.peerId, beatmap);
-            return true;
-        } catch (error) {
-            global.logger.error(error);
-            await ctx.reply("Ошибка обработки реплея!");
-            return true;
-        }
-    }
-
-    private async processScore(ctx: UnifiedMessageContext): Promise<boolean> {
-        const scoreId = IsScore(ctx.text) || this.getScoreFromAttachments(ctx);
-        if (!scoreId) {
-            return false;
-        }
-
-        await this.processScoreInternal(ctx, scoreId);
-        return true;
-    }
-
-    private async processScoreInternal(ctx: UnifiedMessageContext, scoreId: number) {
-        const score = await this.banchoApi.getScoreByScoreId(scoreId);
-        const map = await this.osuBeatmapProvider.getBeatmapById(score.beatmapId, score.mode);
-        await map.applyMods(score.mods);
-        const user = await this.banchoApi.getUserById(score.player_id);
-        const cover = await this.database.covers.getCover(map.setId);
-        this.maps.setMap(ctx.peerId, map);
-        const calc = new Calculator(map, score.mods);
-        await ctx.reply(
-            `Player: ${user.nickname}\n\n${this.templates.ScoreFull(score, map, calc, "https://osu.ppy.sh")}`,
-            {
-                attachment: cover,
-            }
-        );
-    }
-
-    private async processMap(ctx: UnifiedMessageContext): Promise<boolean> {
-        const mapId = IsMap(ctx.text) || this.getMapFromAttachments(ctx);
-        if (!mapId) {
-            return false;
-        }
-
-        await this.maps.sendMap(mapId, ctx);
-        return true;
-    }
-
     private async processRegularMessage(ctx: UnifiedMessageContext): Promise<void> {
-        if (!ctx.hasText) {
-            return;
-        }
-
-        if (ctx.text.toLowerCase().startsWith("map ")) {
-            await this.maps.stats(ctx);
-            return;
-        }
-
         for (const module of this.modules) {
             const match = module.checkContext(ctx);
-            if (!match) continue;
+            if (!match) {
+                continue;
+            }
 
             if (ctx.isChat) {
                 const inChat = await this.database.chats.isUserInChat(ctx.senderId, ctx.chatId);
@@ -377,21 +270,5 @@ export class Bot {
     public async stop(): Promise<void> {
         await this.handle.stop();
         global.logger.info("Bot stopped");
-    }
-
-    private checkReplay(ctx: UnifiedMessageContext): boolean {
-        if (!ctx.hasAttachments("doc")) {
-            return false;
-        }
-        const replays = ctx.getAttachments("doc").filter((d) => d.file_name?.endsWith(".osr"));
-        return replays.length > 0;
-    }
-
-    private getMapFromAttachments(ctx: UnifiedMessageContext): number | null {
-        return ctx.hasAttachments("link") ? IsMap(ctx.getAttachments("link")[0].url) : null;
-    }
-
-    private getScoreFromAttachments(ctx: UnifiedMessageContext): number | null {
-        return ctx.hasAttachments("link") ? IsScore(ctx.getAttachments("link")[0].url) : null;
     }
 }

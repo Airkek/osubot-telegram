@@ -3,7 +3,7 @@ import * as axios from "axios";
 import { APIUser, HitCounts, APIScore, IDatabaseUser, LeaderboardResponse, LeaderboardScore } from "../Types";
 import qs from "querystring";
 import Util from "../Util";
-import Mods from "../pp/Mods";
+import Mods from "../osu_specific/pp/Mods";
 import { isNullOrUndefined } from "util";
 import { IBeatmapProvider } from "../beatmaps/IBeatmapProvider";
 
