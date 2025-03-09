@@ -1,6 +1,7 @@
 /* eslint-disable  @typescript-eslint/no-explicit-any */
 /* eslint-disable  @typescript-eslint/no-unused-vars */
 import { Bot, Context, InlineKeyboard } from "grammy";
+import { UserFromGetMe } from "@grammyjs/types";
 
 class ReplyToMessage {
     readonly text: string;
@@ -39,6 +40,7 @@ export default class UnifiedMessageContext {
 
     readonly tgCtx: Context;
     readonly tg: Bot;
+    readonly me: UserFromGetMe;
 
     reply: (text: string, options?: SendOptions) => Promise<any>;
     edit: (text: string, options?: SendOptions) => Promise<any>;
@@ -51,9 +53,10 @@ export default class UnifiedMessageContext {
     hasAttachments: (type: string) => boolean;
     getAttachments: (type: string) => Array<any>;
 
-    constructor(ctx: Context, tg: Bot) {
+    constructor(ctx: Context, tg: Bot, me: UserFromGetMe) {
         this.tgCtx = ctx;
         this.tg = tg;
+        this.me = me;
 
         const isMessage = ctx.message !== undefined;
         this.text = isMessage ? (ctx.message.text ? ctx.message.text : ctx.message.caption) : undefined;
@@ -78,7 +81,6 @@ export default class UnifiedMessageContext {
 
         this.isBotAdmin = async () => {
             try {
-                const me = await this.tg.api.getMe();
                 const res = await this.tg.api.getChatMember(ctx.message.chat.id, me.id);
                 return res.status == "creator" || res.status == "administrator";
             } catch (e) {

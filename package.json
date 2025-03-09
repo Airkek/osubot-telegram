@@ -22,7 +22,8 @@
   "dependencies": {
     "@grammyjs/auto-retry": "^2.0.2",
     "@grammyjs/chat-members": "^1.2.0",
-    "axios": "^1.7.9",
+    "@grammyjs/runner": "^2.0.3",
+    "axios": "^1.8.2",
     "grammy": "^1.35.0",
     "int64-buffer": "^1.1.0",
     "leb": "^1.0.0",

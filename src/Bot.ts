@@ -1,6 +1,7 @@
 import { Bot as TelegramBot, GrammyError, HttpError } from "grammy";
 import { autoRetry } from "@grammyjs/auto-retry";
 import { chatMemberFilter } from "@grammyjs/chat-members";
+import { run, RunnerHandle } from "@grammyjs/runner";
 import axios from "axios";
 import { Module } from "./Module";
 import Database from "./Database";
@@ -25,6 +26,7 @@ import UnifiedMessageContext from "./TelegramSupport";
 import IsMap from "./regexes/MapRegexp";
 import IsScore from "./regexes/ScoreRegexp";
 import { OsuBeatmapProvider } from "./beatmaps/osu/OsuBeatmapProvider";
+import { UserFromGetMe } from "@grammyjs/types";
 
 export interface IBotConfig {
     tg: {
@@ -52,7 +54,10 @@ export class Bot {
     public disabled: number[] = [];
     public startTime: number = 0;
     public totalMessages: number = 0;
+    public me: UserFromGetMe;
     public readonly version: string;
+
+    private handle: RunnerHandle;
 
     constructor(config: IBotConfig) {
         this.config = config;
@@ -133,32 +138,30 @@ export class Bot {
         const {
             new_chat_member: { user },
         } = ctx.chatMember;
-        this.database.chats.isUserInChat(user.id, ctx.chat.id).then(async (inChat: boolean) => {
-            if (!inChat) {
-                await this.database.chats.userJoined(user.id, ctx.chat.id);
-            }
-        });
+        const inChat = await this.database.chats.isUserInChat(user.id, ctx.chat.id);
+        if (!inChat) {
+            await this.database.chats.userJoined(user.id, ctx.chat.id);
+        }
     };
 
     private handleLeftChatMember = async (ctx): Promise<void> => {
         const {
             new_chat_member: { user },
         } = ctx.chatMember;
-        this.database.chats.userLeft(user.id, ctx.chat.id);
+        await this.database.chats.userLeft(user.id, ctx.chat.id);
     };
 
     private handleNewChatMembers = async (ctx): Promise<void> => {
         for (const user of ctx.message.new_chat_members) {
-            this.database.chats.isUserInChat(user.id, ctx.chat.id).then(async (inChat: boolean) => {
-                if (!inChat) {
-                    await this.database.chats.userJoined(user.id, ctx.chat.id);
-                }
-            });
+            const inChat = await this.database.chats.isUserInChat(user.id, ctx.chat.id);
+            if (!inChat) {
+                await this.database.chats.userJoined(user.id, ctx.chat.id);
+            }
         }
     };
 
     private handleCallbackQuery = async (ctx): Promise<void> => {
-        const context = new UnifiedMessageContext(ctx, this.tg);
+        const context = new UnifiedMessageContext(ctx, this.tg, this.me);
 
         for (const module of this.modules) {
             const match = module.checkContext(context);
@@ -167,7 +170,7 @@ export class Bot {
             }
 
             if (this.disabled.includes(context.peerId) && match.command.disables) {
-                ctx.answerCallbackQuery();
+                await ctx.answerCallbackQuery();
                 return;
             }
 
@@ -179,27 +182,32 @@ export class Bot {
                 }
             }
 
-            match.command.process(context).then(async () => {
-                await ctx.answerCallbackQuery();
-            });
+            await match.command.process(context);
+            await ctx.answerCallbackQuery();
         }
     };
 
     private handleMessage = async (ctx): Promise<void> => {
-        const context = new UnifiedMessageContext(ctx, this.tg);
+        const context = new UnifiedMessageContext(ctx, this.tg, this.me);
 
-        if (this.shouldSkipMessage(context)) return;
+        if (this.shouldSkipMessage(context)) {
+            return;
+        }
 
         this.totalMessages++;
 
         if (this.checkReplay(context)) {
-            this.processReplay(context);
+            await this.processReplay(context);
             return;
         }
-        if (this.processScore(context)) return;
-        if (this.processMap(context)) return;
+        if (await this.processScore(context)) {
+            return;
+        }
+        if (await this.processMap(context)) {
+            return;
+        }
 
-        this.processRegularMessage(context);
+        await this.processRegularMessage(context);
     };
 
     private shouldSkipMessage(ctx: UnifiedMessageContext): boolean {
@@ -260,11 +268,13 @@ export class Bot {
         }
     }
 
-    private processScore(ctx: UnifiedMessageContext): boolean {
+    private async processScore(ctx: UnifiedMessageContext): Promise<boolean> {
         const scoreId = IsScore(ctx.text) || this.getScoreFromAttachments(ctx);
-        if (!scoreId) return false;
+        if (!scoreId) {
+            return false;
+        }
 
-        this.processScoreInternal(ctx, scoreId);
+        await this.processScoreInternal(ctx, scoreId);
         return true;
     }
 
@@ -284,16 +294,20 @@ export class Bot {
         );
     }
 
-    private processMap(ctx: UnifiedMessageContext): boolean {
+    private async processMap(ctx: UnifiedMessageContext): Promise<boolean> {
         const mapId = IsMap(ctx.text) || this.getMapFromAttachments(ctx);
-        if (!mapId) return false;
+        if (!mapId) {
+            return false;
+        }
 
-        this.maps.sendMap(mapId, ctx);
+        await this.maps.sendMap(mapId, ctx);
         return true;
     }
 
     private async processRegularMessage(ctx: UnifiedMessageContext): Promise<void> {
-        if (!ctx.hasText) return;
+        if (!ctx.hasText) {
+            return;
+        }
 
         if (ctx.text.toLowerCase().startsWith("map ")) {
             await this.maps.stats(ctx);
@@ -330,7 +344,7 @@ export class Bot {
             user: "s u",
             recent: "s r",
             top_scores: "s t",
-            chat_leaderboard: "s chat",
+            chat_leaderboard: "s chat -std",
             chat_leaderboard_mania: "s chat -mania",
             chat_leaderboard_taiko: "s chat -taiko",
             chat_leaderboard_fruits: "s chat -ctb",
@@ -339,10 +353,12 @@ export class Bot {
         Object.entries(aliases).forEach(([command, alias]) => {
             this.tg.command(command, async (ctx) => {
                 ctx.message.text = alias;
-                const context = new UnifiedMessageContext(ctx, this.tg);
+                const context = new UnifiedMessageContext(ctx, this.tg, this.me);
                 for (const module of this.modules) {
                     const match = module.checkContext(context);
-                    if (match) await match.command.process(context);
+                    if (match) {
+                        await match.command.process(context);
+                    }
                 }
             });
         });
@@ -351,15 +367,21 @@ export class Bot {
     public async start(): Promise<void> {
         await this.api.v2.login();
         this.startTime = Date.now();
-        await this.tg.start({
-            drop_pending_updates: true,
-            allowed_updates: ["chat_member", "callback_query", "message"],
+
+        this.me = await this.tg.api.getMe();
+
+        this.handle = run(this.tg, {
+            runner: {
+                fetch: {
+                    allowed_updates: ["chat_member", "callback_query", "message"],
+                },
+            },
         });
-        global.logger.info("Bot started");
+        global.logger.info(`Bot started as @${this.me.username} (${this.me.first_name})`);
     }
 
     public async stop(): Promise<void> {
-        await this.tg.stop();
+        await this.handle.stop();
         global.logger.info("Bot stopped");
     }
 
