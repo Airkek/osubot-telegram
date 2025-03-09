@@ -16,7 +16,7 @@ import {
     LeaderboardScore,
     IBeatmapStats,
 } from "../Types";
-import Mods from "../pp/Mods";
+import Mods from "../osu_specific/pp/Mods";
 import IAPI from "./base";
 import { Bot } from "../Bot";
 

@@ -1,8 +1,8 @@
 import { IBeatmapStats, IBeatmap } from "../BeatmapTypes";
-import Mods from "../../pp/Mods";
+import Mods from "../../osu_specific/pp/Mods";
 import Util from "../../Util";
-import AttributesCalculator from "../../pp/AttributesCalculator";
-import { getRosuBeatmap } from "../../pp/RosuUtils";
+import AttributesCalculator from "../../osu_specific/pp/AttributesCalculator";
+import { getRosuBeatmap } from "../../osu_specific/pp/RosuUtils";
 import * as rosu from "rosu-pp-js";
 import { APIBeatmap } from "../../Types";
 import { IOsuBeatmapMetadata } from "../../Database";

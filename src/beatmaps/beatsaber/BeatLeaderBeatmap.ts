@@ -1,6 +1,6 @@
 import { IBeatmapStats, IBeatmap } from "../BeatmapTypes";
 import { APIBeatmap } from "../../Types";
-import Mods from "../../pp/Mods";
+import Mods from "../../osu_specific/pp/Mods";
 import Util from "../../Util";
 
 export class BeatLeaderBeatmapStats implements IBeatmapStats {

@@ -1,4 +1,4 @@
-import { CalcArgs, HitCounts, ICommandArgs, PPArgs } from "./Types";
+import { CalcArgs, HitCounts, PPArgs } from "./Types";
 import { InlineKeyboard } from "grammy";
 import { IBeatmap } from "./beatmaps/BeatmapTypes";
 
@@ -74,65 +74,6 @@ export default {
                     ((counts[300] + counts[100] + counts[50] + counts.miss) * 6)
                 );
         }
-    },
-    parseArgs(args: string[]): ICommandArgs {
-        const iArg: ICommandArgs = {
-            full: args,
-            string: [],
-            nickname: [],
-            mods: "",
-            combo: 0,
-            miss: 0,
-            acc: 0,
-            place: 0,
-            apx: 0,
-            more: 0,
-            c50: 0,
-            page: 1,
-            mode: null,
-        };
-
-        for (let i = args.length - 1; i > -1; i--) {
-            const arg = args[i].toLowerCase();
-            if (arg == "-std" || arg == "-osu" || arg == "-s" || arg == "-o") {
-                iArg.mode = 0;
-            } else if (arg == "-taiko" || arg == "-drums" || arg == "-t") {
-                iArg.mode = 1;
-            } else if (arg == "-fruits" || arg == "-ctb" || arg == "-c" || arg == "-catch") {
-                iArg.mode = 2;
-            } else if (arg == "-mania" || arg == "-m") {
-                iArg.mode = 3;
-            } else if (arg.startsWith("+")) {
-                iArg.mods = arg.slice(1);
-            } else if (arg.endsWith("x")) {
-                iArg.combo = Number(arg.slice(0, -1));
-                iArg.nickname.push(arg);
-            } else if (arg.endsWith("x50")) {
-                iArg.c50 = Math.max(Number(arg.slice(0, -3)), 0);
-                iArg.nickname.push(arg);
-            } else if (arg.endsWith("m")) {
-                iArg.miss = Number(arg.slice(0, -1));
-                iArg.nickname.push(arg);
-            } else if (arg.endsWith("%")) {
-                iArg.acc = Number(arg.slice(0, -1));
-            } else if (arg.startsWith("\\")) {
-                iArg.place = Number(arg.slice(1));
-            } else if (arg.startsWith("~")) {
-                iArg.apx = Math.max(Number(arg.slice(1)), 1);
-            } else if (arg.startsWith("--p")) {
-                iArg.page = Math.max(Number(arg.slice(3)), 1);
-            } else if (arg.startsWith(">")) {
-                iArg.more = Math.max(Number(arg.slice(1)), 1);
-            } else {
-                iArg.string.push(arg);
-                iArg.nickname.push(arg);
-            }
-        }
-
-        iArg.string.reverse();
-        iArg.nickname.reverse();
-
-        return iArg;
     },
     formatCombo(combo: number, full: number): string {
         if (!full) {

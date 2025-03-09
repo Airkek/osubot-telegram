@@ -2,7 +2,7 @@ import IAPI from "./base";
 import * as axios from "axios";
 import qs from "querystring";
 import { APIBeatmap, APIScore, APIUser, IBeatmapObjects, IBeatmapStars, IBeatmapStats, IHitCounts } from "../Types";
-import Mods from "../pp/Mods";
+import Mods from "../osu_specific/pp/Mods";
 import { BeatLeaderBeatmap } from "../beatmaps/beatsaber/BeatLeaderBeatmap";
 
 interface BLUserResponse {
