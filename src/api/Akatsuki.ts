@@ -1,10 +1,9 @@
-import { IAPI } from "../API";
+import IAPI from "./base";
 import * as axios from "axios";
 import qs from "querystring";
 import { APIUser, HitCounts, APIScore } from "../Types";
 import Mods from "../pp/Mods";
 import Util from "../Util";
-import { Bot } from "../Bot";
 
 class AkatsukiUser implements APIUser {
     id: number;
@@ -106,10 +105,8 @@ class AkatsukiRecentScore implements APIScore {
 }
 
 export default class AkatsukiAPI implements IAPI {
-    bot: Bot;
     api: axios.AxiosInstance;
-    constructor(bot: Bot) {
-        this.bot = bot;
+    constructor() {
         this.api = axios.default.create({
             baseURL: "https://akatsuki.gg/api/v1",
             timeout: 3000,

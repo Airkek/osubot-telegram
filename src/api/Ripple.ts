@@ -5,7 +5,7 @@ import qs from "querystring";
 import Util from "../Util";
 import Mods from "../pp/Mods";
 import { isNullOrUndefined } from "util";
-import { Bot } from "../Bot";
+import { IBeatmapProvider } from "../beatmaps/IBeatmapProvider";
 
 class RippleUser implements APIUser {
     id: number;
@@ -107,10 +107,10 @@ class RippleScore implements APIScore {
 }
 
 export default class RippleAPI implements IAPI {
-    bot: Bot;
+    beatmapProvider: IBeatmapProvider;
     api: axios.AxiosInstance;
-    constructor(bot: Bot) {
-        this.bot = bot;
+    constructor(beatmapProvider: IBeatmapProvider) {
+        this.beatmapProvider = beatmapProvider;
         this.api = axios.default.create({
             baseURL: "https://ripple.moe/api",
             timeout: 3000,
@@ -217,7 +217,7 @@ export default class RippleAPI implements IAPI {
         mode: number = 0,
         mods: number = null
     ): Promise<LeaderboardResponse> {
-        const map = await this.bot.osuBeatmapProvider.getBeatmapById(beatmapId, mode);
+        const map = await this.beatmapProvider.getBeatmapById(beatmapId, mode);
         const scores: LeaderboardScore[] = [];
         try {
             const lim = Math.ceil(users.length / 5);

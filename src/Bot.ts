@@ -2,10 +2,11 @@ import { Bot as TelegramBot, GrammyError, HttpError } from "grammy";
 import { autoRetry } from "@grammyjs/auto-retry";
 import { chatMemberFilter } from "@grammyjs/chat-members";
 import { run, RunnerHandle } from "@grammyjs/runner";
+import { UserFromGetMe } from "@grammyjs/types";
 import axios from "axios";
 import { Module } from "./Module";
 import Database from "./Database";
-import { APICollection } from "./API";
+import { APICollection } from "./APICollection";
 import { Templates, ITemplates } from "./templates";
 import Maps from "./Maps";
 import { ReplayParser } from "./Replay";
@@ -26,7 +27,7 @@ import UnifiedMessageContext from "./TelegramSupport";
 import IsMap from "./regexes/MapRegexp";
 import IsScore from "./regexes/ScoreRegexp";
 import { OsuBeatmapProvider } from "./beatmaps/osu/OsuBeatmapProvider";
-import { UserFromGetMe } from "@grammyjs/types";
+import BanchoAPIV2 from "./api/BanchoV2";
 
 export interface IBotConfig {
     tg: {
@@ -50,8 +51,9 @@ export class Bot {
     public readonly ignored: IgnoreList;
     public readonly track: OsuTrackAPI;
 
+    public readonly banchoApi: BanchoAPIV2; // TODO: make private
+
     public modules: Module[] = [];
-    public disabled: number[] = [];
     public startTime: number = 0;
     public totalMessages: number = 0;
     public me: UserFromGetMe;
@@ -66,8 +68,11 @@ export class Bot {
         this.tg = new TelegramBot(config.tg.token);
         this.database = new Database(this.tg, config.tg.owner);
         this.ignored = new IgnoreList(this.database);
-        this.api = new APICollection(this);
-        this.osuBeatmapProvider = new OsuBeatmapProvider(this.api.v2, this.database.osuBeatmapMeta);
+
+        this.banchoApi = new BanchoAPIV2(this);
+        this.osuBeatmapProvider = new OsuBeatmapProvider(this.banchoApi, this.database.osuBeatmapMeta);
+
+        this.api = new APICollection(this.banchoApi, this.osuBeatmapProvider);
         this.maps = new Maps(this);
         this.track = new OsuTrackAPI();
 
@@ -169,11 +174,6 @@ export class Bot {
                 continue;
             }
 
-            if (this.disabled.includes(context.peerId) && match.command.disables) {
-                await ctx.answerCallbackQuery();
-                return;
-            }
-
             if (match.map) {
                 const chatMap = this.maps.getChat(context.peerId);
                 if (!chatMap || chatMap.map.id !== match.map) {
@@ -211,13 +211,7 @@ export class Bot {
     };
 
     private shouldSkipMessage(ctx: UnifiedMessageContext): boolean {
-        return (
-            ctx.isGroup ||
-            ctx.isFromGroup ||
-            ctx.isEvent ||
-            this.ignored.isIgnored(ctx.senderId) ||
-            this.disabled.includes(ctx.peerId)
-        );
+        return ctx.isGroup || ctx.isFromGroup || ctx.isEvent || this.ignored.isIgnored(ctx.senderId);
     }
 
     private async processReplay(ctx: UnifiedMessageContext): Promise<boolean> {
@@ -279,10 +273,10 @@ export class Bot {
     }
 
     private async processScoreInternal(ctx: UnifiedMessageContext, scoreId: number) {
-        const score = await this.api.v2.getScoreByScoreId(scoreId);
+        const score = await this.banchoApi.getScoreByScoreId(scoreId);
         const map = await this.osuBeatmapProvider.getBeatmapById(score.beatmapId, score.mode);
         await map.applyMods(score.mods);
-        const user = await this.api.v2.getUserById(score.player_id);
+        const user = await this.banchoApi.getUserById(score.player_id);
         const cover = await this.database.covers.getCover(map.setId);
         this.maps.setMap(ctx.peerId, map);
         const calc = new Calculator(map, score.mods);
@@ -365,7 +359,7 @@ export class Bot {
     }
 
     public async start(): Promise<void> {
-        await this.api.v2.login();
+        await this.banchoApi.login();
         this.startTime = Date.now();
 
         this.me = await this.tg.api.getMe();

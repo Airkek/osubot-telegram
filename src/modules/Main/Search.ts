@@ -9,7 +9,7 @@ export default class SearchCommand extends Command {
                 return;
             }
 
-            const data = await self.module.bot.api.v2.getBeatmapsets({
+            const data = await self.module.bot.banchoApi.getBeatmapsets({
                 query: args.full.join(" "),
                 status: "ranked",
             });
