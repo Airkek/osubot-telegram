@@ -46,7 +46,7 @@ export class OsuReplay extends Command {
                 ])
             );
 
-            const needRender = replay.mode == 0;
+            const needRender = process.env.RENDER_REPLAYS === "true" && replay.mode == 0;
 
             const renderAdd = needRender ? "\n\nРендер реплея в процессе..." : "";
             await ctx.reply(module.bot.templates.Replay(replay, beatmap, calculator) + renderAdd, {

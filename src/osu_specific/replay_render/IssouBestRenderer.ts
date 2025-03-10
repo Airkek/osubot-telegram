@@ -38,7 +38,7 @@ export class IssouBestRenderer implements IReplayRenderer {
         form.append("showDanserLogo", "false");
         form.append("skin", "61");
         form.append("resolution", "1280x720");
-        form.append("username", "OsuLegacyBot");
+        form.append("username", process.env.ORDR_USERNAME);
         form.append("loadVideo", "true");
         form.append("loadStoryboard", "true");
         form.append("skip", "true");
