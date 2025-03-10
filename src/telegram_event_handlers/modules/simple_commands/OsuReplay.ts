@@ -51,9 +51,13 @@ export class OsuReplay extends Command {
             const canRender = process.env.RENDER_REPLAYS === "true" && replay.mode == 0;
             let renderAdditional = canRender ? "\n\nРендер реплея в процессе..." : "";
             let needRender = canRender;
-            if (canRender && this.checkLimit(ctx.senderId)) {
+            if (canRender) {
                 needRender = false;
-                renderAdditional = "\n\nРендер реплея доступен раз в 5 минут";
+                if (this.checkLimit(ctx.senderId)) {
+                    renderAdditional = "\n\nРендер реплея доступен раз в 5 минут";
+                } else {
+                    this.setLimit(ctx.senderId);
+                }
             }
 
             await ctx.reply(module.bot.templates.Replay(replay, beatmap, calculator) + renderAdditional, {
@@ -65,8 +69,6 @@ export class OsuReplay extends Command {
             if (!needRender) {
                 return;
             }
-
-            this.setLimit(ctx.senderId);
             const replayResponse = await this.renderer.render(file);
 
             if (replayResponse.success) {
