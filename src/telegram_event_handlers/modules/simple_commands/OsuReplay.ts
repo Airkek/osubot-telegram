@@ -52,8 +52,8 @@ export class OsuReplay extends Command {
             let renderAdditional = canRender ? "\n\nРендер реплея в процессе..." : "";
             let needRender = canRender;
             if (canRender) {
-                needRender = false;
                 if (this.checkLimit(ctx.senderId)) {
+                    needRender = false;
                     renderAdditional = "\n\nРендер реплея доступен раз в 5 минут";
                 } else {
                     this.setLimit(ctx.senderId);
