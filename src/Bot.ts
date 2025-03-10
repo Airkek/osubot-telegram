@@ -257,6 +257,11 @@ export class Bot {
 
         this.me = await this.tg.api.getMe();
 
+        // drop updates
+        await this.tg.api.deleteWebhook({
+            drop_pending_updates: true,
+        });
+
         this.handle = run(this.tg, {
             runner: {
                 fetch: {
