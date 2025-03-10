@@ -77,9 +77,6 @@ export class OsuReplay extends Command {
             score.info.id = 0;
             const buffer = Buffer.from(await encoder.encodeToBuffer(score));
             const replayResponse = await this.renderer.render(buffer);
-            const rawBg = await module.bot.database.covers.getPhotoDoc(
-                `https://assets.ppy.sh/beatmaps/${beatmap.setId}/covers/raw.jpg`
-            );
 
             if (replayResponse.success) {
                 await ctx.reply("", {
@@ -88,7 +85,6 @@ export class OsuReplay extends Command {
                         width: replayResponse.video.width,
                         height: replayResponse.video.heigth,
                         duration: replayResponse.video.duration,
-                        cover: rawBg,
                     },
                 });
             } else {

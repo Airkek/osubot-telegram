@@ -20,7 +20,6 @@ interface IVideoMeta {
     width: number;
     height: number;
     duration: number;
-    cover: string;
 }
 
 interface SendOptions {
@@ -170,7 +169,6 @@ export default class UnifiedMessageContext {
                     opts["width"] = options.video.width;
                     opts["height"] = options.video.height;
                     opts["duration"] = options.video.duration;
-                    opts["cover"] = options.video.cover;
                     return await this.tgCtx.replyWithVideo(new InputFile(new URL(options.video.url)), opts);
                 }
                 return await this.tgCtx.reply(text, opts);
