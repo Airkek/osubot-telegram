@@ -15,10 +15,18 @@ class ReplyToMessage {
     }
 }
 
+interface IVideoMeta {
+    url: string;
+    width: number;
+    height: number;
+    duration: number;
+    cover: string;
+}
+
 interface SendOptions {
     keyboard?: InlineKeyboard;
     attachment?: string;
-    video_url?: string;
+    video?: IVideoMeta;
     dont_parse_links?: number | boolean;
     disable_mentions?: number | boolean;
 }
@@ -157,9 +165,13 @@ export default class UnifiedMessageContext {
                 if (options?.attachment !== undefined && options.attachment.length != 0) {
                     opts["caption"] = text;
                     return await this.tgCtx.replyWithPhoto(options.attachment, opts);
-                } else if (options?.video_url) {
+                } else if (options?.video) {
                     opts["caption"] = text;
-                    return await this.tgCtx.replyWithVideo(new InputFile(new URL(options.video_url)), opts);
+                    opts["width"] = options.video.width;
+                    opts["height"] = options.video.height;
+                    opts["duration"] = options.video.duration;
+                    opts["cover"] = options.video.cover;
+                    return await this.tgCtx.replyWithVideo(new InputFile(new URL(options.video.url)), opts);
                 }
                 return await this.tgCtx.reply(text, opts);
             } catch (e) {

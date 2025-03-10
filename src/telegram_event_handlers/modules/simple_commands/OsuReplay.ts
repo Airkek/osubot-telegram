@@ -1,12 +1,13 @@
+import axios from "axios";
+import { ScoreDecoder, ScoreEncoder } from "osu-parsers";
 import { Command } from "../../Command";
 import { SimpleCommandsModule } from "./index";
 import UnifiedMessageContext from "../../../TelegramSupport";
-import axios from "axios";
-import { ReplayParser } from "../../../osu_specific/OsuReplay";
 import Calculator from "../../../osu_specific/pp/bancho";
 import Util from "../../../Util";
 import { IReplayRenderer } from "../../../osu_specific/replay_render/IReplayRenderer";
 import { IssouBestRenderer } from "../../../osu_specific/replay_render/IssouBestRenderer";
+import { OsrReplay } from "../../../osu_specific/OsrReplay";
 
 export class OsuReplay extends Command {
     renderer: IReplayRenderer;
@@ -24,7 +25,9 @@ export class OsuReplay extends Command {
                 { responseType: "arraybuffer" }
             );
 
-            const replay = new ReplayParser(file).getReplay();
+            const decoder = new ScoreDecoder();
+            const score = await decoder.decodeFromBuffer(file, true);
+            const replay = new OsrReplay(score);
             const beatmap = await module.bot.osuBeatmapProvider.getBeatmapByHash(replay.beatmapHash, replay.mode);
             await beatmap.applyMods(replay.mods);
             const cover = await module.bot.database.covers.getCover(beatmap.setId);
@@ -69,13 +72,27 @@ export class OsuReplay extends Command {
             if (!needRender) {
                 return;
             }
-            const replayResponse = await this.renderer.render(file);
+
+            const encoder = new ScoreEncoder();
+            score.info.id = 0;
+            const buffer = Buffer.from(await encoder.encodeToBuffer(score));
+            const replayResponse = await this.renderer.render(buffer);
+            const rawBg = await module.bot.database.covers.getPhotoDoc(
+                `https://assets.ppy.sh/beatmaps/${beatmap.setId}/covers/raw.jpg`
+            );
 
             if (replayResponse.success) {
                 await ctx.reply("", {
-                    video_url: replayResponse.video_url,
+                    video: {
+                        url: replayResponse.video.url,
+                        width: replayResponse.video.width,
+                        height: replayResponse.video.heigth,
+                        duration: replayResponse.video.duration,
+                        cover: rawBg,
+                    },
                 });
             } else {
+                this.removeLimit(ctx.senderId);
                 await ctx.reply(`Ошибка при рендере реплея: ${replayResponse.error}`);
             }
         });
@@ -104,5 +121,9 @@ export class OsuReplay extends Command {
 
     private setLimit(user: number) {
         this.rate[user] = new Date().getTime();
+    }
+
+    private removeLimit(user: number) {
+        this.rate[user] = 0;
     }
 }

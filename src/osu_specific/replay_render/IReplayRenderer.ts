@@ -1,6 +1,13 @@
+export interface Video {
+    url: string;
+    width: number;
+    heigth: number;
+    duration: number;
+}
+
 export interface RenderResponse {
     success: boolean;
-    video_url?: string;
+    video?: Video;
     error?: string;
 }
 

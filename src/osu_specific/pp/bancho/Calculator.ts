@@ -2,7 +2,7 @@ import { IPPCalculator as ICalc } from "../Calculator";
 import * as rosu from "rosu-pp-js";
 import Mods from "../Mods";
 import { APIScore, CalcArgs } from "../../../Types";
-import { OsuReplay } from "../../OsuReplay";
+import { OsrReplay } from "../../OsrReplay";
 import { getRosuBeatmapSync } from "../RosuUtils";
 import { IBeatmap } from "../../../beatmaps/BeatmapTypes";
 
@@ -22,7 +22,7 @@ class BanchoPP implements ICalc {
         this.speedMultiplier = mods.speed();
     }
 
-    calculate(score: APIScore | CalcArgs | OsuReplay): IPP {
+    calculate(score: APIScore | CalcArgs | OsrReplay): IPP {
         if (this.mods.has("Relax") || this.mods.has("Relax2") || this.mods.has("Autoplay")) {
             return { pp: 0, fc: 0, ss: 0 };
         }
@@ -37,7 +37,7 @@ class BanchoPP implements ICalc {
         return res;
     }
 
-    PP(score: APIScore | CalcArgs | OsuReplay, rmap: rosu.Beatmap) {
+    PP(score: APIScore | CalcArgs | OsrReplay, rmap: rosu.Beatmap) {
         switch (score.mode) {
             case 1:
                 rmap.convert(rosu.GameMode.Taiko);

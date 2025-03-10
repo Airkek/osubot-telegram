@@ -1,7 +1,7 @@
 import { APIScore, CalcArgs } from "../../Types";
 import * as rosu from "rosu-pp-js";
 import Mods from "./Mods";
-import { OsuReplay } from "../OsuReplay";
+import { OsrReplay } from "../OsrReplay";
 import { IBeatmap } from "../../beatmaps/BeatmapTypes";
 
 interface IPP {
@@ -14,8 +14,8 @@ interface IPPCalculator {
     speedMultiplier: number;
     map: IBeatmap;
     mods: Mods;
-    calculate(score: APIScore | OsuReplay | CalcArgs): IPP;
-    PP(score: APIScore | OsuReplay | CalcArgs, rmap: rosu.Beatmap): IPP;
+    calculate(score: APIScore | OsrReplay | CalcArgs): IPP;
+    PP(score: APIScore | OsrReplay | CalcArgs, rmap: rosu.Beatmap): IPP;
 }
 
 export { IPP, IPPCalculator };

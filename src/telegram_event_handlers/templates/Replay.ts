@@ -1,9 +1,9 @@
-import { OsuReplay } from "../../osu_specific/OsuReplay";
+import { OsrReplay } from "../../osu_specific/OsrReplay";
 import Util from "../../Util";
 import { IPPCalculator as ICalc } from "../../osu_specific/pp/Calculator";
 import { IBeatmap } from "../../beatmaps/BeatmapTypes";
 
-export default function formatReplay(replay: OsuReplay, map: IBeatmap, calc: ICalc): string {
+export default function formatReplay(replay: OsrReplay, map: IBeatmap, calc: ICalc): string {
     const pp = calc.calculate(replay);
 
     const header = `${replay.player}'s replay:`;

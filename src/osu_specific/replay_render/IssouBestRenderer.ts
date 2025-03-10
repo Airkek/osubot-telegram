@@ -1,4 +1,4 @@
-import { IReplayRenderer, RenderResponse } from "./IReplayRenderer";
+import { IReplayRenderer, RenderResponse, Video } from "./IReplayRenderer";
 import FormData from "form-data";
 import axios from "axios";
 
@@ -8,6 +8,11 @@ interface UploadResponse {
     success: boolean;
     renderId?: number;
     error?: string;
+}
+
+interface Metadata {
+    resolution: string;
+    duration: number;
 }
 
 export class IssouBestRenderer implements IReplayRenderer {
@@ -23,12 +28,25 @@ export class IssouBestRenderer implements IReplayRenderer {
             };
         }
 
-        await this.waitUntilDone(uploadResponse.renderId);
+        const meta = await this.waitUntilDone(uploadResponse.renderId);
         const url = await this.getVideoUrl(uploadResponse.renderId);
+
+        const video: Video = {
+            url,
+            duration: meta.duration,
+            width: 1280,
+            heigth: 720,
+        };
+
+        const resSplit = meta.resolution?.split("x");
+        if (resSplit && resSplit.length == 2) {
+            video.width = ~~resSplit[0];
+            video.heigth = ~~resSplit[1];
+        }
 
         return {
             success: true,
-            video_url: url,
+            video,
         };
     }
 
@@ -64,13 +82,17 @@ export class IssouBestRenderer implements IReplayRenderer {
         }
     }
 
-    private async waitUntilDone(render_id: number): Promise<void> {
-        let isDone = false;
-        do {
+    private async waitUntilDone(render_id: number): Promise<Metadata> {
+        while (true) {
             const response = await axios.get(`https://apis.issou.best/ordr/renders?renderID=${render_id}`);
-            isDone = response.data.renders[0].progress === "Done.";
+            if (response.data.renders[0].progress === "Done.") {
+                return {
+                    duration: response.data.renders[0].mapLength,
+                    resolution: response.data.renders[0].resolution,
+                };
+            }
             await delay(5000);
-        } while (!isDone);
+        }
     }
 
     private async getVideoUrl(render_id: number): Promise<string> {
