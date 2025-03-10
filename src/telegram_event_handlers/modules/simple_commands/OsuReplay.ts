@@ -10,6 +10,8 @@ import { IssouBestRenderer } from "../../../osu_specific/replay_render/IssouBest
 
 export class OsuReplay extends Command {
     renderer: IReplayRenderer;
+    rate = {};
+
     constructor(module: SimpleCommandsModule) {
         super(["osu_replay"], module, async (ctx) => {
             const replayFile = await ctx.tgCtx.getFile();
@@ -46,10 +48,15 @@ export class OsuReplay extends Command {
                 ])
             );
 
-            const needRender = process.env.RENDER_REPLAYS === "true" && replay.mode == 0;
+            const canRender = process.env.RENDER_REPLAYS === "true" && replay.mode == 0;
+            let renderAdditional = canRender ? "\n\nРендер реплея в процессе..." : "";
+            let needRender = canRender;
+            if (canRender && this.checkLimit(ctx.senderId)) {
+                needRender = false;
+                renderAdditional = "\n\nРендер реплея доступен раз в 5 минут";
+            }
 
-            const renderAdd = needRender ? "\n\nРендер реплея в процессе..." : "";
-            await ctx.reply(module.bot.templates.Replay(replay, beatmap, calculator) + renderAdd, {
+            await ctx.reply(module.bot.templates.Replay(replay, beatmap, calculator) + renderAdditional, {
                 attachment: cover,
                 keyboard,
             });
@@ -59,6 +66,7 @@ export class OsuReplay extends Command {
                 return;
             }
 
+            this.setLimit(ctx.senderId);
             const replayResponse = await this.renderer.render(file);
 
             if (replayResponse.success) {
@@ -79,5 +87,20 @@ export class OsuReplay extends Command {
         }
         const replays = ctx.getAttachments("doc").filter((d) => d.file_name?.endsWith(".osr"));
         return replays.length > 0;
+    }
+
+    private checkLimit(user: number) {
+        const TIMEOUT = 300; // 5 mins
+        const u = this.rate[user];
+        const date = new Date().getTime();
+        if (u) {
+            return date - u < TIMEOUT * 1000;
+        }
+
+        return false;
+    }
+
+    private setLimit(user: number) {
+        this.rate[user] = new Date().getTime();
     }
 }
