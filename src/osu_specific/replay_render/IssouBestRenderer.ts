@@ -39,6 +39,7 @@ export class IssouBestRenderer implements IReplayRenderer {
         form.append("skin", "61");
         form.append("resolution", "1280x720");
         form.append("username", process.env.ORDR_USERNAME);
+        form.append("verificationKey", process.env.ORDR_API_KEY);
         form.append("loadVideo", "true");
         form.append("loadStoryboard", "true");
         form.append("skip", "true");
