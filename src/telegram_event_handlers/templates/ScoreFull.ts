@@ -30,8 +30,11 @@ export default function (score: APIScore, beatmap: IBeatmap, calc: ICalc, server
         ppString,
         `Hitcounts: ${score.counts.toString()}`,
         `Grade: ${score.rank}${gradeProgress}`,
-        `Date: ${Util.formatDate(score.date)}`,
     ];
+
+    if (score.date) {
+        total.push(`Date: ${Util.formatDate(score.date)}`);
+    }
 
     if (score.rank_global && score.rank_global <= 1000) {
         let rankStr = `#${score.rank_global} место на карте`;

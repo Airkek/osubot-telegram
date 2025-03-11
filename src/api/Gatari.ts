@@ -64,7 +64,7 @@ class GatariTopScore implements APIScore {
         this.rank = score.ranking.replace("X", "SS");
         this.pp = score.pp;
         this.mode = score.play_mode;
-        this.date = new Date(score.time);
+        this.date = new Date(score.time * 1000);
     }
 
     accuracy() {
