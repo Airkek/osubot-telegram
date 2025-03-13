@@ -54,7 +54,7 @@ export class Command {
             } else if (ctx.hasText) {
                 text = ctx.text;
             }
-            await this.function(ctx, this, this.parseArgs(text.split(" ").slice(2)));
+            await this.function(ctx, this, this.parseArgs(this.getSplittedText(text)));
         } catch (e: unknown) {
             const err = await this.module.bot.database.errors.addError(ctx, e);
 
@@ -74,6 +74,10 @@ export class Command {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     public check(name: string, ctx: UnifiedMessageContext) {
         return this.prefixes.includes(name.toLowerCase());
+    }
+
+    getSplittedText(text: string): string[] {
+        return text.split(" ").slice(2);
     }
 
     private parseArgs(args: string[]): ICommandArgs {
