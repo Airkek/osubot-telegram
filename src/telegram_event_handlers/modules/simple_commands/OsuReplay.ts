@@ -1,5 +1,5 @@
 import fs from "fs";
-import { ScoreDecoder, ScoreEncoder } from "osu-parsers";
+import { ScoreDecoder } from "osu-parsers";
 import { Command } from "../../Command";
 import { SimpleCommandsModule } from "./index";
 import UnifiedMessageContext from "../../../TelegramSupport";
@@ -99,11 +99,7 @@ export class OsuReplay extends Command {
             if (!needRender) {
                 return;
             }
-
-            const encoder = new ScoreEncoder();
-            score.info.id = 0;
-            const buffer = Buffer.from(await encoder.encodeToBuffer(score));
-            const replayResponse = await this.renderer.render(buffer);
+            const replayResponse = await this.renderer.render(file);
 
             if (replayResponse.success) {
                 await ctx.reply("", {
