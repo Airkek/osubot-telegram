@@ -1,6 +1,6 @@
 /* eslint-disable  @typescript-eslint/no-explicit-any */
 /* eslint-disable  @typescript-eslint/no-unused-vars */
-import { Api, Bot, Context, InlineKeyboard, InputFile } from "grammy";
+import { Api, Bot, Context, InlineKeyboard, InputFile, InputMediaBuilder } from "grammy";
 import { UserFromGetMe } from "@grammyjs/types";
 import { FileFlavor, FileApiFlavor } from "@grammyjs/files";
 
@@ -169,11 +169,18 @@ export default class UnifiedMessageContext {
                     opts["caption"] = text;
                     return await this.tgCtx.replyWithPhoto(options.attachment, opts);
                 } else if (options?.video) {
-                    opts["caption"] = text;
-                    opts["width"] = options.video.width;
-                    opts["height"] = options.video.height;
-                    opts["duration"] = options.video.duration;
-                    return await this.tgCtx.replyWithVideo(new InputFile(new URL(options.video.url)), opts);
+                    const video = InputMediaBuilder.video(new InputFile(new URL(options.video.url)), {
+                        width: options.video.width,
+                        height: options.video.height,
+                        duration: options.video.duration,
+                        supports_streaming: true,
+                        caption: text,
+                    });
+                    return await this.tg.api.sendMediaGroup(ctx.chatId, [video], {
+                        reply_parameters: {
+                            message_id: replyTo,
+                        },
+                    });
                 }
                 return await this.tgCtx.reply(text, opts);
             } catch (e) {
