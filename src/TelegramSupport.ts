@@ -1,14 +1,18 @@
 /* eslint-disable  @typescript-eslint/no-explicit-any */
 /* eslint-disable  @typescript-eslint/no-unused-vars */
-import { Bot, Context, InlineKeyboard, InputFile } from "grammy";
+import { Api, Bot, Context, InlineKeyboard, InputFile } from "grammy";
 import { UserFromGetMe } from "@grammyjs/types";
+import { FileFlavor, FileApiFlavor } from "@grammyjs/files";
+
+export type TgContext = FileFlavor<Context>;
+export type TgApi = FileApiFlavor<Api>;
 
 class ReplyToMessage {
     readonly text: string;
     readonly senderId: number;
     readonly peerId: number;
 
-    constructor(ctx: Context) {
+    constructor(ctx: TgContext) {
         this.text = ctx.message.reply_to_message.text;
         this.senderId = ctx.message.reply_to_message.from.id;
         this.peerId = ctx.message.reply_to_message.chat.id;
@@ -46,7 +50,7 @@ export default class UnifiedMessageContext {
     readonly isFromUser: boolean;
     readonly chatId: number;
 
-    readonly tgCtx: Context;
+    readonly tgCtx: TgContext;
     readonly tg: Bot;
     readonly me: UserFromGetMe;
 
@@ -61,7 +65,7 @@ export default class UnifiedMessageContext {
     hasAttachments: (type: string) => boolean;
     getAttachments: (type: string) => Array<any>;
 
-    constructor(ctx: Context, tg: Bot, me: UserFromGetMe) {
+    constructor(ctx: TgContext, tg: Bot, me: UserFromGetMe) {
         this.tgCtx = ctx;
         this.tg = tg;
         this.me = me;

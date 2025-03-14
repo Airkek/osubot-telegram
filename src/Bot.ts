@@ -19,10 +19,11 @@ import BeatLeader from "./telegram_event_handlers/modules/BeatLeader";
 import ScoreSaber from "./telegram_event_handlers/modules/ScoreSaber";
 import OsuTrackAPI from "./osu_specific/OsuTrackAPI";
 import IgnoreList from "./Ignore";
-import UnifiedMessageContext from "./TelegramSupport";
+import UnifiedMessageContext, { TgApi, TgContext } from "./TelegramSupport";
 import { OsuBeatmapProvider } from "./beatmaps/osu/OsuBeatmapProvider";
 import BanchoAPIV2 from "./api/BanchoV2";
 import { SimpleCommandsModule } from "./telegram_event_handlers/modules/simple_commands";
+import { hydrateFiles } from "@grammyjs/files";
 
 export interface IBotConfig {
     tg: {
@@ -54,13 +55,20 @@ export class Bot {
     public me: UserFromGetMe;
     public readonly version: string;
 
+    public readonly useLocalApi = process.env.TELEGRAM_USE_LOCAL_API === "true";
+
     private handle: RunnerHandle;
 
     constructor(config: IBotConfig) {
         this.config = config;
         global.logger.info("Set owner id: ", config.tg.owner);
 
-        this.tg = new TelegramBot(config.tg.token);
+        const apiRoot = this.useLocalApi ? process.env.TELEGRAM_LOCAL_API_HOST : undefined;
+        this.tg = new TelegramBot<TgContext, TgApi>(config.tg.token, {
+            client: {
+                apiRoot,
+            },
+        });
         this.database = new Database(this.tg, config.tg.owner);
         this.ignored = new IgnoreList(this.database);
 
@@ -122,6 +130,7 @@ export class Bot {
         });
 
         this.tg.api.config.use(autoRetry());
+        this.tg.api.config.use(hydrateFiles(this.tg.token));
     }
 
     private setupEventHandlers(): void {
@@ -240,7 +249,7 @@ export class Bot {
         Object.entries(aliases).forEach(([command, alias]) => {
             this.tg.command(command, async (ctx) => {
                 ctx.message.text = alias;
-                const context = new UnifiedMessageContext(ctx, this.tg, this.me);
+                const context = new UnifiedMessageContext(ctx as TgContext, this.tg, this.me);
                 for (const module of this.modules) {
                     const match = module.checkContext(context);
                     if (match) {

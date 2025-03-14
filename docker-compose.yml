@@ -3,16 +3,18 @@ name: osubot-telegram
 services:
   osubot:
     image: ghcr.io/airkek/osubot-telegram
-    container_name: osubot_telegram
+    container_name: osubot_bot
     env_file: .env
     restart: always
 
     volumes:
       - ${OSU_BEATMAP_CACHE}:/usr/osubot/beatmap_cache
       - ${BOT_DATA_PATH}:/usr/osubot/data
+      - ${TELEGRAM_API_DATA_PATH}:/var/lib/telegram-bot-api
 
     depends_on:
       - database
+      - telegram_api
 
   database:
     image: postgres
@@ -47,3 +49,17 @@ services:
               -c checkpoint_completion_target=0.7
               -c wal_buffers=16MB
               -c default_statistics_target=100
+
+  telegram_api:
+    image: aiogram/telegram-bot-api:latest
+    container_name: osubot_telegram_api
+    restart: always
+
+    environment:
+      TELEGRAM_API_ID: ${TELEGRAM_APP_API_ID}
+      TELEGRAM_API_HASH: ${TELEGRAM_APP_API_HASH}
+      TELEGRAM_LOCAL: true
+
+    volumes:
+      - ${TELEGRAM_API_DATA_PATH}:/var/lib/telegram-bot-api
+      - ${BOT_DATA_PATH}:/usr/osubot/data

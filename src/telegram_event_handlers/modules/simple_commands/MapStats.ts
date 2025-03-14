@@ -11,7 +11,6 @@ export class MapStats extends Command {
                 return;
             }
             const mods = new Mods(args.mods);
-            console.log(args.mods);
             const map = await module.bot.osuBeatmapProvider.getBeatmapById(chat.map.id, chat.map.mode);
             await map.applyMods(mods);
             const cover = await module.bot.database.covers.getCover(map.setId);

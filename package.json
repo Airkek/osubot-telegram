@@ -22,6 +22,7 @@
   "dependencies": {
     "@grammyjs/auto-retry": "^2.0.2",
     "@grammyjs/chat-members": "^1.2.0",
+    "@grammyjs/files": "^1.1.1",
     "@grammyjs/runner": "^2.0.3",
     "axios": "^1.8.2",
     "grammy": "^1.35.0",

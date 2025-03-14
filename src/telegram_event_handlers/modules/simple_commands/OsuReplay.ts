@@ -1,4 +1,4 @@
-import axios from "axios";
+import fs from "fs";
 import { ScoreDecoder, ScoreEncoder } from "osu-parsers";
 import { Command } from "../../Command";
 import { SimpleCommandsModule } from "./index";
@@ -15,15 +15,42 @@ export class OsuReplay extends Command {
 
     constructor(module: SimpleCommandsModule) {
         super(["osu_replay"], module, async (ctx) => {
+            const MAX_FILE_SIZE = 30 * 1024 * 1024;
+
+            const replayFileInfo = ctx.tgCtx.message?.document;
+            if (replayFileInfo?.file_size && replayFileInfo?.file_size > MAX_FILE_SIZE) {
+                await ctx.reply("Файл слишком большой!");
+                return;
+            }
+
             const replayFile = await ctx.tgCtx.getFile();
             if (!replayFile?.file_path) {
                 return;
             }
 
-            const { data: file } = await axios.get(
-                `https://api.telegram.org/file/bot${process.env.TELEGRAM_TOKEN}/${replayFile.file_path}`,
-                { responseType: "arraybuffer" }
-            );
+            if (replayFile.file_size > MAX_FILE_SIZE) {
+                await ctx.reply("Файл слишком большой!");
+                if (this.module.bot.useLocalApi) {
+                    try {
+                        fs.rmSync(replayFile.getUrl());
+                    } catch {
+                        global.logger.fatal(`Failed to remove file: ${replayFile.getUrl()}`);
+                    }
+                }
+                return;
+            }
+
+            const localPath = module.bot.useLocalApi ? replayFile.getUrl() : await replayFile.download();
+            let file: Buffer;
+            try {
+                file = fs.readFileSync(localPath);
+            } finally {
+                try {
+                    fs.rmSync(localPath);
+                } catch {
+                    global.logger.fatal(`Failed to remove file: ${localPath}`);
+                }
+            }
 
             const decoder = new ScoreDecoder();
             const score = await decoder.decodeFromBuffer(file, true);
@@ -100,8 +127,7 @@ export class OsuReplay extends Command {
         if (!ctx.hasAttachments("doc")) {
             return false;
         }
-        const replays = ctx.getAttachments("doc").filter((d) => d.file_name?.endsWith(".osr"));
-        return replays.length > 0;
+        return ctx.tgCtx.message?.document?.file_name?.endsWith(".osr");
     }
 
     private checkLimit(user: number) {
