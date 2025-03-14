@@ -62,3 +62,4 @@ services:
 
     volumes:
       - ${TELEGRAM_API_DATA_PATH}:/var/lib/telegram-bot-api
+      - ${BOT_DATA_PATH}:/usr/osubot/data
