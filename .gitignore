@@ -4,6 +4,7 @@
 /osubot_postgres
 /osubot_data
 /data
+/local_bot_api_data
 .idea/
 .env
 docker-compose.override.yml

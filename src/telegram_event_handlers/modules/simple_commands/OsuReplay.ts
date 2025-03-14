@@ -1,4 +1,4 @@
-import axios from "axios";
+import fs from "fs";
 import { ScoreDecoder, ScoreEncoder } from "osu-parsers";
 import { Command } from "../../Command";
 import { SimpleCommandsModule } from "./index";
@@ -20,10 +20,23 @@ export class OsuReplay extends Command {
                 return;
             }
 
-            const { data: file } = await axios.get(
-                `https://api.telegram.org/file/bot${process.env.TELEGRAM_TOKEN}/${replayFile.file_path}`,
-                { responseType: "arraybuffer" }
-            );
+            if (replayFile.file_size > 30 * 1024 * 1024) {
+                await ctx.reply("Файл слишком большой!");
+                return;
+            }
+
+            const localPath = module.bot.useLocalApi ? replayFile.getUrl() : await replayFile.download();
+
+            let file: Buffer;
+            try {
+                file = fs.readFileSync(localPath);
+            } finally {
+                try {
+                    fs.rmSync(localPath);
+                } catch {
+                    global.logger.fatal(`Failed to remove file: ${localPath}`);
+                }
+            }
 
             const decoder = new ScoreDecoder();
             const score = await decoder.decodeFromBuffer(file, true);
