@@ -15,12 +15,20 @@ export class OsuReplay extends Command {
 
     constructor(module: SimpleCommandsModule) {
         super(["osu_replay"], module, async (ctx) => {
+            const MAX_FILE_SIZE = 30 * 1024 * 1024;
+
+            const replayFileInfo = ctx.tgCtx.message?.document;
+            if (replayFileInfo?.file_size && replayFileInfo?.file_size > MAX_FILE_SIZE) {
+                await ctx.reply("Файл слишком большой!");
+                return;
+            }
+
             const replayFile = await ctx.tgCtx.getFile();
             if (!replayFile?.file_path) {
                 return;
             }
 
-            if (replayFile.file_size > 30 * 1024 * 1024) {
+            if (replayFile.file_size > MAX_FILE_SIZE) {
                 await ctx.reply("Файл слишком большой!");
                 if (this.module.bot.useLocalApi) {
                     try {
@@ -119,8 +127,7 @@ export class OsuReplay extends Command {
         if (!ctx.hasAttachments("doc")) {
             return false;
         }
-        const replays = ctx.getAttachments("doc").filter((d) => d.file_name?.endsWith(".osr"));
-        return replays.length > 0;
+        return ctx.tgCtx.message?.document?.file_name?.endsWith(".osr");
     }
 
     private checkLimit(user: number) {
