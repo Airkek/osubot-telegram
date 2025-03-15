@@ -122,12 +122,12 @@ export default class UnifiedMessageContext {
 
             return await this.tgCtx.reply(text, {
                 link_preview_options: {
-                    is_disabled: options.dont_parse_links !== false,
+                    is_disabled: options?.dont_parse_links !== false,
                 },
                 reply_parameters: {
                     message_id: replyTo,
                 },
-                reply_markup: options.keyboard,
+                reply_markup: options?.keyboard,
             });
         } catch (e) {
             global.logger.error(e);
@@ -143,9 +143,9 @@ export default class UnifiedMessageContext {
         // TODO: support media
         return await this.tgCtx.editMessageText(text, {
             link_preview_options: {
-                is_disabled: options.dont_parse_links !== false,
+                is_disabled: options?.dont_parse_links !== false,
             },
-            reply_markup: options.keyboard,
+            reply_markup: options?.keyboard,
         });
     }
 
