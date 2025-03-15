@@ -10,9 +10,9 @@ export class MapLink extends Command {
             const map = await module.bot.osuBeatmapProvider.getBeatmapById(mapId);
             const cover = await module.bot.database.covers.getCover(map.setId);
             await ctx.reply(module.bot.templates.Beatmap(map), {
-                attachment: cover,
+                photo: cover,
             });
-            module.bot.maps.setMap(ctx.peerId, map);
+            module.bot.maps.setMap(ctx.chatId, map);
         });
     }
 
@@ -22,6 +22,6 @@ export class MapLink extends Command {
     }
 
     private getMapFromAttachments(ctx: UnifiedMessageContext): number | null {
-        return ctx.hasAttachments("link") ? getMapIdFromLink(ctx.getAttachments("link")[0].url) : null;
+        return ctx.hasLinks() ? getMapIdFromLink(ctx.getLinks()[0].url) : null;
     }
 }

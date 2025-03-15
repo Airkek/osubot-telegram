@@ -18,9 +18,7 @@ export default class DropCommand extends Command {
 
             await self.module.bot.database.drop.dropUser(id);
 
-            await ctx.send(`Привязки ников tg://user?id=${id} удалены!`, {
-                disable_mentions: 1,
-            });
+            await ctx.send(`Привязки ников tg://user?id=${id} удалены!`);
         });
 
         this.permission = (ctx) => ctx.senderId == module.bot.config.tg.owner;

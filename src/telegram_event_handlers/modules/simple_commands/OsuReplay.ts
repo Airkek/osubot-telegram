@@ -15,43 +15,19 @@ export class OsuReplay extends Command {
 
     constructor(module: SimpleCommandsModule) {
         super(["osu_replay"], module, async (ctx) => {
-            const MAX_FILE_SIZE = 30 * 1024 * 1024;
+            const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
-            const replayFileInfo = ctx.tgCtx.message?.document;
-            if (replayFileInfo?.file_size && replayFileInfo?.file_size > MAX_FILE_SIZE) {
+            if (ctx.getFileSize() > MAX_FILE_SIZE) {
                 await ctx.reply("Файл слишком большой!");
                 return;
             }
 
-            const replayFile = await ctx.tgCtx.getFile();
-            if (!replayFile?.file_path) {
-                return;
-            }
-
-            if (replayFile.file_size > MAX_FILE_SIZE) {
-                await ctx.reply("Файл слишком большой!");
-                if (this.module.bot.useLocalApi) {
-                    const url = replayFile.getUrl();
-                    global.logger.fatal(`Too big file was downloaded: ${url}`);
-                    try {
-                        fs.rmSync(url);
-                    } catch {
-                        global.logger.fatal(`Failed to remove file: ${url}`);
-                    }
-                }
-                return;
-            }
-
-            const localPath = module.bot.useLocalApi ? replayFile.getUrl() : await replayFile.download();
+            const localPath = await ctx.downloadFile();
             let file: Buffer;
             try {
                 file = fs.readFileSync(localPath);
             } finally {
-                try {
-                    fs.rmSync(localPath);
-                } catch {
-                    global.logger.fatal(`Failed to remove file: ${localPath}`);
-                }
+                ctx.removeFile();
             }
 
             const decoder = new ScoreDecoder();
@@ -69,7 +45,7 @@ export class OsuReplay extends Command {
                     ["R", "r"],
                 ].map((group) => [
                     { text: `[${group[0]}] Мой скор`, command: `${group[1]} c ${Util.getModeArg(replay.mode)}` },
-                    ...(ctx.isChat
+                    ...(ctx.isInGroupChat
                         ? [
                               {
                                   text: `[${group[0]}] Топ чата`,
@@ -93,10 +69,10 @@ export class OsuReplay extends Command {
             }
 
             await ctx.reply(module.bot.templates.Replay(replay, beatmap, calculator) + renderAdditional, {
-                attachment: cover,
+                photo: cover,
                 keyboard,
             });
-            module.bot.maps.setMap(ctx.peerId, beatmap);
+            module.bot.maps.setMap(ctx.chatId, beatmap);
 
             if (!needRender) {
                 return;
@@ -122,10 +98,7 @@ export class OsuReplay extends Command {
     }
 
     check(name: string, ctx: UnifiedMessageContext): boolean {
-        if (!ctx.hasAttachments("doc")) {
-            return false;
-        }
-        return ctx.tgCtx.message?.document?.file_name?.endsWith(".osr");
+        return ctx.hasFile() && ctx.getFileName().endsWith(".osr");
     }
 
     private checkLimit(user: number) {

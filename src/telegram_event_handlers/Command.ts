@@ -49,9 +49,9 @@ export class Command {
 
         try {
             let text = "";
-            if (ctx.hasMessagePayload) {
+            if (ctx.messagePayload) {
                 text = ctx.messagePayload;
-            } else if (ctx.hasText) {
+            } else if (ctx.text) {
                 text = ctx.text;
             }
             await this.function(ctx, this, this.parseArgs(this.getSplittedText(text)));

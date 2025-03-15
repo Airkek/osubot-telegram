@@ -101,7 +101,7 @@ export default class HelpCommand extends Command {
                 page = pages[arg];
             }
 
-            if (ctx.hasMessagePayload) {
+            if (ctx.messagePayload) {
                 await ctx.edit(page.text, {
                     keyboard: page.keyboard,
                     dont_parse_links: false,

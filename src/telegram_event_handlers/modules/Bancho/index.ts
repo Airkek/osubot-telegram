@@ -13,7 +13,6 @@ import AbstractLeaderboard from "../BaseServerCommands/Leaderboard";
 import AbstractCompare from "../BaseServerCommands/Compare";
 
 export default class Bancho extends ServerModule {
-    link: string;
     constructor(bot: Bot) {
         super(["s", "ы"], bot);
 

@@ -5,7 +5,7 @@ import Mods from "../../../osu_specific/pp/Mods";
 export class MapStats extends Command {
     constructor(module: SimpleCommandsModule) {
         super(["map"], module, async (ctx, self, args) => {
-            const chat = module.bot.maps.getChat(ctx.peerId);
+            const chat = module.bot.maps.getChat(ctx.chatId);
             if (!chat) {
                 await ctx.reply("Сначала отправьте карту!");
                 return;
@@ -15,7 +15,7 @@ export class MapStats extends Command {
             await map.applyMods(mods);
             const cover = await module.bot.database.covers.getCover(map.setId);
             await ctx.reply(module.bot.templates.PP(map, args), {
-                attachment: cover,
+                photo: cover,
             });
         });
     }

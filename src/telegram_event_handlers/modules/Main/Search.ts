@@ -18,9 +18,7 @@ export default class SearchCommand extends Command {
                 await ctx.reply("Не найдено карт");
             }
 
-            await ctx.reply(`Результат поиска:\n\n${self.module.bot.templates.Search(data.splice(0, 10))}`, {
-                dont_parse_links: 1,
-            });
+            await ctx.reply(`Результат поиска:\n\n${self.module.bot.templates.Search(data.splice(0, 10))}`);
         });
     }
 }

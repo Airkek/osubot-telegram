@@ -12,7 +12,7 @@ export default class AbstractChat extends ServerCommand {
                     await self.reply("Некорректный ID!");
                     return;
                 }
-            } else if (!self.ctx.isChat) {
+            } else if (!self.ctx.isInGroupChat) {
                 await self.reply("Укажите ID беседы!");
                 return;
             }
