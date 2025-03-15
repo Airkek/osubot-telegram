@@ -25,6 +25,7 @@
     "@grammyjs/files": "^1.1.1",
     "@grammyjs/runner": "^2.0.3",
     "axios": "^1.8.2",
+    "express": "^4.21.2",
     "grammy": "^1.35.0",
     "osu-parsers": "^4.1.7",
     "pg": "^8.13.3",

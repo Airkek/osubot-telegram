@@ -1,8 +1,10 @@
-import { Bot as TelegramBot, GrammyError, HttpError } from "grammy";
+import { Bot as TelegramBot, GrammyError, HttpError, webhookCallback } from "grammy";
 import { autoRetry } from "@grammyjs/auto-retry";
 import { chatMemberFilter } from "@grammyjs/chat-members";
 import { run, RunnerHandle } from "@grammyjs/runner";
 import { UserFromGetMe } from "@grammyjs/types";
+import { hydrateFiles } from "@grammyjs/files";
+import express from "express";
 import { Module } from "./telegram_event_handlers/modules/Module";
 import Database from "./Database";
 import { APICollection } from "./api/APICollection";
@@ -23,7 +25,6 @@ import UnifiedMessageContext, { TgApi, TgContext } from "./TelegramSupport";
 import { OsuBeatmapProvider } from "./beatmaps/osu/OsuBeatmapProvider";
 import BanchoAPIV2 from "./api/BanchoV2";
 import { SimpleCommandsModule } from "./telegram_event_handlers/modules/simple_commands";
-import { hydrateFiles } from "@grammyjs/files";
 
 export interface IBotConfig {
     tg: {
@@ -57,7 +58,10 @@ export class Bot {
 
     public readonly useLocalApi = process.env.TELEGRAM_USE_LOCAL_API === "true";
 
+    private readonly useWebhooks = process.env.USE_WEBHOOKS === "true";
+
     private handle: RunnerHandle;
+    private app: express;
 
     constructor(config: IBotConfig) {
         this.config = config;
@@ -266,23 +270,44 @@ export class Bot {
 
         this.me = await this.tg.api.getMe();
 
-        // drop updates
-        await this.tg.api.deleteWebhook({
-            drop_pending_updates: true,
-        });
+        if (this.useWebhooks) {
+            this.app = express();
+            this.app.use(express.json());
+            this.app.use(webhookCallback(this.tg, "express"));
 
-        this.handle = run(this.tg, {
-            runner: {
-                fetch: {
-                    allowed_updates: ["chat_member", "callback_query", "message"],
+            const port = Number(process.env.APP_PORT);
+            this.app.listen(port, function () {
+                global.logger.info(`Bot webhooks listening on ${port}`);
+            });
+
+            const endpoint = process.env.WEBHOOK_ENDPOINT;
+            await this.tg.api.setWebhook(endpoint, {
+                drop_pending_updates: true,
+                allowed_updates: ["chat_member", "callback_query", "message"],
+            });
+        } else {
+            // drop updates
+            await this.tg.api.deleteWebhook({
+                drop_pending_updates: true,
+            });
+
+            this.handle = run(this.tg, {
+                runner: {
+                    fetch: {
+                        allowed_updates: ["chat_member", "callback_query", "message"],
+                    },
                 },
-            },
-        });
+            });
+        }
         global.logger.info(`Bot started as @${this.me.username} (${this.me.first_name})`);
     }
 
     public async stop(): Promise<void> {
-        await this.handle.stop();
+        if (this.useWebhooks) {
+            await this.tg.api.deleteWebhook();
+        } else {
+            await this.handle.stop();
+        }
         global.logger.info("Bot stopped");
     }
 }
