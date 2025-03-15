@@ -1,48 +1,27 @@
 # osubot
-Port of OctoDumb's [osubot-old](https://github.com/OctoDumb/osubot-old) to telegram
+Port of OctoDumb's [osubot-old](https://github.com/OctoDumb/osubot-old) to telegram with various improvements and additional features
 
 # Try it out!
 Telegram: https://t.me/osulegacybot
 
-# additional features:
-- [X] full lazer support (api v2)
-- [X] extended information about recent score (beatmap top, personal top score) 
-- [X] calculate pp using latest formula (by using rosu-pp.js)
-- [X] removed dead servers (r.i.p: kurikku, vudek, enjuu, sakuru)
-- [X] auth api v2 by client secret 
-- [X] BeatSaber support (BeatLeader + ScoreSaber)
-- [X] PostgreSQL, Docker
-- [ ] Refactoring
-  - Partially done, still a lot of work
-
-## How to run:
-
-1. Clone repository
-
-```bash
-git clone https://github.com/Airkek/osubot-telegram
-cd osubot-telegram
-```
-
-2. Install dependencdies
-
-```bash
-npm install
-```
-
-3. Fill .env:
-
-```bash
-cp .env.example .env
-nano .env
-```
-
-4. Build & run
-
-```bash
-npm run build
-npm start
-```
+# Features (not full list):
+- replay rendering by using [o!rdr](https://ordr.issou.best/)
+- osu! lazer support
+- osu! custom servers support
+  - [Gatari](https://osu.gatari.pw)
+  - [Akatsuki](https://akatsuki.gg)
+  - [Ripple](https://ripple.moe)
+  - Want to add your server? Consider open issue/pull request
+- BeatSaber support
+  - [BeatLeader](https://beatleader.com/)
+  - [ScoreSaber](https://scoresaber.com/)
+- Recent play info
+- Score on specified beatmap info
+- Game profile info
+- Player's top scores
+- Chat members leaderboard
+- Chat members leaderboard on specified beatmap
+- Many more!
 
 ## How to run (docker):
 1. Download compose file
