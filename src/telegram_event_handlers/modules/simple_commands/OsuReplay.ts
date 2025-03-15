@@ -31,10 +31,12 @@ export class OsuReplay extends Command {
             if (replayFile.file_size > MAX_FILE_SIZE) {
                 await ctx.reply("Файл слишком большой!");
                 if (this.module.bot.useLocalApi) {
+                    const url = replayFile.getUrl();
+                    global.logger.fatal(`Too big file was downloaded: ${url}`);
                     try {
-                        fs.rmSync(replayFile.getUrl());
+                        fs.rmSync(url);
                     } catch {
-                        global.logger.fatal(`Failed to remove file: ${replayFile.getUrl()}`);
+                        global.logger.fatal(`Failed to remove file: ${url}`);
                     }
                 }
                 return;

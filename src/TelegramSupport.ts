@@ -204,12 +204,9 @@ export default class UnifiedMessageContext {
         this.hasAttachments = (type: string) => {
             switch (type) {
                 case "doc":
-                    return this.tgCtx.message.document !== undefined;
+                    return this.tgCtx.message?.document !== undefined;
                 case "link":
-                    return (
-                        this.tgCtx.message.entities !== undefined &&
-                        this.tgCtx.message.entities.some((entity) => entity.type === "text_link")
-                    );
+                    return this.tgCtx.message?.entities?.some((entity) => entity.type === "text_link");
                 default:
                     return false;
             }
@@ -218,9 +215,9 @@ export default class UnifiedMessageContext {
         this.getAttachments = (type: string) => {
             switch (type) {
                 case "doc":
-                    return [this.tgCtx.message.document];
+                    return [this.tgCtx.message?.document];
                 case "link":
-                    return [this.tgCtx.message.entities?.filter((entity) => entity.type === "text_link")];
+                    return [this.tgCtx.message?.entities?.filter((entity) => entity.type === "text_link")];
                 default:
                     return [];
             }
