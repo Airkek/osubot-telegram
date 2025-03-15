@@ -50,7 +50,7 @@ export default class AbstractRecent extends ServerCommand {
 
                     const keyboardRows = [[firstButton]];
 
-                    if (self.ctx.isChat) {
+                    if (self.ctx.isInGroupChat) {
                         const secondButton = {
                             text: `[${self.module.prefix[0].toUpperCase()}] Топ чата на карте`,
                             command: `{map${map.id}}${self.module.prefix[0]} lb`,
@@ -64,11 +64,11 @@ export default class AbstractRecent extends ServerCommand {
                 const responseMessage = self.module.bot.templates.ScoreFull(recent, map, calculator, self.module.link);
 
                 await self.reply(responseMessage, {
-                    attachment: cover,
+                    photo: cover,
                     keyboard: keyboard,
                 });
 
-                self.module.bot.maps.setMap(self.ctx.peerId, map);
+                self.module.bot.maps.setMap(self.ctx.chatId, map);
             },
             true
         );

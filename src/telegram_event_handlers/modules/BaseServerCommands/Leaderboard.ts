@@ -6,11 +6,11 @@ import { ServerCommand } from "../../ServerCommand";
 export default class AbstractLeaderboard extends ServerCommand {
     constructor(module: ServerModule) {
         super(["leaderboard", "lb", "ди", "дуфвукищфкв"], module, async (self) => {
-            if (!self.ctx.isChat) {
+            if (!self.ctx.isInGroupChat) {
                 await self.reply("Эту команду можно использовать только в беседах!");
                 return;
             }
-            const chat = self.module.bot.maps.getChat(self.ctx.peerId);
+            const chat = self.module.bot.maps.getChat(self.ctx.chatId);
             if (!chat) {
                 await self.reply("Сначала отправьте карту!");
                 return;

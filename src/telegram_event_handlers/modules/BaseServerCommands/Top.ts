@@ -194,8 +194,8 @@ export default class AbstractTop extends ServerCommand {
 
         const keyboard = this.createScoreKeyboard(context, map.id);
 
-        await context.reply(message, { attachment: cover, keyboard });
-        context.module.bot.maps.setMap(context.ctx.peerId, map);
+        await context.reply(message, { photo: cover, keyboard });
+        context.module.bot.maps.setMap(context.ctx.chatId, map);
     }
 
     private createScoreKeyboard(context: CommandContext, mapId: number) {
@@ -210,7 +210,7 @@ export default class AbstractTop extends ServerCommand {
             },
         ];
 
-        if (context.ctx.isChat) {
+        if (context.ctx.isInGroupChat) {
             buttons.push({
                 text: `[${context.module.prefix[0].toUpperCase()}] Топ чата на карте`,
                 command: `{map${mapId}}${context.module.prefix[0]} lb`,

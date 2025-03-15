@@ -37,9 +37,9 @@ export class Module implements ICommandsModule {
         map?: number;
     } {
         let text = "";
-        if (ctx.hasMessagePayload) {
+        if (ctx.messagePayload) {
             text = ctx.messagePayload;
-        } else if (ctx.hasText) {
+        } else if (ctx.text) {
             text = ctx.text;
         }
         const args = text.split(" ");

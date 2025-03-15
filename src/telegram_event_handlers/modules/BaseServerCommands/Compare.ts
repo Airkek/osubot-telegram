@@ -11,7 +11,7 @@ export default class AbstractCompare extends ServerCommand {
             module,
             async (self) => {
                 const mode = self.args.mode === null ? self.user.dbUser?.mode || 0 : self.args.mode;
-                const chat = self.module.bot.maps.getChat(self.ctx.peerId);
+                const chat = self.module.bot.maps.getChat(self.ctx.chatId);
                 if (!chat) {
                     await self.ctx.reply("Сначала отправьте карту!");
                     return;
@@ -49,7 +49,7 @@ export default class AbstractCompare extends ServerCommand {
                         self.module.link
                     )}`,
                     {
-                        attachment: cover,
+                        photo: cover,
                     }
                 );
             },

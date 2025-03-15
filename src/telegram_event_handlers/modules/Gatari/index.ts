@@ -11,7 +11,6 @@ import AbstractLeaderboard from "../BaseServerCommands/Leaderboard";
 import AbstractCompare from "../BaseServerCommands/Compare";
 
 export default class Gatari extends ServerModule {
-    link: string;
     constructor(bot: Bot) {
         super(["g", "п"], bot);
 

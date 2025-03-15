@@ -175,7 +175,7 @@ export class Bot {
     };
 
     private handleCallbackQuery = async (ctx): Promise<void> => {
-        const context = new UnifiedMessageContext(ctx, this.tg, this.me);
+        const context = new UnifiedMessageContext(ctx, this.tg, this.me, this.useLocalApi);
 
         for (const module of this.modules) {
             const match = module.checkContext(context);
@@ -184,10 +184,10 @@ export class Bot {
             }
 
             if (match.map) {
-                const chatMap = this.maps.getChat(context.peerId);
+                const chatMap = this.maps.getChat(context.chatId);
                 if (!chatMap || chatMap.map.id !== match.map) {
                     const beatmap = await this.osuBeatmapProvider.getBeatmapById(match.map);
-                    this.maps.setMap(context.peerId, beatmap);
+                    this.maps.setMap(context.chatId, beatmap);
                 }
             }
 
@@ -197,7 +197,7 @@ export class Bot {
     };
 
     private handleMessage = async (ctx): Promise<void> => {
-        const context = new UnifiedMessageContext(ctx, this.tg, this.me);
+        const context = new UnifiedMessageContext(ctx, this.tg, this.me, this.useLocalApi);
 
         if (this.shouldSkipMessage(context)) {
             return;
@@ -208,7 +208,7 @@ export class Bot {
     };
 
     private shouldSkipMessage(ctx: UnifiedMessageContext): boolean {
-        return ctx.isGroup || ctx.isFromGroup || ctx.isEvent || this.ignored.isIgnored(ctx.senderId);
+        return ctx.isFromBot || this.ignored.isIgnored(ctx.senderId);
     }
 
     private async processRegularMessage(ctx: UnifiedMessageContext): Promise<void> {
@@ -218,7 +218,7 @@ export class Bot {
                 continue;
             }
 
-            if (ctx.isChat) {
+            if (ctx.isInGroupChat) {
                 const inChat = await this.database.chats.isUserInChat(ctx.senderId, ctx.chatId);
                 if (!inChat) {
                     await this.database.chats.userJoined(ctx.senderId, ctx.chatId);
@@ -226,10 +226,10 @@ export class Bot {
             }
 
             if (match.map) {
-                const chatMap = this.maps.getChat(ctx.peerId);
+                const chatMap = this.maps.getChat(ctx.chatId);
                 if (!chatMap || chatMap.map.id !== match.map) {
                     const beatmap = await this.osuBeatmapProvider.getBeatmapById(match.map);
-                    this.maps.setMap(ctx.peerId, beatmap);
+                    this.maps.setMap(ctx.chatId, beatmap);
                 }
             }
 
@@ -253,7 +253,7 @@ export class Bot {
         Object.entries(aliases).forEach(([command, alias]) => {
             this.tg.command(command, async (ctx) => {
                 ctx.message.text = alias;
-                const context = new UnifiedMessageContext(ctx as TgContext, this.tg, this.me);
+                const context = new UnifiedMessageContext(ctx as TgContext, this.tg, this.me, this.useLocalApi);
                 for (const module of this.modules) {
                     const match = module.checkContext(context);
                     if (match) {

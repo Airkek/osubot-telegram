@@ -13,12 +13,12 @@ export class BanchoScore extends Command {
             await map.applyMods(score.mods);
             const user = await module.bot.banchoApi.getUserById(score.player_id);
             const cover = await module.bot.database.covers.getCover(map.setId);
-            module.bot.maps.setMap(ctx.peerId, map);
+            module.bot.maps.setMap(ctx.chatId, map);
             const calc = new Calculator(map, score.mods);
             await ctx.reply(
                 `Player: ${user.nickname}\n\n${module.bot.templates.ScoreFull(score, map, calc, "https://osu.ppy.sh")}`,
                 {
-                    attachment: cover,
+                    photo: cover,
                 }
             );
         });
@@ -30,6 +30,6 @@ export class BanchoScore extends Command {
     }
 
     private getScoreIdFromAttachments(ctx: UnifiedMessageContext): number | null {
-        return ctx.hasAttachments("link") ? getScoreIdFromText(ctx.getAttachments("link")[0].url) : null;
+        return ctx.hasLinks() ? getScoreIdFromText(ctx.getLinks()[0].url) : null;
     }
 }

@@ -11,7 +11,6 @@ import AbstractLeaderboard from "../BaseServerCommands/Leaderboard";
 import AbstractCompare from "../BaseServerCommands/Compare";
 
 export default class Ripple extends ServerModule {
-    link: string;
     constructor(bot: Bot) {
         super(["r", "к"], bot);
 

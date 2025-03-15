@@ -4,12 +4,12 @@ import { Module } from "../Module";
 export default class ClearCommand extends Command {
     constructor(module: Module) {
         super(["clear", "сдуфк"], module, async (ctx, self) => {
-            if (!ctx.isChat) {
+            if (!ctx.isInGroupChat) {
                 await ctx.reply("Эту команду можно вводить только в чате");
                 return;
             }
 
-            const isAdmin = await ctx.isAdmin();
+            const isAdmin = await ctx.isSenderAdmin();
             if (!isAdmin) {
                 await ctx.reply("Эту команду может использовать только администратор чата");
                 return;
@@ -34,7 +34,7 @@ export default class ClearCommand extends Command {
                 await self.module.bot.database.chats.userJoined(member, ctx.chatId);
             }
 
-            const realCount = await ctx.countMembers();
+            const realCount = await ctx.chatMembersCount();
             const count = members.size;
             const duplicateCount = duplicates.size;
             let kicked = 0;
