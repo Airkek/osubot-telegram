@@ -34,6 +34,9 @@ export interface SendOptions {
 }
 
 const registry = new FinalizationRegistry((path: string) => {
+    if (!fs.existsSync(path)) {
+        return;
+    }
     global.logger.warn(`Removing file ${path} after destructing object`);
     try {
         fs.rmSync(path);
@@ -242,7 +245,9 @@ export default class UnifiedMessageContext {
             return;
         }
         try {
-            fs.rmSync(this.tmpFile);
+            if (fs.existsSync(this.tmpFile)) {
+                fs.rmSync(this.tmpFile);
+            }
             if (this.registryToken) {
                 registry.unregister(this.registryToken);
                 this.registryToken = undefined;
