@@ -61,7 +61,8 @@ export default class UnifiedMessageContext {
     private readonly me: UserFromGetMe;
     private readonly localServer: boolean;
 
-    private tmpFile: string;
+    private tmpFile?: string;
+    private registryToken?: object;
 
     constructor(ctx: TgContext, tg: Bot, me: UserFromGetMe, isLocal: boolean) {
         this.tgCtx = ctx;
@@ -231,7 +232,8 @@ export default class UnifiedMessageContext {
 
         const filePath = await file.download();
         this.tmpFile = filePath;
-        registry.register(this, filePath);
+        this.registryToken = {};
+        registry.register(this.registryToken, filePath);
         return filePath;
     }
 
@@ -241,7 +243,10 @@ export default class UnifiedMessageContext {
         }
         try {
             fs.rmSync(this.tmpFile);
-            registry.unregister(this);
+            if (this.registryToken) {
+                registry.unregister(this.registryToken);
+                this.registryToken = undefined;
+            }
             this.tmpFile = undefined;
         } catch {
             global.logger.fatal(`Failed to remove file: ${this.tmpFile}`);

@@ -98,7 +98,7 @@ export class OsuReplay extends Command {
     }
 
     check(name: string, ctx: UnifiedMessageContext): boolean {
-        return ctx.hasFile() && ctx.getFileName().endsWith(".osr");
+        return ctx.hasFile() && ctx.getFileName()?.endsWith(".osr");
     }
 
     private checkLimit(user: number) {
