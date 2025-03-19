@@ -1,9 +1,9 @@
 import { Score } from "osu-classes";
-import { HitCounts } from "../Types";
+import { APIScore, HitCounts } from "../Types";
 import Mods from "./pp/Mods";
 import Util from "../Util";
 
-class OsrReplay {
+class OsrReplay implements APIScore {
     mode: number;
     beatmapHash: string;
     player: string;
@@ -12,6 +12,9 @@ class OsrReplay {
     combo: number;
     perfect: number;
     mods: Mods;
+    beatmapId: number;
+    rank: string;
+    date: Date;
     fake?: boolean;
     constructor(score?: Score) {
         if (!score) {
@@ -36,6 +39,9 @@ class OsrReplay {
         this.combo = score.info.maxCombo;
         this.perfect = score.info.perfect ? 1 : 0;
         this.mods = new Mods(score.info.rawMods);
+        this.rank = score.info.rank;
+        this.beatmapId = score.info.beatmapId;
+        this.date = score.info.date;
         if (score.replay.gameVersion >= 30000000) {
             // Lazer is 1000 years in the future
             this.mods.lazer = true;

@@ -68,10 +68,13 @@ export class OsuReplay extends Command {
                 }
             }
 
-            await ctx.reply(module.bot.templates.Replay(replay, beatmap, calculator) + renderAdditional, {
-                photo: cover,
-                keyboard,
-            });
+            await ctx.reply(
+                module.bot.templates.ScoreFull(replay, beatmap, calculator, "https://osu.ppy.sh") + renderAdditional,
+                {
+                    photo: cover,
+                    keyboard,
+                }
+            );
             module.bot.maps.setMap(ctx.chatId, beatmap);
 
             if (!needRender) {
