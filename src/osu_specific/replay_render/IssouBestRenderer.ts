@@ -85,17 +85,18 @@ export class IssouBestRenderer implements IReplayRenderer {
     }
 
     async render(file: Buffer): Promise<RenderResponse> {
-        global.logger.info("Replay render started");
         const timer = Util.timer();
         const uploadResponse = await this.uploadReplay(file);
 
         if (!uploadResponse.success) {
+            global.logger.info(`Render worker: render upload failed in ${timer.ms} (${uploadResponse.error})`);
             return {
                 success: false,
                 error: uploadResponse.error,
             };
         }
 
+        global.logger.info(`Render worker: render started (upload took ${timer.ms})`);
         try {
             await this.wsClient.waitForRenderCompletion(uploadResponse.renderId!);
         } catch (error) {
