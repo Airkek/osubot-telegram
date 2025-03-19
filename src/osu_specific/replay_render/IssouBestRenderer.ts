@@ -2,6 +2,7 @@ import { IReplayRenderer, RenderResponse, Video } from "./IReplayRenderer";
 import FormData from "form-data";
 import axios from "axios";
 import { io, Socket } from "socket.io-client";
+import Util from "../../Util";
 
 interface UploadResponse {
     success: boolean;
@@ -38,7 +39,6 @@ class OrdinalWebSocket {
             path: "/ordr/ws",
             transports: ["websocket"],
             reconnection: true,
-            reconnectionAttempts: 5,
             reconnectionDelay: 5000,
         });
 
@@ -85,6 +85,8 @@ export class IssouBestRenderer implements IReplayRenderer {
     }
 
     async render(file: Buffer): Promise<RenderResponse> {
+        global.logger.info("Replay render started");
+        const timer = Util.timer();
         const uploadResponse = await this.uploadReplay(file);
 
         if (!uploadResponse.success) {
@@ -97,6 +99,7 @@ export class IssouBestRenderer implements IReplayRenderer {
         try {
             await this.wsClient.waitForRenderCompletion(uploadResponse.renderId!);
         } catch (error) {
+            global.logger.info(`Render worker: render failed in ${timer.ms} (${error})`);
             return {
                 success: false,
                 error: error instanceof Error ? error.message : String(error),
@@ -118,6 +121,8 @@ export class IssouBestRenderer implements IReplayRenderer {
             video.width = parseInt(resSplit[0], 10);
             video.heigth = parseInt(resSplit[1], 10);
         }
+
+        global.logger.info(`Render worker: render done in ${timer.ms}`);
 
         return {
             success: true,
