@@ -77,7 +77,7 @@ class BanchoPP implements ICalc {
         }).calculate(rmap);
 
         const fcAttrs = new rosu.Performance({
-            mods: this.mods.flags,
+            mods: flags,
             clockRate: this.speedMultiplier,
             n300: score.counts[300] + score.counts.miss,
             n100: score.counts[100],
@@ -95,7 +95,7 @@ class BanchoPP implements ICalc {
             (score.mode != 3 || (score.counts.katu === 0 && score.counts[300] === 0))
                 ? currAttrs
                 : new rosu.Performance({
-                      mods: this.mods.flags,
+                      mods: flags,
                       clockRate: this.speedMultiplier,
                       lazer: this.mods.isLazer(),
                   }).calculate(rmap);
