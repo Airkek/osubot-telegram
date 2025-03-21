@@ -227,9 +227,6 @@ export default class AbstractTop extends ServerCommand {
         user: APIUser,
         mode: number
     ) {
-        if (!context.module.api.getScore) {
-            return undefined;
-        }
         const prefix = context.module.prefix[0];
         const modeArg = this.modeArg(mode);
 
