@@ -1,6 +1,6 @@
 import { IPPCalculator as ICalc } from "../Calculator";
 import * as rosu from "rosu-pp-js";
-import Mods from "../Mods";
+import Mods, { ModsBitwise } from "../Mods";
 import { APIScore, CalcArgs } from "../../../Types";
 import { OsrReplay } from "../../OsrReplay";
 import { getRosuBeatmapSync } from "../RosuUtils";
@@ -23,10 +23,6 @@ class BanchoPP implements ICalc {
     }
 
     calculate(score: APIScore | CalcArgs | OsrReplay): IPP {
-        if (this.mods.has("Relax") || this.mods.has("Relax2") || this.mods.has("Autoplay")) {
-            return { pp: 0, fc: 0, ss: 0 };
-        }
-
         const map = getRosuBeatmapSync(this.map.id);
         if (map == null) {
             return { pp: 0, fc: 0, ss: 0 };
@@ -51,6 +47,17 @@ class BanchoPP implements ICalc {
             default:
                 rmap.convert(rosu.GameMode.Osu);
                 break;
+        }
+
+        let flags = this.mods.flags;
+        if (flags & ModsBitwise.Relax) {
+            flags ^= ModsBitwise.Relax;
+        }
+        if (flags & ModsBitwise.Relax2) {
+            flags ^= ModsBitwise.Relax2;
+        }
+        if (flags & ModsBitwise.Autoplay) {
+            flags ^= ModsBitwise.Autoplay;
         }
 
         const currAttrs = new rosu.Performance({

@@ -156,5 +156,7 @@ export class OsuBeatmap implements IBeatmap {
             diffCalc.stars,
             this.mode
         );
+
+        rmap.free();
     }
 }
