@@ -61,7 +61,7 @@ class BanchoPP implements ICalc {
         }
 
         const currAttrs = new rosu.Performance({
-            mods: this.mods.flags,
+            mods: flags,
             clockRate: this.speedMultiplier,
             n300: score.fake ? undefined : score.counts[300],
             n100: score.fake ? undefined : score.counts[100],
