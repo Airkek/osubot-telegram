@@ -220,7 +220,7 @@ interface APIScore {
     counts: IHitCounts;
     mods: Mods;
     mode: number;
-    rank: string;
+    rank?: string;
     rank_global?: number;
     top100_number?: number;
     date?: Date;

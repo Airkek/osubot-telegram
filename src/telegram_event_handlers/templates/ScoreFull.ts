@@ -15,10 +15,6 @@ export default function (score: APIScore, beatmap: IBeatmap, calc: ICalc, server
         ppString += ` → SS: ${pp.ss.toFixed(2)}`;
     }
 
-    const hits = beatmap.hitObjectsCount;
-    const progress = score.counts.totalHits() / hits;
-    const gradeProgress = score.rank === "F" ? ` (${Util.round(progress * 100, 2)}%)` : "";
-
     const beatmapUrl = beatmap.url ?? `${serverLink}/b/${beatmap.id}`;
 
     const total = [
@@ -29,8 +25,13 @@ export default function (score: APIScore, beatmap: IBeatmap, calc: ICalc, server
         `Accuracy: ${Util.round(score.accuracy() * 100, 2)}%`,
         ppString,
         `Hitcounts: ${score.counts.toString()}`,
-        `Grade: ${score.rank}${gradeProgress}`,
     ];
+
+    if (score.rank) {
+        const progress = score.counts.totalHits() / beatmap.hitObjectsCount;
+        const gradeProgress = score.rank === "F" ? ` (${Util.round(progress * 100, 2)}%)` : "";
+        total.push(`Grade: ${score.rank}${gradeProgress}`);
+    }
 
     if (score.date) {
         total.push(`Date: ${Util.formatDate(score.date)}`);

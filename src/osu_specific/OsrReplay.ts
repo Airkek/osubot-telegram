@@ -13,7 +13,7 @@ class OsrReplay implements APIScore {
     perfect: number;
     mods: Mods;
     beatmapId: number;
-    rank: string;
+    rank?: string;
     date: Date;
     fake?: boolean;
     constructor(score?: Score) {
@@ -39,7 +39,7 @@ class OsrReplay implements APIScore {
         this.combo = score.info.maxCombo;
         this.perfect = score.info.perfect ? 1 : 0;
         this.mods = new Mods(score.info.rawMods);
-        this.rank = score.info.rank;
+        // this.rank = score.info.rank; // TODO: calculate
         this.beatmapId = score.info.beatmapId;
         this.date = score.info.date;
         if (score.replay.gameVersion >= 30000000) {
