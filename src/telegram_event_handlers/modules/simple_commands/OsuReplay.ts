@@ -68,8 +68,12 @@ export class OsuReplay extends Command {
                 }
             }
 
+            const renderHeader = `Player: ${replay.player}\n\n`;
+
             await ctx.reply(
-                module.bot.templates.ScoreFull(replay, beatmap, calculator, "https://osu.ppy.sh") + renderAdditional,
+                renderHeader +
+                    module.bot.templates.ScoreFull(replay, beatmap, calculator, "https://osu.ppy.sh") +
+                    renderAdditional,
                 {
                     photo: cover,
                     keyboard,
