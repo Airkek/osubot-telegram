@@ -6,8 +6,8 @@ export default class AbstractChat extends ServerCommand {
     constructor(module: ServerModule) {
         super(["chat", "срфе"], module, async (self) => {
             let id = self.ctx.chatId;
-            if (self.args.string[0]) {
-                id = parseInt(self.args.string[0]);
+            if (self.args.nickname[0]) {
+                id = parseInt(self.args.nickname[0]);
                 if (isNaN(id)) {
                     await self.reply("Некорректный ID!");
                     return;

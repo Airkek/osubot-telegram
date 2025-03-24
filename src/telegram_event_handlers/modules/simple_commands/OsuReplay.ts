@@ -56,7 +56,8 @@ export class OsuReplay extends Command {
                 ])
             );
 
-            const canRender = process.env.RENDER_REPLAYS === "true" && replay.mode == 0;
+            const settings = await this.module.bot.database.userSettings.getUserSettings(ctx.senderId);
+            const canRender = process.env.RENDER_REPLAYS === "true" && settings.render_enabled && replay.mode == 0;
             let renderAdditional = canRender ? "\n\nРендер реплея в процессе..." : "";
             let needRender = canRender;
             if (canRender) {
@@ -84,7 +85,16 @@ export class OsuReplay extends Command {
             if (!needRender) {
                 return;
             }
-            const replayResponse = await this.renderer.render(file);
+            const replayResponse = await this.renderer.render(file, {
+                skin: settings.ordr_skin,
+                video: settings.ordr_video,
+                storyboard: settings.ordr_storyboard,
+                dim: settings.ordr_bgdim,
+                pp_counter: settings.ordr_pp_counter,
+                ur_counter: settings.ordr_ur_counter,
+                hit_counter: settings.ordr_hit_counter,
+                strain_graph: settings.ordr_strain_graph,
+            });
 
             if (replayResponse.success) {
                 await ctx.reply("", {
