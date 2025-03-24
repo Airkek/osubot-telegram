@@ -141,6 +141,18 @@ export default class UnifiedMessageContext {
         }
     }
 
+    async remove() {
+        if (!this.messagePayload) {
+            return undefined;
+        }
+        try {
+            await this.tgCtx.deleteMessage();
+        } catch (e) {
+            global.logger.error(e);
+            return undefined;
+        }
+    }
+
     async edit(text: string, options?: SendOptions) {
         if (!this.messagePayload) {
             return undefined;

@@ -283,7 +283,6 @@ export default class SettingsCommand extends Command {
                     let pageNum = undefined as number;
                     switch (key) {
                         case "page_number": {
-                            const page = eventParams[4] as SettingsPageWithPageControl;
                             const msg = 'Отправьте номер страницы или напишите "отмена" чтобы отменить действие';
                             const ticket = this.module.bot.addCallback(ctx, async (ctx) => {
                                 if (!ctx.text) {
@@ -396,7 +395,8 @@ export default class SettingsCommand extends Command {
                     const page = eventParams[3] as SettingsPage;
 
                     this.module.bot.removeCallback(ticket);
-                    await showPage(page);
+                    await ctx.remove();
+                    await showPage(page, undefined, true);
                     break;
                 }
                 case "page": {

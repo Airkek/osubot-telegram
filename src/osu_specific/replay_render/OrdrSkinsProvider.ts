@@ -36,7 +36,6 @@ export class OrdrSkinsProvider {
             };
         }
 
-        console.log(page, PageSize);
         const { data } = await axios.get(`https://apis.issou.best/ordr/skins?pageSize=${PageSize}&page=${page}`);
 
         if (!data.maxSkins || !data.skins) {
