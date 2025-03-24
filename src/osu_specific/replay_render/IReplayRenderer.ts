@@ -6,7 +6,7 @@ export interface Video {
 }
 
 export interface RenderSettings {
-    skin: number;
+    skin: string;
     video: boolean;
     storyboard: boolean;
     dim: number;

@@ -20,7 +20,7 @@ type ToggleableSettingsKey =
 type GenericSettingsKey = "ordr_skin" | "ordr_bgdim" | "page_number";
 
 function buildEvent(userId: number, event: string): string {
-    return `osu settings ${userId}:${event}`;
+    return `osu s ${userId}:${event}`;
 }
 
 function buildToggleEvent(userId: number, page: SettingsPage, key: ToggleableSettingsKey, currValue: boolean) {
@@ -177,9 +177,10 @@ async function buildSkinSelector(settings: UserSettings, pageNum: number): Promi
     const res = await skinsProvider.getPage(pageNum);
 
     const buttons = res.skins.map((val) => {
+        const isSelected = val.id.toString() == settings.ordr_skin || val.safe_name == settings.ordr_skin;
         return [
             {
-                text: `${val.id == settings.ordr_skin ? "✅" : ""}${val.id}: ${val.name}`,
+                text: `${isSelected ? "✅" : ""}${val.name}`,
                 command: buildSetEvent(settings.user_id, page, "ordr_skin", `set:${val.id}:${pageNum}`),
             },
         ];
@@ -199,7 +200,7 @@ async function buildSkinSelector(settings: UserSettings, pageNum: number): Promi
 
 export default class SettingsCommand extends Command {
     constructor(module: Module) {
-        super(["settings", "ыуеештпы"], module, async (ctx: UnifiedMessageContext, self, args) => {
+        super(["settings", "ыуеештпы", "s", "ы"], module, async (ctx: UnifiedMessageContext, self, args) => {
             if (!ctx.messagePayload) {
                 await ctx.reply(`Настройки:`, {
                     keyboard: buildStartKeyboard(ctx.senderId),
@@ -313,8 +314,9 @@ export default class SettingsCommand extends Command {
                         case "ordr_skin": {
                             const action = eventParams[4];
                             if (action == "set") {
-                                settings.ordr_skin = Number(eventParams[5]);
+                                const id = Number(eventParams[5]);
                                 pageNum = Number(eventParams[6]);
+                                settings.ordr_skin = await skinsProvider.getSkinByIdAndPage(pageNum, id);
                                 allowUpdate = true;
                             } else if (action == "request") {
                                 const msg = 'Отправьте id скина из o!rdr или напишите "отмена" чтобы отменить действие';
@@ -327,14 +329,12 @@ export default class SettingsCommand extends Command {
                                         await showPage(page, undefined, true, ctx);
                                         return true;
                                     }
-
-                                    const num = Number(ctx.text);
-                                    if (isNaN(num)) {
-                                        await ctx.reply(msg);
+                                    if (ctx.text.includes(" ") || ctx.text.includes("&") || ctx.text.includes("?")) {
+                                        await ctx.reply("id содержит запрещенные символы");
                                         return false;
                                     }
 
-                                    settings.ordr_skin = num;
+                                    settings.ordr_skin = encodeURIComponent(ctx.text);
                                     await self.module.bot.database.userSettings.updateSettings(settings);
                                     await showPage(page, undefined, true, ctx);
 

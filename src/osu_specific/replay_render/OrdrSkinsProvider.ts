@@ -2,6 +2,7 @@ import axios from "axios";
 
 interface OrdrSkinMetadata {
     id: number;
+    safe_name: string;
     name: string;
 }
 
@@ -48,6 +49,7 @@ export class OrdrSkinsProvider {
         const skins = rawSkins.map((s): OrdrSkinMetadata => {
             return {
                 id: s.id,
+                safe_name: s.skin,
                 name: s.presentationName,
             };
         });
@@ -65,5 +67,16 @@ export class OrdrSkinsProvider {
             skins,
             maxPage: this.cachedMaxPage,
         };
+    }
+
+    async getSkinByIdAndPage(page: number, id: number): Promise<string> {
+        const list = await this.getPage(page);
+        for (const skin of list.skins) {
+            if (skin.id == id) {
+                return skin.safe_name;
+            }
+        }
+        global.logger.warn(`Unable to get skin safe name by id and page: (id - ${id}, page - ${page})`)
+        return id.toString();
     }
 }

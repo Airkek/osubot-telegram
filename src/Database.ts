@@ -357,6 +357,49 @@ const migrations: IMigration[] = [
             return true;
         },
     },
+    {
+        version: 7,
+        name: "Change ordr_skin type to TEXT",
+        process: async (db: Database) => {
+            await db.run(`ALTER TABLE settings
+                RENAME TO temp_settings`);
+
+            await db.run(`
+                CREATE TABLE settings
+                (
+                    user_id           BIGINT UNIQUE NOT NULL,
+                    render_enabled    BOOLEAN  DEFAULT true,
+                    ordr_skin         TEXT     DEFAULT 'whitecatCK1.0',
+                    ordr_video        BOOLEAN  DEFAULT true,
+                    ordr_storyboard   BOOLEAN  DEFAULT true,
+                    ordr_bgdim        SMALLINT DEFAULT 75,
+                    ordr_pp_counter   BOOLEAN  DEFAULT true,
+                    ordr_ur_counter   BOOLEAN  DEFAULT true,
+                    ordr_hit_counter  BOOLEAN  DEFAULT true,
+                    ordr_strain_graph BOOLEAN  DEFAULT true
+                )
+            `);
+
+            await db.run(`
+                INSERT INTO settings
+                SELECT user_id,
+                       render_enabled,
+                       CAST(ordr_skin AS TEXT),
+                       ordr_video,
+                       ordr_storyboard,
+                       ordr_bgdim,
+                       ordr_pp_counter,
+                       ordr_ur_counter,
+                       ordr_hit_counter,
+                       ordr_strain_graph
+                FROM temp_settings
+            `);
+
+            await db.run(`DROP TABLE temp_settings`);
+
+            return true;
+        },
+    },
 ];
 
 async function applyMigrations(db: Database) {
@@ -395,7 +438,7 @@ async function applyMigrations(db: Database) {
 export interface UserSettings {
     user_id: number;
     render_enabled: boolean;
-    ordr_skin: number;
+    ordr_skin: string;
     ordr_video: boolean;
     ordr_storyboard: boolean;
     ordr_bgdim: number;
@@ -433,7 +476,7 @@ export class DatabaseUserSettings {
                  ordr_ur_counter   = $7,
                  ordr_hit_counter  = $8,
                  ordr_strain_graph = $9
-                 WHERE user_id = $10`,
+             WHERE user_id = $10`,
             [
                 settings.render_enabled,
                 settings.ordr_skin,
