@@ -94,6 +94,7 @@ export class OsuReplay extends Command {
                 ur_counter: settings.ordr_ur_counter,
                 hit_counter: settings.ordr_hit_counter,
                 strain_graph: settings.ordr_strain_graph,
+                isSkinCustom: settings.ordr_is_skin_custom,
             });
 
             if (replayResponse.success) {

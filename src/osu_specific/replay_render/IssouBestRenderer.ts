@@ -151,6 +151,7 @@ export class IssouBestRenderer implements IReplayRenderer {
         form.append("showUnstableRate", settings.ur_counter ? "true" : "false");
         form.append("showHitCounter", settings.hit_counter ? "true" : "false");
         form.append("showStrainGraph", settings.strain_graph ? "true" : "false");
+        form.append("customSkin", settings.isSkinCustom ? "true" : "false");
         form.append("inGameBGDim", settings.dim.toString());
         form.append("skin", settings.skin.toString());
 

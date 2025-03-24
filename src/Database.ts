@@ -400,6 +400,17 @@ const migrations: IMigration[] = [
             return true;
         },
     },
+    {
+        version: 8,
+        name: "Add ability to set custom o!rdr skin",
+        process: async (db: Database) => {
+            await db.run(
+                `ALTER TABLE settings
+                    ADD COLUMN ordr_is_skin_custom BOOLEAN DEFAULT false`
+            );
+            return true;
+        },
+    },
 ];
 
 async function applyMigrations(db: Database) {
@@ -446,6 +457,7 @@ export interface UserSettings {
     ordr_ur_counter: boolean;
     ordr_hit_counter: boolean;
     ordr_strain_graph: boolean;
+    ordr_is_skin_custom: boolean;
 }
 
 export class DatabaseUserSettings {
@@ -467,16 +479,17 @@ export class DatabaseUserSettings {
     async updateSettings(settings: UserSettings): Promise<void> {
         await this.db.run(
             `UPDATE settings
-             SET render_enabled    = $1,
-                 ordr_skin         = $2,
-                 ordr_video        = $3,
-                 ordr_storyboard   = $4,
-                 ordr_bgdim        = $5,
-                 ordr_pp_counter   = $6,
-                 ordr_ur_counter   = $7,
-                 ordr_hit_counter  = $8,
-                 ordr_strain_graph = $9
-             WHERE user_id = $10`,
+             SET render_enabled      = $1,
+                 ordr_skin           = $2,
+                 ordr_video          = $3,
+                 ordr_storyboard     = $4,
+                 ordr_bgdim          = $5,
+                 ordr_pp_counter     = $6,
+                 ordr_ur_counter     = $7,
+                 ordr_hit_counter    = $8,
+                 ordr_strain_graph   = $9,
+                 ordr_is_skin_custom = $10
+             WHERE user_id = $11`,
             [
                 settings.render_enabled,
                 settings.ordr_skin,
@@ -487,6 +500,7 @@ export class DatabaseUserSettings {
                 settings.ordr_ur_counter,
                 settings.ordr_hit_counter,
                 settings.ordr_strain_graph,
+                settings.ordr_is_skin_custom,
                 settings.user_id,
             ]
         );

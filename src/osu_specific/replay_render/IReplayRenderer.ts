@@ -14,6 +14,7 @@ export interface RenderSettings {
     ur_counter: boolean;
     hit_counter: boolean;
     strain_graph: boolean;
+    isSkinCustom: boolean;
 }
 
 export interface RenderResponse {

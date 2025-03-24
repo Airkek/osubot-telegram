@@ -15,7 +15,8 @@ type ToggleableSettingsKey =
     | "ordr_pp_counter"
     | "ordr_ur_counter"
     | "ordr_hit_counter"
-    | "ordr_strain_graph";
+    | "ordr_strain_graph"
+    | "ordr_is_custom";
 
 type GenericSettingsKey = "ordr_skin" | "ordr_bgdim" | "page_number";
 
@@ -174,17 +175,21 @@ const skinsProvider = new OrdrSkinsProvider();
 async function buildSkinSelector(settings: UserSettings, pageNum: number): Promise<InlineKeyboard> {
     const page: SettingsPage = "skin_sel";
 
-    const res = await skinsProvider.getPage(pageNum);
-
-    const buttons = res.skins.map((val) => {
-        const isSelected = val.id.toString() == settings.ordr_skin || val.safe_name == settings.ordr_skin;
-        return [
-            {
-                text: `${isSelected ? "✅" : ""}${val.name}`,
-                command: buildSetEvent(settings.user_id, page, "ordr_skin", `set:${val.id}:${pageNum}`),
-            },
-        ];
-    });
+    let buttons: IKBButton[][] = [];
+    let maxPage = undefined as number;
+    if (!settings.ordr_is_skin_custom) {
+        const res = await skinsProvider.getPage(pageNum);
+        maxPage = res.maxPage;
+        buttons = res.skins.map((val) => {
+            const isSelected = val.id.toString() == settings.ordr_skin || val.safe_name == settings.ordr_skin;
+            return [
+                {
+                    text: `${isSelected ? "✅" : ""}${val.name}`,
+                    command: buildSetEvent(settings.user_id, page, "ordr_skin", `set:${val.id}:${pageNum}`),
+                },
+            ];
+        });
+    }
 
     buttons.push([
         {
@@ -192,8 +197,13 @@ async function buildSkinSelector(settings: UserSettings, pageNum: number): Promi
             command: buildSetEvent(settings.user_id, "render", "ordr_skin", "request"),
         },
     ]);
+    buttons.push([
+        toggleableButton(settings.user_id, page, "Я загрузил скин сам", "ordr_is_custom", settings.ordr_is_skin_custom),
+    ]);
 
-    buttons.push(buildPaginationControl(settings.user_id, page, pageNum, res.maxPage));
+    if (!settings.ordr_is_skin_custom) {
+        buttons.push(buildPaginationControl(settings.user_id, page, pageNum, maxPage));
+    }
 
     return buildLeveledPageKeyboard(settings.user_id, "render", buttons);
 }
@@ -269,6 +279,10 @@ export default class SettingsCommand extends Command {
                             allowUpdate = true;
                             break;
                         }
+                        case "ordr_is_custom":
+                            settings.ordr_is_skin_custom = value;
+                            allowUpdate = true;
+                            break;
                     }
                     if (allowUpdate) {
                         await self.module.bot.database.userSettings.updateSettings(settings);

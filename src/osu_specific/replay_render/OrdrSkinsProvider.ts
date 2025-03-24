@@ -76,7 +76,7 @@ export class OrdrSkinsProvider {
                 return skin.safe_name;
             }
         }
-        global.logger.warn(`Unable to get skin safe name by id and page: (id - ${id}, page - ${page})`)
+        global.logger.warn(`Unable to get skin safe name by id and page: (id - ${id}, page - ${page})`);
         return id.toString();
     }
 }
