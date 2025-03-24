@@ -5,6 +5,17 @@ export interface Video {
     duration: number;
 }
 
+export interface RenderSettings {
+    skin: number;
+    video: boolean;
+    storyboard: boolean;
+    dim: number;
+    pp_counter: boolean;
+    ur_counter: boolean;
+    hit_counter: boolean;
+    strain_graph: boolean;
+}
+
 export interface RenderResponse {
     success: boolean;
     video?: Video;
@@ -12,5 +23,5 @@ export interface RenderResponse {
 }
 
 export interface IReplayRenderer {
-    render(file: Buffer): Promise<RenderResponse>;
+    render(file: Buffer, settings: RenderSettings): Promise<RenderResponse>;
 }

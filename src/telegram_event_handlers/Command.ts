@@ -4,7 +4,7 @@ import UnifiedMessageContext from "../TelegramSupport";
 
 export interface ICommandArgs {
     full: string[];
-    string: string[];
+    fullString: string;
     nickname: string[];
     mods: string;
     combo: number;
@@ -83,7 +83,7 @@ export class Command {
     private parseArgs(args: string[]): ICommandArgs {
         const iArg: ICommandArgs = {
             full: args,
-            string: [],
+            fullString: args.join(" "),
             nickname: [],
             mods: "",
             combo: 0,
@@ -129,12 +129,9 @@ export class Command {
             } else if (arg.startsWith(">")) {
                 iArg.more = Math.max(Number(arg.slice(1)), 1);
             } else {
-                iArg.string.push(arg);
                 iArg.nickname.push(arg);
             }
         }
-
-        iArg.string.reverse();
         iArg.nickname.reverse();
 
         return iArg;

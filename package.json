@@ -23,6 +23,7 @@
     "@grammyjs/auto-retry": "^2.0.2",
     "@grammyjs/chat-members": "^1.2.0",
     "@grammyjs/files": "^1.1.1",
+    "@grammyjs/ratelimiter": "^1.2.1",
     "@grammyjs/runner": "^2.0.3",
     "axios": "^1.8.2",
     "express": "^4.21.2",

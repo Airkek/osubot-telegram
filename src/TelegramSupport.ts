@@ -59,6 +59,8 @@ export default class UnifiedMessageContext {
     readonly isFromBot: boolean;
     readonly isFromUser: boolean;
 
+    readonly senderName: string;
+
     private readonly tgCtx: TgContext;
     private readonly tg: Bot;
     private readonly me: UserFromGetMe;
@@ -78,7 +80,7 @@ export default class UnifiedMessageContext {
         this.replyMessage = ctx.message?.reply_to_message ? new ReplyToMessage(ctx) : undefined;
         this.isInGroupChat = ctx.chat.type == "supergroup" || ctx.chat.type == "group";
         this.senderId = ctx.from.id;
-        this.chatId = ctx.chat.id;
+        this.chatId = ctx.chatId;
         this.isFromBot = ctx.from.is_bot;
         this.isFromUser = !ctx.from.is_bot;
     }
@@ -139,6 +141,18 @@ export default class UnifiedMessageContext {
         }
     }
 
+    async remove() {
+        if (!this.messagePayload) {
+            return undefined;
+        }
+        try {
+            await this.tgCtx.deleteMessage();
+        } catch (e) {
+            global.logger.error(e);
+            return undefined;
+        }
+    }
+
     async edit(text: string, options?: SendOptions) {
         if (!this.messagePayload) {
             return undefined;
@@ -150,6 +164,15 @@ export default class UnifiedMessageContext {
                 is_disabled: options?.dont_parse_links !== false,
             },
             reply_markup: options?.keyboard,
+        });
+    }
+
+    async editMarkup(keyboard: InlineKeyboard) {
+        if (!this.messagePayload || !keyboard) {
+            return undefined;
+        }
+        return await this.tgCtx.editMessageReplyMarkup({
+            reply_markup: keyboard,
         });
     }
 

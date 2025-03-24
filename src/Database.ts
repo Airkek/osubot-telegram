@@ -10,6 +10,7 @@ import { OsuBeatmap } from "./beatmaps/osu/OsuBeatmap";
 class DatabaseServer implements IDatabaseServer {
     serverName: string;
     db: Database;
+
     constructor(serverName: string, db: Database) {
         this.serverName = serverName;
         this.db = db;
@@ -86,6 +87,7 @@ class DatabaseServer implements IDatabaseServer {
 
 class DatabaseCovers {
     db: Database;
+
     constructor(db: Database) {
         this.db = db;
     }
@@ -142,6 +144,7 @@ class DatabaseCovers {
 
 class DatabaseUsersToChat {
     db: Database;
+
     constructor(db: Database) {
         this.db = db;
     }
@@ -170,6 +173,7 @@ class DatabaseUsersToChat {
 
 class DatabaseIgnore {
     db: Database;
+
     constructor(db: Database) {
         this.db = db;
     }
@@ -190,6 +194,7 @@ class DatabaseIgnore {
 
 class DatabaseDrop {
     db: Database;
+
     constructor(db: Database) {
         this.db = db;
     }
@@ -207,6 +212,7 @@ interface IDatabaseError {
 
 class DatabaseErrors {
     db: Database;
+
     constructor(db: Database) {
         this.db = db;
     }
@@ -280,7 +286,7 @@ const migrations: IMigration[] = [
     },
     {
         version: 2,
-        name: "Create table for Ignore List",
+        name: "Create ignore list table",
         process: async (db: Database) => {
             await db.run("CREATE TABLE IF NOT EXISTS ignored_users (id BIGINT)");
             return true;
@@ -296,7 +302,7 @@ const migrations: IMigration[] = [
     },
     {
         version: 4,
-        name: "Create table for osu! beatmap metadata cache",
+        name: "Create osu! beatmap metadata cache table",
         process: async (db: Database) => {
             await db.run(
                 `CREATE TABLE IF NOT EXISTS osu_beatmap_metadata
@@ -315,6 +321,38 @@ const migrations: IMigration[] = [
                      native_mode   SMALLINT,
                      native_length BIGINT
                  )`
+            );
+            return true;
+        },
+    },
+    {
+        version: 5,
+        name: "Create settings table",
+        process: async (db: Database) => {
+            await db.run(
+                `CREATE TABLE IF NOT EXISTS settings
+                 (
+                     user_id          BIGINT UNIQUE NOT NULL,
+                     render_enabled   BOOLEAN  DEFAULT true,
+                     ordr_skin        BIGINT   DEFAULT 60,
+                     ordr_video       BOOLEAN  DEFAULT true,
+                     ordr_storyboard  BOOLEAN  DEFAULT true,
+                     ordr_bgdim       SMALLINT DEFAULT 75,
+                     ordr_pp_counter  BOOLEAN  default true,
+                     ordr_ur_counter  BOOLEAN  default true,
+                     ordr_hit_counter BOOLEAN  default true
+                 )`
+            );
+            return true;
+        },
+    },
+    {
+        version: 6,
+        name: "Add ordr_strain_graph to settings",
+        process: async (db: Database) => {
+            await db.run(
+                `ALTER TABLE settings
+                    ADD COLUMN ordr_strain_graph BOOLEAN DEFAULT true`
             );
             return true;
         },
@@ -354,6 +392,64 @@ async function applyMigrations(db: Database) {
     }
 }
 
+export interface UserSettings {
+    user_id: number;
+    render_enabled: boolean;
+    ordr_skin: number;
+    ordr_video: boolean;
+    ordr_storyboard: boolean;
+    ordr_bgdim: number;
+    ordr_pp_counter: boolean;
+    ordr_ur_counter: boolean;
+    ordr_hit_counter: boolean;
+    ordr_strain_graph: boolean;
+}
+
+export class DatabaseUserSettings {
+    private db: Database;
+
+    constructor(db: Database) {
+        this.db = db;
+    }
+
+    async getUserSettings(id: number): Promise<UserSettings | null> {
+        const res = await this.db.get("SELECT * FROM settings WHERE user_id = $1", [id]);
+        if (!res) {
+            await this.db.run("INSERT INTO settings (user_id) VALUES ($1)", [id]);
+            return await this.getUserSettings(id);
+        }
+        return res;
+    }
+
+    async updateSettings(settings: UserSettings): Promise<void> {
+        await this.db.run(
+            `UPDATE settings
+             SET render_enabled    = $1,
+                 ordr_skin         = $2,
+                 ordr_video        = $3,
+                 ordr_storyboard   = $4,
+                 ordr_bgdim        = $5,
+                 ordr_pp_counter   = $6,
+                 ordr_ur_counter   = $7,
+                 ordr_hit_counter  = $8,
+                 ordr_strain_graph = $9
+                 WHERE user_id = $10`,
+            [
+                settings.render_enabled,
+                settings.ordr_skin,
+                settings.ordr_video,
+                settings.ordr_storyboard,
+                settings.ordr_bgdim,
+                settings.ordr_pp_counter,
+                settings.ordr_ur_counter,
+                settings.ordr_hit_counter,
+                settings.ordr_strain_graph,
+                settings.user_id,
+            ]
+        );
+    }
+}
+
 export interface IOsuBeatmapMetadata {
     id: number;
     set_id: number;
@@ -372,6 +468,7 @@ export interface IOsuBeatmapMetadata {
 
 export class DatabaseOsuBeatmapMetadataCache {
     private db: Database;
+
     constructor(db: Database) {
         this.db = db;
     }
@@ -392,17 +489,17 @@ export class DatabaseOsuBeatmapMetadataCache {
             }
 
             await this.db.run(
-                `UPDATE osu_beatmap_metadata SET 
-                                set_id = $1,
-                                hash = $2,
-                                title = $3,
-                                artist = $4,
-                                version = $5,
-                                author = $6,
-                                status = $7,
-                                native_mode = $8,
-                                native_length = $9
-                                WHERE id = $10`,
+                `UPDATE osu_beatmap_metadata
+                 SET set_id        = $1,
+                     hash          = $2,
+                     title         = $3,
+                     artist        = $4,
+                     version       = $5,
+                     author        = $6,
+                     status        = $7,
+                     native_mode   = $8,
+                     native_length = $9
+                 WHERE id = $10`,
                 [
                     map.setId,
                     map.hash,
@@ -420,9 +517,9 @@ export class DatabaseOsuBeatmapMetadataCache {
         }
 
         await this.db.run(
-            `INSERT INTO osu_beatmap_metadata 
-                            (id, set_id, hash, title, artist, version, author, status, native_mode, native_length) 
-                            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+            `INSERT INTO osu_beatmap_metadata
+             (id, set_id, hash, title, artist, version, author, status, native_mode, native_length)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
             [
                 map.id,
                 map.setId,
@@ -447,10 +544,12 @@ export default class Database {
     ignore: DatabaseIgnore;
     drop: DatabaseDrop;
     osuBeatmapMeta: DatabaseOsuBeatmapMetadataCache;
+    userSettings: DatabaseUserSettings;
 
     db: Pool;
     tg: TG;
     owner: number;
+
     constructor(tg: TG, owner: number) {
         this.servers = {
             bancho: new DatabaseServer("bancho", this),
@@ -467,6 +566,7 @@ export default class Database {
         this.ignore = new DatabaseIgnore(this);
         this.drop = new DatabaseDrop(this);
         this.osuBeatmapMeta = new DatabaseOsuBeatmapMetadataCache(this);
+        this.userSettings = new DatabaseUserSettings(this);
 
         this.db = new Pool({
             user: process.env.DB_USERNAME,

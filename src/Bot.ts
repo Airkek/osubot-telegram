@@ -4,6 +4,7 @@ import { chatMemberFilter } from "@grammyjs/chat-members";
 import { run, RunnerHandle } from "@grammyjs/runner";
 import { UserFromGetMe } from "@grammyjs/types";
 import { hydrateFiles } from "@grammyjs/files";
+import { limit } from "@grammyjs/ratelimiter";
 import express from "express";
 import { Module } from "./telegram_event_handlers/modules/Module";
 import Database from "./Database";
@@ -25,6 +26,7 @@ import UnifiedMessageContext, { TgApi, TgContext } from "./TelegramSupport";
 import { OsuBeatmapProvider } from "./beatmaps/osu/OsuBeatmapProvider";
 import BanchoAPIV2 from "./api/BanchoV2";
 import { SimpleCommandsModule } from "./telegram_event_handlers/modules/simple_commands";
+import Util from "./Util";
 
 export interface IBotConfig {
     tg: {
@@ -36,6 +38,9 @@ export interface IBotConfig {
         bancho_v2_secret: string;
     };
 }
+
+type ShouldRemoveCallback = boolean;
+export type PendingCallback = (ctx: UnifiedMessageContext) => Promise<ShouldRemoveCallback>;
 
 export class Bot {
     public readonly config: IBotConfig;
@@ -49,6 +54,8 @@ export class Bot {
     public readonly track: OsuTrackAPI;
 
     public readonly banchoApi: BanchoAPIV2; // TODO: make private
+
+    private readonly pendingCallbacks: { [id: string]: PendingCallback } = {};
 
     public modules: Module[] = [];
     public startTime: number = 0;
@@ -117,7 +124,26 @@ export class Bot {
         ];
     }
 
-    private setupBot(): void {}
+    private setupBot(): void {
+        this.tg.use(
+            limit({
+                timeFrame: 2000,
+                limit: 3,
+                onLimitExceeded: async (tgCtx: TgContext) => {
+                    const ctx = new UnifiedMessageContext(tgCtx, this.tg, this.me, this.useLocalApi);
+                    if (ctx.messagePayload) {
+                        await ctx.answer("Подождите немного!");
+                    } else {
+                        await ctx.reply("Вы слишком часто используете команды.");
+                    }
+                },
+                keyGenerator: (ctx: TgContext) => {
+                    return ctx.from?.id.toString();
+                },
+            })
+        );
+        this.tg.api.config.use(hydrateFiles(this.tg.token));
+    }
 
     private setupErrorHandling(): void {
         this.tg.catch((err) => {
@@ -134,7 +160,6 @@ export class Bot {
         });
 
         this.tg.api.config.use(autoRetry());
-        this.tg.api.config.use(hydrateFiles(this.tg.token));
     }
 
     private setupEventHandlers(): void {
@@ -203,6 +228,32 @@ export class Bot {
             return;
         }
 
+        const ticket = this.createCallbackTicket(context);
+        const cb = this.pendingCallbacks[ticket];
+        if (cb) {
+            let res = false;
+            try {
+                res = await cb(context);
+            } catch (e: unknown) {
+                res = true;
+                const err = await this.database.errors.addError(context, e);
+
+                let errorText: string;
+                if (e instanceof Error) {
+                    errorText = e.message;
+                } else if (e instanceof String) {
+                    errorText = String(e);
+                }
+
+                await ctx.reply(`${Util.error(errorText)} (${err})`);
+            } finally {
+                if (res) {
+                    this.pendingCallbacks[ticket] = undefined;
+                }
+            }
+            return;
+        }
+
         this.totalMessages++;
         await this.processRegularMessage(context);
     };
@@ -241,6 +292,7 @@ export class Bot {
         const aliases: Record<string, string> = {
             start: "osu help",
             help: "osu help",
+            settings: "osu settings",
             user: "s u",
             recent: "s r",
             top_scores: "s t",
@@ -252,7 +304,11 @@ export class Bot {
 
         Object.entries(aliases).forEach(([command, alias]) => {
             this.tg.command(command, async (ctx) => {
+                const spl = ctx.message.text.split(" ").splice(1).join(" ");
                 ctx.message.text = alias;
+                if (spl != "") {
+                    ctx.message.text += " " + spl;
+                }
                 const context = new UnifiedMessageContext(ctx as TgContext, this.tg, this.me, this.useLocalApi);
                 for (const module of this.modules) {
                     const match = module.checkContext(context);
@@ -309,5 +365,19 @@ export class Bot {
             await this.handle.stop();
         }
         global.logger.info("Bot stopped");
+    }
+
+    public addCallback(ctx: UnifiedMessageContext, callback: PendingCallback): string {
+        const ticket = this.createCallbackTicket(ctx);
+        this.pendingCallbacks[ticket] = callback;
+        return ticket;
+    }
+
+    public removeCallback(ticket: string) {
+        this.pendingCallbacks[ticket] = undefined;
+    }
+
+    private createCallbackTicket(ctx: UnifiedMessageContext): string {
+        return `${ctx.senderId}_${ctx.chatId}`;
     }
 }

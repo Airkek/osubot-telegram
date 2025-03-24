@@ -7,7 +7,7 @@ interface Err {
     t: string;
 }
 
-interface IKBButton {
+export interface IKBButton {
     text: string;
     command: string;
 }

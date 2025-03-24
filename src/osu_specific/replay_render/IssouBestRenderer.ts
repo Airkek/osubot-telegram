@@ -1,4 +1,4 @@
-import { IReplayRenderer, RenderResponse, Video } from "./IReplayRenderer";
+import { IReplayRenderer, RenderResponse, RenderSettings, Video } from "./IReplayRenderer";
 import FormData from "form-data";
 import axios from "axios";
 import { io, Socket } from "socket.io-client";
@@ -84,9 +84,9 @@ export class IssouBestRenderer implements IReplayRenderer {
         this.wsClient = OrdinalWebSocket.getInstance();
     }
 
-    async render(file: Buffer): Promise<RenderResponse> {
+    async render(file: Buffer, settings: RenderSettings): Promise<RenderResponse> {
         const timer = Util.timer();
-        const uploadResponse = await this.uploadReplay(file);
+        const uploadResponse = await this.uploadReplay(file, settings);
 
         if (!uploadResponse.success) {
             global.logger.info(`Render worker: render upload failed in ${timer.ms} (${uploadResponse.error})`);
@@ -131,19 +131,28 @@ export class IssouBestRenderer implements IReplayRenderer {
         };
     }
 
-    private async uploadReplay(file: Buffer): Promise<UploadResponse> {
+    private async uploadReplay(file: Buffer, settings: RenderSettings): Promise<UploadResponse> {
         const form = new FormData();
         form.append("replayFile", file, { filename: "replay.osr" });
-        form.append("showDanserLogo", "false");
-        form.append("skin", "61");
-        form.append("resolution", "1280x720");
+
         form.append("username", process.env.ORDR_USERNAME);
         form.append("verificationKey", process.env.ORDR_API_KEY);
-        form.append("loadVideo", "true");
-        form.append("loadStoryboard", "true");
+
+        form.append("showDanserLogo", "false");
+        form.append("useSkinColors", "true");
+        form.append("useSkinHitsounds", "true");
+        form.append("useBeatmapColors", "false");
+        form.append("resolution", "1280x720");
         form.append("skip", "true");
-        form.append("showPPCounter", "true");
-        form.append("showUnstableRate", "false");
+
+        form.append("loadVideo", settings.video ? "true" : "false");
+        form.append("loadStoryboard", settings.storyboard ? "true" : "false");
+        form.append("showPPCounter", settings.pp_counter ? "true" : "false");
+        form.append("showUnstableRate", settings.ur_counter ? "true" : "false");
+        form.append("showHitCounter", settings.hit_counter ? "true" : "false");
+        form.append("showStrainGraph", settings.strain_graph ? "true" : "false");
+        form.append("inGameBGDim", settings.dim.toString());
+        form.append("skin", settings.skin.toString());
 
         try {
             const { data } = await axios.post("https://apis.issou.best/ordr/renders", form, {
