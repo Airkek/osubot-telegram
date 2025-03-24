@@ -54,6 +54,12 @@ export class OrdrSkinsProvider {
 
         this.cached[page] = skins;
         this.cachedMaxPage = Math.ceil(maxSkins / PageSize);
+        setTimeout(
+            () => {
+                this.cached[page] = undefined;
+            },
+            60 * 1000 * 60
+        );
 
         return {
             skins,
