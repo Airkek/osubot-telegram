@@ -180,7 +180,7 @@ async function buildSkinSelector(settings: UserSettings, pageNum: number): Promi
         return [
             {
                 text: `${val.id == settings.ordr_skin ? "✅" : ""}${val.id}: ${val.name}`,
-                command: buildSetEvent(settings.user_id, page, "ordr_skin", `set:${val.id}`),
+                command: buildSetEvent(settings.user_id, page, "ordr_skin", `set:${val.id}:${pageNum}`),
             },
         ];
     });
@@ -280,10 +280,11 @@ export default class SettingsCommand extends Command {
                     const key = eventParams[3] as GenericSettingsKey;
 
                     let allowUpdate = false;
+                    let pageNum = undefined as number;
                     switch (key) {
                         case "page_number": {
                             const page = eventParams[4] as SettingsPageWithPageControl;
-                            const msg = 'Отправьте id скина из o!rdr или напишите "отмена" чтобы отменить действие';
+                            const msg = 'Отправьте номер страницы или напишите "отмена" чтобы отменить действие';
                             const ticket = this.module.bot.addCallback(ctx, async (ctx) => {
                                 if (!ctx.text) {
                                     await ctx.reply(msg);
@@ -314,9 +315,10 @@ export default class SettingsCommand extends Command {
                             const action = eventParams[4];
                             if (action == "set") {
                                 settings.ordr_skin = Number(eventParams[5]);
+                                pageNum = Number(eventParams[6]);
                                 allowUpdate = true;
                             } else if (action == "request") {
-                                const msg = 'Отправьте номер страницы или напишите "отмена" чтобы отменить действие';
+                                const msg = 'Отправьте id скина из o!rdr или напишите "отмена" чтобы отменить действие';
                                 const ticket = this.module.bot.addCallback(ctx, async (ctx) => {
                                     if (!ctx.text) {
                                         await ctx.reply(msg);
@@ -385,7 +387,7 @@ export default class SettingsCommand extends Command {
 
                     if (allowUpdate) {
                         await self.module.bot.database.userSettings.updateSettings(settings);
-                        await showPage(page);
+                        await showPage(page, pageNum);
                     }
                     break;
                 }
