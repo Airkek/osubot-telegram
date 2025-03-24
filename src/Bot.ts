@@ -367,9 +367,14 @@ export class Bot {
         global.logger.info("Bot stopped");
     }
 
-    public addCallback(ctx: UnifiedMessageContext, callback: PendingCallback) {
+    public addCallback(ctx: UnifiedMessageContext, callback: PendingCallback): string {
         const ticket = this.createCallbackTicket(ctx);
         this.pendingCallbacks[ticket] = callback;
+        return ticket;
+    }
+
+    public removeCallback(ticket: string) {
+        this.pendingCallbacks[ticket] = undefined;
     }
 
     private createCallbackTicket(ctx: UnifiedMessageContext): string {
