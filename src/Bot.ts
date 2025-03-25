@@ -133,6 +133,7 @@ export class Bot {
                     const ctx = new UnifiedMessageContext(tgCtx, this.me, this.useLocalApi);
                     if (ctx.messagePayload) {
                         await ctx.answer("Подождите немного!");
+                        await tgCtx.answerCallbackQuery();
                     } else {
                         await ctx.reply("Вы слишком часто используете команды.");
                     }
