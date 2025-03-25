@@ -152,7 +152,12 @@ export class Bot {
                             }
                         }
                     }
-                    return `${ctx.senderId}:${isCommand ? true : Date.now()}`;
+
+                    let ticket = "command";
+                    if (!isCommand) {
+                        ticket = `${Date.now()}:${Math.random()}:${this.totalMessages}`;
+                    }
+                    return `${ctx.senderId}:${ticket}`;
                 },
             })
         );
