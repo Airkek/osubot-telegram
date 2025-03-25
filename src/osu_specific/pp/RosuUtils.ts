@@ -63,7 +63,7 @@ export async function getRosuBeatmap(map: IBeatmap): Promise<rosu.Beatmap> {
 
 export function getRosuBeatmapSync(map: IBeatmap): rosu.Beatmap {
     ensureHashed(map);
-    const filePath = `${folderPath}/${map}.osu`;
+    const filePath = `${folderPath}/${map.hash}.osu`;
     if (fs.existsSync(filePath)) {
         return new rosu.Beatmap(fs.readFileSync(filePath, "utf-8"));
     }
