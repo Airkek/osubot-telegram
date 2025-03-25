@@ -27,7 +27,6 @@ import { OsuBeatmapProvider } from "./beatmaps/osu/OsuBeatmapProvider";
 import BanchoAPIV2 from "./api/BanchoV2";
 import { SimpleCommandsModule } from "./telegram_event_handlers/modules/simple_commands";
 import Util from "./Util";
-import { match } from "node:assert";
 
 export interface IBotConfig {
     tg: {
@@ -128,8 +127,8 @@ export class Bot {
     private setupBot(): void {
         this.tg.use(
             limit({
-                timeFrame: 2500,
-                limit: 1,
+                timeFrame: 5000,
+                limit: 3,
                 onLimitExceeded: async (tgCtx: TgContext) => {
                     const ctx = new UnifiedMessageContext(tgCtx, this.me, this.useLocalApi);
                     if (ctx.messagePayload) {
