@@ -1,4 +1,4 @@
-import { Api, Bot, Context, InlineKeyboard, InputFile, InputMediaBuilder } from "grammy";
+import { Api, Context, InlineKeyboard, InputFile, InputMediaBuilder } from "grammy";
 import { MessageEntity, UserFromGetMe } from "@grammyjs/types";
 import { FileFlavor, FileApiFlavor } from "@grammyjs/files";
 import TextLinkMessageEntity = MessageEntity.TextLinkMessageEntity;
@@ -62,16 +62,14 @@ export default class UnifiedMessageContext {
     readonly senderName: string;
 
     private readonly tgCtx: TgContext;
-    private readonly tg: Bot;
     private readonly me: UserFromGetMe;
     private readonly localServer: boolean;
 
     private tmpFile?: string;
     private registryToken?: object;
 
-    constructor(ctx: TgContext, tg: Bot, me: UserFromGetMe, isLocal: boolean) {
+    constructor(ctx: TgContext, me: UserFromGetMe, isLocal: boolean) {
         this.tgCtx = ctx;
-        this.tg = tg;
         this.me = me;
         this.localServer = isLocal;
 
@@ -118,7 +116,7 @@ export default class UnifiedMessageContext {
                     supports_streaming: true,
                     caption: text,
                 });
-                const sent = await this.tg.api.sendMediaGroup(this.tgCtx.chatId, [video], {
+                const sent = await this.tgCtx.api.sendMediaGroup(this.tgCtx.chatId, [video], {
                     reply_parameters: {
                         message_id: replyTo,
                     },
@@ -185,7 +183,7 @@ export default class UnifiedMessageContext {
 
     async isSenderAdmin(): Promise<boolean> {
         try {
-            const res = await this.tg.api.getChatMember(this.chatId, this.senderId);
+            const res = await this.tgCtx.api.getChatMember(this.chatId, this.senderId);
             return res.status == "creator" || res.status == "administrator";
         } catch (e) {
             if (e.message.includes("CHAT_ADMIN_REQUIRED")) {
@@ -198,7 +196,7 @@ export default class UnifiedMessageContext {
 
     async isBotAdmin(): Promise<boolean> {
         try {
-            const res = await this.tg.api.getChatMember(this.chatId, this.me.id);
+            const res = await this.tgCtx.api.getChatMember(this.chatId, this.me.id);
             return res.status == "creator" || res.status == "administrator";
         } catch (e) {
             if (e.message.includes("CHAT_ADMIN_REQUIRED")) {
@@ -211,7 +209,7 @@ export default class UnifiedMessageContext {
 
     async isUserInChat(userId: number): Promise<boolean> {
         try {
-            const user = await this.tg.api.getChatMember(this.chatId, userId);
+            const user = await this.tgCtx.api.getChatMember(this.chatId, userId);
             return user && user.status != "kicked" && user.status != "left";
         } catch (e) {
             return !e.description?.includes("member not found");
@@ -219,7 +217,7 @@ export default class UnifiedMessageContext {
     }
 
     chatMembersCount(): Promise<number> {
-        return this.tg.api.getChatMemberCount(this.chatId);
+        return this.tgCtx.api.getChatMemberCount(this.chatId);
     }
 
     hasLinks(): boolean {

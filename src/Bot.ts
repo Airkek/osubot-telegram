@@ -27,6 +27,7 @@ import { OsuBeatmapProvider } from "./beatmaps/osu/OsuBeatmapProvider";
 import BanchoAPIV2 from "./api/BanchoV2";
 import { SimpleCommandsModule } from "./telegram_event_handlers/modules/simple_commands";
 import Util from "./Util";
+import { match } from "node:assert";
 
 export interface IBotConfig {
     tg: {
@@ -127,18 +128,31 @@ export class Bot {
     private setupBot(): void {
         this.tg.use(
             limit({
-                timeFrame: 2000,
-                limit: 3,
+                timeFrame: 2500,
+                limit: 1,
                 onLimitExceeded: async (tgCtx: TgContext) => {
-                    const ctx = new UnifiedMessageContext(tgCtx, this.tg, this.me, this.useLocalApi);
+                    const ctx = new UnifiedMessageContext(tgCtx, this.me, this.useLocalApi);
                     if (ctx.messagePayload) {
                         await ctx.answer("Подождите немного!");
                     } else {
                         await ctx.reply("Вы слишком часто используете команды.");
                     }
                 },
-                keyGenerator: (ctx: TgContext) => {
-                    return ctx.from?.id.toString();
+                keyGenerator: (tgCtx: TgContext) => {
+                    const ctx = new UnifiedMessageContext(tgCtx, this.me, this.useLocalApi);
+
+                    let isCommand = !!this.pendingCallbacks[this.createCallbackTicket(ctx)];
+
+                    if (!isCommand) {
+                        for (const module of this.modules) {
+                            const match = module.checkContext(ctx);
+                            if (match) {
+                                isCommand = true;
+                                break;
+                            }
+                        }
+                    }
+                    return `${ctx.senderId}:${isCommand ? true : Date.now()}`;
                 },
             })
         );
@@ -200,7 +214,7 @@ export class Bot {
     };
 
     private handleCallbackQuery = async (ctx): Promise<void> => {
-        const context = new UnifiedMessageContext(ctx, this.tg, this.me, this.useLocalApi);
+        const context = new UnifiedMessageContext(ctx, this.me, this.useLocalApi);
 
         for (const module of this.modules) {
             const match = module.checkContext(context);
@@ -222,7 +236,7 @@ export class Bot {
     };
 
     private handleMessage = async (ctx): Promise<void> => {
-        const context = new UnifiedMessageContext(ctx, this.tg, this.me, this.useLocalApi);
+        const context = new UnifiedMessageContext(ctx, this.me, this.useLocalApi);
 
         if (this.shouldSkipMessage(context)) {
             return;
@@ -309,7 +323,7 @@ export class Bot {
                 if (spl != "") {
                     ctx.message.text += " " + spl;
                 }
-                const context = new UnifiedMessageContext(ctx as TgContext, this.tg, this.me, this.useLocalApi);
+                const context = new UnifiedMessageContext(ctx as TgContext, this.me, this.useLocalApi);
                 for (const module of this.modules) {
                     const match = module.checkContext(context);
                     if (match) {

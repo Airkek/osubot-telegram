@@ -211,6 +211,10 @@ async function buildSkinSelector(settings: UserSettings, pageNum: number): Promi
 export default class SettingsCommand extends Command {
     constructor(module: Module) {
         super(["settings", "ыуеештпы", "s", "ы"], module, async (ctx: UnifiedMessageContext, self, args) => {
+            if (ctx.senderId != ctx.chatId) {
+                await ctx.reply("Изза ограничений telegram эту команду можно использовать только в личных чатах");
+                return;
+            }
             if (!ctx.messagePayload) {
                 await ctx.reply(`Настройки:`, {
                     keyboard: buildStartKeyboard(ctx.senderId),
