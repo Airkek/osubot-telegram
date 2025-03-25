@@ -23,7 +23,7 @@ class BanchoPP implements ICalc {
     }
 
     calculate(score: APIScore | CalcArgs | OsrReplay): IPP {
-        const map = getRosuBeatmapSync(this.map.id);
+        const map = getRosuBeatmapSync(this.map);
         if (map == null) {
             return { pp: 0, fc: 0, ss: 0 };
         }

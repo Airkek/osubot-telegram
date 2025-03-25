@@ -122,7 +122,7 @@ export class OsuBeatmap implements IBeatmap {
     }
 
     async calculate(): Promise<void> {
-        const rmap = await getRosuBeatmap(this.id);
+        const rmap = await getRosuBeatmap(this);
         switch (this.mode) {
             case 1:
                 rmap.convert(rosu.GameMode.Taiko);
