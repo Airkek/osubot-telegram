@@ -3,7 +3,7 @@ import Mods from "../../osu_specific/pp/Mods";
 import Util from "../../Util";
 import AttributesCalculator from "../../osu_specific/pp/AttributesCalculator";
 import { getRosuBeatmap } from "../../osu_specific/pp/RosuUtils";
-import * as rosu from "rosu-pp-js";
+import * as rosu from "@kotrikd/rosu-pp";
 import { APIBeatmap } from "../../Types";
 import { IOsuBeatmapMetadata } from "../../Database";
 

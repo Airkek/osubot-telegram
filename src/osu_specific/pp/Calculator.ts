@@ -1,5 +1,5 @@
 import { APIScore, CalcArgs } from "../../Types";
-import * as rosu from "rosu-pp-js";
+import * as rosu from "@kotrikd/rosu-pp";
 import Mods from "./Mods";
 import { OsrReplay } from "../OsrReplay";
 import { IBeatmap } from "../../beatmaps/BeatmapTypes";

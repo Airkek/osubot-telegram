@@ -1,4 +1,4 @@
-import * as rosu from "rosu-pp-js";
+import * as rosu from "@kotrikd/rosu-pp";
 import fs from "fs";
 import axios from "axios";
 import crypto from "crypto";
