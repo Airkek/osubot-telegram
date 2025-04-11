@@ -233,17 +233,19 @@ export default class AbstractTop extends ServerCommand {
         const prevPage = Math.max(currentPage - 1, 1);
         const nextPage = Math.min(currentPage + 1, maxPage);
 
+        const nickname = this.module.api.getUserTop === undefined ? user.id : user.nickname;
+
         const buttonPrev = {
             text: "⬅️",
-            command: `${prefix} t ${user.nickname} --p${prevPage} ${modeArg}`,
+            command: `${prefix} t ${nickname} --p${prevPage} ${modeArg}`,
         };
         const buttonPage = {
             text: `${currentPage}/${maxPage} 🔄`,
-            command: `${prefix} t ${user.nickname} --p${currentPage} ${modeArg}`,
+            command: `${prefix} t ${nickname} --p${currentPage} ${modeArg}`,
         };
         const buttonNext = {
             text: "➡️",
-            command: `${prefix} t ${user.nickname} --p${nextPage} ${modeArg}`,
+            command: `${prefix} t ${nickname} --p${nextPage} ${modeArg}`,
         };
 
         const buttons = [buttonPrev, buttonPage, buttonNext];
