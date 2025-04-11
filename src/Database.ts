@@ -411,6 +411,20 @@ const migrations: IMigration[] = [
             return true;
         },
     },
+    {
+        version: 9,
+        name: "Create chat_settings table",
+        process: async (db: Database) => {
+            await db.run(
+                `CREATE TABLE IF NOT EXISTS chat_settings
+                 (
+                     chat_id          BIGINT UNIQUE NOT NULL,
+                     render_enabled   BOOLEAN  DEFAULT true
+                 )`
+            );
+            return true;
+        },
+    },
 ];
 
 async function applyMigrations(db: Database) {
@@ -503,6 +517,37 @@ export class DatabaseUserSettings {
                 settings.ordr_is_skin_custom,
                 settings.user_id,
             ]
+        );
+    }
+}
+
+export interface ChatSettings {
+    chat_id: number;
+    render_enabled: boolean;
+}
+
+export class DatabaseChatSettings {
+    private db: Database;
+
+    constructor(db: Database) {
+        this.db = db;
+    }
+
+    async getChatSettings(id: number): Promise<ChatSettings | null> {
+        const res = await this.db.get("SELECT * FROM chat_settings WHERE chat_id = $1", [id]);
+        if (!res) {
+            await this.db.run("INSERT INTO chat_settings (chat_id) VALUES ($1)", [id]);
+            return await this.getChatSettings(id);
+        }
+        return res;
+    }
+
+    async updateSettings(settings: ChatSettings): Promise<void> {
+        await this.db.run(
+            `UPDATE chat_settings
+             SET render_enabled = $1
+             WHERE chat_id = $2`,
+            [settings.render_enabled, settings.chat_id]
         );
     }
 }
@@ -602,6 +647,7 @@ export default class Database {
     drop: DatabaseDrop;
     osuBeatmapMeta: DatabaseOsuBeatmapMetadataCache;
     userSettings: DatabaseUserSettings;
+    chatSettings: DatabaseChatSettings;
 
     db: Pool;
     tg: TG;
@@ -624,6 +670,7 @@ export default class Database {
         this.drop = new DatabaseDrop(this);
         this.osuBeatmapMeta = new DatabaseOsuBeatmapMetadataCache(this);
         this.userSettings = new DatabaseUserSettings(this);
+        this.chatSettings = new DatabaseChatSettings(this);
 
         this.db = new Pool({
             user: process.env.DB_USERNAME,

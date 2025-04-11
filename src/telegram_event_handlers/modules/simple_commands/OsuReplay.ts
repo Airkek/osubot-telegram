@@ -57,7 +57,14 @@ export class OsuReplay extends Command {
             );
 
             const settings = await this.module.bot.database.userSettings.getUserSettings(ctx.senderId);
-            const canRender = process.env.RENDER_REPLAYS === "true" && settings.render_enabled && replay.mode == 0;
+            const isChat = ctx.senderId != ctx.chatId;
+            let settingsAllowed = settings.render_enabled;
+            if (isChat && settingsAllowed) {
+                const chatSettings = await this.module.bot.database.chatSettings.getChatSettings(ctx.chatId);
+                settingsAllowed = settingsAllowed && chatSettings.render_enabled;
+            }
+
+            const canRender = process.env.RENDER_REPLAYS === "true" && settingsAllowed && replay.mode == 0;
             let renderAdditional = canRender ? "\n\nРендер реплея в процессе..." : "";
             let needRender = canRender;
             if (canRender) {

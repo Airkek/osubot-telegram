@@ -3,7 +3,7 @@ import { Module } from "../Module";
 import { InlineKeyboard } from "grammy";
 import Util, { IKBButton } from "../../../Util";
 import UnifiedMessageContext from "../../../TelegramSupport";
-import { UserSettings } from "../../../Database";
+import { ChatSettings, UserSettings } from "../../../Database";
 import { OrdrSkinsProvider } from "../../../osu_specific/replay_render/OrdrSkinsProvider";
 
 type SettingsPageWithPageControl = "skin_sel";
@@ -18,6 +18,8 @@ type ToggleableSettingsKey =
     | "ordr_strain_graph"
     | "ordr_is_custom";
 
+type ToggleableChatSettingsKey = "render_enabled";
+
 type GenericSettingsKey = "ordr_skin" | "ordr_bgdim" | "page_number";
 
 function buildEvent(userId: number, event: string): string {
@@ -26,6 +28,10 @@ function buildEvent(userId: number, event: string): string {
 
 function buildToggleEvent(userId: number, page: SettingsPage, key: ToggleableSettingsKey, currValue: boolean) {
     return buildEvent(userId, `setbool:${page}:${key}:${currValue ? "0" : "1"}`);
+}
+
+function buildChatToggleEvent(chatId: number, key: ToggleableChatSettingsKey, currValue: boolean) {
+    return buildEvent(chatId, `setbool:${key}:${currValue ? "0" : "1"}`);
 }
 
 function buildSetEvent(userId: number, page: SettingsPage, key: GenericSettingsKey, value?: string) {
@@ -117,6 +123,13 @@ function toggleableButton(
     };
 }
 
+function toggleableChatButton(chatId: number, name: string, key: ToggleableChatSettingsKey, val: boolean): IKBButton {
+    return {
+        text: `${bToS(val)}${name}`,
+        command: buildChatToggleEvent(chatId, key, val),
+    };
+}
+
 function genericSetButton(
     userId: number,
     page: SettingsPage,
@@ -128,6 +141,12 @@ function genericSetButton(
         text: `${name}: ${valRepresentation}`,
         command: buildSetEvent(userId, page, key),
     };
+}
+
+function buildChatSettingsKeyboard(settings: ChatSettings): InlineKeyboard {
+    return Util.createKeyboard([
+        [toggleableChatButton(settings.chat_id, "Рендер реплеев", "render_enabled", settings.render_enabled)],
+    ]);
 }
 
 function buildRenderPage(settings: UserSettings): InlineKeyboard {
@@ -211,14 +230,26 @@ async function buildSkinSelector(settings: UserSettings, pageNum: number): Promi
 export default class SettingsCommand extends Command {
     constructor(module: Module) {
         super(["settings", "ыуеештпы", "s", "ы"], module, async (ctx: UnifiedMessageContext, self, args) => {
-            if (ctx.senderId != ctx.chatId) {
-                await ctx.reply("Изза ограничений telegram эту команду можно использовать только в личных чатах");
-                return;
-            }
+            const isChat = ctx.senderId != ctx.chatId;
+            const isAdmin = !isChat || (await ctx.isSenderAdmin());
+
             if (!ctx.messagePayload) {
-                await ctx.reply(`Настройки:`, {
-                    keyboard: buildStartKeyboard(ctx.senderId),
-                });
+                if (isChat) {
+                    if (!isAdmin) {
+                        await ctx.reply("Настройки чата может редактировать только администратор чата!");
+                        return;
+                    }
+
+                    const stgs = await this.module.bot.database.chatSettings.getChatSettings(ctx.chatId);
+                    await ctx.reply(`Настройки чата:`, {
+                        keyboard: buildChatSettingsKeyboard(stgs),
+                    });
+                } else {
+                    await ctx.reply(`Настройки:`, {
+                        keyboard: buildStartKeyboard(ctx.senderId),
+                    });
+                }
+
                 return;
             }
 
@@ -227,8 +258,45 @@ export default class SettingsCommand extends Command {
                 return;
             }
 
-            if (eventParams[0] != ctx.senderId.toString()) {
-                await ctx.answer("Это не твои настройки!");
+            if (isChat) {
+                if (!isAdmin) {
+                    await ctx.answer("Ты не администратор чата!");
+                    return;
+                }
+                if (eventParams[0] != ctx.chatId.toString()) {
+                    await ctx.answer("Это настройки другого чата!");
+                    return;
+                }
+            } else {
+                if (eventParams[0] != ctx.senderId.toString()) {
+                    await ctx.answer("Это не твои настройки!");
+                    return;
+                }
+            }
+
+            if (isChat) {
+                const chatSettings = await this.module.bot.database.chatSettings.getChatSettings(ctx.chatId);
+
+                switch (eventParams[1]) {
+                    case "setbool": {
+                        const key = eventParams[2] as ToggleableChatSettingsKey;
+                        const value = Number(eventParams[3]) === 1;
+                        let allowUpdate = false;
+                        switch (key) {
+                            case "render_enabled": {
+                                chatSettings[key] = value;
+                                allowUpdate = true;
+                                break;
+                            }
+                        }
+                        if (allowUpdate) {
+                            await self.module.bot.database.chatSettings.updateSettings(chatSettings);
+                            await ctx.editMarkup(buildChatSettingsKeyboard(chatSettings));
+                        }
+                        break;
+                    }
+                }
+
                 return;
             }
 
