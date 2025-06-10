@@ -41,7 +41,7 @@ export default class StatusCommand extends Command {
             await ctx.send(
                 `Статус бота:\n\n` +
                     `Версия: ${self.module.bot.version}\n` +
-                    `Время работы: ${up} (${uptimeHours})\n` +
+                    `Время работы: ${up}\n` +
                     `Чатов, известных боту: ${chatCount}\n` +
                     `Сообщений получено: ${self.module.bot.totalMessages}\n` +
                     `Команд использовано: ${cmdsUsed}\n` +
