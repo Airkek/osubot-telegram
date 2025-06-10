@@ -119,7 +119,18 @@ export class OsuReplay extends Command {
             } else {
                 this.removeLimit(ctx.senderId);
                 this.failedRenders++;
-                await ctx.reply(`Ошибка при рендере реплея: ${replayResponse.error}`);
+                if (replayResponse.error.includes("This replay is already rendering or in queue")) {
+                    let text = "Этот реплей уже рендерится на o!rdr.";
+                    if (isChat) {
+                        text +=
+                            "\n\nЕсли в вашем чате есть другой бот, который рендерит реплеи, отключите рендер в текущем боте - /settings\nЕсли этого не сделать, есть риск бана на o!rdr по нику из реплея.";
+                    }
+                    await ctx.reply(text, {
+                        keyboard: Util.createKeyboard([[{ text: "⚙️Настройки чата", command: "osu settings" }]]),
+                    });
+                } else {
+                    await ctx.reply(`Ошибка при рендере реплея: ${replayResponse.error}`);
+                }
             }
         });
 

@@ -233,7 +233,7 @@ export default class SettingsCommand extends Command {
             const isChat = ctx.senderId != ctx.chatId;
             const isAdmin = !isChat || (await ctx.isSenderAdmin());
 
-            if (!ctx.messagePayload) {
+            if (!ctx.messagePayload || ctx.messagePayload == "osu settings") {
                 if (isChat) {
                     if (!isAdmin) {
                         await ctx.reply("Настройки чата может редактировать только администратор чата!");
