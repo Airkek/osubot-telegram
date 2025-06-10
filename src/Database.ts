@@ -449,6 +449,21 @@ const migrations: IMigration[] = [
             return true;
         },
     },
+    {
+        version: 11,
+        name: "Add notifications_enabled to settings",
+        process: async (db: Database) => {
+            await db.run(
+                `ALTER TABLE chat_settings
+             ADD COLUMN notifications_enabled BOOLEAN DEFAULT true`
+            );
+            await db.run(
+                `ALTER TABLE settings
+             ADD COLUMN notifications_enabled BOOLEAN DEFAULT true`
+            );
+            return true;
+        },
+    },
 ];
 
 async function applyMigrations(db: Database) {
@@ -479,7 +494,6 @@ async function applyMigrations(db: Database) {
         } else {
             global.logger.fatal("Failed. Aborting");
             process.abort();
-            return;
         }
     }
 }
@@ -496,6 +510,7 @@ export interface UserSettings {
     ordr_hit_counter: boolean;
     ordr_strain_graph: boolean;
     ordr_is_skin_custom: boolean;
+    notifications_enabled: boolean;
 }
 
 export class DatabaseUserSettings {
@@ -517,17 +532,18 @@ export class DatabaseUserSettings {
     async updateSettings(settings: UserSettings): Promise<void> {
         await this.db.run(
             `UPDATE settings
-             SET render_enabled      = $1,
-                 ordr_skin           = $2,
-                 ordr_video          = $3,
-                 ordr_storyboard     = $4,
-                 ordr_bgdim          = $5,
-                 ordr_pp_counter     = $6,
-                 ordr_ur_counter     = $7,
-                 ordr_hit_counter    = $8,
-                 ordr_strain_graph   = $9,
-                 ordr_is_skin_custom = $10
-             WHERE user_id = $11`,
+             SET render_enabled        = $1,
+                 ordr_skin             = $2,
+                 ordr_video            = $3,
+                 ordr_storyboard       = $4,
+                 ordr_bgdim            = $5,
+                 ordr_pp_counter       = $6,
+                 ordr_ur_counter       = $7,
+                 ordr_hit_counter      = $8,
+                 ordr_strain_graph     = $9,
+                 ordr_is_skin_custom   = $10,
+                 notifications_enabled = $11
+             WHERE user_id = $12`,
             [
                 settings.render_enabled,
                 settings.ordr_skin,
@@ -539,6 +555,7 @@ export class DatabaseUserSettings {
                 settings.ordr_hit_counter,
                 settings.ordr_strain_graph,
                 settings.ordr_is_skin_custom,
+                settings.notifications_enabled,
                 settings.user_id,
             ]
         );
@@ -548,6 +565,7 @@ export class DatabaseUserSettings {
 export interface ChatSettings {
     chat_id: number;
     render_enabled: boolean;
+    notifications_enabled: boolean;
 }
 
 export class DatabaseChatSettings {
@@ -569,9 +587,10 @@ export class DatabaseChatSettings {
     async updateSettings(settings: ChatSettings): Promise<void> {
         await this.db.run(
             `UPDATE chat_settings
-             SET render_enabled = $1
-             WHERE chat_id = $2`,
-            [settings.render_enabled, settings.chat_id]
+             SET render_enabled        = $1,
+                 notifications_enabled = $2
+             WHERE chat_id = $3`,
+            [settings.render_enabled, settings.notifications_enabled, settings.chat_id]
         );
     }
 }
@@ -662,6 +681,54 @@ export class DatabaseOsuBeatmapMetadataCache {
     }
 }
 
+class NotificationsModel {
+    private db: Database;
+
+    constructor(db: Database) {
+        this.db = db;
+    }
+
+    async getChatCountForNotifications(): Promise<number> {
+        const result = await this.db.get(
+            `SELECT COUNT(DISTINCT utc.chat_id) AS count
+         FROM users_to_chat utc
+            LEFT JOIN chat_settings cs ON CAST(utc.chat_id AS BIGINT) = cs.chat_id
+         WHERE cs.notifications_enabled = true OR cs.chat_id IS NULL`
+        );
+        return result.count;
+    }
+
+    async getUserCountForNotifications(): Promise<number> {
+        const result = await this.db.get(
+            `SELECT COUNT(DISTINCT u.id) AS count
+         FROM users u
+            LEFT JOIN settings cs ON u.id = cs.user_id
+         WHERE cs.notifications_enabled = true OR cs.user_id IS NULL`
+        );
+        return result.count;
+    }
+
+    async getChatsForNotifications(): Promise<number[]> {
+        const chats = await this.db.all(
+            `SELECT DISTINCT utc.chat_id
+             FROM users_to_chat utc
+                LEFT JOIN chat_settings cs ON CAST(utc.chat_id AS BIGINT) = cs.chat_id
+             WHERE cs.notifications_enabled = true OR cs.chat_id IS NULL`
+        );
+        return chats.map((chat) => chat.chat_id);
+    }
+
+    async getUsersForNotifications(): Promise<number[]> {
+        const users = await this.db.all(
+            `SELECT DISTINCT u.id
+             FROM users u
+                LEFT JOIN settings cs ON u.id = cs.user_id
+             WHERE cs.notifications_enabled = true OR cs.user_id IS NULL`
+        );
+        return users.map((user) => user.id);
+    }
+}
+
 export default class Database {
     servers: IServersList;
     covers: DatabaseCovers;
@@ -672,6 +739,7 @@ export default class Database {
     osuBeatmapMeta: DatabaseOsuBeatmapMetadataCache;
     userSettings: DatabaseUserSettings;
     chatSettings: DatabaseChatSettings;
+    notifications: NotificationsModel;
 
     db: Pool;
     tg: TG;
@@ -695,6 +763,7 @@ export default class Database {
         this.osuBeatmapMeta = new DatabaseOsuBeatmapMetadataCache(this);
         this.userSettings = new DatabaseUserSettings(this);
         this.chatSettings = new DatabaseChatSettings(this);
+        this.notifications = new NotificationsModel(this);
 
         this.db = new Pool({
             user: process.env.DB_USERNAME,

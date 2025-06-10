@@ -16,9 +16,10 @@ type ToggleableSettingsKey =
     | "ordr_ur_counter"
     | "ordr_hit_counter"
     | "ordr_strain_graph"
-    | "ordr_is_custom";
+    | "ordr_is_custom"
+    | "notifications_enabled";
 
-type ToggleableChatSettingsKey = "render_enabled";
+type ToggleableChatSettingsKey = "render_enabled" | "notifications_enabled";
 
 type GenericSettingsKey = "ordr_skin" | "ordr_bgdim" | "page_number";
 
@@ -58,8 +59,19 @@ function buildPlaceholderButton(text: string): IKBButton {
     };
 }
 
-function buildStartKeyboard(userId: number): InlineKeyboard {
-    return Util.createKeyboard([[buildPageButton(userId, "render", "🎥Рендер")]]);
+function buildStartKeyboard(userId: number, settings: UserSettings): InlineKeyboard {
+    return Util.createKeyboard([
+        [buildPageButton(userId, "render", "🎥Рендер")],
+        [
+            toggleableButton(
+                userId,
+                "home",
+                "Новостные рассылки",
+                "notifications_enabled",
+                settings.notifications_enabled
+            ),
+        ],
+    ]);
 }
 
 function buildCancelKeyboard(userId: number, page: SettingsPage, ticket: string): InlineKeyboard {
@@ -146,6 +158,14 @@ function genericSetButton(
 function buildChatSettingsKeyboard(settings: ChatSettings): InlineKeyboard {
     return Util.createKeyboard([
         [toggleableChatButton(settings.chat_id, "Рендер реплеев", "render_enabled", settings.render_enabled)],
+        [
+            toggleableChatButton(
+                settings.chat_id,
+                "Новостные рассылки",
+                "notifications_enabled",
+                settings.notifications_enabled
+            ),
+        ],
     ]);
 }
 
@@ -245,8 +265,9 @@ export default class SettingsCommand extends Command {
                         keyboard: buildChatSettingsKeyboard(stgs),
                     });
                 } else {
+                    const stgs = await this.module.bot.database.userSettings.getUserSettings(ctx.senderId);
                     await ctx.reply(`Настройки:`, {
-                        keyboard: buildStartKeyboard(ctx.senderId),
+                        keyboard: buildStartKeyboard(ctx.senderId, stgs),
                     });
                 }
 
@@ -283,7 +304,8 @@ export default class SettingsCommand extends Command {
                         const value = Number(eventParams[3]) === 1;
                         let allowUpdate = false;
                         switch (key) {
-                            case "render_enabled": {
+                            case "render_enabled":
+                            case "notifications_enabled": {
                                 chatSettings[key] = value;
                                 allowUpdate = true;
                                 break;
@@ -311,7 +333,7 @@ export default class SettingsCommand extends Command {
                 let answer: InlineKeyboard = undefined;
                 switch (page) {
                     case "home": {
-                        answer = buildStartKeyboard(settings.user_id);
+                        answer = buildStartKeyboard(settings.user_id, settings);
                         break;
                     }
                     case "render": {
@@ -346,7 +368,8 @@ export default class SettingsCommand extends Command {
                         case "ordr_pp_counter":
                         case "ordr_ur_counter":
                         case "ordr_hit_counter":
-                        case "ordr_strain_graph": {
+                        case "ordr_strain_graph":
+                        case "notifications_enabled": {
                             settings[key] = value;
                             allowUpdate = true;
                             break;
