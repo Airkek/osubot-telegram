@@ -42,7 +42,7 @@ export class Module implements ICommandsModule {
         } else if (ctx.text) {
             text = ctx.text;
         }
-        const args = text.split(" ");
+        const args = text.split(/\s+/);
         let map: number;
         if (args.length > 1 && args[0].startsWith("{map")) {
             map = Number(args[0].split("}")[0].slice(4));

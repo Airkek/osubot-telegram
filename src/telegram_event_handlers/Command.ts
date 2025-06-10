@@ -77,7 +77,8 @@ export class Command {
     }
 
     getSplittedText(text: string): string[] {
-        return text.split(" ").slice(2);
+        const command = text.split(/\s+/).slice(0, 2).join(" ");
+        return text.replace(command, " ").trim().split(" ");
     }
 
     private parseArgs(args: string[]): ICommandArgs {

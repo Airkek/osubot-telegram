@@ -323,7 +323,8 @@ export class Bot {
 
         Object.entries(aliases).forEach(([command, alias]) => {
             this.tg.command(command, async (ctx) => {
-                const spl = ctx.message.text.split(" ").splice(1).join(" ");
+                const command = ctx.message.text.split(/\s+/)[0];
+                const spl = ctx.message.text.replace(command, "").trim();
                 ctx.message.text = alias;
                 if (spl != "") {
                     ctx.message.text += " " + spl;

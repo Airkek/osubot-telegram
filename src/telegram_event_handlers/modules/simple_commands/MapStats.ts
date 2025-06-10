@@ -21,6 +21,6 @@ export class MapStats extends Command {
     }
 
     getSplittedText(text: string): string[] {
-        return text.split(" ").slice(1);
+        return text.split(/\s+/).splice(1);
     }
 }

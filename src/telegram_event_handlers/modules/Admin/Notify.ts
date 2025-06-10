@@ -28,24 +28,38 @@ export default class NotifyCommand extends Command {
                 const chats = await self.module.bot.database.chats.getChats();
                 await ctx.reply(`Рассылка по чатам начата. Всего чатов: ${chats.length}`);
 
+                const text = this.pending[hash];
+                this.pending[hash] = undefined;
+
                 let errors = 0;
                 let sent = 0;
+                let dirtyChats = 0;
                 for (const chatId of chats) {
                     try {
                         global.logger.info(`Sending message to '${chatId}'`);
-                        await this.module.bot.tg.api.sendMessage(chatId, this.pending[hash]);
+                        await this.module.bot.tg.api.sendMessage(chatId, text);
                         sent++;
                     } catch (e) {
-                        global.logger.error(e);
-                        errors++;
+                        if (
+                            e.message.includes("bot was kicked from the") ||
+                            e.message.includes("the group chat was deleted")
+                        ) {
+                            await this.module.bot.database.chats.removeChat(chatId);
+                            dirtyChats++;
+                        } else {
+                            global.logger.error(e);
+                            errors++;
+                        }
                     }
                 }
 
-                await ctx.reply(`Рассылка окончена.\nВсего отправлено: ${sent}\nОшибок: ${errors}`);
+                await ctx.reply(
+                    `Рассылка окончена.\nВсего отправлено: ${sent}\nОшибок: ${errors}\nМусорных чатов: ${dirtyChats}`
+                );
                 return;
             }
 
-            const textSplit = ctx.text.split("\n").slice(1);
+            const textSplit = ctx.text.split("\n").splice(1);
             if (textSplit.length == 0) {
                 await ctx.reply("Не указан текст");
                 return;
