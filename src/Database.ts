@@ -162,6 +162,15 @@ class DatabaseUsersToChat {
         return users.map((u) => u.user_id);
     }
 
+    async removeChat(chatId: number): Promise<void> {
+        await this.db.run("DELETE FROM users_to_chat WHERE chat_id = $1", [chatId]);
+    }
+
+    async getChats(): Promise<number[]> {
+        const chats = await this.db.all("SELECT DISTINCT chat_id FROM users_to_chat");
+        return chats.map((chat) => chat.chat_id);
+    }
+
     async getChatCount(): Promise<number> {
         const result = await this.db.get("SELECT COUNT(DISTINCT chat_id) AS count FROM users_to_chat");
         return result.count;

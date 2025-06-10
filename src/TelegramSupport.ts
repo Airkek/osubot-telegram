@@ -181,9 +181,9 @@ export default class UnifiedMessageContext {
         return await this.tgCtx.answerCallbackQuery(text);
     }
 
-    async isSenderAdmin(): Promise<boolean> {
+    async isUserAdmin(userId: number): Promise<boolean> {
         try {
-            const res = await this.tgCtx.api.getChatMember(this.chatId, this.senderId);
+            const res = await this.tgCtx.api.getChatMember(this.chatId, userId);
             return res.status == "creator" || res.status == "administrator";
         } catch (e) {
             if (e.message.includes("CHAT_ADMIN_REQUIRED")) {
@@ -192,28 +192,43 @@ export default class UnifiedMessageContext {
 
             throw e;
         }
+    }
+
+    async isSenderAdmin(): Promise<boolean> {
+        return this.isUserAdmin(this.senderId);
     }
 
     async isBotAdmin(): Promise<boolean> {
-        try {
-            const res = await this.tgCtx.api.getChatMember(this.chatId, this.me.id);
-            return res.status == "creator" || res.status == "administrator";
-        } catch (e) {
-            if (e.message.includes("CHAT_ADMIN_REQUIRED")) {
-                return false;
-            }
-
-            throw e;
-        }
+        return this.isUserAdmin(this.me.id);
     }
 
-    async isUserInChat(userId: number): Promise<boolean> {
+    async isUserInChat(userId: number, chatId?: number): Promise<boolean> {
         try {
-            const user = await this.tgCtx.api.getChatMember(this.chatId, userId);
+            if (chatId) {
+                const isValid = await this.isChatValid(chatId);
+                if (!isValid) {
+                    return false;
+                }
+            }
+
+            const user = await this.tgCtx.api.getChatMember(chatId ?? this.chatId, userId);
             return user && user.status != "kicked" && user.status != "left";
         } catch (e) {
             return !e.description?.includes("member not found");
         }
+    }
+
+    async isChatValid(chatId: number): Promise<boolean> {
+        try {
+            const chatInfo = await this.tgCtx.api.getChat(chatId);
+            return !!chatInfo;
+        } catch (e) {
+            return !e.description?.includes("chat not found");
+        }
+    }
+
+    async isBotInChat(chatId: number): Promise<boolean> {
+        return this.isUserInChat(this.me.id, chatId);
     }
 
     chatMembersCount(): Promise<number> {
