@@ -2,6 +2,8 @@ import { Command } from "../../Command";
 import { Module } from "../Module";
 
 export default class ClearCommand extends Command {
+    rate = {};
+
     constructor(module: Module) {
         super(["clear", "сдуфк"], module, async (ctx, self) => {
             if (!ctx.isInGroupChat) {
@@ -14,6 +16,14 @@ export default class ClearCommand extends Command {
                 await ctx.reply("Эту команду может использовать только администратор чата");
                 return;
             }
+
+            if (this.checkLimit(ctx.chatId)) {
+                await ctx.reply(
+                    "Чистка топа от вышедших пользователей доступна только раз в 24 часа.\n\nЧтобы не было необходимости её выполнять, дайте боту права администратора в чате."
+                );
+                return;
+            }
+            this.setLimit(ctx.chatId);
 
             const origMembers = await self.module.bot.database.chats.getChatUsers(ctx.chatId);
             const duplicates = new Set<number>();
@@ -36,7 +46,6 @@ export default class ClearCommand extends Command {
 
             const realCount = await ctx.chatMembersCount();
             const count = members.size;
-            const duplicateCount = duplicates.size;
             let kicked = 0;
 
             const estimate = count / 8;
@@ -48,8 +57,7 @@ export default class ClearCommand extends Command {
             await ctx.reply(`Проводится чистка топа от вышедших пользователей.
 
 Участников в чате: ${realCount}
-Зарегистрированных участников чата: ${count}
-Зарегистрированных несколько раз: ${duplicateCount}
+Зарегистрированных в боте участников чата: ${count}
 
 Примерное время ожидания: ${estimateStr}`);
 
@@ -72,5 +80,24 @@ export default class ClearCommand extends Command {
 Из них больше не являются участниками чата: ${kicked}
 Осталось зарегистрированными: ${count - kicked}`);
         });
+    }
+
+    private checkLimit(chat: number) {
+        const TIMEOUT = 60 * 60 * 24; // 24 hour
+        const u = this.rate[chat];
+        const date = new Date().getTime();
+        if (u) {
+            return date - u < TIMEOUT * 1000;
+        }
+
+        return false;
+    }
+
+    private setLimit(chat: number) {
+        this.rate[chat] = new Date().getTime();
+    }
+
+    private removeLimit(chat: number) {
+        this.rate[chat] = 0;
     }
 }
