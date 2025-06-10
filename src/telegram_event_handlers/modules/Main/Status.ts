@@ -30,6 +30,8 @@ export default class StatusCommand extends Command {
                 });
             });
 
+            const chatCount = await self.module.bot.database.chats.getChatCount();
+
             const msgsPerHour = (self.module.bot.totalMessages / uptimeHours).toFixed(3);
             const cmdsPerHour = (cmdsUsed / uptimeHours).toFixed(3);
             const cmdsPerMessage = ((cmdsUsed / self.module.bot.totalMessages) * 100).toFixed(2);
@@ -39,7 +41,8 @@ export default class StatusCommand extends Command {
             await ctx.send(
                 `Статус бота:\n\n` +
                     `Версия: ${self.module.bot.version}\n` +
-                    `Время работы: ${up}\n` +
+                    `Время работы: ${up} (${uptimeHours})\n` +
+                    `Чатов, известных боту: ${chatCount}\n` +
                     `Сообщений получено: ${self.module.bot.totalMessages}\n` +
                     `Команд использовано: ${cmdsUsed}\n` +
                     `Сообщений в час: ${msgsPerHour}\n` +
@@ -48,8 +51,8 @@ export default class StatusCommand extends Command {
                     `Реплеев получено: ${replaysReceived}\n` +
                     `Реплеев успешно отрендерено: ${replaysRendered}\n` +
                     `Ошибок рендера: ${failedRenders}\n` +
-                    `Процент реплеев от команд: ${replaysPerCommands}\n` +
-                    `Процент рендеров от команд: ${rendersPerCommands}`
+                    `Процент реплеев от команд: ${replaysPerCommands}%\n` +
+                    `Процент рендеров от команд: ${rendersPerCommands}%`
             );
         });
     }

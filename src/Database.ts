@@ -162,6 +162,11 @@ class DatabaseUsersToChat {
         return users.map((u) => u.user_id);
     }
 
+    async getChatCount(): Promise<number> {
+        const result = await this.db.get("SELECT COUNT(DISTINCT chat_id) AS count FROM users_to_chat");
+        return result.count;
+    }
+
     async isUserInChat(userId: number, chatId: number): Promise<boolean> {
         const user = await this.db.get("SELECT * FROM users_to_chat WHERE user_id = $1 AND chat_id = $2", [
             userId,
