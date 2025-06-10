@@ -12,6 +12,8 @@ import { OsrReplay } from "../../../osu_specific/OsrReplay";
 export class OsuReplay extends Command {
     renderer: IReplayRenderer;
     rate = {};
+    rendered = 0;
+    failedRenders = 0;
 
     constructor(module: SimpleCommandsModule) {
         super(["osu_replay"], module, async (ctx) => {
@@ -105,6 +107,7 @@ export class OsuReplay extends Command {
             });
 
             if (replayResponse.success) {
+                this.rendered++;
                 await ctx.reply("", {
                     video: {
                         url: replayResponse.video.url,
@@ -115,6 +118,7 @@ export class OsuReplay extends Command {
                 });
             } else {
                 this.removeLimit(ctx.senderId);
+                this.failedRenders++;
                 await ctx.reply(`Ошибка при рендере реплея: ${replayResponse.error}`);
             }
         });
