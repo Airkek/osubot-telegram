@@ -39,7 +39,6 @@ export class OsuBeatmapProvider implements IBeatmapProvider {
             case BeatmapStatus[BeatmapStatus.Approved]:
             case BeatmapStatus[BeatmapStatus.Loved]:
             case BeatmapStatus[BeatmapStatus.Ranked]:
-            case BeatmapStatus[BeatmapStatus.Qualified]:
                 await this.db.addToCache(osuBeatmap);
                 global.logger.info(`New beatmap in cache (id: ${osuBeatmap.id}, hash: ${osuBeatmap.hash})`);
                 break;

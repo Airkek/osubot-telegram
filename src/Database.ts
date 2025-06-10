@@ -2,7 +2,7 @@
 
 import { Bot as TG, InputFile } from "grammy";
 import { Pool, QueryResult } from "pg";
-import { APIUser, IDatabaseServer, IDatabaseUser, IDatabaseUserStats } from "./Types";
+import { APIUser, BeatmapStatus, IDatabaseServer, IDatabaseUser, IDatabaseUserStats } from "./Types";
 import UnifiedMessageContext from "./TelegramSupport";
 import { createHash } from "node:crypto";
 import { OsuBeatmap } from "./beatmaps/osu/OsuBeatmap";
@@ -422,6 +422,16 @@ const migrations: IMigration[] = [
                      render_enabled   BOOLEAN  DEFAULT true
                  )`
             );
+            return true;
+        },
+    },
+    {
+        version: 10,
+        name: "Remove Qualified maps from cache",
+        process: async (db: Database) => {
+            await db.run(`DELETE FROM osu_beatmap_metadata WHERE status = $1`, [
+                BeatmapStatus[BeatmapStatus.Qualified],
+            ]);
             return true;
         },
     },
