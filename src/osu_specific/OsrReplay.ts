@@ -42,7 +42,7 @@ class OsrReplay implements APIScore {
         // this.rank = score.info.rank; // TODO: calculate
         this.beatmapId = score.info.beatmapId;
         this.date = score.info.date;
-        if (score.replay.gameVersion >= 30000000) {
+        if ((score.replay?.gameVersion ?? 0) >= 30000000) {
             // Lazer is 1000 years in the future
             this.mods.lazer = true;
         }
