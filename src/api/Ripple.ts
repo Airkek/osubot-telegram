@@ -4,7 +4,6 @@ import { APIUser, HitCounts, APIScore, IDatabaseUser, LeaderboardResponse, Leade
 import qs from "querystring";
 import Util from "../Util";
 import Mods from "../osu_specific/pp/Mods";
-import { isNullOrUndefined } from "util";
 import { IBeatmapProvider } from "../beatmaps/IBeatmapProvider";
 
 class RippleUser implements APIUser {
@@ -172,7 +171,7 @@ export default class RippleAPI implements IAPI {
         };
         try {
             let { data } = await this.api.get(`/get_scores?${qs.stringify(opts)}`);
-            if (!isNullOrUndefined(mods)) {
+            if (mods) {
                 data = data.filter((p) => p.enabled_mods == mods);
             }
             if (!data[0]) {
@@ -198,7 +197,7 @@ export default class RippleAPI implements IAPI {
         };
         try {
             let { data } = await this.api.get(`/get_scores?${qs.stringify(opts)}`);
-            if (!isNullOrUndefined(mods)) {
+            if (mods) {
                 data = data.filter((p) => p.enabled_mods == mods);
             }
             if (!data[0]) {
