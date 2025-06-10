@@ -4,6 +4,7 @@ import ErrorCommand from "./Error";
 import IgnoreCommand from "./Ignore";
 import DropCommand from "./Drop";
 import ClearChatsCommand from "./ClearChats";
+import NotifyCommand from "./Notify";
 
 export default class Admin extends Module {
     constructor(bot: Bot) {
@@ -16,6 +17,7 @@ export default class Admin extends Module {
             new IgnoreCommand(this),
             new DropCommand(this),
             new ClearChatsCommand(this),
+            new NotifyCommand(this),
         ]);
     }
 }
