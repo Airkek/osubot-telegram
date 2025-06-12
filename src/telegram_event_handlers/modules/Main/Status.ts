@@ -15,6 +15,8 @@ export default class StatusCommand extends Command {
             let replaysReceived = 0;
             let replaysRendered = 0;
             let failedRenders = 0;
+            let replaysRenderedExperimental = 0;
+            let failedRendersExperimental = 0;
             self.module.bot.modules.forEach((m) => {
                 m.commands.forEach((c) => {
                     if (m instanceof Main || m instanceof Admin) {
@@ -26,6 +28,8 @@ export default class StatusCommand extends Command {
                         replaysReceived = c.uses;
                         replaysRendered = c.rendered;
                         failedRenders = c.failedRenders;
+                        replaysRenderedExperimental = c.rendered_experimental;
+                        failedRendersExperimental = c.failedRenders_experimental;
                     }
                 });
             });
@@ -36,7 +40,12 @@ export default class StatusCommand extends Command {
             const cmdsPerHour = (cmdsUsed / uptimeHours).toFixed(3);
             const cmdsPerMessage = ((cmdsUsed / self.module.bot.totalMessages) * 100).toFixed(2);
             const replaysPerCommands = ((replaysReceived / cmdsUsed) * 100).toFixed(2);
-            const rendersPerCommands = (((replaysRendered + failedRenders) / cmdsUsed) * 100).toFixed(2);
+
+            const rendersPerCommands = (
+                ((replaysRendered + failedRenders + replaysRenderedExperimental + failedRendersExperimental) /
+                    cmdsUsed) *
+                100
+            ).toFixed(2);
 
             await ctx.send(
                 `Статус бота:\n\n` +
@@ -49,8 +58,8 @@ export default class StatusCommand extends Command {
                     `Команд в час: ${cmdsPerHour}\n` +
                     `Процент команд от сообщений: ${cmdsPerMessage}%\n` +
                     `Реплеев получено: ${replaysReceived}\n` +
-                    `Реплеев успешно отрендерено: ${replaysRendered}\n` +
-                    `Ошибок рендера: ${failedRenders}\n` +
+                    `Реплеев отрендерено (s/e): ${replaysRendered}/${failedRendersExperimental}\n` +
+                    `Ошибок рендера (s/e): ${failedRenders}/${failedRendersExperimental}\n` +
                     `Процент реплеев от команд: ${replaysPerCommands}%\n` +
                     `Процент рендеров от команд: ${rendersPerCommands}%`
             );

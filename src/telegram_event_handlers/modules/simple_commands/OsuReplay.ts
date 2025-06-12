@@ -14,8 +14,12 @@ export class OsuReplay extends Command {
     renderer: IReplayRenderer;
     experimental_renderer: IReplayRenderer;
     rate = {};
+
     rendered = 0;
     failedRenders = 0;
+
+    rendered_experimental = 0;
+    failedRenders_experimental = 0;
 
     constructor(module: SimpleCommandsModule) {
         super(["osu_replay"], module, async (ctx) => {
@@ -73,13 +77,14 @@ export class OsuReplay extends Command {
                 !this.renderer.supportGameMode(replay.mode) &&
                 this.experimental_renderer.supportGameMode(replay.mode);
 
-            const renderer =
-                settings.experimental_renderer || fallbackToExperimental ? this.experimental_renderer : this.renderer;
+            const useExperimental = settings.experimental_renderer || fallbackToExperimental;
+
+            const renderer = useExperimental ? this.experimental_renderer : this.renderer;
             const canRender =
                 process.env.RENDER_REPLAYS === "true" && settingsAllowed && renderer.supportGameMode(replay.mode);
             let renderAdditional = canRender ? "\n\nРендер реплея в процессе..." : "";
 
-            if (canRender && (settings.experimental_renderer || fallbackToExperimental)) {
+            if (canRender && useExperimental) {
                 renderAdditional +=
                     "\n⚠️Используется экспериментальный рендерер. Некоторые функции могут быть недоступны или работать неправильно.\n\nПросьба сообщать о найденных ошибках в комментарии к посту - https://t.me/osubotupdates/34";
             }
@@ -97,10 +102,10 @@ export class OsuReplay extends Command {
                 const rendererAvailable = await renderer.available();
                 if (!rendererAvailable) {
                     needRender = false;
-                    const rendererName = settings.render_enabled ? "experimental" : "o!rdr";
                     if (fallbackToExperimental) {
                         renderAdditional = `\n\nЭтот режим игры поддерживается только экспериментальным рендерером, который сейчас недоступен. Попробуйте позже.`;
                     } else {
+                        const rendererName = settings.render_enabled ? "experimental" : "o!rdr";
                         renderAdditional = `\n\nВыбраный рендерер (${rendererName}) сейчас недоступен. Попробуйте позже или измените рендерер в настройах. Для этого введите /settings в личных сообщениях с ботом`;
                     }
 
@@ -124,6 +129,7 @@ export class OsuReplay extends Command {
             if (!needRender) {
                 return;
             }
+
             const replayResponse = await renderer.render(file, {
                 skin: settings.ordr_skin,
                 video: settings.ordr_video,
@@ -137,7 +143,11 @@ export class OsuReplay extends Command {
             });
 
             if (replayResponse.success) {
-                this.rendered++;
+                if (useExperimental) {
+                    this.rendered_experimental++;
+                } else {
+                    this.rendered++;
+                }
                 await ctx.reply("", {
                     video: {
                         url: replayResponse.video.url,
@@ -148,7 +158,11 @@ export class OsuReplay extends Command {
                 });
             } else {
                 this.removeLimit(ctx.senderId);
-                this.failedRenders++;
+                if (useExperimental) {
+                    this.failedRenders_experimental++;
+                } else {
+                    this.failedRenders++;
+                }
                 if (replayResponse.error.includes("This replay is already rendering or in queue")) {
                     let text = "Этот реплей уже рендерится на o!rdr.";
                     if (isChat) {
