@@ -58,7 +58,7 @@ export default class StatusCommand extends Command {
                     `Команд в час: ${cmdsPerHour}\n` +
                     `Процент команд от сообщений: ${cmdsPerMessage}%\n` +
                     `Реплеев получено: ${replaysReceived}\n` +
-                    `Реплеев отрендерено (s/e): ${replaysRendered}/${failedRendersExperimental}\n` +
+                    `Реплеев отрендерено (s/e): ${replaysRendered}/${replaysRenderedExperimental}\n` +
                     `Ошибок рендера (s/e): ${failedRenders}/${failedRendersExperimental}\n` +
                     `Процент реплеев от команд: ${replaysPerCommands}%\n` +
                     `Процент рендеров от команд: ${rendersPerCommands}%`
