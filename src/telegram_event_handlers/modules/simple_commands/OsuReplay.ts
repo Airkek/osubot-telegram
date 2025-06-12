@@ -68,11 +68,18 @@ export class OsuReplay extends Command {
                 settingsAllowed = settingsAllowed && chatSettings.render_enabled;
             }
 
-            const renderer = settings.experimental_renderer ? this.experimental_renderer : this.renderer;
+            const fallbackToExperimental =
+                !settings.experimental_renderer &&
+                !this.renderer.supportGameMode(replay.mode) &&
+                this.experimental_renderer.supportGameMode(replay.mode);
+
+            const renderer =
+                settings.experimental_renderer || fallbackToExperimental ? this.experimental_renderer : this.renderer;
             const canRender =
                 process.env.RENDER_REPLAYS === "true" && settingsAllowed && renderer.supportGameMode(replay.mode);
             let renderAdditional = canRender ? "\n\nРендер реплея в процессе..." : "";
-            if (canRender && settings.experimental_renderer) {
+
+            if (canRender && (settings.experimental_renderer || fallbackToExperimental)) {
                 renderAdditional +=
                     "\n⚠️Используется экспериментальный рендерер. Некоторые функции могут быть недоступны или работать неправильно.\n\nПросьба сообщать о найденных ошибках в комментарии к посту - https://t.me/osubotupdates/34";
             }
@@ -91,7 +98,12 @@ export class OsuReplay extends Command {
                 if (!rendererAvailable) {
                     needRender = false;
                     const rendererName = settings.render_enabled ? "experimental" : "o!rdr";
-                    renderAdditional = `\n\nВыбраный рендерер (${rendererName}) сейчас недоступен. Попробуйте позже или измените рендерер в настройах. Для этого введите /settings в личных сообщениях с ботом`;
+                    if (fallbackToExperimental) {
+                        renderAdditional = `\n\nЭтот режим игры поддерживается только экспериментальным рендерером, который сейчас недоступен. Попробуйте позже.`;
+                    } else {
+                        renderAdditional = `\n\nВыбраный рендерер (${rendererName}) сейчас недоступен. Попробуйте позже или измените рендерер в настройах. Для этого введите /settings в личных сообщениях с ботом`;
+                    }
+
                     this.removeLimit(ctx.senderId);
                 }
             }
@@ -141,7 +153,7 @@ export class OsuReplay extends Command {
                     let text = "Этот реплей уже рендерится на o!rdr.";
                     if (isChat) {
                         text +=
-                            "\n\nЕсли в вашем чате есть другой бот, который рендерит реплеи, отключите рендер в текущем боте - /settings\nЕсли этого не сделать, есть риск бана на o!rdr по нику из реплея.";
+                            "\n\nЕсли в вашем чате есть другой бот, который рендерит реплеи, отключите рендер для этого чата в текущем боте - /settings\nЕсли этого не сделать, есть риск бана на o!rdr по нику из реплея.";
                     }
                     await ctx.reply(text, {
                         keyboard: Util.createKeyboard([[{ text: "⚙️Настройки чата", command: "osu settings" }]]),
