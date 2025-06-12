@@ -17,7 +17,8 @@ type ToggleableSettingsKey =
     | "ordr_hit_counter"
     | "ordr_strain_graph"
     | "ordr_is_custom"
-    | "notifications_enabled";
+    | "notifications_enabled"
+    | "experimental_renderer";
 
 type ToggleableChatSettingsKey = "render_enabled" | "notifications_enabled";
 
@@ -173,6 +174,15 @@ function buildRenderPage(settings: UserSettings): InlineKeyboard {
     const page = "render";
     return buildLeveledPageKeyboard(settings.user_id, "home", [
         [toggleableButton(settings.user_id, page, "Рендер реплеев", "render_enabled", settings.render_enabled)],
+        [
+            toggleableButton(
+                settings.user_id,
+                page,
+                "Экспериментальный рендерер",
+                "experimental_renderer",
+                settings.experimental_renderer
+            ),
+        ],
         [
             toggleableButton(settings.user_id, page, "Фоновое видео", "ordr_video", settings.ordr_video),
             toggleableButton(settings.user_id, page, "Сториборд", "ordr_storyboard", settings.ordr_storyboard),
@@ -369,7 +379,8 @@ export default class SettingsCommand extends Command {
                         case "ordr_ur_counter":
                         case "ordr_hit_counter":
                         case "ordr_strain_graph":
-                        case "notifications_enabled": {
+                        case "notifications_enabled":
+                        case "experimental_renderer": {
                             settings[key] = value;
                             allowUpdate = true;
                             break;

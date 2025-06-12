@@ -78,10 +78,18 @@ class OrdinalWebSocket {
 }
 
 export class IssouBestRenderer implements IReplayRenderer {
-    private wsClient: OrdinalWebSocket;
+    private readonly wsClient: OrdinalWebSocket;
 
     constructor() {
         this.wsClient = OrdinalWebSocket.getInstance();
+    }
+
+    public async available(): Promise<boolean> {
+        return true; // TODO
+    }
+
+    public supportGameMode(mode: number): boolean {
+        return mode == 0; // osu!
     }
 
     async render(file: Buffer, settings: RenderSettings): Promise<RenderResponse> {

@@ -25,4 +25,6 @@ export interface RenderResponse {
 
 export interface IReplayRenderer {
     render(file: Buffer, settings: RenderSettings): Promise<RenderResponse>;
+    available(): Promise<boolean>;
+    supportGameMode(mode: number): boolean;
 }

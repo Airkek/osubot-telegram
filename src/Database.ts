@@ -464,6 +464,17 @@ const migrations: IMigration[] = [
             return true;
         },
     },
+    {
+        version: 12,
+        name: "Add experimental_renderer to settings",
+        process: async (db: Database) => {
+            await db.run(
+                `ALTER TABLE settings
+                    ADD COLUMN experimental_renderer BOOLEAN DEFAULT false`
+            );
+            return true;
+        },
+    },
 ];
 
 async function applyMigrations(db: Database) {
@@ -511,6 +522,7 @@ export interface UserSettings {
     ordr_strain_graph: boolean;
     ordr_is_skin_custom: boolean;
     notifications_enabled: boolean;
+    experimental_renderer: boolean;
 }
 
 export class DatabaseUserSettings {
@@ -542,8 +554,9 @@ export class DatabaseUserSettings {
                  ordr_hit_counter      = $8,
                  ordr_strain_graph     = $9,
                  ordr_is_skin_custom   = $10,
-                 notifications_enabled = $11
-             WHERE user_id = $12`,
+                 notifications_enabled = $11,
+                 experimental_renderer = $12
+             WHERE user_id = $13`,
             [
                 settings.render_enabled,
                 settings.ordr_skin,
@@ -556,6 +569,7 @@ export class DatabaseUserSettings {
                 settings.ordr_strain_graph,
                 settings.ordr_is_skin_custom,
                 settings.notifications_enabled,
+                settings.experimental_renderer,
                 settings.user_id,
             ]
         );

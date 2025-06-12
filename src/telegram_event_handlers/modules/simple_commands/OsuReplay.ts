@@ -8,9 +8,11 @@ import Util from "../../../Util";
 import { IReplayRenderer } from "../../../osu_specific/replay_render/IReplayRenderer";
 import { IssouBestRenderer } from "../../../osu_specific/replay_render/IssouBestRenderer";
 import { OsrReplay } from "../../../osu_specific/OsrReplay";
+import { ExperimentalRenderer } from "../../../osu_specific/replay_render/ExperimentalRenderer";
 
 export class OsuReplay extends Command {
     renderer: IReplayRenderer;
+    experimental_renderer: IReplayRenderer;
     rate = {};
     rendered = 0;
     failedRenders = 0;
@@ -66,15 +68,31 @@ export class OsuReplay extends Command {
                 settingsAllowed = settingsAllowed && chatSettings.render_enabled;
             }
 
-            const canRender = process.env.RENDER_REPLAYS === "true" && settingsAllowed && replay.mode == 0;
+            const renderer = settings.experimental_renderer ? this.experimental_renderer : this.renderer;
+            const canRender =
+                process.env.RENDER_REPLAYS === "true" && settingsAllowed && renderer.supportGameMode(replay.mode);
             let renderAdditional = canRender ? "\n\nРендер реплея в процессе..." : "";
+            if (canRender && settings.experimental_renderer) {
+                renderAdditional +=
+                    "\n⚠️Используется экспериментальный рендерер. Некоторые функции могут быть недоступны или работать неправильно, а скорость рендера может быть большой из-за отсутствия видеокарты на сервере у бота.\n\nПросьба сообщать о найденных ошибках в комментарии к посту - https://t.me/osubotupdates/34";
+            }
             let needRender = canRender;
-            if (canRender) {
+            if (needRender) {
                 if (this.checkLimit(ctx.senderId)) {
                     needRender = false;
                     renderAdditional = "\n\nРендер реплея доступен раз в 5 минут";
                 } else {
                     this.setLimit(ctx.senderId);
+                }
+            }
+
+            if (needRender) {
+                const rendererAvailable = await renderer.available();
+                if (!rendererAvailable) {
+                    needRender = false;
+                    const rendererName = settings.render_enabled ? "experimental" : "o!rdr";
+                    renderAdditional = `\n\nВыбраный рендерер (${rendererName}) сейчас недоступен. Попробуйте позже или измените рендерер в настройах. Для этого введите /settings в личных сообщениях с ботом`;
+                    this.removeLimit(ctx.senderId);
                 }
             }
 
@@ -94,7 +112,7 @@ export class OsuReplay extends Command {
             if (!needRender) {
                 return;
             }
-            const replayResponse = await this.renderer.render(file, {
+            const replayResponse = await renderer.render(file, {
                 skin: settings.ordr_skin,
                 video: settings.ordr_video,
                 storyboard: settings.ordr_storyboard,
@@ -113,7 +131,7 @@ export class OsuReplay extends Command {
                         url: replayResponse.video.url,
                         width: replayResponse.video.width,
                         height: replayResponse.video.heigth,
-                        duration: replayResponse.video.duration,
+                        duration: Math.ceil(beatmap.stats.length),
                     },
                 });
             } else {
@@ -135,6 +153,7 @@ export class OsuReplay extends Command {
         });
 
         this.renderer = new IssouBestRenderer();
+        this.experimental_renderer = new ExperimentalRenderer();
     }
 
     check(name: string, ctx: UnifiedMessageContext): boolean {
