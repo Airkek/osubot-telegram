@@ -9,6 +9,10 @@ interface UploadResponse {
     error?: string;
 }
 
+const sleep = async (ms: number) => {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+};
+
 export class ExperimentalRenderer implements IReplayRenderer {
     private readonly base_url: string;
 
@@ -123,6 +127,7 @@ export class ExperimentalRenderer implements IReplayRenderer {
             const status = data.split("\n");
 
             if (status[0] == "render") {
+                await sleep(500);
                 continue;
             }
 
