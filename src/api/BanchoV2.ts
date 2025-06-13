@@ -19,6 +19,7 @@ import {
 import Mods from "../osu_specific/pp/Mods";
 import IAPI from "./base";
 import { Bot } from "../Bot";
+import fs from "fs";
 
 type Ruleset = "osu" | "mania" | "taiko" | "fruits";
 
@@ -56,6 +57,8 @@ interface Score {
     preserve?: boolean;
     ranked?: boolean;
     user_id?: number;
+
+    has_replay: boolean;
 }
 
 interface Beatmap {
@@ -246,6 +249,7 @@ class V2Score implements APIScore {
     v2_acc: number;
     top100_number?: number;
     player_id?: number;
+    has_replay: boolean;
     constructor(data: Score, forceLazerScore = false) {
         this.api_score_id = data.id;
         this.beatmapId = data.beatmap.id;
@@ -272,6 +276,7 @@ class V2Score implements APIScore {
         this.pp = data.pp;
         this.v2_acc = data.accuracy;
         this.player_id = data.user_id;
+        this.has_replay = data.has_replay;
     }
 
     accuracy() {
@@ -378,6 +383,25 @@ class BanchoAPIV2 implements IAPI {
         }
         this.token = data.access_token;
         this.logged = 1;
+    }
+
+    private async getArrayBuffer(method: string, query?) {
+        try {
+            const { data } = await this.api.get(`${method}${query ? `?${qs.stringify(query)}` : ""}`, {
+                headers: {
+                    Authorization: `Bearer ${this.token}`,
+                    "x-api-version": "20241130",
+                },
+                responseType: "arraybuffer",
+            });
+            return data;
+        } catch (e) {
+            if (e.response?.status == 401) {
+                await this.refresh();
+                return this.getArrayBuffer(method, query);
+            }
+            return undefined;
+        }
     }
 
     private async get(method: string, query?) {
@@ -636,6 +660,16 @@ class BanchoAPIV2 implements IAPI {
     async getScoreByScoreId(scoreId: number | string, legacyOnly = false): Promise<V2Score> {
         const data = await this.getScoreByScoreId_internal(scoreId, legacyOnly);
         return new V2Score(data);
+    }
+
+    async downloadReplay(scoreId: number | string): Promise<Buffer> {
+        const data = await this.getArrayBuffer(`/scores/${scoreId}/download`);
+        const buffer = Buffer.from(data, "binary");
+
+        // Запись в файл
+        fs.writeFileSync("D:\\test.osr", buffer);
+
+        return buffer;
     }
 
     private async getScoreByScoreId_internal(scoreId: number | string, legacyOnly = false): Promise<Score> {

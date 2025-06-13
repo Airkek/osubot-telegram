@@ -1,8 +1,8 @@
 import { Api, Context, InlineKeyboard, InputFile, InputMediaBuilder } from "grammy";
 import { MessageEntity, UserFromGetMe } from "@grammyjs/types";
-import { FileFlavor, FileApiFlavor } from "@grammyjs/files";
-import TextLinkMessageEntity = MessageEntity.TextLinkMessageEntity;
+import { FileApiFlavor, FileFlavor } from "@grammyjs/files";
 import fs from "fs";
+import TextLinkMessageEntity = MessageEntity.TextLinkMessageEntity;
 
 export type TgContext = FileFlavor<Context>;
 export type TgApi = FileApiFlavor<Api>;
@@ -255,6 +255,13 @@ export default class UnifiedMessageContext {
         return this.tgCtx.message?.document?.file_size ?? Number.MAX_VALUE;
     }
 
+    registerTempFile(filePath: string) {
+        if (!this.registryToken) {
+            this.registryToken = {};
+        }
+        registry.register(this.registryToken, filePath);
+    }
+
     async downloadFile(): Promise<string> {
         if (this.tmpFile) {
             return this.tmpFile;
@@ -262,18 +269,10 @@ export default class UnifiedMessageContext {
 
         const file = await this.tgCtx.getFile();
 
-        if (this.localServer) {
-            const url = file.getUrl();
-            this.tmpFile = url;
-            registry.register(this, url);
-            return url;
-        }
+        this.tmpFile = this.localServer ? file.getUrl() : await file.download();
 
-        const filePath = await file.download();
-        this.tmpFile = filePath;
-        this.registryToken = {};
-        registry.register(this.registryToken, filePath);
-        return filePath;
+        this.registerTempFile(this.tmpFile);
+        return this.tmpFile;
     }
 
     removeFile(): void {

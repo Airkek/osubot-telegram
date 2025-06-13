@@ -83,10 +83,6 @@ export class ExperimentalRenderer implements IReplayRenderer {
         const form = new FormData();
         form.append("replayFile", file, { filename: "replay.osr" });
 
-        form.append("username", process.env.ORDR_USERNAME);
-        form.append("verificationKey", process.env.ORDR_API_KEY);
-
-        form.append("showDanserLogo", "false");
         form.append("useSkinColors", "true");
         form.append("useSkinHitsounds", "true");
         form.append("useBeatmapColors", "false");

@@ -58,6 +58,25 @@ export default class AbstractRecent extends ServerCommand {
                         keyboardRows.push([secondButton]);
                     }
 
+                    if (recent.has_replay && recent.api_score_id) {
+                        const isChat = self.ctx.senderId != self.ctx.chatId;
+                        let settingsAllowed = true;
+                        if (isChat) {
+                            const chatSettings = await this.module.bot.database.chatSettings.getChatSettings(
+                                self.ctx.chatId
+                            );
+                            settingsAllowed = settingsAllowed && chatSettings.render_enabled;
+                        }
+
+                        if (settingsAllowed) {
+                            const thirdButton = {
+                                text: `Отрендерить реплей`,
+                                command: `render_bancho:${recent.api_score_id}`,
+                            };
+                            keyboardRows.push([thirdButton]);
+                        }
+                    }
+
                     keyboard = Util.createKeyboard(keyboardRows);
                 }
 

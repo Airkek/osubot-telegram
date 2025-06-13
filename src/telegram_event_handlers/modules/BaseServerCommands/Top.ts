@@ -192,32 +192,52 @@ export default class AbstractTop extends ServerCommand {
             `${header} ${user.nickname} (${Mode[score.mode]}):\n` +
             context.module.bot.templates.ScoreFull(score, map, ppCalc, context.module.link);
 
-        const keyboard = this.createScoreKeyboard(context, map.id);
+        const keyboard = await this.createScoreKeyboard(context, map.id, score);
 
         await context.reply(message, { photo: cover, keyboard });
         context.module.bot.maps.setMap(context.ctx.chatId, map);
     }
 
-    private createScoreKeyboard(context: CommandContext, mapId: number) {
+    private async createScoreKeyboard(context: CommandContext, mapId: number, score: APIScore) {
         if (!context.module.api.getScore) {
             return undefined;
         }
 
         const buttons = [
-            {
-                text: `[${context.module.prefix[0].toUpperCase()}] Мой скор на карте`,
-                command: `{map${mapId}}${context.module.prefix[0]} c`,
-            },
+            [
+                {
+                    text: `[${context.module.prefix[0].toUpperCase()}] Мой скор на карте`,
+                    command: `{map${mapId}}${context.module.prefix[0]} c`,
+                },
+            ],
         ];
 
         if (context.ctx.isInGroupChat) {
-            buttons.push({
+            buttons[0].push({
                 text: `[${context.module.prefix[0].toUpperCase()}] Топ чата на карте`,
                 command: `{map${mapId}}${context.module.prefix[0]} lb`,
             });
         }
 
-        return Util.createKeyboard([buttons]);
+        if (score.has_replay && score.api_score_id) {
+            const isChat = context.ctx.senderId != context.ctx.chatId;
+            let settingsAllowed = true;
+            if (isChat) {
+                const chatSettings = await this.module.bot.database.chatSettings.getChatSettings(context.ctx.chatId);
+                settingsAllowed = settingsAllowed && chatSettings.render_enabled;
+            }
+
+            if (settingsAllowed) {
+                buttons.push([
+                    {
+                        text: `Отрендерить реплей`,
+                        command: `render_bancho:${score.api_score_id}`,
+                    },
+                ]);
+            }
+        }
+
+        return Util.createKeyboard(buttons);
     }
 
     private createPageKeyboard(

@@ -15,6 +15,7 @@ interface IAPI {
         mode?: number,
         mods?: number
     ): Promise<LeaderboardResponse>;
+    downloadReplay?(scoreId: number | string): Promise<Buffer>;
 }
 
 export default IAPI;

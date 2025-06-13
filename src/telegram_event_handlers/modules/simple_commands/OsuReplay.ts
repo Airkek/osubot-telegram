@@ -25,17 +25,36 @@ export class OsuReplay extends Command {
         super(["osu_replay"], module, async (ctx) => {
             const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
-            if (ctx.getFileSize() > MAX_FILE_SIZE) {
-                await ctx.reply("Файл слишком большой!");
-                return;
-            }
-
-            const localPath = await ctx.downloadFile();
             let file: Buffer;
-            try {
-                file = fs.readFileSync(localPath);
-            } finally {
-                ctx.removeFile();
+            if (ctx.messagePayload) {
+                const messagePayload = ctx.messagePayload.split(":");
+                if (messagePayload.length < 2) {
+                    return;
+                }
+                switch (messagePayload[0]) {
+                    case "render_bancho": {
+                        const scoreId = Number(messagePayload[1]);
+                        if (isNaN(scoreId)) {
+                            return;
+                        }
+                        file = await this.module.bot.api.bancho.downloadReplay(scoreId);
+                        break;
+                    }
+                    default:
+                        return;
+                }
+            } else {
+                if (ctx.getFileSize() > MAX_FILE_SIZE) {
+                    await ctx.reply("Файл слишком большой!");
+                    return;
+                }
+
+                const localPath = await ctx.downloadFile();
+                try {
+                    file = fs.readFileSync(localPath);
+                } finally {
+                    ctx.removeFile();
+                }
             }
 
             const decoder = new ScoreDecoder();
@@ -66,7 +85,7 @@ export class OsuReplay extends Command {
 
             const settings = await this.module.bot.database.userSettings.getUserSettings(ctx.senderId);
             const isChat = ctx.senderId != ctx.chatId;
-            let settingsAllowed = settings.render_enabled;
+            let settingsAllowed = settings.render_enabled || !!ctx.messagePayload;
             if (isChat && settingsAllowed) {
                 const chatSettings = await this.module.bot.database.chatSettings.getChatSettings(ctx.chatId);
                 settingsAllowed = settingsAllowed && chatSettings.render_enabled;
@@ -82,7 +101,11 @@ export class OsuReplay extends Command {
             const renderer = useExperimental ? this.experimental_renderer : this.renderer;
             const canRender =
                 process.env.RENDER_REPLAYS === "true" && settingsAllowed && renderer.supportGameMode(replay.mode);
-            let renderAdditional = canRender ? "\n\nРендер реплея в процессе..." : "";
+            let renderAdditional = canRender
+                ? "\n\nРендер реплея в процессе..."
+                : ctx.messagePayload
+                  ? "Рендер недоступен"
+                  : "";
 
             if (canRender && useExperimental) {
                 renderAdditional +=
@@ -115,15 +138,18 @@ export class OsuReplay extends Command {
 
             const renderHeader = `Player: ${replay.player}\n\n`;
 
-            await ctx.reply(
-                renderHeader +
+            let fullBody = renderAdditional.trim();
+            if (!ctx.messagePayload) {
+                fullBody =
+                    renderHeader +
                     module.bot.templates.ScoreFull(replay, beatmap, calculator, "https://osu.ppy.sh") +
-                    renderAdditional,
-                {
-                    photo: cover,
-                    keyboard,
-                }
-            );
+                    renderAdditional;
+            }
+
+            await ctx.reply(fullBody, {
+                photo: !ctx.messagePayload ? cover : undefined,
+                keyboard: !ctx.messagePayload ? keyboard : undefined,
+            });
             module.bot.maps.setMap(ctx.chatId, beatmap);
 
             if (!needRender) {
@@ -183,7 +209,10 @@ export class OsuReplay extends Command {
     }
 
     check(name: string, ctx: UnifiedMessageContext): boolean {
-        return ctx.hasFile() && ctx.getFileName()?.endsWith(".osr");
+        return (
+            (ctx.hasFile() && ctx.getFileName()?.endsWith(".osr")) ||
+            (ctx.messagePayload && ctx.messagePayload.startsWith("render_bancho:"))
+        );
     }
 
     private checkLimit(user: number) {

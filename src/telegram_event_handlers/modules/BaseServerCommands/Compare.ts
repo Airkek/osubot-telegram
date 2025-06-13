@@ -3,6 +3,7 @@ import Mods from "../../../osu_specific/pp/Mods";
 import Calculator from "../../../osu_specific/pp/bancho";
 import { ServerCommand } from "../../ServerCommand";
 import { IBeatmap } from "../../../beatmaps/BeatmapTypes";
+import Util, { IKBButton } from "../../../Util";
 
 export default class AbstractCompare extends ServerCommand {
     constructor(module: ServerModule) {
@@ -41,6 +42,27 @@ export default class AbstractCompare extends ServerCommand {
                     cover = await self.module.bot.database.covers.getCover(map.setId);
                 }
                 const calc = new Calculator(map, score.mods);
+
+                const buttons: IKBButton[][] = [];
+                if (score.has_replay && score.api_score_id) {
+                    const isChat = self.ctx.senderId != self.ctx.chatId;
+                    let settingsAllowed = true;
+                    if (isChat) {
+                        const chatSettings = await this.module.bot.database.chatSettings.getChatSettings(
+                            self.ctx.chatId
+                        );
+                        settingsAllowed = settingsAllowed && chatSettings.render_enabled;
+                    }
+
+                    if (settingsAllowed) {
+                        const button = {
+                            text: `Отрендерить реплей`,
+                            command: `render_bancho:${score.api_score_id}`,
+                        };
+                        buttons.push([button]);
+                    }
+                }
+
                 await self.reply(
                     `Лучший скор игрока на этой карте:\n${self.module.bot.templates.ScoreFull(
                         score,
@@ -50,6 +72,7 @@ export default class AbstractCompare extends ServerCommand {
                     )}`,
                     {
                         photo: cover,
+                        keyboard: buttons.length > 0 ? Util.createKeyboard(buttons) : undefined,
                     }
                 );
             },

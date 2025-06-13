@@ -229,6 +229,7 @@ interface APIScore {
     beatmap?: IBeatmap;
     player_id?: number;
     fake?: boolean;
+    has_replay?: boolean;
     accuracy(): number;
 }
 

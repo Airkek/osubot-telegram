@@ -3,6 +3,7 @@ import UnifiedMessageContext from "../../../TelegramSupport";
 import { SimpleCommandsModule } from "./index";
 import { getScoreIdFromText } from "../../../osu_specific/regexes/ScoreRegexp";
 import Calculator from "../../../osu_specific/pp/bancho";
+import Util, { IKBButton } from "../../../Util";
 
 export class BanchoScore extends Command {
     constructor(module: SimpleCommandsModule) {
@@ -15,10 +16,30 @@ export class BanchoScore extends Command {
             const cover = await module.bot.database.covers.getCover(map.setId);
             module.bot.maps.setMap(ctx.chatId, map);
             const calc = new Calculator(map, score.mods);
+
+            const buttons: IKBButton[][] = [];
+            if (score.has_replay && score.api_score_id) {
+                const isChat = ctx.senderId != ctx.chatId;
+                let settingsAllowed = true;
+                if (isChat) {
+                    const chatSettings = await this.module.bot.database.chatSettings.getChatSettings(ctx.chatId);
+                    settingsAllowed = settingsAllowed && chatSettings.render_enabled;
+                }
+
+                if (settingsAllowed) {
+                    const button = {
+                        text: `Отрендерить реплей`,
+                        command: `render_bancho:${score.api_score_id}`,
+                    };
+                    buttons.push([button]);
+                }
+            }
+
             await ctx.reply(
                 `Player: ${user.nickname}\n\n${module.bot.templates.ScoreFull(score, map, calc, "https://osu.ppy.sh")}`,
                 {
                     photo: cover,
+                    keyboard: buttons.length > 0 ? Util.createKeyboard(buttons) : undefined,
                 }
             );
         });
