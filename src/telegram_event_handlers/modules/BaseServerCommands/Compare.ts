@@ -48,7 +48,7 @@ export default class AbstractCompare extends ServerCommand {
                     const settingsAllowed = process.env.RENDER_REPLAYS === "true";
                     if (settingsAllowed) {
                         const button = {
-                            text: `Отрендерить реплей`,
+                            text: self.ctx.tr("render-replay-button"),
                             command: `render_bancho:${score.api_score_id}`,
                         };
                         buttons.push([button]);

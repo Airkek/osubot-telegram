@@ -1,0 +1,1 @@
+player-name = Player: {$player_name}

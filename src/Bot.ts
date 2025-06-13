@@ -158,10 +158,10 @@ export class Bot {
                 onLimitExceeded: async (tgCtx: TgContext) => {
                     const ctx = await this.buildActivatedContext(tgCtx);
                     if (ctx.messagePayload) {
-                        await ctx.answer("Подождите немного!");
+                        await ctx.answer(ctx.tr("too-fast-notification"));
                         await tgCtx.answerCallbackQuery();
                     } else {
-                        await ctx.reply("Вы слишком часто используете команды.");
+                        await ctx.reply(ctx.tr("too-fast-commands-text"));
                     }
                 },
                 keyGenerator: (tgCtx: TgContext) => {

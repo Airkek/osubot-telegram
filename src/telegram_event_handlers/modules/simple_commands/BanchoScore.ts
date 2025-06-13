@@ -22,7 +22,7 @@ export class BanchoScore extends Command {
                 const settingsAllowed = process.env.RENDER_REPLAYS === "true";
                 if (settingsAllowed) {
                     const button = {
-                        text: `Отрендерить реплей`,
+                        text: ctx.tr("render-replay-button"),
                         command: `render_bancho:${score.api_score_id}`,
                     };
                     buttons.push([button]);
@@ -30,7 +30,9 @@ export class BanchoScore extends Command {
             }
 
             await ctx.reply(
-                `Player: ${user.nickname}\n\n${module.bot.templates.ScoreFull(score, map, calc, "https://osu.ppy.sh")}`,
+                `${ctx.tr("player-name", {
+                    player_name: user.nickname,
+                })}\n\n${module.bot.templates.ScoreFull(score, map, calc, "https://osu.ppy.sh")}`,
                 {
                     photo: cover,
                     keyboard: buttons.length > 0 ? Util.createKeyboard(buttons) : undefined,

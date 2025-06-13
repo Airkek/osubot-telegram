@@ -206,7 +206,7 @@ export default class AbstractTop extends ServerCommand {
         const buttons = [
             [
                 {
-                    text: `[${context.module.prefix[0].toUpperCase()}] Мой скор на карте`,
+                    text: `[${context.module.prefix[0].toUpperCase()}] ${context.ctx.tr("my-score-on-map-button")}`,
                     command: `{map${mapId}}${context.module.prefix[0]} c`,
                 },
             ],
@@ -214,7 +214,7 @@ export default class AbstractTop extends ServerCommand {
 
         if (context.ctx.isInGroupChat) {
             buttons[0].push({
-                text: `[${context.module.prefix[0].toUpperCase()}] Топ чата на карте`,
+                text: `[${context.module.prefix[0].toUpperCase()}] ${context.ctx.tr("chat-map-leaderboard-button")}`,
                 command: `{map${mapId}}${context.module.prefix[0]} lb`,
             });
         }
@@ -224,7 +224,7 @@ export default class AbstractTop extends ServerCommand {
             if (settingsAllowed) {
                 buttons.push([
                     {
-                        text: `Отрендерить реплей`,
+                        text: context.ctx.tr("render-replay-button"),
                         command: `render_bancho:${score.api_score_id}`,
                     },
                 ]);
