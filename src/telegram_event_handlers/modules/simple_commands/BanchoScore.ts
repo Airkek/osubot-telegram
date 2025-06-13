@@ -19,13 +19,7 @@ export class BanchoScore extends Command {
 
             const buttons: IKBButton[][] = [];
             if (score.has_replay && score.api_score_id) {
-                const isChat = ctx.senderId != ctx.chatId;
-                let settingsAllowed = true;
-                if (isChat) {
-                    const chatSettings = await this.module.bot.database.chatSettings.getChatSettings(ctx.chatId);
-                    settingsAllowed = settingsAllowed && chatSettings.render_enabled;
-                }
-
+                const settingsAllowed = process.env.RENDER_REPLAYS === "true";
                 if (settingsAllowed) {
                     const button = {
                         text: `Отрендерить реплей`,

@@ -158,7 +158,14 @@ function genericSetButton(
 
 function buildChatSettingsKeyboard(settings: ChatSettings): InlineKeyboard {
     return Util.createKeyboard([
-        [toggleableChatButton(settings.chat_id, "Рендер реплеев", "render_enabled", settings.render_enabled)],
+        [
+            toggleableChatButton(
+                settings.chat_id,
+                "Автоматический рендер реплеев",
+                "render_enabled",
+                settings.render_enabled
+            ),
+        ],
         [
             toggleableChatButton(
                 settings.chat_id,
@@ -173,14 +180,13 @@ function buildChatSettingsKeyboard(settings: ChatSettings): InlineKeyboard {
 function buildRenderPage(settings: UserSettings): InlineKeyboard {
     const page = "render";
     return buildLeveledPageKeyboard(settings.user_id, "home", [
-        [toggleableButton(settings.user_id, page, "Рендер реплеев", "render_enabled", settings.render_enabled)],
         [
             toggleableButton(
                 settings.user_id,
                 page,
-                "Экспериментальный рендерер",
-                "experimental_renderer",
-                settings.experimental_renderer
+                "Автоматический рендер реплеев",
+                "render_enabled",
+                settings.render_enabled
             ),
         ],
         [
@@ -215,6 +221,15 @@ function buildRenderPage(settings: UserSettings): InlineKeyboard {
                 "График сложности",
                 "ordr_strain_graph",
                 settings.ordr_strain_graph
+            ),
+        ],
+        [
+            toggleableButton(
+                settings.user_id,
+                page,
+                "Предпочитать экспериментальный рендерер",
+                "experimental_renderer",
+                settings.experimental_renderer
             ),
         ],
     ]);

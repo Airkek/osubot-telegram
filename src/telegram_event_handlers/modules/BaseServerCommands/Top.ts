@@ -4,7 +4,7 @@ import BanchoPP from "../../../osu_specific/pp/bancho";
 import Mods from "../../../osu_specific/pp/Mods";
 import { ServerCommand, CommandContext } from "../../ServerCommand";
 import { Mode, APIUser, APIScore } from "../../../Types";
-import { GrammyError } from "grammy";
+import { GrammyError, InlineKeyboard } from "grammy";
 import { IBeatmap } from "../../../beatmaps/BeatmapTypes";
 
 interface ScoreProcessingOptions {
@@ -192,13 +192,13 @@ export default class AbstractTop extends ServerCommand {
             `${header} ${user.nickname} (${Mode[score.mode]}):\n` +
             context.module.bot.templates.ScoreFull(score, map, ppCalc, context.module.link);
 
-        const keyboard = await this.createScoreKeyboard(context, map.id, score);
+        const keyboard = this.createScoreKeyboard(context, map.id, score);
 
         await context.reply(message, { photo: cover, keyboard });
         context.module.bot.maps.setMap(context.ctx.chatId, map);
     }
 
-    private async createScoreKeyboard(context: CommandContext, mapId: number, score: APIScore) {
+    private createScoreKeyboard(context: CommandContext, mapId: number, score: APIScore): InlineKeyboard {
         if (!context.module.api.getScore) {
             return undefined;
         }
@@ -220,13 +220,7 @@ export default class AbstractTop extends ServerCommand {
         }
 
         if (score.has_replay && score.api_score_id) {
-            const isChat = context.ctx.senderId != context.ctx.chatId;
-            let settingsAllowed = true;
-            if (isChat) {
-                const chatSettings = await this.module.bot.database.chatSettings.getChatSettings(context.ctx.chatId);
-                settingsAllowed = settingsAllowed && chatSettings.render_enabled;
-            }
-
+            const settingsAllowed = process.env.RENDER_REPLAYS === "true";
             if (settingsAllowed) {
                 buttons.push([
                     {

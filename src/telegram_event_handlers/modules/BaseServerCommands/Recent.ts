@@ -59,15 +59,7 @@ export default class AbstractRecent extends ServerCommand {
                     }
 
                     if (recent.has_replay && recent.api_score_id) {
-                        const isChat = self.ctx.senderId != self.ctx.chatId;
-                        let settingsAllowed = true;
-                        if (isChat) {
-                            const chatSettings = await this.module.bot.database.chatSettings.getChatSettings(
-                                self.ctx.chatId
-                            );
-                            settingsAllowed = settingsAllowed && chatSettings.render_enabled;
-                        }
-
+                        const settingsAllowed = process.env.RENDER_REPLAYS === "true";
                         if (settingsAllowed) {
                             const thirdButton = {
                                 text: `Отрендерить реплей`,

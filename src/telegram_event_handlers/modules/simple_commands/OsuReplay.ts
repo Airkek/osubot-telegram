@@ -86,7 +86,7 @@ export class OsuReplay extends Command {
             const settings = await this.module.bot.database.userSettings.getUserSettings(ctx.senderId);
             const isChat = ctx.senderId != ctx.chatId;
             let settingsAllowed = settings.render_enabled || !!ctx.messagePayload;
-            if (isChat && settingsAllowed) {
+            if (isChat && settingsAllowed && !ctx.messagePayload) {
                 const chatSettings = await this.module.bot.database.chatSettings.getChatSettings(ctx.chatId);
                 settingsAllowed = settingsAllowed && chatSettings.render_enabled;
             }

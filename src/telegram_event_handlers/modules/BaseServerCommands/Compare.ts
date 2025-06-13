@@ -45,15 +45,7 @@ export default class AbstractCompare extends ServerCommand {
 
                 const buttons: IKBButton[][] = [];
                 if (score.has_replay && score.api_score_id) {
-                    const isChat = self.ctx.senderId != self.ctx.chatId;
-                    let settingsAllowed = true;
-                    if (isChat) {
-                        const chatSettings = await this.module.bot.database.chatSettings.getChatSettings(
-                            self.ctx.chatId
-                        );
-                        settingsAllowed = settingsAllowed && chatSettings.render_enabled;
-                    }
-
+                    const settingsAllowed = process.env.RENDER_REPLAYS === "true";
                     if (settingsAllowed) {
                         const button = {
                             text: `Отрендерить реплей`,
