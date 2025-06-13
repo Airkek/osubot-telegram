@@ -101,7 +101,7 @@ export default class UnifiedMessageContext {
         }
 
         if (!this.chatSettingsCache) {
-            this.chatSettingsCache = await this.database.chatSettings.getChatSettings(this.senderId);
+            this.chatSettingsCache = await this.database.chatSettings.getChatSettings(this.chatId);
         }
 
         return this.chatSettingsCache;
