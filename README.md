@@ -5,7 +5,7 @@ Port of OctoDumb's [osubot-old](https://github.com/OctoDumb/osubot-old) to teleg
 Telegram: https://t.me/osulegacybot
 
 # Features (not full list):
-- replay rendering by using [o!rdr](https://ordr.issou.best/)
+- replay rendering by using [o!rdr](https://ordr.issou.best/) and [osu-replay-viewer-continued](https://github.com/Airkek/osu-replay-viewer-continued/)
 - osu! lazer support
 - osu! custom servers support
   - [Gatari](https://osu.gatari.pw)
