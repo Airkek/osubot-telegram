@@ -45,7 +45,7 @@ export class OsuReplay extends Command {
                 }
             } else {
                 if (ctx.getFileSize() > MAX_FILE_SIZE) {
-                    await ctx.reply("Файл слишком большой!");
+                    await ctx.reply(ctx.tr("file-is-too-big-render"));
                     return;
                 }
 
@@ -71,11 +71,14 @@ export class OsuReplay extends Command {
                     ["G", "g"],
                     ["R", "r"],
                 ].map((group) => [
-                    { text: `[${group[0]}] Мой скор`, command: `${group[1]} c ${Util.getModeArg(replay.mode)}` },
+                    {
+                        text: `[${group[0]}] ${ctx.tr("my-score-on-map-button")}`,
+                        command: `${group[1]} c ${Util.getModeArg(replay.mode)}`,
+                    },
                     ...(ctx.isInGroupChat
                         ? [
                               {
-                                  text: `[${group[0]}] Топ чата`,
+                                  text: `[${group[0]}] ${ctx.tr("chat-map-leaderboard-button")}`,
                                   command: `${group[1]} lb ${Util.getModeArg(replay.mode)}`,
                               },
                           ]
@@ -101,20 +104,23 @@ export class OsuReplay extends Command {
             const canRender =
                 process.env.RENDER_REPLAYS === "true" && settingsAllowed && renderer.supportGameMode(replay.mode);
             let renderAdditional = canRender
-                ? "\n\nРендер реплея в процессе..."
+                ? "\n\n" + ctx.tr("render-in-progress")
                 : ctx.messagePayload
-                  ? "Рендер недоступен"
+                  ? ctx.tr("cant-render")
                   : "";
 
             if (canRender && useExperimental) {
-                renderAdditional +=
-                    "\n⚠️Используется экспериментальный рендерер. Некоторые функции могут быть недоступны или работать неправильно.\n\nПросьба сообщать о найденных ошибках в комментарии к посту - https://t.me/osubotupdates/34";
+                renderAdditional += "\n" + ctx.tr("experimental-renderer-warning");
             }
             let needRender = canRender;
             if (needRender) {
                 if (this.checkLimit(ctx.senderId)) {
                     needRender = false;
-                    renderAdditional = "\n\nРендер реплея доступен раз в 5 минут";
+                    renderAdditional =
+                        "\n\n" +
+                        ctx.tr("render-timeout-warning-minutes", {
+                            minutes: 5,
+                        });
                 } else {
                     this.setLimit(ctx.senderId);
                 }
@@ -125,17 +131,24 @@ export class OsuReplay extends Command {
                 if (!rendererAvailable) {
                     needRender = false;
                     if (fallbackToExperimental) {
-                        renderAdditional = `\n\nЭтот режим игры поддерживается только экспериментальным рендерером, который сейчас недоступен. Попробуйте позже.`;
+                        renderAdditional = "\n\n" + ctx.tr("experimental-gamemode-unavailable");
                     } else {
                         const rendererName = settings.render_enabled ? "experimental" : "o!rdr";
-                        renderAdditional = `\n\nВыбраный рендерер (${rendererName}) сейчас недоступен. Попробуйте позже или измените рендерер в настройах. Для этого введите /settings в личных сообщениях с ботом`;
+                        renderAdditional =
+                            "\n\n" +
+                            ctx.tr("renderer-unavailable", {
+                                renderer: rendererName,
+                            });
                     }
 
                     this.removeLimit(ctx.senderId);
                 }
             }
 
-            const renderHeader = `Player: ${replay.player}\n\n`;
+            const renderHeader =
+                ctx.tr("player-name", {
+                    player_name: replay.player,
+                }) + "\n\n";
 
             let fullBody = renderAdditional.trim();
             if (!ctx.messagePayload) {
@@ -189,16 +202,22 @@ export class OsuReplay extends Command {
                     this.failedRenders++;
                 }
                 if (replayResponse.error.includes("This replay is already rendering or in queue")) {
-                    let text = "Этот реплей уже рендерится на o!rdr.";
+                    let text = ctx.tr("already-rendering-warning");
                     if (ctx.isInGroupChat) {
-                        text +=
-                            "\n\nЕсли в вашем чате есть другой бот, который рендерит реплеи, отключите рендер для этого чата в текущем боте - /settings\nЕсли этого не сделать, есть риск бана на o!rdr по нику из реплея.";
+                        text += "\n\n";
+                        text += ctx.tr("already-rendering-warning-chat");
                     }
                     await ctx.reply(text, {
-                        keyboard: Util.createKeyboard([[{ text: "⚙️Настройки чата", command: "osu settings" }]]),
+                        keyboard: Util.createKeyboard([
+                            [{ text: ctx.tr("chat-settings-button"), command: "osu settings" }],
+                        ]),
                     });
                 } else {
-                    await ctx.reply(`Ошибка при рендере реплея: ${replayResponse.error}`);
+                    await ctx.reply(
+                        ctx.tr("render-error-text", {
+                            error: replayResponse.error,
+                        })
+                    );
                 }
             }
         });
