@@ -89,7 +89,7 @@ export default class NotifyCommand extends Command {
                     [{ text: "✅Отправить всем", command: `admin notify ${hash}:1` }],
                     [{ text: "✅Отправить только пользователям", command: `admin notify ${hash}:2` }],
                     [{ text: "✅Отправить только чатам", command: `admin notify ${hash}:3` }],
-                    [{ text: "❌Отмена", command: `admin notify ${hash}:0` }],
+                    [{ text: ctx.tr("cancel-button"), command: `admin notify ${hash}:0` }],
                 ]),
             });
         });

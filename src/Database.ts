@@ -7,6 +7,33 @@ import UnifiedMessageContext from "./TelegramSupport";
 import { createHash } from "node:crypto";
 import { OsuBeatmap } from "./beatmaps/osu/OsuBeatmap";
 
+export type Language = "ru" | "en";
+export type LanguageOverride = Language | "do_not_override";
+
+export interface ChatSettings {
+    chat_id: number;
+    render_enabled: boolean;
+    notifications_enabled: boolean;
+    language_override: LanguageOverride;
+}
+
+export interface UserSettings {
+    user_id: number;
+    render_enabled: boolean;
+    ordr_skin: string;
+    ordr_video: boolean;
+    ordr_storyboard: boolean;
+    ordr_bgdim: number;
+    ordr_pp_counter: boolean;
+    ordr_ur_counter: boolean;
+    ordr_hit_counter: boolean;
+    ordr_strain_graph: boolean;
+    ordr_is_skin_custom: boolean;
+    notifications_enabled: boolean;
+    experimental_renderer: boolean;
+    language_override: LanguageOverride;
+}
+
 class DatabaseServer implements IDatabaseServer {
     serverName: string;
     db: Database;
@@ -475,6 +502,21 @@ const migrations: IMigration[] = [
             return true;
         },
     },
+    {
+        version: 13,
+        name: "Add language_override to settings",
+        process: async (db: Database) => {
+            await db.run(
+                `ALTER TABLE chat_settings
+                    ADD COLUMN language_override TEXT DEFAULT 'do_not_override'`
+            );
+            await db.run(
+                `ALTER TABLE settings
+                    ADD COLUMN language_override TEXT DEFAULT 'do_not_override'`
+            );
+            return true;
+        },
+    },
 ];
 
 async function applyMigrations(db: Database) {
@@ -509,22 +551,6 @@ async function applyMigrations(db: Database) {
     }
 }
 
-export interface UserSettings {
-    user_id: number;
-    render_enabled: boolean;
-    ordr_skin: string;
-    ordr_video: boolean;
-    ordr_storyboard: boolean;
-    ordr_bgdim: number;
-    ordr_pp_counter: boolean;
-    ordr_ur_counter: boolean;
-    ordr_hit_counter: boolean;
-    ordr_strain_graph: boolean;
-    ordr_is_skin_custom: boolean;
-    notifications_enabled: boolean;
-    experimental_renderer: boolean;
-}
-
 export class DatabaseUserSettings {
     private db: Database;
 
@@ -555,8 +581,9 @@ export class DatabaseUserSettings {
                  ordr_strain_graph     = $9,
                  ordr_is_skin_custom   = $10,
                  notifications_enabled = $11,
-                 experimental_renderer = $12
-             WHERE user_id = $13`,
+                 experimental_renderer = $12,
+                 language_override     = $13
+             WHERE user_id = $14`,
             [
                 settings.render_enabled,
                 settings.ordr_skin,
@@ -570,16 +597,11 @@ export class DatabaseUserSettings {
                 settings.ordr_is_skin_custom,
                 settings.notifications_enabled,
                 settings.experimental_renderer,
+                settings.language_override,
                 settings.user_id,
             ]
         );
     }
-}
-
-export interface ChatSettings {
-    chat_id: number;
-    render_enabled: boolean;
-    notifications_enabled: boolean;
 }
 
 export class DatabaseChatSettings {
@@ -602,9 +624,10 @@ export class DatabaseChatSettings {
         await this.db.run(
             `UPDATE chat_settings
              SET render_enabled        = $1,
-                 notifications_enabled = $2
-             WHERE chat_id = $3`,
-            [settings.render_enabled, settings.notifications_enabled, settings.chat_id]
+                 notifications_enabled = $2,
+                 language_override     = $3
+             WHERE chat_id = $4`,
+            [settings.render_enabled, settings.notifications_enabled, settings.language_override, settings.chat_id]
         );
     }
 }
