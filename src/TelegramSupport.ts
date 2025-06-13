@@ -3,6 +3,7 @@ import { MessageEntity, UserFromGetMe } from "@grammyjs/types";
 import { FileApiFlavor, FileFlavor } from "@grammyjs/files";
 import fs from "fs";
 import TextLinkMessageEntity = MessageEntity.TextLinkMessageEntity;
+import Database, { ChatSettings, UserSettings } from "./Database";
 
 export type TgContext = FileFlavor<Context>;
 export type TgApi = FileApiFlavor<Api>;
@@ -59,19 +60,22 @@ export default class UnifiedMessageContext {
     readonly isFromBot: boolean;
     readonly isFromUser: boolean;
 
-    readonly senderName: string;
-
     private readonly tgCtx: TgContext;
     private readonly me: UserFromGetMe;
     private readonly localServer: boolean;
+    private readonly database: Database;
 
     private tmpFile?: string;
     private registryToken?: object;
 
-    constructor(ctx: TgContext, me: UserFromGetMe, isLocal: boolean) {
+    private userSettingsCache: UserSettings;
+    private chatSettingsCache: ChatSettings;
+
+    constructor(ctx: TgContext, me: UserFromGetMe, isLocal: boolean, database: Database) {
         this.tgCtx = ctx;
         this.me = me;
         this.localServer = isLocal;
+        this.database = database;
 
         this.text = ctx.message?.text ? ctx.message?.text : ctx.message?.caption;
         this.messagePayload = ctx.callbackQuery?.data;
@@ -81,6 +85,42 @@ export default class UnifiedMessageContext {
         this.chatId = ctx.chatId;
         this.isFromBot = ctx.from.is_bot;
         this.isFromUser = !ctx.from.is_bot;
+    }
+
+    async userSettings(): Promise<UserSettings> {
+        if (!this.userSettingsCache) {
+            this.userSettingsCache = await this.database.userSettings.getUserSettings(this.senderId);
+        }
+
+        return this.userSettingsCache;
+    }
+
+    async chatSettings(): Promise<ChatSettings> {
+        if (!this.isInGroupChat) {
+            return undefined;
+        }
+
+        if (!this.chatSettingsCache) {
+            this.chatSettingsCache = await this.database.chatSettings.getChatSettings(this.senderId);
+        }
+
+        return this.chatSettingsCache;
+    }
+
+    async updateUserSettings(settings: UserSettings) {
+        if (settings.user_id != this.senderId) {
+            return;
+        }
+        await this.database.userSettings.updateSettings(settings);
+        this.userSettingsCache = settings;
+    }
+
+    async updateChatSettings(settings: ChatSettings) {
+        if (!this.isInGroupChat || settings.chat_id != this.chatId) {
+            return;
+        }
+        await this.database.chatSettings.updateSettings(settings);
+        this.chatSettingsCache = settings;
     }
 
     async reply(text: string, options?: SendOptions) {

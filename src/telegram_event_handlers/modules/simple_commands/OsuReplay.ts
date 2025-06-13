@@ -83,11 +83,10 @@ export class OsuReplay extends Command {
                 ])
             );
 
-            const settings = await this.module.bot.database.userSettings.getUserSettings(ctx.senderId);
-            const isChat = ctx.senderId != ctx.chatId;
+            const settings = await ctx.userSettings();
             let settingsAllowed = settings.render_enabled || !!ctx.messagePayload;
-            if (isChat && settingsAllowed && !ctx.messagePayload) {
-                const chatSettings = await this.module.bot.database.chatSettings.getChatSettings(ctx.chatId);
+            if (ctx.isInGroupChat && settingsAllowed && !ctx.messagePayload) {
+                const chatSettings = await ctx.chatSettings();
                 settingsAllowed = settingsAllowed && chatSettings.render_enabled;
             }
 
@@ -191,7 +190,7 @@ export class OsuReplay extends Command {
                 }
                 if (replayResponse.error.includes("This replay is already rendering or in queue")) {
                     let text = "Этот реплей уже рендерится на o!rdr.";
-                    if (isChat) {
+                    if (ctx.isInGroupChat) {
                         text +=
                             "\n\nЕсли в вашем чате есть другой бот, который рендерит реплеи, отключите рендер для этого чата в текущем боте - /settings\nЕсли этого не сделать, есть риск бана на o!rdr по нику из реплея.";
                     }

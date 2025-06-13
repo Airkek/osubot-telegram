@@ -96,6 +96,10 @@ export class Bot {
         this.initialize();
     }
 
+    private buildContext(ctx: TgContext): UnifiedMessageContext {
+        return new UnifiedMessageContext(ctx, this.me, this.useLocalApi, this.database);
+    }
+
     private initialize(): void {
         this.setupDatabase();
         this.registerModules();
@@ -130,7 +134,7 @@ export class Bot {
                 timeFrame: 5000,
                 limit: 3,
                 onLimitExceeded: async (tgCtx: TgContext) => {
-                    const ctx = new UnifiedMessageContext(tgCtx, this.me, this.useLocalApi);
+                    const ctx = this.buildContext(tgCtx);
                     if (ctx.messagePayload) {
                         await ctx.answer("Подождите немного!");
                         await tgCtx.answerCallbackQuery();
@@ -139,7 +143,7 @@ export class Bot {
                     }
                 },
                 keyGenerator: (tgCtx: TgContext) => {
-                    const ctx = new UnifiedMessageContext(tgCtx, this.me, this.useLocalApi);
+                    const ctx = this.buildContext(tgCtx);
 
                     let isCommand = !!this.pendingCallbacks[this.createCallbackTicket(ctx)];
 
@@ -219,7 +223,7 @@ export class Bot {
     };
 
     private handleCallbackQuery = async (ctx): Promise<void> => {
-        const context = new UnifiedMessageContext(ctx, this.me, this.useLocalApi);
+        const context = this.buildContext(ctx);
 
         for (const module of this.modules) {
             const match = module.checkContext(context);
@@ -241,7 +245,7 @@ export class Bot {
     };
 
     private handleMessage = async (ctx): Promise<void> => {
-        const context = new UnifiedMessageContext(ctx, this.me, this.useLocalApi);
+        const context = this.buildContext(ctx);
 
         if (this.shouldSkipMessage(context)) {
             return;
@@ -329,7 +333,7 @@ export class Bot {
                 if (spl != "") {
                     ctx.message.text += " " + spl;
                 }
-                const context = new UnifiedMessageContext(ctx as TgContext, this.me, this.useLocalApi);
+                const context = this.buildContext(ctx as TgContext);
                 for (const module of this.modules) {
                     const match = module.checkContext(context);
                     if (match) {

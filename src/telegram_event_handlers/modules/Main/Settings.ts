@@ -275,22 +275,21 @@ async function buildSkinSelector(settings: UserSettings, pageNum: number): Promi
 export default class SettingsCommand extends Command {
     constructor(module: Module) {
         super(["settings", "ыуеештпы", "s", "ы"], module, async (ctx: UnifiedMessageContext, self, args) => {
-            const isChat = ctx.senderId != ctx.chatId;
-            const isAdmin = !isChat || (await ctx.isSenderAdmin());
+            const isAdmin = !ctx.isInGroupChat || (await ctx.isSenderAdmin());
 
             if (!ctx.messagePayload || ctx.messagePayload == "osu settings") {
-                if (isChat) {
+                if (ctx.isInGroupChat) {
                     if (!isAdmin) {
                         await ctx.reply("Настройки чата может редактировать только администратор чата!");
                         return;
                     }
 
-                    const stgs = await this.module.bot.database.chatSettings.getChatSettings(ctx.chatId);
+                    const stgs = await ctx.chatSettings();
                     await ctx.reply(`Настройки чата:`, {
                         keyboard: buildChatSettingsKeyboard(stgs),
                     });
                 } else {
-                    const stgs = await this.module.bot.database.userSettings.getUserSettings(ctx.senderId);
+                    const stgs = await ctx.userSettings();
                     await ctx.reply(`Настройки:`, {
                         keyboard: buildStartKeyboard(ctx.senderId, stgs),
                     });
@@ -304,7 +303,7 @@ export default class SettingsCommand extends Command {
                 return;
             }
 
-            if (isChat) {
+            if (ctx.isInGroupChat) {
                 if (!isAdmin) {
                     await ctx.answer("Ты не администратор чата!");
                     return;
@@ -320,8 +319,8 @@ export default class SettingsCommand extends Command {
                 }
             }
 
-            if (isChat) {
-                const chatSettings = await this.module.bot.database.chatSettings.getChatSettings(ctx.chatId);
+            if (ctx.isInGroupChat) {
+                const chatSettings = await ctx.chatSettings();
 
                 switch (eventParams[1]) {
                     case "setbool": {
@@ -337,7 +336,7 @@ export default class SettingsCommand extends Command {
                             }
                         }
                         if (allowUpdate) {
-                            await self.module.bot.database.chatSettings.updateSettings(chatSettings);
+                            await ctx.updateChatSettings(chatSettings);
                             await ctx.editMarkup(buildChatSettingsKeyboard(chatSettings));
                         }
                         break;
@@ -347,7 +346,7 @@ export default class SettingsCommand extends Command {
                 return;
             }
 
-            const settings = await this.module.bot.database.userSettings.getUserSettings(ctx.senderId);
+            const settings = await ctx.userSettings();
 
             const showPage = async (
                 page: SettingsPage,
@@ -406,7 +405,7 @@ export default class SettingsCommand extends Command {
                             break;
                     }
                     if (allowUpdate) {
-                        await self.module.bot.database.userSettings.updateSettings(settings);
+                        await ctx.updateUserSettings(settings);
                         await showPage(page);
                     }
                     break;
@@ -470,7 +469,7 @@ export default class SettingsCommand extends Command {
                                     }
 
                                     settings.ordr_skin = encodeURIComponent(ctx.text);
-                                    await self.module.bot.database.userSettings.updateSettings(settings);
+                                    await ctx.updateUserSettings(settings);
                                     await showPage(page, undefined, true, ctx);
 
                                     return true;
@@ -507,7 +506,7 @@ export default class SettingsCommand extends Command {
                                 }
 
                                 settings.ordr_bgdim = num;
-                                await self.module.bot.database.userSettings.updateSettings(settings);
+                                await ctx.updateUserSettings(settings);
                                 await showPage(page, undefined, true, ctx);
 
                                 return true;
@@ -520,7 +519,7 @@ export default class SettingsCommand extends Command {
                     }
 
                     if (allowUpdate) {
-                        await self.module.bot.database.userSettings.updateSettings(settings);
+                        await ctx.updateUserSettings(settings);
                         await showPage(page, pageNum);
                     }
                     break;
