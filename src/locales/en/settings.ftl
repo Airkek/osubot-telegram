@@ -1,4 +1,4 @@
-news-setting = News notification
+news-setting = News notifications
 auto-render = Automatic replay rendering
 background-video = Background video
 storyboard = Storyboard
@@ -9,7 +9,7 @@ ur-counter = UR counter
 hit-counter = Hit counter
 difficulty-graph = Difficulty graph
 prefer-experimental-renderer = Prefer experimental renderer
-enter-skin-id = ✍️Enter skin ID manually
+enter-skin-id = ✍️ Enter skin ID manually
 is-custom-skin = It's custom o!rdr skin
 
 render-page = 🎥Replay rendering
@@ -21,8 +21,8 @@ user-settings-other-user-warning = These aren't your settings!
 chat-settings-header = Chat settings:
 user-settings-header = Settings:
 
-chat-language-page = 🌐User language override
-chat-language-do-not-override = 🌐Do not override
+chat-language-page = 🌐 User language override
+chat-language-do-not-override = 🌐 Do not override
 
 select-page-action = Send a page number or write "{$action}" to cancel
 

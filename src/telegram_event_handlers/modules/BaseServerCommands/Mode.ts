@@ -6,7 +6,9 @@ export default class AbstractMode extends ServerCommand {
         super(["mode", "m", "ь", "ьщву"], module, async (self) => {
             if (!self.args.full[0]) {
                 await self.reply(
-                    `Не указан режим!\nИспользование: ${self.module.prefix[0]} mode <mode>\nДоступные моды:\n0 - osu!\n1 - Taiko\n2 - Fruits\n3 - Mania`
+                    self.ctx.tr("mode-set-not-specified", {
+                        prefix: self.module.prefix[0],
+                    }) + "\n0 - osu!\n1 - Taiko\n2 - Fruits\n3 - Mania"
                 );
                 return;
             }
@@ -37,11 +39,11 @@ export default class AbstractMode extends ServerCommand {
                     break;
             }
             if (isNaN(m) || m > 3 || m < 0) {
-                await self.reply("Некорректный режим!\nДоступные моды:\n0 - osu!\n1 - Taiko\n2 - Fruits\n3 - Mania");
+                await self.reply(self.ctx.tr("mode-set-invalid") + "\n1 - Taiko\n2 - Fruits\n3 - Mania");
                 return;
             }
             await self.module.db.setMode(self.ctx.senderId, m);
-            await self.reply("Режим установлен!");
+            await self.reply(self.ctx.tr("game-mode-set"));
         });
     }
 }

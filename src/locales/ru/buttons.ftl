@@ -6,3 +6,5 @@ chat-settings-button = ⚙️ Настройки чата
 render-replay-button = Отрендерить этот реплей
 my-score-on-map-button = Мой скор на карте
 chat-map-leaderboard-button = Топ чата на карте
+
+check-profile-button = Посмотреть профиль

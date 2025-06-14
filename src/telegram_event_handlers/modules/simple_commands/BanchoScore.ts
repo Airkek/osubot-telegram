@@ -32,7 +32,7 @@ export class BanchoScore extends Command {
             await ctx.reply(
                 `${ctx.tr("player-name", {
                     player_name: user.nickname,
-                })}\n\n${module.bot.templates.ScoreFull(score, map, calc, "https://osu.ppy.sh")}`,
+                })}\n\n${module.bot.templates.ScoreFull(ctx, score, map, calc, "https://osu.ppy.sh")}`,
                 {
                     photo: cover,
                     keyboard: buttons.length > 0 ? Util.createKeyboard(buttons) : undefined,

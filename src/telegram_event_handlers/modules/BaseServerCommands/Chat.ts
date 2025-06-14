@@ -9,11 +9,11 @@ export default class AbstractChat extends ServerCommand {
             if (self.args.nickname[0]) {
                 id = parseInt(self.args.nickname[0]);
                 if (isNaN(id)) {
-                    await self.reply("Некорректный ID!");
+                    await self.reply(self.ctx.tr("chat-id-invalid"));
                     return;
                 }
             } else if (!self.ctx.isInGroupChat) {
-                await self.reply("Укажите ID беседы!");
+                await self.reply(self.ctx.tr("give-chat-id"));
                 return;
             }
 
@@ -46,17 +46,17 @@ export default class AbstractChat extends ServerCommand {
                 modeStr = "Mania";
             }
 
-            let text = `Топ${users.length > 15 ? "-15" : ""} беседы (ID ${id}) [${modeStr}]:\n${users
+            let text = `${self.ctx.tr("top-15-of-chat")} (ID ${id}) [${modeStr}]:\n${users
                 .splice(0, 15)
                 .map(
                     (user, i) =>
-                        `#${i + 1} ${user.nickname} | ${Util.round(user.pp, 1)}pp | Ранк ${user.rank} | ${Util.round(user.acc, 2)}%`
+                        `#${i + 1} ${user.nickname} | ${Util.round(user.pp, 1)}pp | ${self.ctx.tr("player-rank")} ${user.rank} | ${Util.round(user.acc, 2)}%`
                 )
                 .join("\n")}`;
 
             const isBotAdmin = await self.ctx.isBotAdmin();
             if (!isBotAdmin) {
-                text += `\n\nВнимание! Бот не является администратором беседы, потому в топе могут находиться игроки, покинувшие беседу. Рекомендуется выдать боту права администратора и написать команду 'osu clear' для очистки топа от вышедших игроков.`;
+                text += "\n\n" + self.ctx.tr("bot-is-not-admin-leaderboard");
             }
 
             await self.reply(text);

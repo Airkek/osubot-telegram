@@ -290,7 +290,7 @@ export class Bot {
                     errorText = String(e);
                 }
 
-                await ctx.reply(`${Util.error(errorText)} (${err})`);
+                await ctx.reply(`${Util.error(errorText, ctx)} (${err})`);
             } finally {
                 if (res) {
                     this.pendingCallbacks[ticket] = undefined;

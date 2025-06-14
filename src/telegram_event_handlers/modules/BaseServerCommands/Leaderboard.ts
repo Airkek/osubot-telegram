@@ -7,12 +7,12 @@ export default class AbstractLeaderboard extends ServerCommand {
     constructor(module: ServerModule) {
         super(["leaderboard", "lb", "ди", "дуфвукищфкв"], module, async (self) => {
             if (!self.ctx.isInGroupChat) {
-                await self.reply("Эту команду можно использовать только в беседах!");
+                await self.reply(self.ctx.tr("command-for-chats-only"));
                 return;
             }
             const chat = self.module.bot.maps.getChat(self.ctx.chatId);
             if (!chat) {
-                await self.reply("Сначала отправьте карту!");
+                await self.reply(self.ctx.tr("send-beatmap-first"));
                 return;
             }
 
@@ -32,11 +32,11 @@ export default class AbstractLeaderboard extends ServerCommand {
                 self.args.mods.length == 0 ? null : new Mods(self.args.mods).sum()
             );
 
-            let text = self.module.bot.templates.Leaderboard(leaderboard);
+            let text = self.module.bot.templates.Leaderboard(self.ctx, leaderboard);
 
             const isBotAdmin = await self.ctx.isBotAdmin();
             if (!isBotAdmin) {
-                text += `\n\nВнимание! Бот не является администратором беседы, потому в топе могут находиться игроки, покинувшие беседу. Рекомендуется выдать боту права администратора и написать команду 'osu clear' для очистки топа от вышедших игроков.`;
+                text += "\n\n" + self.ctx.tr("bot-is-not-admin-leaderboard");
             }
 
             await self.reply(text);

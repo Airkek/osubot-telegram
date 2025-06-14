@@ -220,13 +220,13 @@ function buildChatSettingsKeyboard(settings: ChatSettings, l: ILocalisator): Inl
 function buildUserLanguagePage(settings: UserSettings, l: ILocalisator): InlineKeyboard {
     const page: SettingsPage = "language";
     return buildLeveledPageKeyboard(settings.user_id, "home", l, [
-        [toggleableButton(settings.user_id, page, "🇷🇺Русский", "lang_russian", settings.language_override == "ru")],
-        [toggleableButton(settings.user_id, page, "🇺🇸English", "lang_english", settings.language_override == "en")],
+        [toggleableButton(settings.user_id, page, "🇷🇺 Русский", "lang_russian", settings.language_override == "ru")],
+        [toggleableButton(settings.user_id, page, "🇺🇸 English", "lang_english", settings.language_override == "en")],
         [
             toggleableButton(
                 settings.user_id,
                 page,
-                "🌐Auto",
+                "🌐 Auto",
                 "lang_auto",
                 settings.language_override == "do_not_override"
             ),
@@ -237,8 +237,24 @@ function buildUserLanguagePage(settings: UserSettings, l: ILocalisator): InlineK
 function buildChatLanguagePage(settings: ChatSettings, l: ILocalisator): InlineKeyboard {
     const page: ChatSettingsPage = "language";
     return buildChatLeveledPageKeyboard(settings.chat_id, "home", l, [
-        [toggleableChatButton(settings.chat_id, page, "🇷🇺Русский", "lang_russian", settings.language_override == "ru")],
-        [toggleableChatButton(settings.chat_id, page, "🇺🇸English", "lang_english", settings.language_override == "en")],
+        [
+            toggleableChatButton(
+                settings.chat_id,
+                page,
+                "🇷🇺 Русский",
+                "lang_russian",
+                settings.language_override == "ru"
+            ),
+        ],
+        [
+            toggleableChatButton(
+                settings.chat_id,
+                page,
+                "🇺🇸 English",
+                "lang_english",
+                settings.language_override == "en"
+            ),
+        ],
         [
             toggleableChatButton(
                 settings.chat_id,

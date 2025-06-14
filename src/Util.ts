@@ -1,6 +1,7 @@
 import { CalcArgs, HitCounts, PPArgs } from "./Types";
 import { InlineKeyboard } from "grammy";
 import { IBeatmap } from "./beatmaps/BeatmapTypes";
+import { ILocalisator } from "./ILocalisator";
 
 interface Err {
     e: string;
@@ -15,27 +16,27 @@ export interface IKBButton {
 const errors: Err[] = [
     {
         e: "User not found",
-        t: "Игрок не найден!",
+        t: "user-not-found",
     },
     {
         e: "No top scores",
-        t: "Нет топ скоров!",
+        t: "no-top-scores",
     },
     {
         e: "No recent scores",
-        t: "Нет последних скоров!",
+        t: "no-recent-scores",
     },
     {
         e: "No scores",
-        t: "Не найдено скоров!",
+        t: "no-scores-found",
     },
     {
         e: "No scores found",
-        t: "Не найдено скоров!",
+        t: "no-scores-found",
     },
     {
         e: "Beatmap not found",
-        t: "Невозможно получить данные о карте!",
+        t: "beatmap-not-found",
     },
 ];
 
@@ -93,24 +94,9 @@ export default {
     createPPArgs(args: PPArgs, mode: number): CalcArgs {
         return new CalcArgs(args, mode);
     },
-    error(e: string): string {
+    error(e: string, l: ILocalisator): string {
         const f = errors.find((er) => er.e == e);
-        return f ? f.t : "Неизвестная ошибка!";
-    },
-    scoreNum(amount: number): string {
-        if (amount > 10 && amount < 20) {
-            return "скоров";
-        }
-        switch (amount % 10) {
-            case 1:
-                return "скор";
-            case 2:
-            case 3:
-            case 4:
-                return "скора";
-            default:
-                return "скоров";
-        }
+        return f ? l.tr(f.t) : l.tr("unknown-error");
     },
     createKeyboard(rows: IKBButton[][]): InlineKeyboard {
         const buttonRows = rows.map((row) => row.map((button) => InlineKeyboard.text(button.text, button.command)));

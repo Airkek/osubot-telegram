@@ -62,12 +62,18 @@ const createServerCommandRunner = (
 
                 if (!context.user.dbUser && !args.nickname[0]) {
                     await context.reply(
-                        `У этого пользователя не указан ник!\nПривяжите через ${context.module.prefix[0]} nick <ник>`
+                        ctx.tr("user-nickname-not-specified", {
+                            prefix: context.module.prefix[0],
+                        })
                     );
                     return;
                 }
             } else if (!context.user.dbUser && !args.nickname[0]) {
-                await context.reply(`Не указан ник!\nПривяжите через ${context.module.prefix[0]} nick <ник>`);
+                await context.reply(
+                    ctx.tr("sender-nickname-not-specified", {
+                        prefix: context.module.prefix[0],
+                    })
+                );
                 return;
             }
 

@@ -5,8 +5,11 @@ export default class AbstractNick extends ServerCommand {
     constructor(module: ServerModule) {
         super(["id", "шв"], module, async (self) => {
             if (!self.args.nickname[0]) {
-                await self.reply(`Не указан id!\nИспользование: ${module.prefix[0]} id <id>`);
-                return;
+                await self.reply(
+                    self.ctx.tr("user-id-not-specified", {
+                        prefix: module.prefix[0],
+                    })
+                );
             }
 
             try {
@@ -16,9 +19,9 @@ export default class AbstractNick extends ServerCommand {
                     await self.module.db.setMode(self.ctx.senderId, user.mode);
                 }
 
-                await self.reply(`Установлен id: ${user.id} (${user.nickname})`);
+                await self.reply(`${self.ctx.tr("user-id-set")}: ${user.id} (${user.nickname})`);
             } catch {
-                await self.reply("Такого пользователя не существует!");
+                await self.reply(self.ctx.tr("user-not-found"));
             }
         });
     }

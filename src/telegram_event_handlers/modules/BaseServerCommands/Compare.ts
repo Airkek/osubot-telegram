@@ -14,7 +14,7 @@ export default class AbstractCompare extends ServerCommand {
                 const mode = self.args.mode === null ? self.user.dbUser?.mode || 0 : self.args.mode;
                 const chat = self.module.bot.maps.getChat(self.ctx.chatId);
                 if (!chat) {
-                    await self.ctx.reply("Сначала отправьте карту!");
+                    await self.ctx.reply(self.ctx.tr("send-beatmap-first"));
                     return;
                 }
                 const score = self.user.username
@@ -56,7 +56,8 @@ export default class AbstractCompare extends ServerCommand {
                 }
 
                 await self.reply(
-                    `Лучший скор игрока на этой карте:\n${self.module.bot.templates.ScoreFull(
+                    `${self.ctx.tr("best-players-score-on-this-beatmap")}:\n${self.module.bot.templates.ScoreFull(
+                        self.ctx,
                         score,
                         map,
                         calc,

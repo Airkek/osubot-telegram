@@ -72,7 +72,13 @@ export default class AbstractRecent extends ServerCommand {
                     keyboard = Util.createKeyboard(keyboardRows);
                 }
 
-                const responseMessage = self.module.bot.templates.ScoreFull(recent, map, calculator, self.module.link);
+                const responseMessage = self.module.bot.templates.ScoreFull(
+                    self.ctx,
+                    recent,
+                    map,
+                    calculator,
+                    self.module.link
+                );
 
                 await self.reply(responseMessage, {
                     photo: cover,

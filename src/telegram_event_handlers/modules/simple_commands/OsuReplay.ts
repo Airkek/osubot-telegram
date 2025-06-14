@@ -154,7 +154,7 @@ export class OsuReplay extends Command {
             if (!ctx.messagePayload) {
                 fullBody =
                     renderHeader +
-                    module.bot.templates.ScoreFull(replay, beatmap, calculator, "https://osu.ppy.sh") +
+                    module.bot.templates.ScoreFull(ctx, replay, beatmap, calculator, "https://osu.ppy.sh") +
                     renderAdditional;
             }
 

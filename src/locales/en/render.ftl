@@ -13,9 +13,9 @@ experimental-renderer-warning =
     ⚠️ An experimental renderer is being used. Some features may be unavailable or may not work correctly.
     Please report any bugs found in the comments to the post - https://t.me/osubotupdates/34
 
-render-timeout-warning-minutes = Rendering the replay is available once every { $minutes ->
+render-timeout-warning-minutes = Replay rendering is available once every { $minutes ->
     [one] minute
-    [other] minutes
+    *[other] {$minutes} minutes
 }
 
 experimental-gamemode-unavailable = This game mode is only supported by the experimental renderer, which is currently unavailable. Please try again later.

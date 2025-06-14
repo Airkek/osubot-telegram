@@ -61,7 +61,6 @@ basiccommands-text =
     Basic module commands:
     osu help - help
     osu status - bot status
-    osu uptime - bot uptime
     osu topcmds - top command usage
     osu settings - bot settings (admin privileges required for chat settings)
     osu clear - clear the chat top from exited participants (admin privileges required)
