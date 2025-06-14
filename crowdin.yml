@@ -1,5 +1,0 @@
-files:
-  - source: '*.ts'
-    ignore:
-      - '*.ftl'
-    translation: /src/locales/%two_letters_code%/%original_file_name%
