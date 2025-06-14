@@ -22,6 +22,7 @@ type ToggleableSettingsKey =
     | "experimental_renderer"
     | "lang_russian"
     | "lang_english"
+    | "lang_chinese"
     | "lang_auto";
 
 type ChatSettingsPage = "home" | "language";
@@ -30,6 +31,7 @@ type ToggleableChatSettingsKey =
     | "notifications_enabled"
     | "lang_russian"
     | "lang_english"
+    | "lang_chinese"
     | "lang_auto";
 
 type GenericSettingsKey = "ordr_skin" | "ordr_bgdim" | "page_number";
@@ -222,6 +224,7 @@ function buildUserLanguagePage(settings: UserSettings, l: ILocalisator): InlineK
     return buildLeveledPageKeyboard(settings.user_id, "home", l, [
         [toggleableButton(settings.user_id, page, "🇷🇺 Русский", "lang_russian", settings.language_override == "ru")],
         [toggleableButton(settings.user_id, page, "🇺🇸 English", "lang_english", settings.language_override == "en")],
+        [toggleableButton(settings.user_id, page, "🇨🇳 简体中文", "lang_chinese", settings.language_override == "zh")],
         [
             toggleableButton(
                 settings.user_id,
@@ -253,6 +256,15 @@ function buildChatLanguagePage(settings: ChatSettings, l: ILocalisator): InlineK
                 "🇺🇸 English",
                 "lang_english",
                 settings.language_override == "en"
+            ),
+        ],
+        [
+            toggleableChatButton(
+                settings.chat_id,
+                page,
+                "🇨🇳 简体中文",
+                "lang_chinese",
+                settings.language_override == "zh"
             ),
         ],
         [
@@ -460,6 +472,10 @@ export default class SettingsCommand extends Command {
                                 chatSettings.language_override = "en";
                                 allowUpdate = value;
                                 break;
+                            case "lang_chinese":
+                                chatSettings.language_override = "zh";
+                                allowUpdate = value;
+                                break;
                             case "lang_russian":
                                 chatSettings.language_override = "ru";
                                 allowUpdate = value;
@@ -553,6 +569,10 @@ export default class SettingsCommand extends Command {
                             break;
                         case "lang_english":
                             settings.language_override = "en";
+                            allowUpdate = value;
+                            break;
+                        case "lang_chinese":
+                            settings.language_override = "zh";
                             allowUpdate = value;
                             break;
                         case "lang_russian":

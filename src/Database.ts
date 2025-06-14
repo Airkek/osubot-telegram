@@ -7,7 +7,7 @@ import UnifiedMessageContext from "./TelegramSupport";
 import { createHash } from "node:crypto";
 import { OsuBeatmap } from "./beatmaps/osu/OsuBeatmap";
 
-export type Language = "ru" | "en";
+export type Language = "ru" | "en" | "zh";
 export type LanguageOverride = Language | "do_not_override";
 
 export interface ChatSettings {
