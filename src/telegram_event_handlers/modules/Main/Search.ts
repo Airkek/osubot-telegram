@@ -5,7 +5,7 @@ export default class SearchCommand extends Command {
     constructor(module: Module) {
         super(["search", "ыуфкср"], module, async (ctx, self, args) => {
             if (!args.full[0]) {
-                await ctx.reply("Укажите запрос для поиска");
+                await ctx.reply(ctx.tr("search-not-specified"));
                 return;
             }
 
@@ -15,10 +15,12 @@ export default class SearchCommand extends Command {
             });
 
             if (!data.length) {
-                await ctx.reply("Не найдено карт");
+                await ctx.reply(ctx.tr("search-not-found"));
             }
 
-            await ctx.reply(`Результат поиска:\n\n${self.module.bot.templates.Search(data.splice(0, 10))}`);
+            await ctx.reply(
+                `${ctx.tr("search-result-header")}\n\n${self.module.bot.templates.Search(data.splice(0, 10))}`
+            );
         });
     }
 }

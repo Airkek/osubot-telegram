@@ -7,20 +7,18 @@ export default class ClearCommand extends Command {
     constructor(module: Module) {
         super(["clear", "сдуфк"], module, async (ctx, self) => {
             if (!ctx.isInGroupChat) {
-                await ctx.reply("Эту команду можно вводить только в чате");
+                await ctx.reply(ctx.tr("command-for-chats-only"));
                 return;
             }
 
             const isAdmin = await ctx.isSenderAdmin();
             if (!isAdmin) {
-                await ctx.reply("Эту команду может использовать только администратор чата");
+                await ctx.reply(ctx.tr("clear-sender-not-admin"));
                 return;
             }
 
             if (this.checkLimit(ctx.chatId)) {
-                await ctx.reply(
-                    "Чистка топа от вышедших пользователей доступна только раз в 24 часа.\n\nЧтобы не было необходимости её выполнять, дайте боту права администратора в чате."
-                );
+                await ctx.reply(ctx.tr("clear-give-admin"));
                 return;
             }
             this.setLimit(ctx.chatId);
@@ -49,17 +47,18 @@ export default class ClearCommand extends Command {
             let kicked = 0;
 
             const estimate = count / 8;
-            let estimateStr = `${Math.ceil(estimate)} сек.`;
+            let estimateStr = `${Math.ceil(estimate)}s.`;
             if (estimate > 60) {
-                estimateStr = `${Math.floor(estimate / 60)} мин. ${Math.ceil(estimate % 60)} сек.`;
+                estimateStr = `${Math.floor(estimate / 60)}m. ${Math.ceil(estimate % 60)}s.`;
             }
 
-            await ctx.reply(`Проводится чистка топа от вышедших пользователей.
-
-Участников в чате: ${realCount}
-Зарегистрированных в боте участников чата: ${count}
-
-Примерное время ожидания: ${estimateStr}`);
+            await ctx.reply(
+                ctx.tr("clear-started", {
+                    realCount,
+                    count,
+                    estimateStr,
+                })
+            );
 
             for (const member of members) {
                 if (member == ctx.senderId) {
@@ -74,11 +73,13 @@ export default class ClearCommand extends Command {
                 }
             }
 
-            await ctx.reply(`Проведена чистка топа от вышедших пользователей.
-
-Было зарегистрировано участников чата: ${count}
-Из них больше не являются участниками чата: ${kicked}
-Осталось зарегистрированными: ${count - kicked}`);
+            await ctx.reply(
+                ctx.tr("clear-done", {
+                    count,
+                    kicked,
+                    remain: count - kicked,
+                })
+            );
         });
     }
 

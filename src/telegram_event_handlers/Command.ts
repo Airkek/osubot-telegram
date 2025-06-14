@@ -65,7 +65,7 @@ export class Command {
                 errorText = String(e);
             }
 
-            await ctx.reply(`${Util.error(errorText)} (${err})`);
+            await ctx.reply(`${Util.error(errorText, ctx)} (${err})`);
         }
 
         global.logger.trace(`[${this.module.name}::${this.name}] command processing took ${timer.ms}`);

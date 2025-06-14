@@ -1,0 +1,14 @@
+bot_status_header = Статус бота
+bot_version = Версия
+bot_uptime = Время работы
+bot_known_chats = Чатов, известных боту
+bot_total_messages = Сообщений получено
+bot_commands_used = Команд использовано
+bot_messages_per_hour = Сообщений в час
+bot_commands_per_hour = Команд в час
+bot_commands_percentage = Процент команд от сообщений
+bot_replays_received = Реплеев получено
+bot_replays_rendered = Реплеев отрендерено (s/e)
+bot_render_errors = Ошибок рендера (s/e)
+bot_replays_per_commands = Процент реплеев от команд
+bot_renders_per_commands = Процент рендеров от команд

@@ -1,11 +1,13 @@
 import { Api, Context, InlineKeyboard, InputFile, InputMediaBuilder } from "grammy";
 import { MessageEntity, UserFromGetMe } from "@grammyjs/types";
 import { FileApiFlavor, FileFlavor } from "@grammyjs/files";
+import { I18nFlavor, TranslateFunction } from "@grammyjs/i18n";
 import fs from "fs";
 import TextLinkMessageEntity = MessageEntity.TextLinkMessageEntity;
-import Database, { ChatSettings, UserSettings } from "./Database";
+import Database, { ChatSettings, Language, UserSettings } from "./Database";
+import { ILocalisator } from "./ILocalisator";
 
-export type TgContext = FileFlavor<Context>;
+export type TgContext = FileFlavor<Context & I18nFlavor>;
 export type TgApi = FileApiFlavor<Api>;
 
 class ReplyToMessage {
@@ -46,7 +48,7 @@ const registry = new FinalizationRegistry((path: string) => {
     }
 });
 
-export default class UnifiedMessageContext {
+export default class UnifiedMessageContext implements ILocalisator {
     readonly chatId: number;
     readonly senderId: number;
 
@@ -71,6 +73,10 @@ export default class UnifiedMessageContext {
     private userSettingsCache: UserSettings;
     private chatSettingsCache: ChatSettings;
 
+    private activated: boolean = false;
+    private language: Language = undefined;
+    tr: TranslateFunction = undefined;
+
     constructor(ctx: TgContext, me: UserFromGetMe, isLocal: boolean, database: Database) {
         this.tgCtx = ctx;
         this.me = me;
@@ -87,6 +93,39 @@ export default class UnifiedMessageContext {
         this.isFromUser = !ctx.from.is_bot;
     }
 
+    async activate() {
+        if (this.activated) {
+            return;
+        }
+
+        if (this.isInGroupChat) {
+            const chatSettings = await this.chatSettings();
+            if (chatSettings.language_override != "do_not_override") {
+                this.language = chatSettings.language_override;
+            }
+        }
+
+        if (!this.language) {
+            const userSettings = await this.userSettings();
+            if (userSettings.language_override != "do_not_override") {
+                this.language = userSettings.language_override;
+            }
+        }
+
+        if (this.language) {
+            this.tgCtx.i18n.useLocale(this.language);
+        }
+
+        this.tr = this.tgCtx.translate;
+        this.activated = true;
+    }
+
+    async reactivate() {
+        this.activated = false;
+        this.language = undefined;
+        await this.activate();
+    }
+
     async userSettings(): Promise<UserSettings> {
         if (!this.userSettingsCache) {
             this.userSettingsCache = await this.database.userSettings.getUserSettings(this.senderId);
@@ -101,7 +140,7 @@ export default class UnifiedMessageContext {
         }
 
         if (!this.chatSettingsCache) {
-            this.chatSettingsCache = await this.database.chatSettings.getChatSettings(this.senderId);
+            this.chatSettingsCache = await this.database.chatSettings.getChatSettings(this.chatId);
         }
 
         return this.chatSettingsCache;

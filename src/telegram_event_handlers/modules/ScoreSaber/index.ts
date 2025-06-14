@@ -1,8 +1,8 @@
 import { ServerModule } from "../Module";
 import { Bot } from "../../../Bot";
 import AbstractUser from "../BaseServerCommands/User";
-import Nick from "./Nick";
-import Id from "./Id";
+import UseIdInsteadOfNick from "../BaseServerCommands/UseIdInsteadOfNick";
+import Id from "../BaseServerCommands/Id";
 import AbstractRecent from "../BaseServerCommands/Recent";
 import AbstractTop from "../BaseServerCommands/Top";
 import AbstractChat from "../BaseServerCommands/Chat";
@@ -17,7 +17,7 @@ export default class ScoreSaber extends ServerModule {
         this.db = bot.database.servers.scoresaber;
 
         this.registerCommand([
-            new Nick(this),
+            new UseIdInsteadOfNick(this),
             new Id(this),
             new AbstractUser(this),
             new AbstractRecent(this),

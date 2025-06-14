@@ -3,6 +3,7 @@ import BanchoPP from "../../osu_specific/pp/bancho";
 import Util from "../../Util";
 import Mods from "../../osu_specific/pp/Mods";
 import { IBeatmap } from "../../beatmaps/BeatmapTypes";
+import { ILocalisator } from "../../ILocalisator";
 
 interface PPResults {
     pp98: number;
@@ -10,7 +11,7 @@ interface PPResults {
     pp100: number;
 }
 
-export default function formatBeatmapInfo(map: IBeatmap): string {
+export default function formatBeatmapInfo(l: ILocalisator, map: IBeatmap): string {
     const mapText = Util.formatBeatmap(map);
     const calculator = new BanchoPP(map, new Mods(0));
 
@@ -68,7 +69,7 @@ export default function formatBeatmapInfo(map: IBeatmap): string {
         }
 
         default:
-            return "Произошла ошибка: неизвестный режим игры!";
+            return l.tr("unknown-game-mode-error");
     }
 
     return `${mapText}\n${content}`;

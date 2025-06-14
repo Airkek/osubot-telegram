@@ -1,4 +1,5 @@
 import { OsuTrackResponse } from "../../Types";
+import { ILocalisator } from "../../ILocalisator";
 
 function formatChange(num: number): string {
     return num < 0 ? String(num) : `+${num}`;
@@ -38,7 +39,7 @@ function modeUrl(mode: number): string {
 
 const MAX_SCORES: number = 5;
 
-export default function (response: OsuTrackResponse): string {
+export default function (l: ILocalisator, response: OsuTrackResponse): string {
     return `User ${response.username} (${modeStr(response.mode)}):
 Rank: ${formatChange(response.rank)} (${formatChangeFloat(response.pp)} pp) in ${response.playcount} plays
 View detailed data here: https://ameobea.me/osutrack/user/${encodeURI(response.username)}${modeUrl(response.mode)}

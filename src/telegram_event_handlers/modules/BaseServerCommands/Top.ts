@@ -6,6 +6,7 @@ import { ServerCommand, CommandContext } from "../../ServerCommand";
 import { Mode, APIUser, APIScore } from "../../../Types";
 import { GrammyError, InlineKeyboard } from "grammy";
 import { IBeatmap } from "../../../beatmaps/BeatmapTypes";
+import { ILocalisator } from "../../../ILocalisator";
 
 interface ScoreProcessingOptions {
     context: CommandContext;
@@ -29,7 +30,7 @@ export default class AbstractTop extends ServerCommand {
                     await context.module.db.updateInfo(user, mode);
                 }
 
-                await this.handleCommandArguments(context, user, mode);
+                await this.handleCommandArguments(context, user, mode, context.ctx);
             },
             true
         );
@@ -47,26 +48,26 @@ export default class AbstractTop extends ServerCommand {
             : await context.module.api.getUserById(context.user.id || context.user.dbUser.game_id, mode);
     }
 
-    private async handleCommandArguments(context: CommandContext, user: APIUser, mode: number) {
+    private async handleCommandArguments(context: CommandContext, user: APIUser, mode: number, l: ILocalisator) {
         if (context.args.apx) {
-            await this.handleApxRequest(context, user, mode);
+            await this.handleApxRequest(context, user, mode, l);
         } else if (context.args.more) {
-            await this.handleMoreRequest(context, user, mode);
+            await this.handleMoreRequest(context, user, mode, l);
         } else if (context.args.place) {
-            await this.handlePlaceRequest(context, user, mode);
+            await this.handlePlaceRequest(context, user, mode, l);
         } else {
-            await this.handleDefaultRequest(context, user, mode);
+            await this.handleDefaultRequest(context, user, mode, l);
         }
     }
 
-    private async processScores(options: ScoreProcessingOptions): Promise<APIScore[] | null> {
+    private async processScores(options: ScoreProcessingOptions, l: ILocalisator): Promise<APIScore[] | null> {
         const { context, user, mode, modsFilter } = options;
         const scores = await context.module.api.getUserTopById(user.id, mode, 100);
 
         if (modsFilter) {
             const filtered = scores.filter(modsFilter);
             if (filtered.length === 0) {
-                await context.reply("Не найдено топ скоров с указанной комбинацией модов!");
+                await context.reply(l.tr("not-found-scores-with-mod-combo"));
                 return null;
             }
             return filtered;
@@ -75,9 +76,9 @@ export default class AbstractTop extends ServerCommand {
         return scores;
     }
 
-    private async handleApxRequest(context: CommandContext, user: APIUser, mode: number) {
+    private async handleApxRequest(context: CommandContext, user: APIUser, mode: number, l: ILocalisator) {
         const modsFilter = this.createModsFilter(context);
-        const scores = await this.processScores({ context, user, mode, modsFilter });
+        const scores = await this.processScores({ context, user, mode, modsFilter }, l);
         if (!scores) {
             return;
         }
@@ -87,33 +88,53 @@ export default class AbstractTop extends ServerCommand {
             return Math.abs(curr.pp - context.args.apx) < Math.abs(prev.pp - context.args.apx) ? curr : prev;
         }, scores[0]);
 
-        await this.sendScoreResponse(context, user, closest, mode, `Ближайший к ${context.args.apx}pp скор игрока`);
+        await this.sendScoreResponse(
+            context,
+            user,
+            closest,
+            mode,
+            l.tr("near-pp-score", {
+                pp: context.args.apx,
+            }),
+            l
+        );
     }
 
-    private async handleMoreRequest(context: CommandContext, user: APIUser, mode: number) {
+    private async handleMoreRequest(context: CommandContext, user: APIUser, mode: number, l: ILocalisator) {
         const modsFilter = this.createModsFilter(context);
-        const scores = await this.processScores({ context, user, mode, modsFilter });
+        const scores = await this.processScores({ context, user, mode, modsFilter }, l);
         if (!scores) {
             return;
         }
 
         const count = scores.filter((s) => s.pp > context.args.more).length;
-        const suffix = count === 100 ? "+" : "";
         await context.reply(
-            `У игрока ${user.nickname} ${count || "нет"}${suffix} ` +
-                `${Util.scoreNum(count)} выше ${context.args.more}pp`
+            l.tr("score-count", {
+                player_name: user.nickname,
+                count,
+                pp: context.args.more,
+            })
         );
     }
 
-    private async handlePlaceRequest(context: CommandContext, user: APIUser, mode: number) {
+    private async handlePlaceRequest(context: CommandContext, user: APIUser, mode: number, l: ILocalisator) {
         const scores = await context.module.api.getUserTopById(user.id, mode, context.args.place);
         const score = scores[context.args.place - 1];
 
-        await this.sendScoreResponse(context, user, score, mode, `Топ #${context.args.place} скор игрока`);
+        await this.sendScoreResponse(
+            context,
+            user,
+            score,
+            mode,
+            l.tr("top-n-score", {
+                place: context.args.place,
+            }),
+            l
+        );
     }
 
-    private async handleDefaultRequest(context: CommandContext, user: APIUser, mode: number) {
-        const scores = await this.processScores({ context, user, mode });
+    private async handleDefaultRequest(context: CommandContext, user: APIUser, mode: number, l: ILocalisator) {
+        const scores = await this.processScores({ context, user, mode }, l);
         if (!scores) {
             return;
         }
@@ -124,7 +145,11 @@ export default class AbstractTop extends ServerCommand {
         const maxPage = Math.ceil(scores.length / scoresOnPage);
 
         if (page < 1 || page > maxPage) {
-            return await context.reply(`Такой страницы нет, всего страниц: ${maxPage}`);
+            return await context.reply(
+                l.tr("max-page-error", {
+                    pages: maxPage,
+                })
+            );
         }
 
         const startI = (page - 1) * scoresOnPage;
@@ -137,6 +162,7 @@ export default class AbstractTop extends ServerCommand {
             .map((map, i) => {
                 const calc = new BanchoPP(map, topThree[i].mods);
                 return context.module.bot.templates.TopScore(
+                    l,
                     topThree[i],
                     map,
                     startI + i + 1,
@@ -147,13 +173,15 @@ export default class AbstractTop extends ServerCommand {
             .join("\n");
 
         const keyboard = this.createPageKeyboard(context, maxPage, page, user, mode);
-        const message = `Топ скоры игрока ${user.nickname} [${Util.profileModes[mode]}]:\n${response}`;
+        const message = `${l.tr("players-top-scores", {
+            player_name: user.nickname,
+        })} [${Util.profileModes[mode]}]:\n${response}`;
         if (context.isPayload) {
             try {
                 await context.edit(message, { keyboard });
             } catch (e) {
                 if (e instanceof GrammyError && e.message.includes("message is not modified")) {
-                    await context.answer("Обновлений нет");
+                    await context.answer(l.tr("no-updates-notification"));
                     return;
                 }
                 throw e;
@@ -177,7 +205,8 @@ export default class AbstractTop extends ServerCommand {
         user: APIUser,
         score: APIScore,
         mode: number,
-        header: string
+        header: string,
+        l: ILocalisator
     ) {
         const map = await this.resolveBeatmap(context, score, mode);
         const ppCalc = new BanchoPP(map, score.mods);
@@ -190,7 +219,7 @@ export default class AbstractTop extends ServerCommand {
 
         const message =
             `${header} ${user.nickname} (${Mode[score.mode]}):\n` +
-            context.module.bot.templates.ScoreFull(score, map, ppCalc, context.module.link);
+            context.module.bot.templates.ScoreFull(l, score, map, ppCalc, context.module.link);
 
         const keyboard = this.createScoreKeyboard(context, map.id, score);
 
@@ -206,7 +235,7 @@ export default class AbstractTop extends ServerCommand {
         const buttons = [
             [
                 {
-                    text: `[${context.module.prefix[0].toUpperCase()}] Мой скор на карте`,
+                    text: `[${context.module.prefix[0].toUpperCase()}] ${context.ctx.tr("my-score-on-map-button")}`,
                     command: `{map${mapId}}${context.module.prefix[0]} c`,
                 },
             ],
@@ -214,7 +243,7 @@ export default class AbstractTop extends ServerCommand {
 
         if (context.ctx.isInGroupChat) {
             buttons[0].push({
-                text: `[${context.module.prefix[0].toUpperCase()}] Топ чата на карте`,
+                text: `[${context.module.prefix[0].toUpperCase()}] ${context.ctx.tr("chat-map-leaderboard-button")}`,
                 command: `{map${mapId}}${context.module.prefix[0]} lb`,
             });
         }
@@ -224,7 +253,7 @@ export default class AbstractTop extends ServerCommand {
             if (settingsAllowed) {
                 buttons.push([
                     {
-                        text: `Отрендерить реплей`,
+                        text: context.ctx.tr("render-replay-button"),
                         command: `render_bancho:${score.api_score_id}`,
                     },
                 ]);

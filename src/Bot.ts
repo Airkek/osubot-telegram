@@ -5,6 +5,7 @@ import { run, RunnerHandle } from "@grammyjs/runner";
 import { UserFromGetMe } from "@grammyjs/types";
 import { hydrateFiles } from "@grammyjs/files";
 import { limit } from "@grammyjs/ratelimiter";
+import { I18n } from "@grammyjs/i18n";
 import express from "express";
 import { Module } from "./telegram_event_handlers/modules/Module";
 import Database from "./Database";
@@ -96,7 +97,14 @@ export class Bot {
         this.initialize();
     }
 
-    private buildContext(ctx: TgContext): UnifiedMessageContext {
+    private async buildActivatedContext(tgCtx: TgContext): Promise<UnifiedMessageContext> {
+        const ctx = new UnifiedMessageContext(tgCtx, this.me, this.useLocalApi, this.database);
+        await ctx.activate();
+
+        return ctx;
+    }
+
+    private buildContextForInternalUse(ctx: TgContext): UnifiedMessageContext {
         return new UnifiedMessageContext(ctx, this.me, this.useLocalApi, this.database);
     }
 
@@ -129,21 +137,35 @@ export class Bot {
     }
 
     private setupBot(): void {
+        const i18n = new I18n<TgContext>({
+            defaultLocale: "en",
+            useSession: false,
+            directory: "src/locales",
+            globalTranslationContext(ctx) {
+                return {
+                    first_name: ctx.from?.first_name ?? "",
+                    last_name: ctx.from?.last_name ?? "",
+                    user_mention: ctx.from.username ? `@${ctx.from.username}` : (ctx.from?.last_name ?? ""),
+                };
+            },
+        });
+
+        this.tg.use(i18n);
         this.tg.use(
             limit({
                 timeFrame: 5000,
                 limit: 3,
                 onLimitExceeded: async (tgCtx: TgContext) => {
-                    const ctx = this.buildContext(tgCtx);
+                    const ctx = await this.buildActivatedContext(tgCtx);
                     if (ctx.messagePayload) {
-                        await ctx.answer("Подождите немного!");
+                        await ctx.answer(ctx.tr("too-fast-notification"));
                         await tgCtx.answerCallbackQuery();
                     } else {
-                        await ctx.reply("Вы слишком часто используете команды.");
+                        await ctx.reply(ctx.tr("too-fast-commands-text"));
                     }
                 },
                 keyGenerator: (tgCtx: TgContext) => {
-                    const ctx = this.buildContext(tgCtx);
+                    const ctx = this.buildContextForInternalUse(tgCtx);
 
                     let isCommand = !!this.pendingCallbacks[this.createCallbackTicket(ctx)];
 
@@ -223,7 +245,7 @@ export class Bot {
     };
 
     private handleCallbackQuery = async (ctx): Promise<void> => {
-        const context = this.buildContext(ctx);
+        const context = await this.buildActivatedContext(ctx);
 
         for (const module of this.modules) {
             const match = module.checkContext(context);
@@ -245,7 +267,7 @@ export class Bot {
     };
 
     private handleMessage = async (ctx): Promise<void> => {
-        const context = this.buildContext(ctx);
+        const context = await this.buildActivatedContext(ctx);
 
         if (this.shouldSkipMessage(context)) {
             return;
@@ -268,7 +290,7 @@ export class Bot {
                     errorText = String(e);
                 }
 
-                await ctx.reply(`${Util.error(errorText)} (${err})`);
+                await ctx.reply(`${Util.error(errorText, ctx)} (${err})`);
             } finally {
                 if (res) {
                     this.pendingCallbacks[ticket] = undefined;
@@ -333,7 +355,7 @@ export class Bot {
                 if (spl != "") {
                     ctx.message.text += " " + spl;
                 }
-                const context = this.buildContext(ctx as TgContext);
+                const context = await this.buildActivatedContext(ctx as TgContext);
                 for (const module of this.modules) {
                     const match = module.checkContext(context);
                     if (match) {

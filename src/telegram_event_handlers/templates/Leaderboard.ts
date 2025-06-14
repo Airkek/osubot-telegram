@@ -1,14 +1,14 @@
 import { LeaderboardResponse } from "../../Types";
 import Util from "../../Util";
+import { ILocalisator } from "../../ILocalisator";
 
-export default function (leaderboard: LeaderboardResponse): string {
+export default function (l: ILocalisator, leaderboard: LeaderboardResponse): string {
     if (!leaderboard.scores[0]) {
-        return "Ни у кого нет скоров на этой карте!";
+        return l.tr("nobody-played-this-map");
     }
 
     const map = leaderboard.map;
-    const result = `Топ беседы на карте:
-${Util.formatBeatmap(map)}\n`;
+    const result = l.tr("map-leaderboard-header") + "\n" + Util.formatBeatmap(map) + "\n\n";
 
     return (
         result +
@@ -20,7 +20,9 @@ ${Util.formatBeatmap(map)}\n`;
                     `${lbscore.score.score?.toLocaleString()} | ` +
                     `${Util.formatCombo(lbscore.score.combo, map.maxCombo)} | ` +
                     `${Util.round(lbscore.score.accuracy() * 100, 2)}% | ` +
-                    `${lbscore.score.counts.miss} misses | ` +
+                    `${l.tr("score-misses-calc", {
+                        count: lbscore.score.counts.miss,
+                    })} | ` +
                     `${Util.round(lbscore.score.pp, 2)}pp ` +
                     `${lbscore.score.mods} | ` +
                     `${Util.formatDate(lbscore.score.date, true)}`

@@ -5,9 +5,10 @@ import Util, { IKBButton } from "../../../Util";
 import UnifiedMessageContext from "../../../TelegramSupport";
 import { ChatSettings, UserSettings } from "../../../Database";
 import { OrdrSkinsProvider } from "../../../osu_specific/replay_render/OrdrSkinsProvider";
+import { ILocalisator } from "../../../ILocalisator";
 
 type SettingsPageWithPageControl = "skin_sel";
-type SettingsPage = "home" | "render" | SettingsPageWithPageControl;
+type SettingsPage = "home" | "render" | "language" | SettingsPageWithPageControl;
 type ToggleableSettingsKey =
     | "render_enabled"
     | "ordr_video"
@@ -18,9 +19,18 @@ type ToggleableSettingsKey =
     | "ordr_strain_graph"
     | "ordr_is_custom"
     | "notifications_enabled"
-    | "experimental_renderer";
+    | "experimental_renderer"
+    | "lang_russian"
+    | "lang_english"
+    | "lang_auto";
 
-type ToggleableChatSettingsKey = "render_enabled" | "notifications_enabled";
+type ChatSettingsPage = "home" | "language";
+type ToggleableChatSettingsKey =
+    | "render_enabled"
+    | "notifications_enabled"
+    | "lang_russian"
+    | "lang_english"
+    | "lang_auto";
 
 type GenericSettingsKey = "ordr_skin" | "ordr_bgdim" | "page_number";
 
@@ -32,8 +42,13 @@ function buildToggleEvent(userId: number, page: SettingsPage, key: ToggleableSet
     return buildEvent(userId, `setbool:${page}:${key}:${currValue ? "0" : "1"}`);
 }
 
-function buildChatToggleEvent(chatId: number, key: ToggleableChatSettingsKey, currValue: boolean) {
-    return buildEvent(chatId, `setbool:${key}:${currValue ? "0" : "1"}`);
+function buildChatToggleEvent(
+    chatId: number,
+    page: ChatSettingsPage,
+    key: ToggleableChatSettingsKey,
+    currValue: boolean
+) {
+    return buildEvent(chatId, `setbool:${page}:${key}:${currValue ? "0" : "1"}`);
 }
 
 function buildSetEvent(userId: number, page: SettingsPage, key: GenericSettingsKey, value?: string) {
@@ -42,6 +57,11 @@ function buildSetEvent(userId: number, page: SettingsPage, key: GenericSettingsK
 }
 
 function buildPageEvent(userId: number, page: SettingsPage, pageNum?: number) {
+    const pageNumAdd = pageNum !== undefined ? `:${pageNum}` : "";
+    return buildEvent(userId, `page:${page}` + pageNumAdd);
+}
+
+function buildChatPageEvent(userId: number, page: ChatSettingsPage, pageNum?: number) {
     const pageNumAdd = pageNum !== undefined ? `:${pageNum}` : "";
     return buildEvent(userId, `page:${page}` + pageNumAdd);
 }
@@ -60,34 +80,52 @@ function buildPlaceholderButton(text: string): IKBButton {
     };
 }
 
-function buildStartKeyboard(userId: number, settings: UserSettings): InlineKeyboard {
+function buildStartKeyboard(userId: number, settings: UserSettings, l: ILocalisator): InlineKeyboard {
     return Util.createKeyboard([
-        [buildPageButton(userId, "render", "🎥Рендер")],
+        [buildPageButton(userId, "render", l.tr("render-page"))],
         [
             toggleableButton(
                 userId,
                 "home",
-                "Новостные рассылки",
+                l.tr("news-setting"),
                 "notifications_enabled",
                 settings.notifications_enabled
             ),
         ],
+        [buildPageButton(userId, "language", "🌐Language/Язык")],
     ]);
 }
 
-function buildCancelKeyboard(userId: number, page: SettingsPage, ticket: string): InlineKeyboard {
+function buildCancelKeyboard(userId: number, page: SettingsPage, ticket: string, l: ILocalisator): InlineKeyboard {
     return Util.createKeyboard([
         [
             {
-                text: "❌Отмена",
+                text: l.tr("cancel-button"),
                 command: buildEvent(userId, `cancel:${ticket}:${page}`),
             },
         ],
     ]);
 }
 
-function buildLeveledPageKeyboard(userId: number, previousPage: SettingsPage, rows: IKBButton[][]) {
-    rows.push([buildPageButton(userId, previousPage, "⬅️Назад")]);
+function buildLeveledPageKeyboard(userId: number, previousPage: SettingsPage, l: ILocalisator, rows: IKBButton[][]) {
+    rows.push([buildPageButton(userId, previousPage, l.tr("previous-page-button"))]);
+    return Util.createKeyboard(rows);
+}
+
+function buildChatPageButton(chatId: number, page: ChatSettingsPage, text: string, pageNum?: number): IKBButton {
+    return {
+        text,
+        command: buildChatPageEvent(chatId, page, pageNum),
+    };
+}
+
+function buildChatLeveledPageKeyboard(
+    chatId: number,
+    previousPage: ChatSettingsPage,
+    l: ILocalisator,
+    rows: IKBButton[][]
+) {
+    rows.push([buildChatPageButton(chatId, previousPage, l.tr("previous-page-button"))]);
     return Util.createKeyboard(rows);
 }
 
@@ -136,10 +174,16 @@ function toggleableButton(
     };
 }
 
-function toggleableChatButton(chatId: number, name: string, key: ToggleableChatSettingsKey, val: boolean): IKBButton {
+function toggleableChatButton(
+    chatId: number,
+    page: ChatSettingsPage,
+    name: string,
+    key: ToggleableChatSettingsKey,
+    val: boolean
+): IKBButton {
     return {
         text: `${bToS(val)}${name}`,
-        command: buildChatToggleEvent(chatId, key, val),
+        command: buildChatToggleEvent(chatId, page, key, val),
     };
 }
 
@@ -156,69 +200,107 @@ function genericSetButton(
     };
 }
 
-function buildChatSettingsKeyboard(settings: ChatSettings): InlineKeyboard {
+function buildChatSettingsKeyboard(settings: ChatSettings, l: ILocalisator): InlineKeyboard {
+    const page: ChatSettingsPage = "home";
     return Util.createKeyboard([
+        [toggleableChatButton(settings.chat_id, page, l.tr("auto-render"), "render_enabled", settings.render_enabled)],
         [
             toggleableChatButton(
                 settings.chat_id,
-                "Автоматический рендер реплеев",
-                "render_enabled",
-                settings.render_enabled
-            ),
-        ],
-        [
-            toggleableChatButton(
-                settings.chat_id,
-                "Новостные рассылки",
+                page,
+                l.tr("news-setting"),
                 "notifications_enabled",
                 settings.notifications_enabled
+            ),
+        ],
+        [buildChatPageButton(settings.chat_id, "language", l.tr("chat-language-page"))],
+    ]);
+}
+
+function buildUserLanguagePage(settings: UserSettings, l: ILocalisator): InlineKeyboard {
+    const page: SettingsPage = "language";
+    return buildLeveledPageKeyboard(settings.user_id, "home", l, [
+        [toggleableButton(settings.user_id, page, "🇷🇺 Русский", "lang_russian", settings.language_override == "ru")],
+        [toggleableButton(settings.user_id, page, "🇺🇸 English", "lang_english", settings.language_override == "en")],
+        [
+            toggleableButton(
+                settings.user_id,
+                page,
+                "🌐 Auto",
+                "lang_auto",
+                settings.language_override == "do_not_override"
             ),
         ],
     ]);
 }
 
-function buildRenderPage(settings: UserSettings): InlineKeyboard {
-    const page = "render";
-    return buildLeveledPageKeyboard(settings.user_id, "home", [
+function buildChatLanguagePage(settings: ChatSettings, l: ILocalisator): InlineKeyboard {
+    const page: ChatSettingsPage = "language";
+    return buildChatLeveledPageKeyboard(settings.chat_id, "home", l, [
         [
-            toggleableButton(
-                settings.user_id,
+            toggleableChatButton(
+                settings.chat_id,
                 page,
-                "Автоматический рендер реплеев",
-                "render_enabled",
-                settings.render_enabled
+                "🇷🇺 Русский",
+                "lang_russian",
+                settings.language_override == "ru"
             ),
         ],
         [
-            toggleableButton(settings.user_id, page, "Фоновое видео", "ordr_video", settings.ordr_video),
-            toggleableButton(settings.user_id, page, "Сториборд", "ordr_storyboard", settings.ordr_storyboard),
+            toggleableChatButton(
+                settings.chat_id,
+                page,
+                "🇺🇸 English",
+                "lang_english",
+                settings.language_override == "en"
+            ),
         ],
-        [buildPageButton(settings.user_id, "skin_sel", `Скин: ${settings.ordr_skin}`)],
+        [
+            toggleableChatButton(
+                settings.chat_id,
+                page,
+                l.tr("chat-language-do-not-override"),
+                "lang_auto",
+                settings.language_override == "do_not_override"
+            ),
+        ],
+    ]);
+}
+
+function buildRenderPage(settings: UserSettings, l: ILocalisator): InlineKeyboard {
+    const page: SettingsPage = "render";
+    return buildLeveledPageKeyboard(settings.user_id, "home", l, [
+        [toggleableButton(settings.user_id, page, l.tr("auto-render"), "render_enabled", settings.render_enabled)],
+        [
+            toggleableButton(settings.user_id, page, l.tr("background-video"), "ordr_video", settings.ordr_video),
+            toggleableButton(settings.user_id, page, l.tr("storyboard"), "ordr_storyboard", settings.ordr_storyboard),
+        ],
+        [buildPageButton(settings.user_id, "skin_sel", l.tr("skin-button", { skin: settings.ordr_skin }))],
         [
             genericSetButton(
                 settings.user_id,
                 page,
-                "Затемнение фона",
+                l.tr("background-dim"),
                 "ordr_bgdim",
                 settings.ordr_bgdim.toString() + "%"
             ),
         ],
         [
-            toggleableButton(settings.user_id, page, "Счётчик PP", "ordr_pp_counter", settings.ordr_pp_counter),
-            toggleableButton(settings.user_id, page, "Счётчик UR", "ordr_ur_counter", settings.ordr_ur_counter),
+            toggleableButton(settings.user_id, page, l.tr("pp-counter"), "ordr_pp_counter", settings.ordr_pp_counter),
+            toggleableButton(settings.user_id, page, l.tr("ur-counter"), "ordr_ur_counter", settings.ordr_ur_counter),
         ],
         [
             toggleableButton(
                 settings.user_id,
                 page,
-                "Счётчик попаданий",
+                l.tr("hit-counter"),
                 "ordr_hit_counter",
                 settings.ordr_hit_counter
             ),
             toggleableButton(
                 settings.user_id,
                 page,
-                "График сложности",
+                l.tr("difficulty-graph"),
                 "ordr_strain_graph",
                 settings.ordr_strain_graph
             ),
@@ -227,7 +309,7 @@ function buildRenderPage(settings: UserSettings): InlineKeyboard {
             toggleableButton(
                 settings.user_id,
                 page,
-                "Предпочитать экспериментальный рендерер",
+                l.tr("prefer-experimental-renderer"),
                 "experimental_renderer",
                 settings.experimental_renderer
             ),
@@ -236,7 +318,7 @@ function buildRenderPage(settings: UserSettings): InlineKeyboard {
 }
 
 const skinsProvider = new OrdrSkinsProvider();
-async function buildSkinSelector(settings: UserSettings, pageNum: number): Promise<InlineKeyboard> {
+async function buildSkinSelector(settings: UserSettings, pageNum: number, l: ILocalisator): Promise<InlineKeyboard> {
     const page: SettingsPage = "skin_sel";
 
     let buttons: IKBButton[][] = [];
@@ -257,19 +339,25 @@ async function buildSkinSelector(settings: UserSettings, pageNum: number): Promi
 
     buttons.push([
         {
-            text: `✍️Указать id скина вручную`,
+            text: l.tr("enter-skin-id"),
             command: buildSetEvent(settings.user_id, "render", "ordr_skin", "request"),
         },
     ]);
     buttons.push([
-        toggleableButton(settings.user_id, page, "Я загрузил скин сам", "ordr_is_custom", settings.ordr_is_skin_custom),
+        toggleableButton(
+            settings.user_id,
+            page,
+            l.tr("is-custom-skin"),
+            "ordr_is_custom",
+            settings.ordr_is_skin_custom
+        ),
     ]);
 
     if (!settings.ordr_is_skin_custom) {
         buttons.push(buildPaginationControl(settings.user_id, page, pageNum, maxPage));
     }
 
-    return buildLeveledPageKeyboard(settings.user_id, "render", buttons);
+    return buildLeveledPageKeyboard(settings.user_id, "render", l, buttons);
 }
 
 export default class SettingsCommand extends Command {
@@ -280,18 +368,18 @@ export default class SettingsCommand extends Command {
             if (!ctx.messagePayload || ctx.messagePayload == "osu settings") {
                 if (ctx.isInGroupChat) {
                     if (!isAdmin) {
-                        await ctx.reply("Настройки чата может редактировать только администратор чата!");
+                        await ctx.reply(ctx.tr("chat-settings-admin-warning"));
                         return;
                     }
 
                     const stgs = await ctx.chatSettings();
-                    await ctx.reply(`Настройки чата:`, {
-                        keyboard: buildChatSettingsKeyboard(stgs),
+                    await ctx.reply(ctx.tr("chat-settings-header"), {
+                        keyboard: buildChatSettingsKeyboard(stgs, ctx),
                     });
                 } else {
                     const stgs = await ctx.userSettings();
-                    await ctx.reply(`Настройки:`, {
-                        keyboard: buildStartKeyboard(ctx.senderId, stgs),
+                    await ctx.reply(ctx.tr("user-settings-header"), {
+                        keyboard: buildStartKeyboard(ctx.senderId, stgs, ctx),
                     });
                 }
 
@@ -305,16 +393,16 @@ export default class SettingsCommand extends Command {
 
             if (ctx.isInGroupChat) {
                 if (!isAdmin) {
-                    await ctx.answer("Ты не администратор чата!");
+                    await ctx.answer(ctx.tr("chat-settings-admin-warning"));
                     return;
                 }
                 if (eventParams[0] != ctx.chatId.toString()) {
-                    await ctx.answer("Это настройки другого чата!");
+                    await ctx.answer(ctx.tr("chat-settings-other-chat-warning"));
                     return;
                 }
             } else {
                 if (eventParams[0] != ctx.senderId.toString()) {
-                    await ctx.answer("Это не твои настройки!");
+                    await ctx.answer(ctx.tr("user-settings-other-user-warning"));
                     return;
                 }
             }
@@ -322,10 +410,40 @@ export default class SettingsCommand extends Command {
             if (ctx.isInGroupChat) {
                 const chatSettings = await ctx.chatSettings();
 
+                const showChatPage = async (
+                    page: ChatSettingsPage,
+                    pageNumber?: number,
+                    newMessage: boolean = false,
+                    customCtx: UnifiedMessageContext = ctx
+                ) => {
+                    let answer: InlineKeyboard = undefined;
+                    switch (page) {
+                        case "language": {
+                            answer = buildChatLanguagePage(chatSettings, customCtx);
+                            break;
+                        }
+                        default:
+                        case "home": {
+                            answer = buildChatSettingsKeyboard(chatSettings, customCtx);
+                            break;
+                        }
+                    }
+
+                    if (newMessage) {
+                        await customCtx.reply(customCtx.tr("chat-settings-header"), {
+                            keyboard: answer,
+                        });
+                        return;
+                    }
+
+                    await customCtx.editMarkup(answer);
+                };
+
                 switch (eventParams[1]) {
                     case "setbool": {
-                        const key = eventParams[2] as ToggleableChatSettingsKey;
-                        const value = Number(eventParams[3]) === 1;
+                        const page: ChatSettingsPage = eventParams[2] as ChatSettingsPage;
+                        const key = eventParams[3] as ToggleableChatSettingsKey;
+                        const value = Number(eventParams[4]) === 1;
                         let allowUpdate = false;
                         switch (key) {
                             case "render_enabled":
@@ -334,11 +452,32 @@ export default class SettingsCommand extends Command {
                                 allowUpdate = true;
                                 break;
                             }
+                            case "lang_auto":
+                                chatSettings.language_override = "do_not_override";
+                                allowUpdate = value;
+                                break;
+                            case "lang_english":
+                                chatSettings.language_override = "en";
+                                allowUpdate = value;
+                                break;
+                            case "lang_russian":
+                                chatSettings.language_override = "ru";
+                                allowUpdate = value;
+                                break;
                         }
                         if (allowUpdate) {
                             await ctx.updateChatSettings(chatSettings);
-                            await ctx.editMarkup(buildChatSettingsKeyboard(chatSettings));
+                            await ctx.reactivate();
+                            await showChatPage(page);
                         }
+                        break;
+                    }
+                    case "page": {
+                        let page: number = undefined;
+                        if (eventParams.length > 3) {
+                            page = Number(eventParams[3]);
+                        }
+                        await showChatPage(eventParams[2] as ChatSettingsPage, page);
                         break;
                     }
                 }
@@ -357,20 +496,25 @@ export default class SettingsCommand extends Command {
                 let answer: InlineKeyboard = undefined;
                 switch (page) {
                     case "home": {
-                        answer = buildStartKeyboard(settings.user_id, settings);
+                        answer = buildStartKeyboard(settings.user_id, settings, customCtx);
                         break;
                     }
                     case "render": {
-                        answer = buildRenderPage(settings);
+                        answer = buildRenderPage(settings, customCtx);
+                        break;
+                    }
+                    case "language": {
+                        answer = buildUserLanguagePage(settings, customCtx);
                         break;
                     }
                     case "skin_sel": {
-                        answer = await buildSkinSelector(settings, pageNumber ?? 1);
+                        answer = await buildSkinSelector(settings, pageNumber ?? 1, customCtx);
+                        break;
                     }
                 }
 
                 if (newMessage) {
-                    await customCtx.reply("Настройки:", {
+                    await customCtx.reply(customCtx.tr("user-settings-header"), {
                         keyboard: answer,
                     });
                     return;
@@ -403,9 +547,22 @@ export default class SettingsCommand extends Command {
                             settings.ordr_is_skin_custom = value;
                             allowUpdate = true;
                             break;
+                        case "lang_auto":
+                            settings.language_override = "do_not_override";
+                            allowUpdate = value;
+                            break;
+                        case "lang_english":
+                            settings.language_override = "en";
+                            allowUpdate = value;
+                            break;
+                        case "lang_russian":
+                            settings.language_override = "ru";
+                            allowUpdate = value;
+                            break;
                     }
                     if (allowUpdate) {
                         await ctx.updateUserSettings(settings);
+                        await ctx.reactivate();
                         await showPage(page);
                     }
                     break;
@@ -418,13 +575,16 @@ export default class SettingsCommand extends Command {
                     let pageNum = undefined as number;
                     switch (key) {
                         case "page_number": {
-                            const msg = 'Отправьте номер страницы или напишите "отмена" чтобы отменить действие';
+                            const cancelAction = ctx.tr("cancel-action");
+                            const msg = ctx.tr("select-page-action", {
+                                action: cancelAction,
+                            });
                             const ticket = this.module.bot.addCallback(ctx, async (ctx) => {
                                 if (!ctx.text) {
                                     await ctx.reply(msg);
                                     return false;
                                 }
-                                if (ctx.text.trim().toLowerCase() == "отмена") {
+                                if (ctx.text.trim().toLowerCase() == cancelAction) {
                                     await showPage(page, undefined, true, ctx);
                                     return true;
                                 }
@@ -441,7 +601,7 @@ export default class SettingsCommand extends Command {
                             });
 
                             await ctx.edit(msg, {
-                                keyboard: buildCancelKeyboard(settings.user_id, "skin_sel", ticket),
+                                keyboard: buildCancelKeyboard(settings.user_id, "skin_sel", ticket, ctx),
                             });
                             break;
                         }
@@ -453,18 +613,21 @@ export default class SettingsCommand extends Command {
                                 settings.ordr_skin = await skinsProvider.getSkinByIdAndPage(pageNum, id);
                                 allowUpdate = true;
                             } else if (action == "request") {
-                                const msg = 'Отправьте id скина из o!rdr или напишите "отмена" чтобы отменить действие';
+                                const cancelAction = ctx.tr("cancel-action");
+                                const msg = ctx.tr("enter-skin-id-action", {
+                                    action: cancelAction,
+                                });
                                 const ticket = this.module.bot.addCallback(ctx, async (ctx) => {
                                     if (!ctx.text) {
                                         await ctx.reply(msg);
                                         return false;
                                     }
-                                    if (ctx.text.trim().toLowerCase() == "отмена") {
+                                    if (ctx.text.trim().toLowerCase() == cancelAction) {
                                         await showPage(page, undefined, true, ctx);
                                         return true;
                                     }
                                     if (ctx.text.includes(" ") || ctx.text.includes("&") || ctx.text.includes("?")) {
-                                        await ctx.reply("id содержит запрещенные символы");
+                                        await ctx.reply(ctx.tr("invalid-skin-id-value"));
                                         return false;
                                     }
 
@@ -476,21 +639,23 @@ export default class SettingsCommand extends Command {
                                 });
 
                                 await ctx.edit(msg, {
-                                    keyboard: buildCancelKeyboard(settings.user_id, "skin_sel", ticket),
+                                    keyboard: buildCancelKeyboard(settings.user_id, "skin_sel", ticket, ctx),
                                 });
                             }
                             break;
                         }
 
                         case "ordr_bgdim": {
-                            const msg =
-                                'Отправьте число от 0 до 100 чтобы изменить затемнение фона или напишите "отмена" чтобы отменить действие';
+                            const cancelAction = ctx.tr("cancel-action");
+                            const msg = ctx.tr("enter-bgdim-action", {
+                                action: cancelAction,
+                            });
                             const ticket = this.module.bot.addCallback(ctx, async (ctx) => {
                                 if (!ctx.text) {
                                     await ctx.reply(msg);
                                     return false;
                                 }
-                                if (ctx.text.trim().toLowerCase() == "отмена") {
+                                if (ctx.text.trim().toLowerCase() == cancelAction) {
                                     await showPage(page, undefined, true, ctx);
                                     return true;
                                 }
@@ -501,7 +666,7 @@ export default class SettingsCommand extends Command {
                                     return false;
                                 }
                                 if (num > 100 || num < 0) {
-                                    await ctx.reply("Число должно быть находиться в диапазоне от 0 до 100");
+                                    await ctx.reply(ctx.tr("invalid-bgdim-value"));
                                     return false;
                                 }
 
@@ -512,7 +677,7 @@ export default class SettingsCommand extends Command {
                                 return true;
                             });
                             await ctx.edit(msg, {
-                                keyboard: buildCancelKeyboard(settings.user_id, "render", ticket),
+                                keyboard: buildCancelKeyboard(settings.user_id, "render", ticket, ctx),
                             });
                             break;
                         }

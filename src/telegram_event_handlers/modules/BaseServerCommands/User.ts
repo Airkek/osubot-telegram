@@ -23,7 +23,9 @@ export default class AbstractUser extends ServerCommand {
                     self.module.api.getUserTopById
                         ? [
                               {
-                                  text: `Топ скоры ${user.nickname}`,
+                                  text: self.ctx.tr("players-top-scores", {
+                                      player_name: user.nickname,
+                                  }),
                                   command: `${module.prefix[0]} top ${self.module.api.getUserTop ? user.nickname : user.id} ${Util.getModeArg(mode)}`,
                               },
                           ]
@@ -31,14 +33,16 @@ export default class AbstractUser extends ServerCommand {
                     self.module.api.getUserRecentById
                         ? [
                               {
-                                  text: `Последний скор ${user.nickname}`,
+                                  text: self.ctx.tr("players-recent-score", {
+                                      player_name: user.nickname,
+                                  }),
                                   command: `${module.prefix[0]} recent ${self.module.api.getUserRecent ? user.nickname : user.id} ${Util.getModeArg(mode)}`,
                               },
                           ]
                         : [],
                 ]);
 
-                await self.reply(`${self.module.bot.templates.User(user, mode, self.module.link)}`, {
+                await self.reply(`${self.module.bot.templates.User(self.ctx, user, mode, self.module.link)}`, {
                     keyboard,
                 });
             },

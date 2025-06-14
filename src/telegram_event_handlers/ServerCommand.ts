@@ -2,6 +2,7 @@ import { Command, ICommandArgs } from "./Command";
 import UnifiedMessageContext, { SendOptions } from "../TelegramSupport";
 import { IDatabaseUser } from "../Types";
 import { ServerModule } from "./modules/Module";
+import { ILocalisator } from "../ILocalisator";
 
 interface ParsedUser {
     username?: string;
@@ -25,14 +26,20 @@ export class CommandContext {
         this.isPayload = !!ctx.messagePayload;
     }
 
+    private addServerToText(text: string, l: ILocalisator) {
+        return `${l.tr("server-name", {
+            server: this.module.name,
+        })}\n${text}`;
+    }
+
     async reply(text: string, options?: SendOptions) {
-        await this.ctx.reply(`[Server: ${this.module.name}]\n${text}`, options);
+        await this.ctx.reply(this.addServerToText(text, this.ctx), options);
     }
     async send(text: string, options?: SendOptions, replyTo?: number) {
-        return this.ctx.send(`[Server: ${this.module.name}]\n${text}`, options, replyTo);
+        return this.ctx.send(this.addServerToText(text, this.ctx), options, replyTo);
     }
     async edit(text: string, options?: SendOptions) {
-        return this.ctx.edit(`[Server: ${this.module.name}]\n${text}`, options);
+        return this.ctx.edit(this.addServerToText(text, this.ctx), options);
     }
     async answer(text: string) {
         return this.ctx.answer(text);
@@ -55,12 +62,18 @@ const createServerCommandRunner = (
 
                 if (!context.user.dbUser && !args.nickname[0]) {
                     await context.reply(
-                        `У этого пользователя не указан ник!\nПривяжите через ${context.module.prefix[0]} nick <ник>`
+                        ctx.tr("user-nickname-not-specified", {
+                            prefix: context.module.prefix[0],
+                        })
                     );
                     return;
                 }
             } else if (!context.user.dbUser && !args.nickname[0]) {
-                await context.reply(`Не указан ник!\nПривяжите через ${context.module.prefix[0]} nick <ник>`);
+                await context.reply(
+                    ctx.tr("sender-nickname-not-specified", {
+                        prefix: context.module.prefix[0],
+                    })
+                );
                 return;
             }
 

@@ -44,7 +44,7 @@ export default class AbstractRecent extends ServerCommand {
                 let keyboard: InlineKeyboard;
                 if (self.module.api.getScore !== undefined) {
                     const firstButton = {
-                        text: `[${self.module.prefix[0].toUpperCase()}] Мой скор на карте`,
+                        text: `[${self.module.prefix[0].toUpperCase()}] ${self.ctx.tr("my-score-on-map-button")}`,
                         command: `{map${map.id}}${self.module.prefix[0]} c`,
                     };
 
@@ -52,7 +52,7 @@ export default class AbstractRecent extends ServerCommand {
 
                     if (self.ctx.isInGroupChat) {
                         const secondButton = {
-                            text: `[${self.module.prefix[0].toUpperCase()}] Топ чата на карте`,
+                            text: `[${self.module.prefix[0].toUpperCase()}] ${self.ctx.tr("chat-map-leaderboard-button")}`,
                             command: `{map${map.id}}${self.module.prefix[0]} lb`,
                         };
                         keyboardRows.push([secondButton]);
@@ -62,7 +62,7 @@ export default class AbstractRecent extends ServerCommand {
                         const settingsAllowed = process.env.RENDER_REPLAYS === "true";
                         if (settingsAllowed) {
                             const thirdButton = {
-                                text: `Отрендерить реплей`,
+                                text: self.ctx.tr("render-replay-button"),
                                 command: `render_bancho:${recent.api_score_id}`,
                             };
                             keyboardRows.push([thirdButton]);
@@ -72,7 +72,13 @@ export default class AbstractRecent extends ServerCommand {
                     keyboard = Util.createKeyboard(keyboardRows);
                 }
 
-                const responseMessage = self.module.bot.templates.ScoreFull(recent, map, calculator, self.module.link);
+                const responseMessage = self.module.bot.templates.ScoreFull(
+                    self.ctx,
+                    recent,
+                    map,
+                    calculator,
+                    self.module.link
+                );
 
                 await self.reply(responseMessage, {
                     photo: cover,

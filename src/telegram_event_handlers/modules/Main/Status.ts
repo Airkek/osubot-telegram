@@ -48,20 +48,20 @@ export default class StatusCommand extends Command {
             ).toFixed(2);
 
             await ctx.send(
-                `Статус бота:\n\n` +
-                    `Версия: ${self.module.bot.version}\n` +
-                    `Время работы: ${up}\n` +
-                    `Чатов, известных боту: ${chatCount}\n` +
-                    `Сообщений получено: ${self.module.bot.totalMessages}\n` +
-                    `Команд использовано: ${cmdsUsed}\n` +
-                    `Сообщений в час: ${msgsPerHour}\n` +
-                    `Команд в час: ${cmdsPerHour}\n` +
-                    `Процент команд от сообщений: ${cmdsPerMessage}%\n` +
-                    `Реплеев получено: ${replaysReceived}\n` +
-                    `Реплеев отрендерено (s/e): ${replaysRendered}/${replaysRenderedExperimental}\n` +
-                    `Ошибок рендера (s/e): ${failedRenders}/${failedRendersExperimental}\n` +
-                    `Процент реплеев от команд: ${replaysPerCommands}%\n` +
-                    `Процент рендеров от команд: ${rendersPerCommands}%`
+                `${ctx.tr("bot_status_header")}\n\n` +
+                    `${ctx.tr("bot_version")}: ${self.module.bot.version}\n` +
+                    `${ctx.tr("bot_uptime")}: ${up}\n` +
+                    `${ctx.tr("bot_known_chats")}: ${chatCount}\n` +
+                    `${ctx.tr("bot_total_messages")}: ${self.module.bot.totalMessages}\n` +
+                    `${ctx.tr("bot_commands_used")}: ${cmdsUsed}\n` +
+                    `${ctx.tr("bot_messages_per_hour")}: ${msgsPerHour}\n` +
+                    `${ctx.tr("bot_commands_per_hour")}: ${cmdsPerHour}\n` +
+                    `${ctx.tr("bot_commands_percentage")}: ${cmdsPerMessage}%\n` +
+                    `${ctx.tr("bot_replays_received")}: ${replaysReceived}\n` +
+                    `${ctx.tr("bot_replays_rendered")}: ${replaysRendered}/${replaysRenderedExperimental}\n` +
+                    `${ctx.tr("bot_render_errors")}: ${failedRenders}/${failedRendersExperimental}\n` +
+                    `${ctx.tr("bot_replays_per_commands")}: ${replaysPerCommands}%\n` +
+                    `${ctx.tr("bot_renders_per_commands")}: ${rendersPerCommands}%`
             );
         });
     }

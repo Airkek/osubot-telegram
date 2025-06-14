@@ -3,8 +3,9 @@ import Mods from "../../osu_specific/pp/Mods";
 import Util from "../../Util";
 import { IBeatmap } from "../../beatmaps/BeatmapTypes";
 import { ICommandArgs } from "../Command";
+import { ILocalisator } from "../../ILocalisator";
 
-export default function (map: IBeatmap, args: ICommandArgs): string {
+export default function (l: ILocalisator, map: IBeatmap, args: ICommandArgs): string {
     const calc = new BanchoPP(map, new Mods(args.mods));
 
     const hits = map.hitObjectsCount;
@@ -30,10 +31,12 @@ export default function (map: IBeatmap, args: ICommandArgs): string {
     const pp = calc.calculate(ppArgs);
 
     return `${Util.formatBeatmap(map)} ${calc.mods.toString()}
-Accuracy: ${Util.round(ppArgs.acc * 100, 2)}%${
+${l.tr("score-accuracy")}: ${Util.round(ppArgs.acc * 100, 2)}%${
         map.mode !== 3
             ? `
-Combo: ${Util.formatCombo(ppArgs.combo, map.maxCombo)} | ${ppArgs.counts.miss} misses`
+${l.tr("score-combo")}: ${Util.formatCombo(ppArgs.combo, map.maxCombo)} | ${l.tr("score-misses-calc", {
+                  count: ppArgs.counts.miss,
+              })}`
             : ""
     }
 - PP: ${Util.round(pp.pp, 2)}
