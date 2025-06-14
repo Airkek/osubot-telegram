@@ -7,6 +7,7 @@ Telegram: https://t.me/osulegacybot
 # Features (not full list):
 - replay rendering by using [o!rdr](https://ordr.issou.best/) and [osu-replay-viewer-continued](https://github.com/Airkek/osu-replay-viewer-continued/)
 - osu! lazer support
+- Multi-language (en/ru/zh)
 - osu! custom servers support
   - [Gatari](https://osu.gatari.pw)
   - [Akatsuki](https://akatsuki.gg)
