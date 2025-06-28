@@ -29,6 +29,9 @@ export interface UserSettings {
     ordr_hit_counter: boolean;
     ordr_strain_graph: boolean;
     ordr_is_skin_custom: boolean;
+    ordr_master_volume: number;
+    ordr_music_volume: number;
+    ordr_effects_volume: number;
     notifications_enabled: boolean;
     experimental_renderer: boolean;
     language_override: LanguageOverride;
@@ -517,6 +520,25 @@ const migrations: IMigration[] = [
             return true;
         },
     },
+    {
+        version: 14,
+        name: "Add render volume settings",
+        process: async (db: Database) => {
+            await db.run(
+                `ALTER TABLE settings
+                    ADD COLUMN ordr_music_volume SMALLINT DEFAULT 50`
+            );
+            await db.run(
+                `ALTER TABLE settings
+                    ADD COLUMN ordr_effects_volume SMALLINT DEFAULT 50`
+            );
+            await db.run(
+                `ALTER TABLE settings
+                    ADD COLUMN ordr_master_volume SMALLINT DEFAULT 50`
+            );
+            return true;
+        },
+    },
 ];
 
 async function applyMigrations(db: Database) {
@@ -580,10 +602,13 @@ export class DatabaseUserSettings {
                  ordr_hit_counter      = $8,
                  ordr_strain_graph     = $9,
                  ordr_is_skin_custom   = $10,
-                 notifications_enabled = $11,
-                 experimental_renderer = $12,
-                 language_override     = $13
-             WHERE user_id = $14`,
+                 ordr_master_volume    = $11,
+                 ordr_music_volume     = $12,
+                 ordr_effects_volume   = $13,
+                 notifications_enabled = $14,
+                 experimental_renderer = $15,
+                 language_override     = $16
+             WHERE user_id = $17`,
             [
                 settings.render_enabled,
                 settings.ordr_skin,
@@ -595,6 +620,9 @@ export class DatabaseUserSettings {
                 settings.ordr_hit_counter,
                 settings.ordr_strain_graph,
                 settings.ordr_is_skin_custom,
+                settings.ordr_master_volume,
+                settings.ordr_music_volume,
+                settings.ordr_effects_volume,
                 settings.notifications_enabled,
                 settings.experimental_renderer,
                 settings.language_override,

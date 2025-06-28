@@ -113,7 +113,10 @@ export class OsuReplay extends Command {
                 renderAdditional += "\n" + ctx.tr("experimental-renderer-warning");
             }
             let needRender = canRender;
-            if (needRender) {
+            if (
+                needRender &&
+                !(useExperimental && ctx.senderId == module.bot.config.tg.owner) // allow admin to use experimental renderer without timeout
+            ) {
                 if (this.checkLimit(ctx.senderId)) {
                     needRender = false;
                     renderAdditional =
@@ -178,6 +181,9 @@ export class OsuReplay extends Command {
                 hit_counter: settings.ordr_hit_counter,
                 strain_graph: settings.ordr_strain_graph,
                 isSkinCustom: settings.ordr_is_skin_custom,
+                masterVolume: settings.ordr_master_volume,
+                musicVolume: settings.ordr_music_volume,
+                effectsVolume: settings.ordr_effects_volume,
             });
 
             if (replayResponse.success) {

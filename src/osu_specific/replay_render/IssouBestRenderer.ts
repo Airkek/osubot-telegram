@@ -161,6 +161,9 @@ export class IssouBestRenderer implements IReplayRenderer {
         form.append("showStrainGraph", settings.strain_graph ? "true" : "false");
         form.append("customSkin", settings.isSkinCustom ? "true" : "false");
         form.append("inGameBGDim", settings.dim.toString());
+        form.append("globalVolume", settings.masterVolume.toString());
+        form.append("musicVolume", settings.musicVolume.toString());
+        form.append("hitsoundVolume", settings.effectsVolume.toString());
         form.append("skin", settings.skin.toString());
 
         try {

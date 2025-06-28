@@ -34,7 +34,13 @@ type ToggleableChatSettingsKey =
     | "lang_chinese"
     | "lang_auto";
 
-type GenericSettingsKey = "ordr_skin" | "ordr_bgdim" | "page_number";
+type GenericSettingsKey =
+    | "ordr_skin"
+    | "ordr_bgdim"
+    | "ordr_master_volume"
+    | "ordr_music_volume"
+    | "ordr_effects_volume"
+    | "page_number";
 
 function buildEvent(userId: number, event: string): string {
     return `osu s ${userId}:${event}`;
@@ -288,6 +294,31 @@ function buildRenderPage(settings: UserSettings, l: ILocalisator): InlineKeyboar
             toggleableButton(settings.user_id, page, l.tr("storyboard"), "ordr_storyboard", settings.ordr_storyboard),
         ],
         [buildPageButton(settings.user_id, "skin_sel", l.tr("skin-button", { skin: settings.ordr_skin }))],
+        [
+            genericSetButton(
+                settings.user_id,
+                page,
+                l.tr("master-volume"),
+                "ordr_master_volume",
+                settings.ordr_master_volume.toString() + "%"
+            ),
+        ],
+        [
+            genericSetButton(
+                settings.user_id,
+                page,
+                l.tr("music-volume"),
+                "ordr_music_volume",
+                settings.ordr_music_volume.toString() + "%"
+            ),
+            genericSetButton(
+                settings.user_id,
+                page,
+                l.tr("effects-volume"),
+                "ordr_effects_volume",
+                settings.ordr_effects_volume.toString() + "%"
+            ),
+        ],
         [
             genericSetButton(
                 settings.user_id,
@@ -665,11 +696,48 @@ export default class SettingsCommand extends Command {
                             break;
                         }
 
-                        case "ordr_bgdim": {
+                        case "ordr_bgdim":
+                        case "ordr_master_volume":
+                        case "ordr_music_volume":
+                        case "ordr_effects_volume": {
                             const cancelAction = ctx.tr("cancel-action");
-                            const msg = ctx.tr("enter-bgdim-action", {
-                                action: cancelAction,
-                            });
+                            const msgError = ctx.tr("invalid-percent-value");
+                            let msg: string;
+                            let settingsKey: string;
+                            switch (key) {
+                                case "ordr_bgdim": {
+                                    msg = ctx.tr("enter-bgdim-action", {
+                                        action: cancelAction,
+                                    });
+                                    settingsKey = "ordr_bgdim";
+                                    break;
+                                }
+
+                                case "ordr_master_volume": {
+                                    msg = ctx.tr("enter-master-volume-action", {
+                                        action: cancelAction,
+                                    });
+                                    settingsKey = "ordr_master_volume";
+                                    break;
+                                }
+
+                                case "ordr_music_volume": {
+                                    msg = ctx.tr("enter-music-volume-action", {
+                                        action: cancelAction,
+                                    });
+                                    settingsKey = "ordr_music_volume";
+                                    break;
+                                }
+
+                                case "ordr_effects_volume": {
+                                    msg = ctx.tr("enter-effects-volume-action", {
+                                        action: cancelAction,
+                                    });
+                                    settingsKey = "ordr_effects_volume";
+                                    break;
+                                }
+                            }
+
                             const ticket = this.module.bot.addCallback(ctx, async (ctx) => {
                                 if (!ctx.text) {
                                     await ctx.reply(msg);
@@ -686,11 +754,11 @@ export default class SettingsCommand extends Command {
                                     return false;
                                 }
                                 if (num > 100 || num < 0) {
-                                    await ctx.reply(ctx.tr("invalid-bgdim-value"));
+                                    await ctx.reply(msgError);
                                     return false;
                                 }
 
-                                settings.ordr_bgdim = num;
+                                settings[settingsKey] = num;
                                 await ctx.updateUserSettings(settings);
                                 await showPage(page, undefined, true, ctx);
 

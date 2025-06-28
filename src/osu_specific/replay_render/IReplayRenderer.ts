@@ -15,6 +15,9 @@ export interface RenderSettings {
     hit_counter: boolean;
     strain_graph: boolean;
     isSkinCustom: boolean;
+    masterVolume: number;
+    musicVolume: number;
+    effectsVolume: number;
 }
 
 export interface RenderResponse {
