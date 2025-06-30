@@ -13,6 +13,7 @@ export interface ICommandArgs {
     place: number;
     apx: number;
     page: number;
+    graphicmode: number;
     more: number;
     c50: number;
     mode?: number;
@@ -95,6 +96,7 @@ export class Command {
             more: 0,
             c50: 0,
             page: 1,
+            graphicmode: -1,
             mode: null,
         };
 
@@ -108,6 +110,10 @@ export class Command {
                 iArg.mode = 2;
             } else if (arg == "-mania" || arg == "-m") {
                 iArg.mode = 3;
+            } else if (arg.startsWith("^p")) {
+                iArg.page = Math.max(Number(arg.slice(2)), 1);
+            } else if (arg.startsWith("^g")) {
+                iArg.graphicmode = Math.max(Number(arg.slice(2)), 1);
             } else if (arg.startsWith("+")) {
                 iArg.mods = arg.slice(1);
             } else if (arg.endsWith("x")) {
@@ -125,8 +131,6 @@ export class Command {
                 iArg.place = Number(arg.slice(1));
             } else if (arg.startsWith("~")) {
                 iArg.apx = Math.max(Number(arg.slice(1)), 1);
-            } else if (arg.startsWith("--p")) {
-                iArg.page = Math.max(Number(arg.slice(3)), 1);
             } else if (arg.startsWith(">")) {
                 iArg.more = Math.max(Number(arg.slice(1)), 1);
             } else {

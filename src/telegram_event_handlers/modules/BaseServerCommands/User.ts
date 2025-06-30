@@ -20,6 +20,7 @@ export default class AbstractUser extends ServerCommand {
                     await self.module.db.updateInfo(user, mode);
                 }
 
+                const userNeedPhoto = await self.ctx.preferCardsOutput();
                 const keyboard = Util.createKeyboard([
                     self.module.api.getUserTopById
                         ? [
@@ -27,7 +28,7 @@ export default class AbstractUser extends ServerCommand {
                                   text: self.ctx.tr("players-top-scores", {
                                       player_name: user.nickname,
                                   }),
-                                  command: `${module.prefix[0]} top ${self.module.api.getUserTop ? user.nickname : user.id} ${Util.getModeArg(mode)}`,
+                                  command: `${module.prefix[0]} top ${self.module.api.getUserTop ? user.nickname : user.id} ${Util.getModeArg(mode)} ^g${userNeedPhoto ? 2 : 1}`,
                               },
                           ]
                         : [],
@@ -43,7 +44,6 @@ export default class AbstractUser extends ServerCommand {
                         : [],
                 ]);
 
-                const userNeedPhoto = await self.ctx.preferCardsOutput();
                 let templateAddition = "";
                 if (userNeedPhoto) {
                     const card = await self.module.bot.okiChanCards.generateUserCard(user, self.ctx);

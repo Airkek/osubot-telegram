@@ -42,6 +42,14 @@ export default class AbstractTop extends ServerCommand {
         return context.args.mode !== null ? context.args.mode : context.user.dbUser?.mode || 0;
     }
 
+    private async needGraphics(context: CommandContext): Promise<boolean> {
+        if (context.args.graphicmode == -1) {
+            return await context.ctx.preferCardsOutput();
+        }
+
+        return context.args.graphicmode == 2;
+    }
+
     private async fetchUserData(context: CommandContext, mode: number): Promise<APIUser> {
         return context.user.username
             ? await context.module.api.getUser(context.user.username, mode)
@@ -141,7 +149,7 @@ export default class AbstractTop extends ServerCommand {
 
         const page = context.args.page ?? 1;
 
-        const needCards = await context.ctx.preferCardsOutput();
+        const needCards = await this.needGraphics(context);
 
         const scoresOnPage = needCards ? 5 : 3;
         const maxPage = Math.ceil(scores.length / scoresOnPage);
@@ -160,7 +168,7 @@ export default class AbstractTop extends ServerCommand {
         const topThree = scores.slice(startI, endI);
         const maps = await Promise.all(topThree.map((score) => this.resolveBeatmap(context, score, mode)));
 
-        const keyboard = this.createPageKeyboard(context, maxPage, page, user, mode);
+        const keyboard = this.createPageKeyboard(context, maxPage, page, user, mode, needCards);
 
         let message = "";
         let photo: InputFile = undefined;
@@ -276,10 +284,12 @@ export default class AbstractTop extends ServerCommand {
         maxPage: number,
         currentPage: number,
         user: APIUser,
-        mode: number
+        mode: number,
+        needCards: boolean
     ) {
         const prefix = context.module.prefix[0];
         const modeArg = this.modeArg(mode);
+        const gmode = needCards ? "^g2" : "^g1";
 
         const prevPage = Math.max(currentPage - 1, 1);
         const nextPage = Math.min(currentPage + 1, maxPage);
@@ -288,15 +298,15 @@ export default class AbstractTop extends ServerCommand {
 
         const buttonPrev = {
             text: "⬅️",
-            command: `${prefix} t ${nickname} --p${prevPage} ${modeArg}`,
+            command: `${prefix} t ${nickname} ^p${prevPage} ${gmode} ${modeArg}`,
         };
         const buttonPage = {
             text: `${currentPage}/${maxPage} 🔄`,
-            command: `${prefix} t ${nickname} --p${currentPage} ${modeArg}`,
+            command: `${prefix} t ${nickname} ^p${currentPage} ${gmode} ${modeArg}`,
         };
         const buttonNext = {
             text: "➡️",
-            command: `${prefix} t ${nickname} --p${nextPage} ${modeArg}`,
+            command: `${prefix} t ${nickname} ^p${nextPage} ${gmode} ${modeArg}`,
         };
 
         const buttons = [buttonPrev, buttonPage, buttonNext];

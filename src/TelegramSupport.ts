@@ -240,7 +240,7 @@ export default class UnifiedMessageContext implements ILocalisator {
             return;
         }
 
-        const hasMedia = options?.photo || options?.video || this.tgCtx.message.photo || this.tgCtx.message.video;
+        const hasMedia = options?.photo || options?.video || this.tgCtx.message?.photo || this.tgCtx.message?.video;
         if (hasMedia) {
             if (options?.photo) {
                 await this.tgCtx.editMessageMedia(InputMediaBuilder.photo(options.photo), {
