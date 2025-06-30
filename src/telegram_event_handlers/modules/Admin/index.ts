@@ -5,6 +5,9 @@ import IgnoreCommand from "./Ignore";
 import DropCommand from "./Drop";
 import ClearChatsCommand from "./ClearChats";
 import NotifyCommand from "./Notify";
+import ListFeature from "./ListFeature";
+import EnableFeature from "./EnableFeature";
+import DisableFeature from "./DisableFeature";
 
 export default class Admin extends Module {
     constructor(bot: Bot) {
@@ -18,6 +21,9 @@ export default class Admin extends Module {
             new DropCommand(this),
             new ClearChatsCommand(this),
             new NotifyCommand(this),
+            new ListFeature(this),
+            new EnableFeature(this),
+            new DisableFeature(this),
         ]);
     }
 }

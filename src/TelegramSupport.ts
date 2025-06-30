@@ -127,8 +127,9 @@ export default class UnifiedMessageContext implements ILocalisator {
     }
 
     async preferCardsOutput(): Promise<boolean> {
+        const cardsEnabled = await this.database.featureControlModel.isFeatureEnabled("oki-cards");
         const settings = await this.userSettings();
-        return settings.content_output == "oki-cards";
+        return cardsEnabled && settings.content_output == "oki-cards";
     }
 
     async userSettings(): Promise<UserSettings> {

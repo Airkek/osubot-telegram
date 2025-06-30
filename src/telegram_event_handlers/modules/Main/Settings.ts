@@ -90,8 +90,13 @@ function buildPlaceholderButton(text: string): IKBButton {
     };
 }
 
-function buildStartKeyboard(userId: number, settings: UserSettings, l: ILocalisator): InlineKeyboard {
-    return Util.createKeyboard([
+function buildStartKeyboard(
+    userId: number,
+    settings: UserSettings,
+    showOutputType: boolean,
+    l: ILocalisator
+): InlineKeyboard {
+    const kb = [
         [buildPageButton(userId, "render", l.tr("render-page"))],
         [
             toggleableButton(
@@ -102,9 +107,13 @@ function buildStartKeyboard(userId: number, settings: UserSettings, l: ILocalisa
                 settings.notifications_enabled
             ),
         ],
-        [buildPageButton(userId, "output_type", l.tr("output-style-page"))],
-        [buildPageButton(userId, "language", "🌐Language/Язык")],
-    ]);
+    ];
+    if (showOutputType) {
+        kb.push([buildPageButton(userId, "output_type", l.tr("output-style-page"))]);
+    }
+    kb.push([buildPageButton(userId, "language", "🌐Language/Язык")]);
+
+    return Util.createKeyboard(kb);
 }
 
 function buildCancelKeyboard(userId: number, page: SettingsPage, ticket: string, l: ILocalisator): InlineKeyboard {
@@ -448,8 +457,10 @@ export default class SettingsCommand extends Command {
                     });
                 } else {
                     const stgs = await ctx.userSettings();
+                    const cardsEnabled =
+                        await this.module.bot.database.featureControlModel.isFeatureEnabled("oki-cards");
                     await ctx.reply(ctx.tr("user-settings-header"), {
-                        keyboard: buildStartKeyboard(ctx.senderId, stgs, ctx),
+                        keyboard: buildStartKeyboard(ctx.senderId, stgs, cardsEnabled, ctx),
                     });
                 }
 
@@ -570,7 +581,9 @@ export default class SettingsCommand extends Command {
                 let answer: InlineKeyboard = undefined;
                 switch (page) {
                     case "home": {
-                        answer = buildStartKeyboard(settings.user_id, settings, customCtx);
+                        const cardsEnabled =
+                            await this.module.bot.database.featureControlModel.isFeatureEnabled("oki-cards");
+                        answer = buildStartKeyboard(settings.user_id, settings, cardsEnabled, customCtx);
                         break;
                     }
                     case "render": {

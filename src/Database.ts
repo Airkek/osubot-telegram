@@ -119,16 +119,20 @@ class DatabaseServer implements IDatabaseServer {
 }
 
 class DatabaseCovers {
-    db: Database;
+    private readonly db: Database;
+    private readonly tg: TG;
+    private readonly owner: number;
 
-    constructor(db: Database) {
+    constructor(db: Database, tg: TG, owner: number) {
         this.db = db;
+        this.tg = tg;
+        this.owner = owner;
     }
 
     async addCover(id: number): Promise<string> {
         try {
             const file = new InputFile(new URL(`https://assets.ppy.sh/beatmaps/${id}/covers/cover@2x.jpg`));
-            const send = await this.db.tg.api.sendPhoto(this.db.owner, file);
+            const send = await this.tg.api.sendPhoto(this.owner, file);
             const photo = send.photo[0].file_id;
 
             await this.db.run("INSERT INTO covers (id, attachment) VALUES ($1, $2)", [id, photo.toString()]);
@@ -150,7 +154,7 @@ class DatabaseCovers {
     async addPhotoDoc(photoUrl: string): Promise<string> {
         try {
             const file = new InputFile(new URL(photoUrl));
-            const send = await this.db.tg.api.sendPhoto(this.db.owner, file);
+            const send = await this.tg.api.sendPhoto(this.owner, file);
             const photo = send.photo[0].file_id;
 
             await this.db.run("INSERT INTO photos (url, attachment) VALUES ($1, $2)", [photoUrl, photo.toString()]);
@@ -554,6 +558,22 @@ const migrations: IMigration[] = [
             return true;
         },
     },
+    {
+        version: 16,
+        name: "Add feature control",
+        process: async (db: Database) => {
+            await db.run(
+                `CREATE TABLE IF NOT EXISTS feature_control
+                 (
+                     feature          TEXT UNIQUE NOT NULL,
+                     enabled_for_all  BOOLEAN  DEFAULT false
+                 )`
+            );
+
+            await db.run(`INSERT INTO feature_control (feature, enabled_for_all) VALUES ('oki-cards', false)`);
+            return true;
+        },
+    },
 ];
 
 async function applyMigrations(db: Database) {
@@ -588,7 +608,7 @@ async function applyMigrations(db: Database) {
     }
 }
 
-export class DatabaseUserSettings {
+class DatabaseUserSettings {
     private db: Database;
 
     constructor(db: Database) {
@@ -649,7 +669,7 @@ export class DatabaseUserSettings {
     }
 }
 
-export class DatabaseChatSettings {
+class DatabaseChatSettings {
     private db: Database;
 
     constructor(db: Database) {
@@ -811,21 +831,84 @@ class NotificationsModel {
     }
 }
 
-export default class Database {
-    servers: IServersList;
-    covers: DatabaseCovers;
-    errors: DatabaseErrors;
-    chats: DatabaseUsersToChat;
-    ignore: DatabaseIgnore;
-    drop: DatabaseDrop;
-    osuBeatmapMeta: DatabaseOsuBeatmapMetadataCache;
-    userSettings: DatabaseUserSettings;
-    chatSettings: DatabaseChatSettings;
-    notifications: NotificationsModel;
+export type ControllableFeature = "oki-cards";
 
-    db: Pool;
-    tg: TG;
-    owner: number;
+interface FeatureControlSchema {
+    feature: ControllableFeature;
+    enabled_for_all: boolean;
+}
+
+class FeatureControlModel {
+    private db: Database;
+    private cache: Map<ControllableFeature, boolean>;
+    private cacheTTL: number;
+    private lastUpdated: Map<ControllableFeature, number>;
+
+    constructor(db: Database) {
+        this.db = db;
+        this.cache = new Map();
+        this.cacheTTL = 60000;
+        this.lastUpdated = new Map();
+    }
+
+    async isFeatureEnabled(feature: ControllableFeature): Promise<boolean> {
+        const now = Date.now();
+        const lastUpdate = this.lastUpdated.get(feature) || 0;
+
+        if (this.cache.has(feature) && now - lastUpdate < this.cacheTTL) {
+            return this.cache.get(feature)!;
+        }
+
+        const featureStatus: FeatureControlSchema = await this.db.get(
+            "SELECT * FROM feature_control WHERE feature = $1",
+            [feature]
+        );
+
+        const isEnabled = featureStatus && featureStatus.enabled_for_all;
+        this.cache.set(feature, isEnabled);
+        this.lastUpdated.set(feature, now);
+
+        return isEnabled;
+    }
+
+    async enableFeature(feature: ControllableFeature): Promise<void> {
+        await this.db.run("UPDATE feature_control SET enabled_for_all = true WHERE feature = $1", [feature]);
+        this.cache.delete(feature);
+        this.lastUpdated.delete(feature);
+    }
+
+    async disableFeature(feature: ControllableFeature): Promise<void> {
+        await this.db.run("UPDATE feature_control SET enabled_for_all = false WHERE feature = $1", [feature]);
+        this.cache.delete(feature);
+        this.lastUpdated.delete(feature);
+    }
+
+    async listFeatures(): Promise<FeatureControlSchema[]> {
+        return await this.db.all("SELECT * FROM feature_control");
+    }
+
+    clearCache(): void {
+        this.cache.clear();
+        this.lastUpdated.clear();
+    }
+}
+
+export default class Database {
+    readonly servers: IServersList;
+    readonly covers: DatabaseCovers;
+    readonly errors: DatabaseErrors;
+    readonly chats: DatabaseUsersToChat;
+    readonly ignore: DatabaseIgnore;
+    readonly drop: DatabaseDrop;
+    readonly osuBeatmapMeta: DatabaseOsuBeatmapMetadataCache;
+    readonly userSettings: DatabaseUserSettings;
+    readonly chatSettings: DatabaseChatSettings;
+    readonly notifications: NotificationsModel;
+    readonly featureControlModel: FeatureControlModel;
+
+    private readonly db: Pool;
+    private readonly tg: TG;
+    private readonly owner: number;
 
     constructor(tg: TG, owner: number) {
         this.servers = {
@@ -837,7 +920,7 @@ export default class Database {
             scoresaber: new DatabaseServer("scoresaber", this),
         };
 
-        this.covers = new DatabaseCovers(this);
+        this.covers = new DatabaseCovers(this, this.tg, this.owner);
         this.errors = new DatabaseErrors(this);
         this.chats = new DatabaseUsersToChat(this);
         this.ignore = new DatabaseIgnore(this);
@@ -846,6 +929,7 @@ export default class Database {
         this.userSettings = new DatabaseUserSettings(this);
         this.chatSettings = new DatabaseChatSettings(this);
         this.notifications = new NotificationsModel(this);
+        this.featureControlModel = new FeatureControlModel(this);
 
         this.db = new Pool({
             user: process.env.DB_USERNAME,
