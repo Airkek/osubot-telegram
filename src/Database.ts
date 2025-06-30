@@ -857,7 +857,7 @@ class FeatureControlModel {
     constructor(db: Database) {
         this.db = db;
         this.cache = new Map();
-        this.cacheTTL = 60000;
+        this.cacheTTL = 60 * 60 * 1000; // 6 hour
         this.lastUpdated = new Map();
     }
 
