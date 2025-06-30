@@ -40,6 +40,7 @@ osuservers-text =
     • Bancho (官方osu!服务器)
     • Gatari
     • Ripple
+    • Ripple!Relax
     • Akatsuki
     • Akatsuki!Relax
     • Akatsuki!AutoPilot
@@ -55,6 +56,7 @@ serverprefixes-text =
     • Bancho - s
     • Gatari - g
     • Ripple - r
+    • Ripple!Relax - rx
     • Akatsuki - a
     • Akatsuki!Relax - ax
     • Akatsuki!AutoPilot - ap
