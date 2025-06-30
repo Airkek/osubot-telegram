@@ -28,6 +28,7 @@ export class OkiCardsGenerator {
         this.registerFont("Torus.ttf", "Torus");
         this.registerFont("Mulish.ttf", "Mulish");
         this.registerFont("VarelaRound.ttf", "VarelaRound");
+        this.registerFont("NotoSansSC-Regular.ttf", "NotoSansSC");
     }
 
     private registerFont(assetName: string, fontName: string) {
@@ -221,10 +222,10 @@ export class OkiCardsGenerator {
         }
 
         ctx.fillStyle = mainColor;
-        ctx.font = "63px VarelaRound";
+        ctx.font = "63px VarelaRound, NotoSansSC";
         ctx.fillText(user.nickname, 347, 56 + 63);
 
-        ctx.font = "40px VarelaRound";
+        ctx.font = "40px VarelaRound, NotoSansSC";
         const country = this.countryCodes[user.country] || "Unknown";
         const flagAsset = this.getFlagAssetData(user.country);
         if (flagAsset) {
@@ -245,7 +246,7 @@ export class OkiCardsGenerator {
         ctx.drawImage(gradeSS, 847, 221 + 25, 98, 50);
         ctx.drawImage(gradeSSH, 1002, 221 + 25, 98, 50);
 
-        ctx.font = "28px VarelaRound";
+        ctx.font = "28px VarelaRound, NotoSansSC";
         ctx.textAlign = "center";
         ctx.fillText(OkiFormat.number(user.grades?.a || 0), 792 + 22, 171 + 25 + 28);
         ctx.fillText(OkiFormat.number(user.grades?.s || 0), 955 + 16, 171 + 25 + 28);
@@ -254,10 +255,10 @@ export class OkiCardsGenerator {
         ctx.fillText(OkiFormat.number(user.grades?.ssh || 0), 1038 + 13, 279 + 25 + 28);
 
         ctx.textAlign = "left";
-        ctx.font = "75px VarelaRound";
+        ctx.font = "75px VarelaRound, NotoSansSC";
         ctx.fillText("#" + OkiFormat.number(user.rank.total || 0), 347, 170 + 75);
 
-        ctx.font = "57px VarelaRound";
+        ctx.font = "57px VarelaRound, NotoSansSC";
         ctx.fillText("#" + OkiFormat.number(user.rank.country || 0), 347, 259 + 57);
 
         const hexagon = await loadImage(this.getAssetData("hexagon.png"));
@@ -265,7 +266,7 @@ export class OkiCardsGenerator {
 
         const levelText = Math.floor(user.level | 0).toString();
         ctx.textAlign = "center";
-        ctx.font = "33px VarelaRound";
+        ctx.font = "33px VarelaRound, NotoSansSC";
         ctx.fillText(levelText, 378, 332 + 50);
 
         OkiFormat.rect(ctx, 441, 364, 504, 12, 7);
@@ -274,7 +275,7 @@ export class OkiCardsGenerator {
         ctx.textAlign = "left";
 
         ctx.fillStyle = mainColor;
-        ctx.font = "21px VarelaRound";
+        ctx.font = "21px VarelaRound, NotoSansSC";
         ctx.fillText(Math.floor(user.levelProgress || 0) + "%", 960, 359 + 21);
 
         ctx.fillStyle = mainColor + "21";
@@ -285,13 +286,13 @@ export class OkiCardsGenerator {
 
         ctx.fillStyle = mainColor;
         ctx.textAlign = "center";
-        ctx.font = "30px Mulish";
+        ctx.font = "30px Mulish, NotoSansSC";
         ctx.fillText("pp", 118 + 20, 476 + 30);
         ctx.fillText(l.tr("player-accuracy"), 314 + 80, 478 + 30);
         ctx.fillText(l.tr("player-playtime"), 592 + 110, 476 + 30);
         ctx.fillText(l.tr("player-totalscore"), 973 + 50, 478 + 30);
 
-        ctx.font = "40px Mulish";
+        ctx.font = "40px Mulish, NotoSansSC";
         ctx.fillText(OkiFormat.number(Math.round(user.pp || 0)), 82 + 60, 534 + 40);
         ctx.fillText(Math.round((user.accuracy || 0) * 100) / 100 + "%", 324 + 75, 537 + 40);
         ctx.fillText(Util.minutesToPlaytimeString(user.playtime), 651 + 50, 536 + 40);
