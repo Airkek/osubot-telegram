@@ -62,8 +62,6 @@ export default class UnifiedMessageContext implements ILocalisator {
     readonly isFromBot: boolean;
     readonly isFromUser: boolean;
 
-    readonly isOkiChanAlias: boolean;
-
     private readonly tgCtx: TgContext;
     private readonly me: UserFromGetMe;
     private readonly localServer: boolean;

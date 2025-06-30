@@ -273,12 +273,56 @@ export class Bot {
         }
     };
 
-    private handleMessage = async (ctx): Promise<void> => {
-        const context = await this.buildActivatedContext(ctx);
-
-        if (this.shouldSkipMessage(context)) {
+    private applyPlaintextOverrides(ctx: TgContext) {
+        const text = ctx.message?.text ?? ctx.message?.caption;
+        if (!text) {
             return;
         }
+
+        const lowerText = text.toLowerCase();
+        const aliases: Record<string, string> = {
+            "o!me": "s u",
+            "osu!me": "s u",
+            "o!get": "s u",
+            "osu!get": "s u",
+            "o!u": "s u",
+            "osu!u": "s u",
+            "o!user": "s u",
+            "osu!user": "s u",
+            "o!best": "s t",
+            "osu!best": "s t",
+            "o!last": "s r",
+            "osu!last": "s r",
+            "o!settings": "osu s",
+            "osu!settings": "osu s",
+            "o!set": "osu s",
+            "osu!set": "osu s",
+            "o!help": "osu help",
+            "osu!help": "osu help",
+            "o!link": "s n",
+            "osu!link": "s n",
+        };
+
+        for (const [alias, command] of Object.entries(aliases)) {
+            const lowerOverride = alias.toLowerCase();
+
+            if (lowerText.startsWith(lowerOverride)) {
+                if (text.length === alias.length || /^\s$/.test(text.charAt(alias.length))) {
+                    ctx.message.text = command + " " + text.slice(alias.length).trim();
+                    return;
+                }
+            }
+        }
+    }
+
+    private handleMessage = async (ctx): Promise<void> => {
+        if (this.shouldSkipMessage(ctx)) {
+            return;
+        }
+
+        this.applyPlaintextOverrides(ctx);
+        const context = await this.buildActivatedContext(ctx);
+        this.totalMessages++;
 
         const ticket = this.createCallbackTicket(context);
         const cb = this.pendingCallbacks[ticket];
@@ -306,12 +350,11 @@ export class Bot {
             return;
         }
 
-        this.totalMessages++;
         await this.processRegularMessage(context);
     };
 
-    private shouldSkipMessage(ctx: UnifiedMessageContext): boolean {
-        return ctx.isFromBot || this.ignored.isIgnored(ctx.senderId);
+    private shouldSkipMessage(ctx: TgContext): boolean {
+        return ctx.from.is_bot || this.ignored.isIgnored(ctx.from.id);
     }
 
     private async processRegularMessage(ctx: UnifiedMessageContext): Promise<void> {
