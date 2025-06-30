@@ -42,7 +42,8 @@ osuservers-text =
     • Gatari
     • Ripple
     • Akatsuki
-    • Akatsuki!relax
+    • Akatsuki!Relax
+    • Akatsuki!AutoPilot
 
     Обращения к командам серверов происходит через префиксы. Пример команды сервера:
     s user mrekk
@@ -56,7 +57,8 @@ serverprefixes-text =
     • Gatari - g
     • Ripple - r
     • Akatsuki - a
-    • Akatsuki!relax - ax
+    • Akatsuki!Relax - ax
+    • Akatsuki!AutoPilot - ap
 
 basiccommands-text =
     Команды Basic модуля:

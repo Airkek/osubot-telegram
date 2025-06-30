@@ -249,21 +249,15 @@ export default class Mods {
         return m;
     }
 
-    toString(): string {
+    toAcronymList(): string[] {
         if (this.modsv2) {
-            const str = this.modsv2
-                .map((m) => {
-                    if (m.settings?.speed_change !== undefined) {
-                        return `${m.acronym}x${m.settings.speed_change}`;
-                    }
+            return this.modsv2.map((m) => {
+                if (m.settings?.speed_change !== undefined) {
+                    return `${m.acronym}x${m.settings.speed_change}`;
+                }
 
-                    return m.acronym;
-                })
-                .join(" +");
-            if (str.length == 0) {
-                return "";
-            }
-            return `+${str}`;
+                return m.acronym;
+            });
         }
         let tempMods = this.sum();
         if (this.sum() & ModsBitwise.Nightcore) {
@@ -273,16 +267,20 @@ export default class Mods {
             tempMods -= ModsBitwise.SuddenDeath;
         }
         const p = this.parse(tempMods);
-        let str = p.map((mod) => ModsAcronyms2[ModsBitwise[mod]]).join(" +");
-        if (str.length != 0) {
-            str = `+${str}`;
-        }
-
+        const str = p.map((mod) => ModsAcronyms2[ModsBitwise[mod]]);
         if (!this.lazer) {
-            str += " +CL";
+            str.push("CL");
         }
 
-        return str.trim();
+        return str;
+    }
+
+    toString(): string {
+        const list = this.toAcronymList();
+        if (list.length == 0) {
+            return "";
+        }
+        return "+" + list.join(" +");
     }
 
     diff() {

@@ -27,6 +27,10 @@ user-settings-header = 用户设置：
 chat-language-page = 🌐 用户语言覆盖
 chat-language-do-not-override = 🌐 不覆盖语言
 
+output-style-page = 🎨 机器人输出风格
+output-style-oki-cards = 🖼️ Oki-Chan卡片
+output-style-text = 🔤 纯文本
+
 select-page-action = 发送页码或输入"{$action}"取消操作
 
 enter-skin-id-action = 发送o!rdr皮肤ID或输入"{$action}"取消操作

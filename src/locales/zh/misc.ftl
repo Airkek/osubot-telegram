@@ -3,6 +3,9 @@ server-name = [服务器: {$server}]
 players-top-scores = 玩家 {$player_name} 的最佳成绩
 players-recent-score = 玩家 {$player_name} 的最近游玩
 
+best-scores-header = 最高分
+best-scores-subheader = 玩家 {$player_name} 于 {$date}
+
 map-leaderboard-header = 本群组谱面排行榜:
 nobody-played-this-map = 还没有人在此谱面上取得成绩!
 

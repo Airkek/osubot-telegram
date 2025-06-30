@@ -3,6 +3,9 @@ server-name = [Server: {$server}]
 players-top-scores = {$player_name}'s top scores
 players-recent-score = {$player_name}'s recent score
 
+best-scores-header = Top Scores
+best-scores-subheader = by {$player_name} on {$date}
+
 map-leaderboard-header = Chat leaderboard for this map:
 nobody-played-this-map = No one has scores on this map yet!
 

@@ -3,6 +3,9 @@ server-name = [Сервер: {$server}]
 players-top-scores = Топ скоры игрока {$player_name}
 players-recent-score = Последний плей игрока {$player_name}
 
+best-scores-header = Топ скоры
+best-scores-subheader = игрока {$player_name} от {$date}
+
 map-leaderboard-header = Топ беседы на карте:
 nobody-played-this-map = Ни у кого нет скоров на этой карте!
 

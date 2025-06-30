@@ -27,6 +27,10 @@ user-settings-header = Settings:
 chat-language-page = 🌐 User language override
 chat-language-do-not-override = 🌐 Do not override
 
+output-style-page = 🎨 Bot Output Style
+output-style-oki-cards = 🖼️ Oki-Chan Cards
+output-style-text = 🔤 Text
+
 select-page-action = Send a page number or write "{$action}" to cancel
 
 enter-skin-id-action = Send a skin ID from o!rdr or write "{$action}" to cancel

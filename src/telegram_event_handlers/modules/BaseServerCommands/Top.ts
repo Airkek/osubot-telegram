@@ -4,7 +4,7 @@ import BanchoPP from "../../../osu_specific/pp/bancho";
 import Mods from "../../../osu_specific/pp/Mods";
 import { ServerCommand, CommandContext } from "../../ServerCommand";
 import { Mode, APIUser, APIScore } from "../../../Types";
-import { GrammyError, InlineKeyboard } from "grammy";
+import { GrammyError, InlineKeyboard, InputFile } from "grammy";
 import { IBeatmap } from "../../../beatmaps/BeatmapTypes";
 import { ILocalisator } from "../../../ILocalisator";
 
@@ -141,7 +141,9 @@ export default class AbstractTop extends ServerCommand {
 
         const page = context.args.page ?? 1;
 
-        const scoresOnPage = 3;
+        const needCards = await context.ctx.preferCardsOutput();
+
+        const scoresOnPage = needCards ? 5 : 3;
         const maxPage = Math.ceil(scores.length / scoresOnPage);
 
         if (page < 1 || page > maxPage) {
@@ -158,27 +160,33 @@ export default class AbstractTop extends ServerCommand {
         const topThree = scores.slice(startI, endI);
         const maps = await Promise.all(topThree.map((score) => this.resolveBeatmap(context, score, mode)));
 
-        const response = maps
-            .map((map, i) => {
-                const calc = new BanchoPP(map, topThree[i].mods);
-                return context.module.bot.templates.TopScore(
-                    l,
-                    topThree[i],
-                    map,
-                    startI + i + 1,
-                    calc,
-                    context.module.link
-                );
-            })
-            .join("\n");
-
         const keyboard = this.createPageKeyboard(context, maxPage, page, user, mode);
-        const message = `${l.tr("players-top-scores", {
-            player_name: user.nickname,
-        })} [${Util.profileModes[mode]}]:\n${response}`;
+
+        let message = "";
+        let photo: InputFile = undefined;
+        if (needCards) {
+            photo = new InputFile(await this.module.bot.okiChanCards.generateTopScoresCard(topThree, maps, user, l));
+        } else {
+            const response = maps
+                .map((map, i) => {
+                    const calc = new BanchoPP(map, topThree[i].mods);
+                    return context.module.bot.templates.TopScore(
+                        l,
+                        topThree[i],
+                        map,
+                        startI + i + 1,
+                        calc,
+                        context.module.link
+                    );
+                })
+                .join("\n");
+            message = `${l.tr("players-top-scores", {
+                player_name: user.nickname,
+            })} [${Util.profileModes[mode]}]:\n${response}`;
+        }
         if (context.isPayload) {
             try {
-                await context.edit(message, { keyboard });
+                await context.edit(message, { keyboard, photo });
             } catch (e) {
                 if (e instanceof GrammyError && e.message.includes("message is not modified")) {
                     await context.answer(l.tr("no-updates-notification"));
@@ -187,7 +195,7 @@ export default class AbstractTop extends ServerCommand {
                 throw e;
             }
         } else {
-            await context.reply(message, { keyboard });
+            await context.reply(message, { keyboard, photo });
         }
     }
 

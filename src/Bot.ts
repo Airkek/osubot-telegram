@@ -16,6 +16,7 @@ import Admin from "./telegram_event_handlers/modules/Admin";
 import Main from "./telegram_event_handlers/modules/Main";
 import Akatsuki from "./telegram_event_handlers/modules/Akatsuki";
 import AkatsukiRelax from "./telegram_event_handlers/modules/AkatsukiRelax";
+import AkatsukiAutoPilot from "./telegram_event_handlers/modules/AkatsukiAutoPilot";
 import Bancho from "./telegram_event_handlers/modules/Bancho";
 import Gatari from "./telegram_event_handlers/modules/Gatari";
 import Ripple from "./telegram_event_handlers/modules/Ripple";
@@ -28,6 +29,8 @@ import { OsuBeatmapProvider } from "./beatmaps/osu/OsuBeatmapProvider";
 import BanchoAPIV2 from "./api/BanchoV2";
 import { SimpleCommandsModule } from "./telegram_event_handlers/modules/simple_commands";
 import Util from "./Util";
+import { OkiCardsGenerator } from "./oki-cards/OkiCardsGenerator";
+import RippleRelax from "./telegram_event_handlers/modules/RippleRelax";
 
 export interface IBotConfig {
     tg: {
@@ -55,6 +58,8 @@ export class Bot {
     public readonly track: OsuTrackAPI;
 
     public readonly banchoApi: BanchoAPIV2; // TODO: make private
+
+    public readonly okiChanCards: OkiCardsGenerator = new OkiCardsGenerator();
 
     private readonly pendingCallbacks: { [id: string]: PendingCallback } = {};
 
@@ -126,8 +131,10 @@ export class Bot {
             new Bancho(this),
             new Gatari(this),
             new Ripple(this),
+            new RippleRelax(this),
             new Akatsuki(this),
             new AkatsukiRelax(this),
+            new AkatsukiAutoPilot(this),
             new BeatLeader(this),
             new ScoreSaber(this),
             new Admin(this),
@@ -266,12 +273,56 @@ export class Bot {
         }
     };
 
-    private handleMessage = async (ctx): Promise<void> => {
-        const context = await this.buildActivatedContext(ctx);
-
-        if (this.shouldSkipMessage(context)) {
+    private applyPlaintextOverrides(ctx: TgContext) {
+        const text = ctx.message?.text ?? ctx.message?.caption;
+        if (!text) {
             return;
         }
+
+        const lowerText = text.toLowerCase();
+        const aliases: Record<string, string> = {
+            "o!me": "s u",
+            "osu!me": "s u",
+            "o!get": "s u",
+            "osu!get": "s u",
+            "o!u": "s u",
+            "osu!u": "s u",
+            "o!user": "s u",
+            "osu!user": "s u",
+            "o!best": "s t",
+            "osu!best": "s t",
+            "o!last": "s r",
+            "osu!last": "s r",
+            "o!settings": "osu s",
+            "osu!settings": "osu s",
+            "o!set": "osu s",
+            "osu!set": "osu s",
+            "o!help": "osu help",
+            "osu!help": "osu help",
+            "o!link": "s n",
+            "osu!link": "s n",
+        };
+
+        for (const [alias, command] of Object.entries(aliases)) {
+            const lowerOverride = alias.toLowerCase();
+
+            if (lowerText.startsWith(lowerOverride)) {
+                if (text.length === alias.length || /^\s$/.test(text.charAt(alias.length))) {
+                    ctx.message.text = command + " " + text.slice(alias.length).trim();
+                    return;
+                }
+            }
+        }
+    }
+
+    private handleMessage = async (ctx): Promise<void> => {
+        if (this.shouldSkipMessage(ctx)) {
+            return;
+        }
+
+        this.applyPlaintextOverrides(ctx);
+        const context = await this.buildActivatedContext(ctx);
+        this.totalMessages++;
 
         const ticket = this.createCallbackTicket(context);
         const cb = this.pendingCallbacks[ticket];
@@ -299,12 +350,11 @@ export class Bot {
             return;
         }
 
-        this.totalMessages++;
         await this.processRegularMessage(context);
     };
 
-    private shouldSkipMessage(ctx: UnifiedMessageContext): boolean {
-        return ctx.isFromBot || this.ignored.isIgnored(ctx.senderId);
+    private shouldSkipMessage(ctx: TgContext): boolean {
+        return ctx.from.is_bot || this.ignored.isIgnored(ctx.from.id);
     }
 
     private async processRegularMessage(ctx: UnifiedMessageContext): Promise<void> {

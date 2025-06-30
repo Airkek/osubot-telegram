@@ -196,6 +196,14 @@ interface IBeatmapObjects {
     spinners: number;
 }
 
+interface APIUserGradeCounts {
+    a: number;
+    s: number;
+    ss: number;
+    sh: number;
+    ssh: number;
+}
+
 interface APIUser {
     id: number | string;
     nickname: string;
@@ -209,7 +217,15 @@ interface APIUser {
     country: string;
     accuracy: number;
     level?: number;
-    mode?: number;
+    levelProgress?: number;
+    total_score?: number;
+    mode: number;
+
+    grades?: APIUserGradeCounts;
+    is_supporter?: boolean;
+
+    profileBackgroundUrl?: string;
+    profileAvatarUrl?: string;
 }
 
 interface APIScore {
@@ -368,6 +384,7 @@ export {
     APIUser,
     APIScore,
     APIBeatmap,
+    APIUserGradeCounts,
     TrackTopScore,
     BeatmapStatus,
     ProfileMode,

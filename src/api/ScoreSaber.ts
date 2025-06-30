@@ -65,6 +65,7 @@ class ScoreSaberUser implements APIUser {
     };
     country: string;
     accuracy: number;
+    mode: number = -1;
     constructor(data: SSUserResponse) {
         this.id = data.id;
         this.nickname = data.name;

@@ -100,7 +100,6 @@ export class ExperimentalRenderer implements IReplayRenderer {
         form.append("globalVolume", settings.masterVolume.toString());
         form.append("musicVolume", settings.musicVolume.toString());
         form.append("hitsoundVolume", settings.effectsVolume.toString());
-        console.log(settings.effectsVolume);
         form.append("skin", settings.skin.toString());
 
         try {

@@ -8,7 +8,7 @@ import { OrdrSkinsProvider } from "../../../osu_specific/replay_render/OrdrSkins
 import { ILocalisator } from "../../../ILocalisator";
 
 type SettingsPageWithPageControl = "skin_sel";
-type SettingsPage = "home" | "render" | "language" | SettingsPageWithPageControl;
+type SettingsPage = "home" | "render" | "language" | "output_type" | SettingsPageWithPageControl;
 type ToggleableSettingsKey =
     | "render_enabled"
     | "ordr_video"
@@ -23,7 +23,9 @@ type ToggleableSettingsKey =
     | "lang_russian"
     | "lang_english"
     | "lang_chinese"
-    | "lang_auto";
+    | "lang_auto"
+    | "output_oki_cards"
+    | "output_text";
 
 type ChatSettingsPage = "home" | "language";
 type ToggleableChatSettingsKey =
@@ -100,6 +102,7 @@ function buildStartKeyboard(userId: number, settings: UserSettings, l: ILocalisa
                 settings.notifications_enabled
             ),
         ],
+        [buildPageButton(userId, "output_type", l.tr("output-style-page"))],
         [buildPageButton(userId, "language", "🌐Language/Язык")],
     ]);
 }
@@ -238,6 +241,30 @@ function buildUserLanguagePage(settings: UserSettings, l: ILocalisator): InlineK
                 "🌐 Auto",
                 "lang_auto",
                 settings.language_override == "do_not_override"
+            ),
+        ],
+    ]);
+}
+
+function buildOutputTypePage(settings: UserSettings, l: ILocalisator): InlineKeyboard {
+    const page: SettingsPage = "output_type";
+    return buildLeveledPageKeyboard(settings.user_id, "home", l, [
+        [
+            toggleableButton(
+                settings.user_id,
+                page,
+                l.tr("output-style-oki-cards"),
+                "output_oki_cards",
+                settings.content_output == "oki-cards"
+            ),
+        ],
+        [
+            toggleableButton(
+                settings.user_id,
+                page,
+                l.tr("output-style-text"),
+                "output_text",
+                settings.content_output == "legacy-text"
             ),
         ],
     ]);
@@ -554,6 +581,10 @@ export default class SettingsCommand extends Command {
                         answer = buildUserLanguagePage(settings, customCtx);
                         break;
                     }
+                    case "output_type": {
+                        answer = buildOutputTypePage(settings, customCtx);
+                        break;
+                    }
                     case "skin_sel": {
                         answer = await buildSkinSelector(settings, pageNumber ?? 1, customCtx);
                         break;
@@ -608,6 +639,14 @@ export default class SettingsCommand extends Command {
                             break;
                         case "lang_russian":
                             settings.language_override = "ru";
+                            allowUpdate = value;
+                            break;
+                        case "output_oki_cards":
+                            settings.content_output = "oki-cards";
+                            allowUpdate = value;
+                            break;
+                        case "output_text":
+                            settings.content_output = "legacy-text";
                             allowUpdate = value;
                             break;
                     }
