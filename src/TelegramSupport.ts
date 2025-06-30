@@ -237,18 +237,46 @@ export default class UnifiedMessageContext implements ILocalisator {
         }
     }
 
-    async edit(text: string, options?: SendOptions) {
+    async edit(text: string, options?: SendOptions): Promise<void> {
         if (!this.messagePayload) {
-            return undefined;
+            return;
         }
 
-        // TODO: support media
-        return await this.tgCtx.editMessageText(text, {
-            link_preview_options: {
-                is_disabled: options?.dont_parse_links !== false,
-            },
-            reply_markup: options?.keyboard,
-        });
+        const hasMedia = options?.photo || options?.video || this.tgCtx.message.photo || this.tgCtx.message.video;
+        if (hasMedia) {
+            if (options?.photo) {
+                await this.tgCtx.editMessageMedia(InputMediaBuilder.photo(options.photo), {
+                    reply_markup: options?.keyboard,
+                });
+            } else if (options?.video) {
+                // TODO: support both
+                const video = InputMediaBuilder.video(new InputFile(new URL(options.video.url)), {
+                    width: options.video.width,
+                    height: options.video.height,
+                    duration: options.video.duration,
+                    supports_streaming: true,
+                    caption: text,
+                });
+                await this.tgCtx.editMessageMedia(video, {
+                    reply_markup: options?.keyboard,
+                });
+            }
+            await this.tgCtx.editMessageCaption({
+                reply_markup: options?.keyboard,
+                caption: text,
+            });
+        } else if (text != this.text) {
+            await this.tgCtx.editMessageText(text, {
+                link_preview_options: {
+                    is_disabled: options?.dont_parse_links !== false,
+                },
+                reply_markup: options?.keyboard,
+            });
+        } else if (options?.keyboard) {
+            await this.tgCtx.editMessageReplyMarkup({
+                reply_markup: options.keyboard,
+            });
+        }
     }
 
     async editMarkup(keyboard: InlineKeyboard) {
