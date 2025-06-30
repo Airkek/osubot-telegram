@@ -320,7 +320,9 @@ export class Bot {
             return;
         }
 
-        this.applyPlaintextOverrides(ctx);
+        if (await this.database.featureControlModel.isFeatureEnabled("plaintext-overrides")) {
+            this.applyPlaintextOverrides(ctx);
+        }
         const context = await this.buildActivatedContext(ctx);
         this.totalMessages++;
 

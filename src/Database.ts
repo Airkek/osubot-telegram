@@ -574,6 +574,16 @@ const migrations: IMigration[] = [
             return true;
         },
     },
+    {
+        version: 17,
+        name: "Add feature 'plaintext-overrides'",
+        process: async (db: Database) => {
+            await db.run(
+                `INSERT INTO feature_control (feature, enabled_for_all) VALUES ('plaintext-overrides', false)`
+            );
+            return true;
+        },
+    },
 ];
 
 async function applyMigrations(db: Database) {
@@ -831,7 +841,7 @@ class NotificationsModel {
     }
 }
 
-export type ControllableFeature = "oki-cards";
+export type ControllableFeature = "oki-cards" | "plaintext-overrides";
 
 interface FeatureControlSchema {
     feature: ControllableFeature;
