@@ -247,30 +247,53 @@ export class OkiCardsGenerator {
             ctx.textAlign = "left";
             ctx.font = "bold 20px Torus";
             ctx.fillStyle = "#FF66AB";
-            ctx.fillText(`${Util.round(score.pp, 2)} pp`, ppx, ppy);
+            const realPpText = Util.round(score.pp, 2).toString();
+            ctx.fillText(realPpText, ppx, ppy);
+            const realPpWidth = ctx.measureText(realPpText).width;
+
+            ctx.textAlign = "left";
+            ctx.font = "bold 14px Torus";
+            ctx.fillStyle = "#D194AF";
+            ctx.fillText("pp", ppx + realPpWidth + 2, ppy);
 
             if (!isFc) {
                 ctx.textAlign = "left";
                 ctx.font = "italic 20px Torus";
+                ctx.fillStyle = "#D194AF";
+                const fcPpDelimiterText = "/ ";
+                ctx.fillText(fcPpDelimiterText, ppx + 10, ppy + 25);
+                const fcPpDelimiterWidth = ctx.measureText(fcPpDelimiterText).width;
+
+                ctx.textAlign = "left";
+                ctx.font = "italic 20px Torus";
                 ctx.fillStyle = "#FF66AB";
-                ctx.fillText(`/ ${Util.round(pp.fc, 2)} pp`, ppx + 10, ppy + 25);
+                const fcPpText = Util.round(pp.fc, 2).toString();
+                ctx.fillText(fcPpText, ppx + 10 + fcPpDelimiterWidth, ppy + 25);
+                const fcPpTextWidth = ctx.measureText(fcPpText).width;
+
+                ctx.textAlign = "left";
+                ctx.font = "italic 14px Torus";
+                ctx.fillStyle = "#D194AF";
+                ctx.fillText("pp", ppx + fcPpTextWidth + fcPpDelimiterWidth + 12, ppy + 25);
             }
 
-            const mods = score.mods.toAcronymList();
-            if (score.mods.mods.length == 0) {
-                const image = await loadImage(this.getModAssetData("nomod"));
-                ctx.drawImage(image, 970, startpos + 12, 46.5, 33);
-            } else {
-                let startmods = 970;
+            ctx.textAlign = "left";
+            ctx.font = "bold 20px Torus";
+            ctx.fillStyle = "#FFCC22";
+            ctx.fillText(`${Util.round(score.accuracy() * 100, 2)}%`, 950, startpos + 35);
 
-                for (let i = 0; i < mods.length; ++i) {
+            const mods = score.mods.toAcronymList();
+            if (score.mods.mods.length > 0) {
+                let startmods = 890;
+
+                for (let i = mods.length - 1; i >= 0; i--) {
                     const asset = this.getModAssetData(mods[i]);
                     if (!asset) {
                         continue;
                     }
                     const image = await loadImage(asset);
                     ctx.drawImage(image, startmods, startpos + 12, 46.5, 33);
-                    startmods = startmods - 50;
+                    startmods = startmods - 46.5;
                 }
             }
 
