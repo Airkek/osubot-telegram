@@ -3,3 +3,4 @@ player-rank = Ранк
 player-playcount = Количество игр
 player-playtime = Время в игре
 player-accuracy = Точность
+player-totalscore = Очки

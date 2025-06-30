@@ -5,10 +5,7 @@ import AbstractTop from "../BaseServerCommands/Top";
 import AbstractRecent from "../BaseServerCommands/Recent";
 import AbstractChat from "../BaseServerCommands/Chat";
 import AbstractFind from "../BaseServerCommands/Find";
-import AbstractMode from "../BaseServerCommands/Mode";
 import AbstractNick from "../BaseServerCommands/Nick";
-import AbstractLeaderboard from "../BaseServerCommands/Leaderboard";
-import AbstractCompare from "../BaseServerCommands/Compare";
 
 export default class Ripple extends ServerModule {
     constructor(bot: Bot) {
@@ -21,15 +18,12 @@ export default class Ripple extends ServerModule {
         this.db = bot.database.servers.ripple;
 
         this.registerCommand([
-            new AbstractUser(this),
-            new AbstractFind(this),
-            new AbstractTop(this),
-            new AbstractRecent(this),
-            new AbstractChat(this),
-            new AbstractCompare(this),
-            new AbstractMode(this),
             new AbstractNick(this),
-            new AbstractLeaderboard(this),
+            new AbstractUser(this),
+            new AbstractTop(this),
+            new AbstractChat(this),
+            new AbstractFind(this),
+            new AbstractRecent(this),
         ]);
     }
 }

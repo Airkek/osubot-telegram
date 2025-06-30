@@ -7,7 +7,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node ./build",
     "build": "npx tsc",
-    "update": "git pull && npx tsc"
+    "update": "git pull && npm run build"
   },
   "author": "keijia",
   "license": "UNLICENSED",
@@ -27,13 +27,16 @@
     "@grammyjs/ratelimiter": "^1.2.1",
     "@grammyjs/runner": "^2.0.3",
     "@kotrikd/rosu-pp": "^3.0.1",
+    "@napi-rs/canvas": "^0.1.72",
     "axios": "^1.9.0",
     "express": "^5.1.0",
     "globals": "^16.2.0",
     "grammy": "^1.36.3",
+    "node-vibrant": "^4.0.3",
     "osu-parsers": "^4.1.7",
     "pg": "^8.16.0",
     "querystring": "^0.2.1",
+    "sharp": "^0.34.2",
     "socket.io-client": "^4.8.1",
     "tslog": "^4.9.3"
   },

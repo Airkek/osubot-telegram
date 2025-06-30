@@ -62,6 +62,8 @@ export default class UnifiedMessageContext implements ILocalisator {
     readonly isFromBot: boolean;
     readonly isFromUser: boolean;
 
+    readonly isOkiChanAlias: boolean;
+
     private readonly tgCtx: TgContext;
     private readonly me: UserFromGetMe;
     private readonly localServer: boolean;
@@ -124,6 +126,11 @@ export default class UnifiedMessageContext implements ILocalisator {
         this.activated = false;
         this.language = undefined;
         await this.activate();
+    }
+
+    async preferCardsOutput(): Promise<boolean> {
+        const settings = await this.userSettings();
+        return settings.content_output == "oki-cards";
     }
 
     async userSettings(): Promise<UserSettings> {

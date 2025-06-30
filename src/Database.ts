@@ -10,6 +10,8 @@ import { OsuBeatmap } from "./beatmaps/osu/OsuBeatmap";
 export type Language = "ru" | "en" | "zh";
 export type LanguageOverride = Language | "do_not_override";
 
+export type ContentOutput = "oki-cards" | "legacy-text";
+
 export interface ChatSettings {
     chat_id: number;
     render_enabled: boolean;
@@ -35,6 +37,7 @@ export interface UserSettings {
     notifications_enabled: boolean;
     experimental_renderer: boolean;
     language_override: LanguageOverride;
+    content_output: ContentOutput;
 }
 
 class DatabaseServer implements IDatabaseServer {
@@ -539,6 +542,18 @@ const migrations: IMigration[] = [
             return true;
         },
     },
+    {
+        version: 15,
+        name: "Add content output type settings",
+        process: async (db: Database) => {
+            await db.run(
+                `ALTER TABLE settings
+                    ADD COLUMN content_output TEXT DEFAULT 'oki-cards'`
+            );
+            await db.run(`UPDATE settings SET content_output = 'legacy-text'`);
+            return true;
+        },
+    },
 ];
 
 async function applyMigrations(db: Database) {
@@ -607,8 +622,9 @@ export class DatabaseUserSettings {
                  ordr_effects_volume   = $13,
                  notifications_enabled = $14,
                  experimental_renderer = $15,
-                 language_override     = $16
-             WHERE user_id = $17`,
+                 language_override     = $16,
+                 content_output        = $17
+             WHERE user_id = $18`,
             [
                 settings.render_enabled,
                 settings.ordr_skin,
@@ -626,6 +642,7 @@ export class DatabaseUserSettings {
                 settings.notifications_enabled,
                 settings.experimental_renderer,
                 settings.language_override,
+                settings.content_output,
                 settings.user_id,
             ]
         );

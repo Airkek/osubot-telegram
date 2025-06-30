@@ -1,8 +1,9 @@
 import { ServerModule } from "../Module";
 import { ServerCommand } from "../../ServerCommand";
+import { IDatabaseServer } from "../../../Types";
 
 export default class AbstractMode extends ServerCommand {
-    constructor(module: ServerModule) {
+    constructor(module: ServerModule, masterDb?: IDatabaseServer) {
         super(["mode", "m", "ь", "ьщву"], module, async (self) => {
             if (!self.args.full[0]) {
                 await self.reply(
@@ -42,7 +43,7 @@ export default class AbstractMode extends ServerCommand {
                 await self.reply(self.ctx.tr("mode-set-invalid") + "\n1 - Taiko\n2 - Fruits\n3 - Mania");
                 return;
             }
-            await self.module.db.setMode(self.ctx.senderId, m);
+            await (masterDb ?? self.module.db).setMode(self.ctx.senderId, m);
             await self.reply(self.ctx.tr("game-mode-set"));
         });
     }

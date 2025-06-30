@@ -41,7 +41,8 @@ osuservers-text =
     • Gatari
     • Ripple
     • Akatsuki
-    • Akatsuki!relax
+    • Akatsuki!Relax
+    • Akatsuki!AutoPilot
 
     Commands to the servers are accessed through prefixes. Example of a server command:
     s user mrekk
@@ -55,7 +56,8 @@ serverprefixes-text =
     • Gatari - g
     • Ripple - r
     • Akatsuki - a
-    • Akatsuki!relax - ax
+    • Akatsuki!Relax - ax
+    • Akatsuki!AutoPilot - ap
 
 basiccommands-text =
     Basic module commands:

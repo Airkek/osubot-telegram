@@ -41,7 +41,8 @@ osuservers-text =
     • Gatari
     • Ripple
     • Akatsuki
-    • Akatsuki!relax
+    • Akatsuki!Relax
+    • Akatsuki!AutoPilot
 
     使用服务器命令需要添加前缀，例如:
     s user mrekk
@@ -55,7 +56,8 @@ serverprefixes-text =
     • Gatari - g
     • Ripple - r
     • Akatsuki - a
-    • Akatsuki!relax - ax
+    • Akatsuki!Relax - ax
+    • Akatsuki!AutoPilot - ap
 
 basiccommands-text =
     基础模块命令:

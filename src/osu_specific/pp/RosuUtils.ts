@@ -4,7 +4,7 @@ import axios from "axios";
 import crypto from "crypto";
 import { IBeatmap } from "../../beatmaps/BeatmapTypes";
 
-const folderPath = process.env.OSU_BEATMAP_CACHE;
+const folderPath = "./beatmap_cache";
 
 function ensureHashed(map: IBeatmap) {
     if (!fs.existsSync(folderPath)) {

@@ -8,6 +8,7 @@ import {
     HitCounts,
     APIBeatmap,
     APIUser,
+    APIUserGradeCounts,
     IDatabaseUser,
     LeaderboardResponse,
     IBeatmapObjects,
@@ -19,7 +20,6 @@ import {
 import Mods from "../osu_specific/pp/Mods";
 import IAPI from "./base";
 import { Bot } from "../Bot";
-import fs from "fs";
 
 type Ruleset = "osu" | "mania" | "taiko" | "fruits";
 
@@ -144,9 +144,10 @@ interface User {
     username: string;
     statistics?: UserStats;
     playmode: Ruleset;
+    cover?: ProfileCover;
 }
 
-interface Covers {
+interface BeatmapCovers {
     cover?: string;
     "cover@2x"?: string;
     card?: string;
@@ -157,10 +158,16 @@ interface Covers {
     "slimcover@2x"?: string;
 }
 
+interface ProfileCover {
+    custom_url: string; // ?
+    url: string;
+    id?: string; // ?
+}
+
 interface Beatmapset {
     artist?: string;
     artist_unicode?: string;
-    covers?: Covers;
+    covers?: BeatmapCovers;
     creator?: string;
     favourite_count?: number;
     id: number;
@@ -294,7 +301,13 @@ class V2User implements APIUser {
     country: string;
     accuracy: number;
     level: number;
+    levelProgress: number;
     mode: number;
+    grades?: APIUserGradeCounts;
+    is_supporter: boolean;
+    profileAvatarUrl: string;
+    profileBackgroundUrl?: string;
+    total_score?: number;
 
     constructor(data: User) {
         this.id = data.id;
@@ -309,7 +322,13 @@ class V2User implements APIUser {
         this.country = data.country_code;
         this.accuracy = data.statistics.hit_accuracy;
         this.level = data.statistics.level.current;
+        this.levelProgress = data.statistics.level.progress;
         this.mode = getRulesetId(data.playmode);
+        this.profileAvatarUrl = data.avatar_url;
+        this.profileBackgroundUrl = data.cover?.url;
+        this.grades = data.statistics?.grade_counts;
+        this.is_supporter = data.is_supporter;
+        this.total_score = data.statistics?.total_score;
     }
 }
 
@@ -665,9 +684,6 @@ class BanchoAPIV2 implements IAPI {
     async downloadReplay(scoreId: number | string): Promise<Buffer> {
         const data = await this.getArrayBuffer(`/scores/${scoreId}/download`);
         const buffer = Buffer.from(data, "binary");
-
-        // Запись в файл
-        fs.writeFileSync("D:\\test.osr", buffer);
 
         return buffer;
     }

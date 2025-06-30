@@ -16,6 +16,7 @@ import Admin from "./telegram_event_handlers/modules/Admin";
 import Main from "./telegram_event_handlers/modules/Main";
 import Akatsuki from "./telegram_event_handlers/modules/Akatsuki";
 import AkatsukiRelax from "./telegram_event_handlers/modules/AkatsukiRelax";
+import AkatsukiAutoPilot from "./telegram_event_handlers/modules/AkatsukiAutoPilot";
 import Bancho from "./telegram_event_handlers/modules/Bancho";
 import Gatari from "./telegram_event_handlers/modules/Gatari";
 import Ripple from "./telegram_event_handlers/modules/Ripple";
@@ -28,6 +29,8 @@ import { OsuBeatmapProvider } from "./beatmaps/osu/OsuBeatmapProvider";
 import BanchoAPIV2 from "./api/BanchoV2";
 import { SimpleCommandsModule } from "./telegram_event_handlers/modules/simple_commands";
 import Util from "./Util";
+import { OkiCardsGenerator } from "./oki-cards/OkiCardsGenerator";
+import RippleRelax from "./telegram_event_handlers/modules/RippleRelax";
 
 export interface IBotConfig {
     tg: {
@@ -55,6 +58,8 @@ export class Bot {
     public readonly track: OsuTrackAPI;
 
     public readonly banchoApi: BanchoAPIV2; // TODO: make private
+
+    public readonly okiChanCards: OkiCardsGenerator = new OkiCardsGenerator();
 
     private readonly pendingCallbacks: { [id: string]: PendingCallback } = {};
 
@@ -126,8 +131,10 @@ export class Bot {
             new Bancho(this),
             new Gatari(this),
             new Ripple(this),
+            new RippleRelax(this),
             new Akatsuki(this),
             new AkatsukiRelax(this),
+            new AkatsukiAutoPilot(this),
             new BeatLeader(this),
             new ScoreSaber(this),
             new Admin(this),

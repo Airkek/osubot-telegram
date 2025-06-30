@@ -1,10 +1,68 @@
 import IAPI from "./base";
 import * as axios from "axios";
 import qs from "querystring";
-import { APIUser, HitCounts, APIScore, IDatabaseUser, LeaderboardResponse, LeaderboardScore } from "../Types";
+import {
+    APIUser,
+    HitCounts,
+    APIScore,
+    IDatabaseUser,
+    LeaderboardResponse,
+    LeaderboardScore,
+    APIUserGradeCounts,
+} from "../Types";
 import Mods from "../osu_specific/pp/Mods";
 import Util from "../Util";
 import { IBeatmapProvider } from "../beatmaps/IBeatmapProvider";
+
+interface GatariUserResponse {
+    abbr: string | null;
+    clanid: string | null;
+    country: string;
+    custom_hue: number;
+    favourite_mode: number;
+    followers_count: number;
+    id: number;
+    is_online: number;
+    latest_activity: number;
+    play_style: number;
+    privileges: number;
+    registered_on: number;
+    username: string;
+    username_aka: string;
+}
+
+interface GatariStatsResponse {
+    a_count: number;
+    avg_accuracy: number;
+    avg_accuracy_ap: number | null;
+    avg_accuracy_rx: number;
+    avg_hits_play: number;
+    country_rank: number;
+    country_rank_ap: number | null;
+    country_rank_rx: number;
+    id: number;
+    level: number;
+    level_progress: number;
+    max_combo: number;
+    playcount: number;
+    playtime: number;
+    pp: number;
+    pp_4k: number;
+    pp_7k: number;
+    pp_ap: number;
+    pp_rx: number;
+    rank: number;
+    rank_ap: number | null;
+    rank_rx: number;
+    ranked_score: number;
+    replays_watched: number;
+    s_count: number;
+    sh_count: number;
+    total_hits: number;
+    total_score: number;
+    x_count: number;
+    xh_count: number;
+}
 
 class GatariUser implements APIUser {
     id: number;
@@ -19,7 +77,12 @@ class GatariUser implements APIUser {
     country: string;
     accuracy: number;
     level: number;
-    constructor(user, stats) {
+    levelProgress: number;
+    mode: number;
+    grades?: APIUserGradeCounts;
+    total_score: number;
+    profileAvatarUrl: string;
+    constructor(user: GatariUserResponse, stats: GatariStatsResponse, mode: number) {
         this.id = user.id;
         this.nickname = user.username;
         this.playcount = stats.playcount;
@@ -32,6 +95,19 @@ class GatariUser implements APIUser {
         this.country = user.country;
         this.accuracy = stats.avg_accuracy;
         this.level = stats.level;
+        this.levelProgress = stats.level_progress;
+        this.mode = mode;
+        this.profileAvatarUrl = `https://a.gatari.pw/${user.id}`;
+
+        this.grades = {
+            a: stats.a_count,
+            s: stats.s_count,
+            sh: stats.sh_count,
+            ss: stats.x_count,
+            ssh: stats.xh_count,
+        };
+
+        this.total_score = stats.total_score;
     }
 }
 
@@ -152,28 +228,42 @@ export default class GatariAPI implements IAPI {
         });
     }
 
-    async getUser(nickname: string, mode: number = 0): Promise<APIUser> {
-        const { data: user } = await this.api.get(`/users/get?${qs.stringify({ u: nickname })}`);
-        const { data: stats } = await this.api.get(`/user/stats?${qs.stringify({ u: nickname, mode })}`);
-        if (user.code != 200 || stats.code != 200) {
+    private async getUserInternal(user: GatariUserResponse, mode?: number): Promise<APIUser> {
+        const realMode = mode == undefined ? user.favourite_mode : mode;
+        const { data: stats } = await this.api.get(
+            `/user/stats?${qs.stringify({
+                id: user.id,
+                mode: realMode,
+            })}`
+        );
+        if (stats.code != 200) {
             throw new Error("Unknown API error");
         }
-        if (!user.users[0]) {
+        return new GatariUser(user, stats.stats, realMode);
+    }
+
+    async getUser(nickname: string, mode: number = 0): Promise<APIUser> {
+        const { data: userRes } = await this.api.get(`/users/get?${qs.stringify({ u: nickname })}`);
+        if (userRes.code != 200) {
+            throw new Error("Unknown API error");
+        }
+        if (!userRes.users[0]) {
             throw new Error("User not found");
         }
-        return new GatariUser(user.users[0], stats.stats);
+        const user: GatariUserResponse = userRes.users[0];
+        return await this.getUserInternal(user, mode);
     }
 
     async getUserById(id: number | string, mode?: number): Promise<APIUser> {
-        const { data: user } = await this.api.get(`/users/get?${qs.stringify({ id })}`);
-        const { data: stats } = await this.api.get(`/user/stats?${qs.stringify({ id, mode })}`);
-        if (user.code != 200 || stats.code != 200) {
+        const { data: userRes } = await this.api.get(`/users/get?${qs.stringify({ id })}`);
+        if (userRes.code != 200) {
             throw new Error("Unknown API error");
         }
-        if (!user.users[0]) {
+        if (!userRes.users[0]) {
             throw new Error("User not found");
         }
-        return new GatariUser(user.users[0], stats.stats);
+        const user: GatariUserResponse = userRes.users[0];
+        return await this.getUserInternal(user, mode);
     }
 
     async getUserTop(nickname: string, mode: number = 0, limit: number = 3): Promise<APIScore[]> {

@@ -71,6 +71,7 @@ class BeatSaberUser implements APIUser {
     };
     country: string;
     accuracy: number;
+    mode: number = -1;
     constructor(data: BLUserResponse) {
         this.id = data.id;
         this.nickname = data.name;
