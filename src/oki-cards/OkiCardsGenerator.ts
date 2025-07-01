@@ -149,17 +149,29 @@ export class OkiCardsGenerator {
         return this.getAssetData(gradeIconAsset);
     }
 
-    private async drawMods(ctx: SKRSContext2D, mods: Mods, endPosX: number, posY: number, width: number) {
-        const acronyms = mods.toAcronymList();
+    private async drawMods(
+        ctx: SKRSContext2D,
+        mods: Mods,
+        firstModX: number,
+        posY: number,
+        width: number,
+        toLeft: boolean = true
+    ) {
+        const acronyms = mods.toAcronymList(/*ignoreMeta = */ true);
         if (acronyms.length > 0) {
+            let posX = firstModX;
             for (let i = acronyms.length - 1; i >= 0; i--) {
                 const asset = this.getModAssetData(acronyms[i]);
                 if (!asset) {
                     continue;
                 }
                 const image = await Canvas.loadImage(asset);
-                ctx.drawImage(image, endPosX, posY, width, width / 1.407);
-                endPosX -= width;
+                ctx.drawImage(image, posX, posY, width, width / 1.407);
+                if (toLeft) {
+                    posX -= width;
+                } else {
+                    posX += width;
+                }
             }
         }
     }
@@ -372,11 +384,28 @@ export class OkiCardsGenerator {
                 ctx.drawImage(drum, drumX, 375, 40, 35);
             }
 
+            if (beatmap.mode >= 0 && beatmap.mode <= 3) {
+                const modeNames = ["osu", "taiko", "fruits", "mania"];
+                const stars = beatmap.stats.stars;
+                let diffName = "extra";
+                if (stars < 2.0) diffName = "easy";
+                else if (stars < 2.7) diffName = "normal";
+                else if (stars < 4.0) diffName = "hard";
+                else if (stars < 5.3) diffName = "insane";
+                else if (stars < 6.5) diffName = "expert";
+
+                const diffIconAsset = this.getAssetData(`${diffName}_${modeNames[beatmap.mode]}.png`);
+                if (diffIconAsset) {
+                    const diffIcon = await Canvas.loadImage(diffIconAsset);
+                    ctx.drawImage(diffIcon, 629, 412, 40, 40);
+                }
+            }
+
             ctx.textAlign = "left";
             ctx.font = "26px VarelaRound";
-            const version = `[${beatmap.version}]`;
-            ctx.fillText(version, 629, 416 + 26);
-            ctx.strokeText(version, 629, 416 + 26);
+            const version = beatmap.version;
+            ctx.fillText(version, 670, 416 + 26);
+            ctx.strokeText(version, 670, 416 + 26);
 
             await this.drawMods(ctx, beatmap.currentMods, canvas.width - 80, 240, 70);
 

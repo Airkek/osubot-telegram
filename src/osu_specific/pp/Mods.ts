@@ -249,10 +249,10 @@ export default class Mods {
         return m;
     }
 
-    toAcronymList(): string[] {
+    toAcronymList(ignoreMeta: boolean = false): string[] {
         if (this.modsv2) {
             return this.modsv2.map((m) => {
-                if (m.settings?.speed_change !== undefined) {
+                if (!ignoreMeta && m.settings?.speed_change !== undefined) {
                     return `${m.acronym}x${m.settings.speed_change}`;
                 }
 
