@@ -226,7 +226,7 @@ export default class ScoreSaberAPI implements IAPI {
     constructor() {
         this.api = axios.default.create({
             baseURL: "https://scoresaber.com/api",
-            timeout: 3000,
+            timeout: 15000,
         });
     }
 

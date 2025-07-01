@@ -224,7 +224,7 @@ export default class GatariAPI implements IAPI {
         this.beatmapProvider = beatmapProvider;
         this.api = axios.default.create({
             baseURL: "https://api.gatari.pw",
-            timeout: 3000,
+            timeout: 15000,
         });
     }
 

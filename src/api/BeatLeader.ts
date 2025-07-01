@@ -215,7 +215,7 @@ export default class BeatLeaderAPI implements IAPI {
     constructor() {
         this.api = axios.default.create({
             baseURL: "https://api.beatleader.xyz",
-            timeout: 3000,
+            timeout: 15000,
         });
     }
 

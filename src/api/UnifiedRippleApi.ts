@@ -118,11 +118,11 @@ export default class UnifiedRippleAPI implements IAPI {
     constructor() {
         this.peppy_api = axios.default.create({
             baseURL: this.baseUrl + "/api",
-            timeout: 3000,
+            timeout: 15000,
         });
         this.v1_api = axios.default.create({
             baseURL: this.baseUrl + "/api/v1",
-            timeout: 3000,
+            timeout: 15000,
         });
     }
 

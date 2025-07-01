@@ -382,7 +382,7 @@ class BanchoAPIV2 implements IAPI {
     constructor(bot: Bot) {
         this.api = axios.default.create({
             baseURL: "https://osu.ppy.sh/api/v2",
-            timeout: 1e4,
+            timeout: 15000,
         });
         this.bot = bot;
         this.app_id = this.bot.config.tokens.bancho_v2_app_id;
