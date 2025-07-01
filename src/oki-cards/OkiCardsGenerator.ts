@@ -338,7 +338,7 @@ export class OkiCardsGenerator {
             const timeWidth = ctx.measureText(time).width;
             const maxCombo = beatmap.maxCombo + "x";
             const maxComboWidth = ctx.measureText(maxCombo).width;
-            const bpm = beatmap.stats.bpm + " bpm";
+            const bpm = beatmap.stats.bpm.toFixed(0) + " bpm";
 
             const clockX = 455;
             const clockTextX = clockX + 40;
