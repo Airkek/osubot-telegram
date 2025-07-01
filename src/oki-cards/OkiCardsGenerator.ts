@@ -409,39 +409,39 @@ export class OkiCardsGenerator {
 
             const accText = l.tr("score-accuracy") + ": ";
             const accWidth = ctx.measureText(accText).width;
-            ctx.fillText(accText, 629, 459 + 15);
-            ctx.strokeText(accText, 629, 459 + 15);
+            ctx.fillText(accText, 629, 459 + 22);
+            ctx.strokeText(accText, 629, 459 + 22);
 
             const accVal = (accuracy * 100).toFixed(2) + "%";
-            ctx.fillText(accVal, 629 + accWidth, 459 + 15);
-            ctx.strokeText(accVal, 629 + accWidth, 459 + 15);
+            ctx.fillText(accVal, 629 + accWidth, 459 + 22);
+            ctx.strokeText(accVal, 629 + accWidth, 459 + 22);
 
             const comboText = l.tr("score-combo") + ": ";
             const comboWidth = ctx.measureText(comboText).width;
-            ctx.fillText(comboText, 629, 495 + 15);
-            ctx.strokeText(comboText, 629, 495 + 15);
+            ctx.fillText(comboText, 629, 495 + 22);
+            ctx.strokeText(comboText, 629, 495 + 22);
 
             const comboVal = Util.formatCombo(desiredCombo, beatmap.maxCombo);
-            ctx.fillText(comboVal, 629 + comboWidth, 495 + 15);
-            ctx.strokeText(comboVal, 629 + comboWidth, 495 + 15);
+            ctx.fillText(comboVal, 629 + comboWidth, 495 + 22);
+            ctx.strokeText(comboVal, 629 + comboWidth, 495 + 22);
 
             const missText = l.tr("score-misses") + ": ";
             const missWidth = ctx.measureText(missText).width;
-            ctx.fillText(missText, 629, 531 + 15);
-            ctx.strokeText(missText, 629, 531 + 15);
+            ctx.fillText(missText, 629, 531 + 22);
+            ctx.strokeText(missText, 629, 531 + 22);
 
             const missVal = missCount.toString();
-            ctx.fillText(missVal, 629 + missWidth, 531 + 15);
-            ctx.strokeText(missVal, 629 + missWidth, 531 + 15);
+            ctx.fillText(missVal, 629 + missWidth, 531 + 22);
+            ctx.strokeText(missVal, 629 + missWidth, 531 + 22);
 
             const ppText = "pp: ";
             const ppWidth = ctx.measureText(ppText).width;
-            ctx.fillText(ppText, 629, 567 + 15);
-            ctx.strokeText(ppText, 629, 567 + 15);
+            ctx.fillText(ppText, 629, 567 + 22);
+            ctx.strokeText(ppText, 629, 567 + 22);
 
             const ppVal = pp.pp.toFixed(2);
-            ctx.fillText(ppVal, 629 + ppWidth, 567 + 15);
-            ctx.strokeText(ppVal, 629 + ppWidth, 567 + 15);
+            ctx.fillText(ppVal, 629 + ppWidth, 567 + 22);
+            ctx.strokeText(ppVal, 629 + ppWidth, 567 + 22);
         }
 
         return canvas.toBuffer("image/png");
