@@ -309,10 +309,10 @@ export class OkiCardsGenerator {
             OkiFormat.rect(ctx, 88, 570, 284, 13, 7);
             ctx.beginPath();
             ctx.fillStyle = color.foreground;
-            OkiFormat.rect(ctx, 88, 466, 28.4 * Math.max(beatmap.stats.cs > 0 ? beatmap.stats.cs : 0.5, 10), 13, 7);
-            OkiFormat.rect(ctx, 88, 504, 28.4 * Math.max(beatmap.stats.ar > 0 ? beatmap.stats.ar : 0.5, 10), 13, 7);
-            OkiFormat.rect(ctx, 88, 539, 28.4 * Math.max(beatmap.stats.hp > 0 ? beatmap.stats.hp : 0.5, 10), 13, 7);
-            OkiFormat.rect(ctx, 88, 570, 28.4 * Math.max(beatmap.stats.od > 0 ? beatmap.stats.od : 0.5, 10), 13, 7);
+            OkiFormat.rect(ctx, 88, 466, 28.4 * Math.min(beatmap.stats.cs > 0 ? beatmap.stats.cs : 0.5, 10), 13, 7);
+            OkiFormat.rect(ctx, 88, 504, 28.4 * Math.min(beatmap.stats.ar > 0 ? beatmap.stats.ar : 0.5, 10), 13, 7);
+            OkiFormat.rect(ctx, 88, 539, 28.4 * Math.min(beatmap.stats.hp > 0 ? beatmap.stats.hp : 0.5, 10), 13, 7);
+            OkiFormat.rect(ctx, 88, 570, 28.4 * Math.min(beatmap.stats.od > 0 ? beatmap.stats.od : 0.5, 10), 13, 7);
 
             let mapperPfpBuffer = await this.loadImageFromUrl(`https://a.ppy.sh/${beatmap.authorId}`);
 
