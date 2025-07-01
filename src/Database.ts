@@ -962,6 +962,9 @@ export default class Database {
     private readonly owner: number;
 
     constructor(tg: TG, owner: number) {
+        this.tg = tg;
+        this.owner = owner;
+
         this.servers = {
             bancho: new DatabaseServer("bancho", this),
             gatari: new DatabaseServer("gatari", this),
@@ -989,9 +992,6 @@ export default class Database {
             password: process.env.DB_PASSWORD,
             port: Number(process.env.DB_PORT),
         });
-
-        this.tg = tg;
-        this.owner = owner;
     }
 
     async get(stmt: string, opts: any[] = []): Promise<any> {
