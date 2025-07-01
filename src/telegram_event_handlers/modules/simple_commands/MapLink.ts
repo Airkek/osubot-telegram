@@ -10,7 +10,7 @@ export class MapLink extends Command {
             const mapId = getMapIdFromLink(ctx.text) || this.getMapFromAttachments(ctx);
             const map = await module.bot.osuBeatmapProvider.getBeatmapById(mapId);
             if (await ctx.preferCardsOutput()) {
-                const mapImg = await module.bot.okiChanCards.generateBeatmapCard(map, ctx);
+                const mapImg = await module.bot.okiChanCards.generateBeatmapPPCard(map, ctx);
                 await ctx.reply("", {
                     photo: new InputFile(mapImg),
                 });

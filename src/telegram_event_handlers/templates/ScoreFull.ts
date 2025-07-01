@@ -51,9 +51,10 @@ export default function (l: ILocalisator, score: APIScore, beatmap: IBeatmap, ca
 
     if (score.top100_number) {
         total.push(
-            l.tr("personal_top_score", {
-                number: score.top100_number,
-            })
+            "🏆 " +
+                l.tr("personal_top_score", {
+                    number: score.top100_number,
+                })
         );
     }
 

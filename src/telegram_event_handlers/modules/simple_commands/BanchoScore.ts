@@ -2,8 +2,9 @@ import { Command } from "../../Command";
 import UnifiedMessageContext from "../../../TelegramSupport";
 import { SimpleCommandsModule } from "./index";
 import { getScoreIdFromText } from "../../../osu_specific/regexes/ScoreRegexp";
-import Calculator from "../../../osu_specific/pp/bancho";
 import Util, { IKBButton } from "../../../Util";
+import { InputFile } from "grammy";
+import BanchoPP from "../../../osu_specific/pp/bancho";
 
 export class BanchoScore extends Command {
     constructor(module: SimpleCommandsModule) {
@@ -13,9 +14,7 @@ export class BanchoScore extends Command {
             const map = await module.bot.osuBeatmapProvider.getBeatmapById(score.beatmapId, score.mode);
             await map.applyMods(score.mods);
             const user = await module.bot.banchoApi.getUserById(score.player_id);
-            const cover = await module.bot.database.covers.getCover(map.setId);
             module.bot.maps.setMap(ctx.chatId, map);
-            const calc = new Calculator(map, score.mods);
 
             const buttons: IKBButton[][] = [];
             if (score.has_replay && score.api_score_id) {
@@ -29,15 +28,26 @@ export class BanchoScore extends Command {
                 }
             }
 
-            await ctx.reply(
-                `${ctx.tr("player-name", {
-                    player_name: user.nickname,
-                })}\n\n${module.bot.templates.ScoreFull(ctx, score, map, calc, "https://osu.ppy.sh")}`,
-                {
-                    photo: cover,
-                    keyboard: buttons.length > 0 ? Util.createKeyboard(buttons) : undefined,
+            let message = ctx.tr("player-name", {
+                player_name: user.nickname,
+            });
+            let cover: string | InputFile;
+            if (await ctx.preferCardsOutput()) {
+                cover = new InputFile(await module.bot.okiChanCards.generateScoreCard(score, map, ctx));
+            } else {
+                const ppCalc = new BanchoPP(map, score.mods);
+                if (map.coverUrl) {
+                    cover = await module.bot.database.covers.getPhotoDoc(map.coverUrl);
+                } else {
+                    cover = await module.bot.database.covers.getCover(map.setId);
                 }
-            );
+                message += "\n\n" + module.bot.templates.ScoreFull(ctx, score, map, ppCalc, "https://osu.ppy.sh");
+            }
+
+            await ctx.reply(message, {
+                photo: cover,
+                keyboard: buttons.length > 0 ? Util.createKeyboard(buttons) : undefined,
+            });
         });
     }
 

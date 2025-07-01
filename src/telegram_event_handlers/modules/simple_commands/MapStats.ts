@@ -16,7 +16,7 @@ export class MapStats extends Command {
             await map.applyMods(mods);
 
             if (await ctx.preferCardsOutput()) {
-                const photo = await module.bot.okiChanCards.generateBeatmapCard(map, ctx, args);
+                const photo = await module.bot.okiChanCards.generateBeatmapPPCard(map, ctx, args);
                 await ctx.reply("", {
                     photo: new InputFile(photo),
                 });

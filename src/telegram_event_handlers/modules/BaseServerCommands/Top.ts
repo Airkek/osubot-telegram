@@ -225,17 +225,21 @@ export default class AbstractTop extends ServerCommand {
         l: ILocalisator
     ) {
         const map = await this.resolveBeatmap(context, score, mode);
-        const ppCalc = new BanchoPP(map, score.mods);
-        let cover: string;
-        if (map.coverUrl) {
-            cover = await context.module.bot.database.covers.getPhotoDoc(map.coverUrl);
-        } else {
-            cover = await context.module.bot.database.covers.getCover(map.setId);
-        }
+        let cover: string | InputFile;
 
-        const message =
-            `${header} ${user.nickname} (${Mode[score.mode]}):\n` +
-            context.module.bot.templates.ScoreFull(l, score, map, ppCalc, context.module.link);
+        let message = `${header} ${user.nickname} (${Mode[score.mode]})`;
+
+        if (await context.ctx.preferCardsOutput()) {
+            cover = new InputFile(await context.module.bot.okiChanCards.generateScoreCard(score, map, context.ctx));
+        } else {
+            const ppCalc = new BanchoPP(map, score.mods);
+            if (map.coverUrl) {
+                cover = await context.module.bot.database.covers.getPhotoDoc(map.coverUrl);
+            } else {
+                cover = await context.module.bot.database.covers.getCover(map.setId);
+            }
+            message += ":\n" + context.module.bot.templates.ScoreFull(l, score, map, ppCalc, context.module.link);
+        }
 
         const keyboard = this.createScoreKeyboard(context, map.id, score);
 

@@ -1,9 +1,10 @@
 import { ServerModule } from "../Module";
 import Mods from "../../../osu_specific/pp/Mods";
-import Calculator from "../../../osu_specific/pp/bancho";
 import { ServerCommand } from "../../ServerCommand";
 import { IBeatmap } from "../../../beatmaps/BeatmapTypes";
 import Util, { IKBButton } from "../../../Util";
+import { InputFile } from "grammy";
+import BanchoPP from "../../../osu_specific/pp/bancho";
 
 export default class AbstractCompare extends ServerCommand {
     constructor(module: ServerModule) {
@@ -35,13 +36,7 @@ export default class AbstractCompare extends ServerCommand {
                     map = await self.module.beatmapProvider.getBeatmapById(chat.map.id, score.mode);
                     await map.applyMods(score.mods);
                 }
-                let cover: string;
-                if (map.coverUrl) {
-                    cover = await self.module.bot.database.covers.getPhotoDoc(map.coverUrl);
-                } else {
-                    cover = await self.module.bot.database.covers.getCover(map.setId);
-                }
-                const calc = new Calculator(map, score.mods);
+                let cover: string | InputFile;
 
                 const buttons: IKBButton[][] = [];
                 if (score.has_replay && score.api_score_id) {
@@ -55,19 +50,24 @@ export default class AbstractCompare extends ServerCommand {
                     }
                 }
 
-                await self.reply(
-                    `${self.ctx.tr("best-players-score-on-this-beatmap")}:\n${self.module.bot.templates.ScoreFull(
-                        self.ctx,
-                        score,
-                        map,
-                        calc,
-                        self.module.link
-                    )}`,
-                    {
-                        photo: cover,
-                        keyboard: buttons.length > 0 ? Util.createKeyboard(buttons) : undefined,
+                let message = self.ctx.tr("best-players-score-on-this-beatmap");
+                if (await self.ctx.preferCardsOutput()) {
+                    cover = new InputFile(await self.module.bot.okiChanCards.generateScoreCard(score, map, self.ctx));
+                } else {
+                    const ppCalc = new BanchoPP(map, score.mods);
+                    if (map.coverUrl) {
+                        cover = await self.module.bot.database.covers.getPhotoDoc(map.coverUrl);
+                    } else {
+                        cover = await self.module.bot.database.covers.getCover(map.setId);
                     }
-                );
+                    message +=
+                        ":\n" + self.module.bot.templates.ScoreFull(self.ctx, score, map, ppCalc, self.module.link);
+                }
+
+                await self.reply(message, {
+                    photo: cover,
+                    keyboard: buttons.length > 0 ? Util.createKeyboard(buttons) : undefined,
+                });
             },
             true
         );

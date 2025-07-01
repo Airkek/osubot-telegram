@@ -257,7 +257,7 @@ class V2Score implements APIScore {
     rank_global?: number;
     v2_acc: number;
     top100_number?: number;
-    player_id?: number;
+    player_id: number;
     has_replay: boolean;
     constructor(data: Score, forceLazerScore = false) {
         this.api_score_id = data.id;
@@ -653,7 +653,11 @@ class BanchoAPIV2 implements IAPI {
         });
 
         if (data[0]) {
-            return data.map((s) => new V2Score(s));
+            return data.map((s, index) => {
+                const score = new V2Score(s);
+                score.top100_number = index + 1;
+                return score;
+            });
         }
 
         throw new Error("No top scores");

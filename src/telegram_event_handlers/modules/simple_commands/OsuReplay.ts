@@ -3,12 +3,13 @@ import { ScoreDecoder } from "osu-parsers";
 import { Command } from "../../Command";
 import { SimpleCommandsModule } from "./index";
 import UnifiedMessageContext from "../../../TelegramSupport";
-import Calculator from "../../../osu_specific/pp/bancho";
 import Util from "../../../Util";
 import { IReplayRenderer } from "../../../osu_specific/replay_render/IReplayRenderer";
 import { IssouBestRenderer } from "../../../osu_specific/replay_render/IssouBestRenderer";
 import { OsrReplay } from "../../../osu_specific/OsrReplay";
 import { ExperimentalRenderer } from "../../../osu_specific/replay_render/ExperimentalRenderer";
+import { InputFile } from "grammy";
+import BanchoPP from "../../../osu_specific/pp/bancho";
 
 export class OsuReplay extends Command {
     renderer: IReplayRenderer;
@@ -62,8 +63,6 @@ export class OsuReplay extends Command {
             const replay = new OsrReplay(score);
             const beatmap = await module.bot.osuBeatmapProvider.getBeatmapByHash(replay.beatmapHash, replay.mode);
             await beatmap.applyMods(replay.mods);
-            const cover = await module.bot.database.covers.getCover(beatmap.setId);
-            const calculator = new Calculator(beatmap, replay.mods);
 
             const keyboard = Util.createKeyboard(
                 [
@@ -154,11 +153,22 @@ export class OsuReplay extends Command {
                 }) + "\n\n";
 
             let fullBody = renderAdditional.trim();
+            let cover: string | InputFile;
             if (!ctx.messagePayload) {
-                fullBody =
-                    renderHeader +
-                    module.bot.templates.ScoreFull(ctx, replay, beatmap, calculator, "https://osu.ppy.sh") +
-                    renderAdditional;
+                if (await ctx.preferCardsOutput()) {
+                    cover = new InputFile(await module.bot.okiChanCards.generateScoreCard(replay, beatmap, ctx));
+                } else {
+                    const ppCalc = new BanchoPP(beatmap, replay.mods);
+                    if (beatmap.coverUrl) {
+                        cover = await module.bot.database.covers.getPhotoDoc(beatmap.coverUrl);
+                    } else {
+                        cover = await module.bot.database.covers.getCover(beatmap.setId);
+                    }
+                    fullBody =
+                        renderHeader +
+                        module.bot.templates.ScoreFull(ctx, replay, beatmap, ppCalc, "https://osu.ppy.sh") +
+                        renderAdditional;
+                }
             }
 
             await ctx.reply(fullBody, {

@@ -7,6 +7,7 @@ class OsrReplay implements APIScore {
     mode: number;
     beatmapHash: string;
     player: string;
+    player_id: number;
     counts: HitCounts;
     score: number;
     combo: number;
@@ -24,6 +25,7 @@ class OsrReplay implements APIScore {
         this.mode = score.info.rulesetId;
         this.beatmapHash = score.info.beatmapHashMD5;
         this.player = score.info.username;
+        this.player_id = score.info.userId;
         this.counts = new HitCounts(
             {
                 300: score.info.count300,

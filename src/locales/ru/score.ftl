@@ -1,5 +1,5 @@
 score_rank_on_the_map = #{$rank} место на карте
-personal_top_score = 🏆 Персональный топскор #{$number}
+personal_top_score = Персональный топскор #{$number}
 
 score-hitcounts = Хиткаунты
 score-accuracy = Точность
@@ -9,6 +9,7 @@ score-score = Очки
 score-grade = Оценка
 score-date = Дата
 score-beatmap-link = Ссылка на карту
+score-failed-at = Процент прохождения
 
 score-misses-calc = { $count ->
     [one] {$count} мисс

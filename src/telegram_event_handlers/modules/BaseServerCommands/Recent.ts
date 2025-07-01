@@ -3,7 +3,7 @@ import Calculator from "../../../osu_specific/pp/bancho";
 import Util from "../../../Util";
 import { ServerCommand } from "../../ServerCommand";
 import { APIScore } from "../../../Types";
-import { InlineKeyboard } from "grammy";
+import { InlineKeyboard, InputFile } from "grammy";
 import { IBeatmap } from "../../../beatmaps/BeatmapTypes";
 
 export default class AbstractRecent extends ServerCommand {
@@ -32,14 +32,6 @@ export default class AbstractRecent extends ServerCommand {
                     map = await self.module.beatmapProvider.getBeatmapById(recent.beatmapId, recent.mode);
                     await map.applyMods(recent.mods);
                 }
-                let cover: string;
-                if (map.coverUrl) {
-                    cover = await self.module.bot.database.covers.getPhotoDoc(map.coverUrl);
-                } else {
-                    cover = await self.module.bot.database.covers.getCover(map.setId);
-                }
-
-                const calculator = new Calculator(map, recent.mods);
 
                 let keyboard: InlineKeyboard;
                 if (self.module.api.getScore !== undefined) {
@@ -72,14 +64,26 @@ export default class AbstractRecent extends ServerCommand {
                     keyboard = Util.createKeyboard(keyboardRows);
                 }
 
-                const responseMessage = self.module.bot.templates.ScoreFull(
-                    self.ctx,
-                    recent,
-                    map,
-                    calculator,
-                    self.module.link
-                );
+                let responseMessage = "";
 
+                let cover: string | InputFile;
+                if (await self.ctx.preferCardsOutput()) {
+                    cover = new InputFile(await self.module.bot.okiChanCards.generateScoreCard(recent, map, self.ctx));
+                } else {
+                    const calculator = new Calculator(map, recent.mods);
+                    if (map.coverUrl) {
+                        cover = await self.module.bot.database.covers.getPhotoDoc(map.coverUrl);
+                    } else {
+                        cover = await self.module.bot.database.covers.getCover(map.setId);
+                    }
+                    responseMessage = self.module.bot.templates.ScoreFull(
+                        self.ctx,
+                        recent,
+                        map,
+                        calculator,
+                        self.module.link
+                    );
+                }
                 await self.reply(responseMessage, {
                     photo: cover,
                     keyboard: keyboard,
