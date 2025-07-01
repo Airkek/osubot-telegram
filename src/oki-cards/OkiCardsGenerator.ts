@@ -1,7 +1,7 @@
 import path from "path";
 import fs from "fs";
 import axios from "axios";
-import Canvas, { GlobalFonts, loadImage } from "@napi-rs/canvas";
+import Canvas, { GlobalFonts, loadImage, SKRSContext2D } from "@napi-rs/canvas";
 import { APIScore, APIUser } from "../Types";
 import * as OkiColors from "./utils/OkiColors";
 import * as OkiFormat from "./utils/OkiFormat";
@@ -9,6 +9,9 @@ import { ILocalisator } from "../ILocalisator";
 import Util from "../Util";
 import { IBeatmap } from "../beatmaps/BeatmapTypes";
 import BanchoPP from "../osu_specific/pp/bancho";
+import { OsuBeatmap } from "../beatmaps/osu/OsuBeatmap";
+import Mods from "../osu_specific/pp/Mods";
+import { ICommandArgs } from "../telegram_event_handlers/Command";
 
 type CountryCodes = {
     [key: string]: string;
@@ -146,6 +149,31 @@ export class OkiCardsGenerator {
         return this.getAssetData(gradeIconAsset);
     }
 
+    private async drawMods(ctx: SKRSContext2D, mods: Mods, endPosX: number, posY: number, width: number) {
+        const acronyms = mods.toAcronymList();
+        if (acronyms.length > 0) {
+            for (let i = acronyms.length - 1; i >= 0; i--) {
+                const asset = this.getModAssetData(acronyms[i]);
+                if (!asset) {
+                    continue;
+                }
+                const image = await Canvas.loadImage(asset);
+                ctx.drawImage(image, endPosX, posY, width, width / 1.407);
+                endPosX -= width;
+            }
+        }
+    }
+
+    private getColoredSvgAsset(svgFileNameWithoutExtension: string, color: string): Buffer {
+        const assetPath = this.getAssetPath(`${svgFileNameWithoutExtension}.svg`);
+        if (!fs.existsSync(assetPath)) {
+            return undefined;
+        }
+        let svgFile = fs.readFileSync(assetPath, "utf8");
+        svgFile = svgFile.replace(/fill="[#.a-zA-Z0-9]+"/g, `fill="${color}"`);
+        return Buffer.from(svgFile);
+    }
+
     private async loadImageFromUrl(url: string): Promise<Buffer> {
         try {
             const res = await axios.get(url, {
@@ -155,6 +183,262 @@ export class OkiCardsGenerator {
         } catch {
             return undefined;
         }
+    }
+
+    async generateBeatmapCard(beatmap: IBeatmap, l: ILocalisator, args?: ICommandArgs): Promise<Buffer> {
+        const canvas = Canvas.createCanvas(1080, 620);
+        const ctx = canvas.getContext("2d");
+        let coverBuffer = await this.loadImageFromUrl(beatmap.coverUrl);
+        if (!coverBuffer) {
+            coverBuffer = this.getAssetData("unknown_bg.png");
+        }
+
+        const color = await OkiColors.getColors(coverBuffer);
+        const colorNumber = OkiColors.toReadable(OkiColors.toRGB(color.foreground), OkiColors.toRGB(color.background));
+        color.foreground = OkiColors.toHex(colorNumber.foreground);
+        color.background = OkiColors.toHex(colorNumber.background);
+
+        ctx.fillStyle = color.background;
+        OkiFormat.rect(ctx, 0, 0, canvas.width, canvas.height, 37);
+
+        const beatmapImage = await Canvas.loadImage(coverBuffer);
+        ctx.shadowColor = "rgba(0,0,0,0.8)";
+        ctx.shadowBlur = 20;
+        ctx.save();
+        OkiFormat.rect(ctx, 0, 0, canvas.width, 300, 37);
+        ctx.clip();
+        ctx.drawImage(beatmapImage, 0, 0, canvas.width, 300);
+        ctx.restore();
+        ctx.shadowBlur = 0;
+
+        ctx.beginPath();
+        ctx.fillStyle = "#3333338C";
+        OkiFormat.rect(ctx, 24, 20, 186, 46, 26);
+        ctx.fillStyle = color.foreground;
+        OkiFormat.rect(ctx, 24, 20, 46, 46, 26);
+        ctx.font = "20px Mulish, NotoSansSC";
+        ctx.textAlign = "center";
+        ctx.fillStyle = "#ffffff";
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = 1;
+
+        ctx.fillText(beatmap.status, 127, 51);
+        ctx.strokeText(beatmap.status, 127, 51);
+        ctx.textAlign = "center";
+        const statusAsset = this.getAssetData(`${beatmap.status.toLowerCase()}.png`);
+        if (statusAsset) {
+            const statusImage = await Canvas.loadImage(statusAsset);
+            ctx.drawImage(statusImage, 37, 33, 20, 20);
+        }
+
+        ctx.fillStyle = color.foreground;
+        ctx.strokeStyle = color.foreground;
+        ctx.lineWidth = 2;
+
+        ctx.font = "42px VarelaRound";
+        ctx.textAlign = "left";
+        ctx.fillText(beatmap.title, 41, 367);
+        ctx.strokeText(beatmap.title, 41, 367);
+
+        ctx.font = "26px VarelaRound";
+        ctx.lineWidth = 1;
+        ctx.fillText(OkiFormat.truncate(26, beatmap.artist), 41, 406);
+        ctx.strokeText(OkiFormat.truncate(26, beatmap.artist), 41, 406);
+
+        if (beatmap instanceof OsuBeatmap) {
+            // star rating
+            const starAsset = this.getColoredSvgAsset("star", color.foreground);
+            if (starAsset) {
+                const star = await Canvas.loadImage(starAsset);
+                if (beatmap.stats.stars > 10) {
+                    for (let i = 0; i < 10; i++) {
+                        ctx.drawImage(star, 40 + 33 * i, 420, 28, 27);
+                    }
+                } else {
+                    let i = 0;
+                    for (; i < Math.floor(beatmap.stats.stars); i++) {
+                        ctx.drawImage(star, 40 + 33 * i, 420, 28, 27);
+                    }
+                    const lastStarSize = beatmap.stats.stars - Math.floor(beatmap.stats.stars);
+                    const minSize = 0.5;
+                    const multiplier = 1 - minSize + minSize * lastStarSize;
+                    ctx.drawImage(
+                        star,
+                        40 + 33 * i + (28 - 28 * multiplier) / 2,
+                        420 + (27 - 27 * multiplier) / 2,
+                        28 * multiplier,
+                        27 * multiplier
+                    );
+                }
+            }
+
+            //CS / AR /HP / OD / star rate int
+            const starsVal = beatmap.stats.stars.toFixed(2);
+            const csVal = beatmap.stats.cs.toFixed(1);
+            const arVal = beatmap.stats.ar.toFixed(1);
+            const hpVal = beatmap.stats.hp.toFixed(1);
+            const odVal = beatmap.stats.od.toFixed(1);
+
+            ctx.fillStyle = color.foreground;
+            ctx.strokeStyle = color.foreground;
+            ctx.font = "22px VarelaRound";
+            ctx.fillText("CS", 41, 459 + 22);
+            ctx.strokeText("CS", 41, 459 + 22);
+            ctx.fillText("AR", 41, 495 + 22);
+            ctx.strokeText("AR", 41, 495 + 22);
+            ctx.fillText("HP", 41, 531 + 22);
+            ctx.strokeText("HP", 41, 531 + 22);
+            ctx.fillText("OD", 41, 567 + 22);
+            ctx.strokeText("OD", 41, 567 + 22);
+            ctx.fillText(starsVal, 390, 423 + 22);
+            ctx.strokeText(starsVal, 390, 423 + 22);
+            ctx.fillText(csVal, 390, 459 + 22);
+            ctx.strokeText(csVal, 390, 459 + 22);
+            ctx.fillText(arVal, 390, 495 + 22);
+            ctx.strokeText(arVal, 390, 495 + 22);
+            ctx.fillText(hpVal, 390, 531 + 22);
+            ctx.strokeText(hpVal, 390, 531 + 22);
+            ctx.fillText(odVal, 390, 567 + 22);
+            ctx.strokeText(odVal, 390, 567 + 22);
+
+            ctx.beginPath();
+            ctx.fillStyle = color.foreground + "31";
+            OkiFormat.rect(ctx, 88, 466, 284, 13, 7);
+            OkiFormat.rect(ctx, 88, 504, 284, 13, 7);
+            OkiFormat.rect(ctx, 88, 539, 284, 13, 7);
+            OkiFormat.rect(ctx, 88, 570, 284, 13, 7);
+            ctx.beginPath();
+            ctx.fillStyle = color.foreground;
+            OkiFormat.rect(ctx, 88, 466, 28.4 * (beatmap.stats.cs > 0 ? beatmap.stats.cs : 0.5), 13, 7);
+            OkiFormat.rect(ctx, 88, 504, 28.4 * (beatmap.stats.ar > 0 ? beatmap.stats.ar : 0.5), 13, 7);
+            OkiFormat.rect(ctx, 88, 539, 28.4 * (beatmap.stats.hp > 0 ? beatmap.stats.hp : 0.5), 13, 7);
+            OkiFormat.rect(ctx, 88, 570, 28.4 * (beatmap.stats.od > 0 ? beatmap.stats.od : 0.5), 13, 7);
+
+            let mapperPfpBuffer = await this.loadImageFromUrl(`https://a.ppy.sh/${beatmap.authorId}`);
+
+            if (!mapperPfpBuffer) {
+                mapperPfpBuffer = this.getAssetData("avatar-guest.png");
+            }
+            const mapperPfp = await Canvas.loadImage(mapperPfpBuffer);
+
+            ctx.save();
+            OkiFormat.rect(ctx, 478, 456, 91, 91, 16);
+            ctx.clip();
+            ctx.drawImage(mapperPfp, 478, 456, 91, 91);
+            ctx.restore();
+
+            ctx.font = "21px VarelaRound";
+            ctx.textAlign = "center";
+            ctx.fillText(beatmap.author, 523, 581);
+            ctx.strokeText(beatmap.author, 523, 581);
+
+            ctx.textAlign = "left";
+            ctx.font = "27px VarelaRound";
+            const time = Util.formatBeatmapLength(beatmap.stats.length);
+            const timeWidth = ctx.measureText(time).width;
+            const maxCombo = beatmap.maxCombo + "x";
+            const maxComboWidth = ctx.measureText(maxCombo).width;
+            const bpm = beatmap.stats.bpm + " bpm";
+
+            const clockX = 455;
+            const clockTextX = clockX + 40;
+            const timesX = clockTextX + timeWidth + 15;
+            const timesTextX = timesX + 30;
+            const drumX = timesTextX + maxComboWidth + 15;
+            const drumTextX = drumX + 40;
+
+            ctx.fillText(time, clockTextX, 374 + 30);
+            ctx.strokeText(time, clockTextX, 374 + 30);
+            ctx.fillText(maxCombo, timesTextX, 374 + 30);
+            ctx.strokeText(maxCombo, timesTextX, 374 + 30);
+            ctx.fillText(bpm, drumTextX, 374 + 30);
+            ctx.strokeText(bpm, drumTextX, 374 + 30);
+
+            const clockAsset = this.getColoredSvgAsset("clock", color.foreground);
+            if (clockAsset) {
+                const clock = await Canvas.loadImage(clockAsset);
+                ctx.drawImage(clock, clockX, 375, 38, 38);
+            }
+
+            const timesAsset = this.getColoredSvgAsset("times", color.foreground);
+            if (timesAsset) {
+                const times = await Canvas.loadImage(timesAsset);
+                ctx.drawImage(times, timesX, 380, 28, 28);
+            }
+
+            const drumAsset = this.getColoredSvgAsset("drum", color.foreground);
+            if (drumAsset) {
+                const drum = await Canvas.loadImage(drumAsset);
+                ctx.drawImage(drum, drumX, 375, 40, 35);
+            }
+
+            await this.drawMods(ctx, beatmap.currentMods, canvas.width - 80, 240, 70);
+
+            // pp
+            const calc = new BanchoPP(beatmap, beatmap.currentMods);
+            const hits = beatmap.hitObjectsCount;
+            const accuracy = args?.acc / 100 || 1;
+            const desiredCombo = args?.combo ? Math.min(beatmap.maxCombo, Math.max(1, args.combo)) : beatmap.maxCombo;
+            const missCount = args?.miss ? Math.min(hits, Math.max(0, args.miss)) : 0;
+
+            const ppArgs = Util.createPPArgs(
+                {
+                    acc: accuracy,
+                    combo: desiredCombo,
+                    hits,
+                    miss: missCount,
+                    mods: beatmap.currentMods,
+                    counts: {
+                        50: args?.c50 ?? 0,
+                    },
+                },
+                beatmap.mode
+            );
+
+            const pp = calc.calculate(ppArgs);
+
+            ctx.fillStyle = color.foreground;
+            ctx.strokeStyle = color.foreground;
+            ctx.font = "30px VarelaRound, NotoSansSC";
+
+            const accText = l.tr("score-accuracy") + ": ";
+            const accWidth = ctx.measureText(accText).width;
+            ctx.fillText(accText, 650, 459 + 5);
+            ctx.strokeText(accText, 650, 459 + 5);
+
+            const accVal = (accuracy * 100).toFixed(2) + "%";
+            ctx.fillText(accVal, 650 + accWidth, 459 + 5);
+            ctx.strokeText(accVal, 650 + accWidth, 459 + 5);
+
+            const comboText = l.tr("score-combo") + ": ";
+            const comboWidth = ctx.measureText(comboText).width;
+            ctx.fillText(comboText, 650, 495 + 5);
+            ctx.strokeText(comboText, 650, 495 + 5);
+
+            const comboVal = Util.formatCombo(desiredCombo, beatmap.maxCombo);
+            ctx.fillText(comboVal, 650 + comboWidth, 495 + 5);
+            ctx.strokeText(comboVal, 650 + comboWidth, 495 + 5);
+
+            const missText = l.tr("score-misses") + ": ";
+            const missWidth = ctx.measureText(missText).width;
+            ctx.fillText(missText, 650, 531 + 5);
+            ctx.strokeText(missText, 650, 531 + 5);
+
+            const missVal = missCount.toString();
+            ctx.fillText(missVal, 650 + missWidth, 531 + 5);
+            ctx.strokeText(missVal, 650 + missWidth, 531 + 5);
+
+            const ppText = "pp: ";
+            const ppWidth = ctx.measureText(ppText).width;
+            ctx.fillText(ppText, 650, 567 + 5);
+            ctx.strokeText(ppText, 650, 567 + 5);
+
+            const ppVal = pp.pp.toFixed(2);
+            ctx.fillText(ppVal, 650 + ppWidth, 567 + 5);
+            ctx.strokeText(ppVal, 650 + ppWidth, 567 + 5);
+        }
+
+        return canvas.toBuffer("image/png");
     }
 
     async generateTopScoresCard(scores: APIScore[], maps: IBeatmap[], user: APIUser, l: ILocalisator): Promise<Buffer> {
@@ -282,20 +566,7 @@ export class OkiCardsGenerator {
             ctx.fillStyle = "#FFCC22";
             ctx.fillText(`${Util.round(score.accuracy() * 100, 2)}%`, 950, startpos + 35);
 
-            const mods = score.mods.toAcronymList();
-            if (score.mods.mods.length > 0) {
-                let startmods = 890;
-
-                for (let i = mods.length - 1; i >= 0; i--) {
-                    const asset = this.getModAssetData(mods[i]);
-                    if (!asset) {
-                        continue;
-                    }
-                    const image = await loadImage(asset);
-                    ctx.drawImage(image, startmods, startpos + 12, 46.5, 33);
-                    startmods = startmods - 46.5;
-                }
-            }
+            await this.drawMods(ctx, score.mods, 890, startpos + 12, 46.5);
 
             startpos = startpos + between;
             textpos = textpos + between;

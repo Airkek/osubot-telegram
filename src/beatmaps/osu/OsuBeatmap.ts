@@ -65,6 +65,7 @@ export class OsuBeatmap implements IBeatmap {
 
     readonly version: string;
     readonly author: string;
+    readonly authorId: number;
     readonly status: string;
 
     maxCombo: number;
@@ -77,6 +78,8 @@ export class OsuBeatmap implements IBeatmap {
     readonly native_mode: number;
     readonly native_length: number;
 
+    readonly coverUrl: string;
+
     constructor(apiBeatmap?: APIBeatmap, dbBeatmap?: IOsuBeatmapMetadata) {
         if (apiBeatmap) {
             this.native_mode = apiBeatmap.mode;
@@ -88,7 +91,9 @@ export class OsuBeatmap implements IBeatmap {
             this.artist = apiBeatmap.artist;
             this.version = apiBeatmap.version;
             this.author = apiBeatmap.creator.nickname;
+            this.authorId = apiBeatmap.creator.id;
             this.status = apiBeatmap.status;
+            this.coverUrl = apiBeatmap.coverUrl;
         } else if (dbBeatmap) {
             this.native_mode = dbBeatmap.native_mode;
             this.native_length = dbBeatmap.native_length;
@@ -99,10 +104,16 @@ export class OsuBeatmap implements IBeatmap {
             this.artist = dbBeatmap.artist;
             this.version = dbBeatmap.version;
             this.author = dbBeatmap.author;
+            this.authorId = dbBeatmap.author_id;
             this.status = dbBeatmap.status;
+            this.coverUrl = dbBeatmap.cover_url;
         }
 
         this.mods = new Mods([]);
+    }
+
+    get currentMods(): Mods {
+        return this.mods;
     }
 
     async asMode(mode: number): Promise<void> {

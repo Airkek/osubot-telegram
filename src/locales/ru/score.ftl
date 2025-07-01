@@ -4,6 +4,7 @@ personal_top_score = 🏆 Персональный топскор #{$number}
 score-hitcounts = Хиткаунты
 score-accuracy = Точность
 score-combo = Комбо
+score-misses = Миссов
 score-score = Очки
 score-grade = Оценка
 score-date = Дата

@@ -55,6 +55,10 @@ export class ScoreSaberBeatmap implements IBeatmap {
         this.coverUrl = apiBeatmap.coverUrl;
     }
 
+    get currentMods(): Mods {
+        return new Mods(0);
+    }
+
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     async asMode(mode: number): Promise<void> {}
 

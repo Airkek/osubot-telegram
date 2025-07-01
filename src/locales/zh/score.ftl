@@ -4,6 +4,7 @@ personal_top_score = 🏆 个人最佳成绩 #{$number}
 score-hitcounts = 击打次数
 score-accuracy = 准确率
 score-combo = 连击
+score-misses = 漏击
 score-score = 分数
 score-grade = 评级
 score-date = 日期

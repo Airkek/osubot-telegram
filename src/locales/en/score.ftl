@@ -4,6 +4,7 @@ personal_top_score = 🏆 Personal top score #{$number}
 score-hitcounts = Hitcounts
 score-accuracy = Accuracy
 score-combo = Combo
+score-misses = Misses
 score-score = Score
 score-grade = Grade
 score-date = Date

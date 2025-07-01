@@ -9,7 +9,6 @@ export default function (l: ILocalisator, map: IBeatmap, args: ICommandArgs): st
     const calc = new BanchoPP(map, new Mods(args.mods));
 
     const hits = map.hitObjectsCount;
-
     const accuracy = args.acc / 100 || 1;
     const maxCombo = args.combo ? Math.min(map.maxCombo, Math.max(1, args.combo)) : map.maxCombo;
     const missCount = args.miss ? Math.min(hits, Math.max(0, args.miss)) : 0;

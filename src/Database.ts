@@ -584,6 +584,38 @@ const migrations: IMigration[] = [
             return true;
         },
     },
+    {
+        version: 18,
+        name: "Add cover url to beatmap cache",
+        process: async (db: Database) => {
+            await db.run(
+                `ALTER TABLE osu_beatmap_metadata 
+             ADD COLUMN cover_url TEXT`
+            );
+
+            await db.run(
+                `UPDATE osu_beatmap_metadata 
+             SET cover_url = 'https://assets.ppy.sh/beatmaps/' || set_id || '/covers/cover@2x.jpg'`
+            );
+
+            return true;
+        },
+    },
+    {
+        version: 19,
+        name: "Add author_id to beatmap cache",
+        process: async (db: Database) => {
+            await db.run(
+                `ALTER TABLE osu_beatmap_metadata 
+             ADD COLUMN author_id BIGINT`
+            );
+
+            // invalidate cache
+            await db.run(`DELETE FROM osu_beatmap_metadata`);
+
+            return true;
+        },
+    },
 ];
 
 async function applyMigrations(db: Database) {
@@ -717,10 +749,13 @@ export interface IOsuBeatmapMetadata {
 
     version: string;
     author: string;
+    author_id: number;
     status: string;
 
     native_mode: number;
     native_length: number;
+
+    cover_url: string;
 }
 
 export class DatabaseOsuBeatmapMetadataCache {
@@ -753,10 +788,12 @@ export class DatabaseOsuBeatmapMetadataCache {
                      artist        = $4,
                      version       = $5,
                      author        = $6,
-                     status        = $7,
-                     native_mode   = $8,
-                     native_length = $9
-                 WHERE id = $10`,
+                     author_id     = $7,
+                     status        = $8,
+                     native_mode   = $9,
+                     native_length = $10,
+                     cover_url     = $11
+                 WHERE id = $12`,
                 [
                     map.setId,
                     map.hash,
@@ -764,9 +801,11 @@ export class DatabaseOsuBeatmapMetadataCache {
                     map.artist,
                     map.version,
                     map.author,
+                    map.authorId,
                     map.status,
                     map.native_mode,
                     map.native_length,
+                    map.coverUrl,
                     map.id,
                 ]
             );
@@ -775,8 +814,8 @@ export class DatabaseOsuBeatmapMetadataCache {
 
         await this.db.run(
             `INSERT INTO osu_beatmap_metadata
-             (id, set_id, hash, title, artist, version, author, status, native_mode, native_length)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+             (id, set_id, hash, title, artist, version, author, author_id, status, native_mode, native_length, cover_url)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
             [
                 map.id,
                 map.setId,
@@ -785,9 +824,11 @@ export class DatabaseOsuBeatmapMetadataCache {
                 map.artist,
                 map.version,
                 map.author,
+                map.authorId,
                 map.status,
                 map.native_mode,
                 map.native_length,
+                map.coverUrl,
             ]
         );
     }

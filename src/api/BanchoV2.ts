@@ -198,6 +198,7 @@ class V2Beatmap implements APIBeatmap {
     version: string;
     combo: number;
     mode: number;
+    coverUrl: string;
 
     constructor(beatmap: BeatmapExtended) {
         this.artist = beatmap.beatmapset.artist;
@@ -233,6 +234,7 @@ class V2Beatmap implements APIBeatmap {
         this.version = beatmap.version;
         this.combo = beatmap.max_combo;
         this.mode = beatmap.mode_int;
+        this.coverUrl = beatmap.beatmapset.covers["cover@2x"];
     }
 }
 

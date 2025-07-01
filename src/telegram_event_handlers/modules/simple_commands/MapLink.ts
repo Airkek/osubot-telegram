@@ -2,16 +2,24 @@ import { Command } from "../../Command";
 import UnifiedMessageContext from "../../../TelegramSupport";
 import { SimpleCommandsModule } from "./index";
 import { getMapIdFromLink } from "../../../osu_specific/regexes/MapRegexp";
+import { InputFile } from "grammy";
 
 export class MapLink extends Command {
     constructor(module: SimpleCommandsModule) {
         super(["map_link"], module, async (ctx: UnifiedMessageContext) => {
             const mapId = getMapIdFromLink(ctx.text) || this.getMapFromAttachments(ctx);
             const map = await module.bot.osuBeatmapProvider.getBeatmapById(mapId);
-            const cover = await module.bot.database.covers.getCover(map.setId);
-            await ctx.reply(module.bot.templates.Beatmap(ctx, map), {
-                photo: cover,
-            });
+            if (await ctx.preferCardsOutput()) {
+                const mapImg = await module.bot.okiChanCards.generateBeatmapCard(map, ctx);
+                await ctx.reply("", {
+                    photo: new InputFile(mapImg),
+                });
+            } else {
+                const cover = await module.bot.database.covers.getCover(map.setId);
+                await ctx.reply(module.bot.templates.Beatmap(ctx, map), {
+                    photo: cover,
+                });
+            }
             module.bot.maps.setMap(ctx.chatId, map);
         });
     }
