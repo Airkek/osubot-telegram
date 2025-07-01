@@ -616,6 +616,14 @@ const migrations: IMigration[] = [
             return true;
         },
     },
+    {
+        version: 20,
+        name: "Force enable oki-cards for all",
+        process: async (db: Database) => {
+            await db.run("UPDATE settings SET content_output = 'oki-cards'");
+            return true;
+        },
+    },
 ];
 
 async function applyMigrations(db: Database) {
