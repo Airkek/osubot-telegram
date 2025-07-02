@@ -293,36 +293,9 @@ export class OkiCardsGenerator {
 
         ctx.font = "26px VarelaRound";
         ctx.lineWidth = 1;
-        ctx.fillText(OkiFormat.truncate(26, beatmap.artist), titleArtisPosX, artistPosY);
-        ctx.strokeText(OkiFormat.truncate(26, beatmap.artist), titleArtisPosX, artistPosY);
+        ctx.fillText(beatmap.artist, titleArtisPosX, artistPosY);
+        ctx.strokeText(beatmap.artist, titleArtisPosX, artistPosY);
         const artistTextWidth = ctx.measureText(beatmap.artist).width;
-
-        let diffPosX = titleArtisPosX + artistTextWidth + 48;
-        if (beatmap instanceof OsuBeatmap && beatmap.mode >= 0 && beatmap.mode <= 3) {
-            const modeNames = ["osu", "taiko", "fruits", "mania"];
-            const stars = beatmap.stats.stars;
-            let diffName = "extra";
-            if (stars < 2.0) diffName = "easy";
-            else if (stars < 2.7) diffName = "normal";
-            else if (stars < 4.0) diffName = "hard";
-            else if (stars < 5.3) diffName = "insane";
-            else if (stars < 6.5) diffName = "expert";
-
-            const diffIconAsset = this.getAssetData(`${diffName}_${modeNames[beatmap.mode]}.png`);
-            if (diffIconAsset) {
-                const diffIcon = await Canvas.loadImage(diffIconAsset);
-                ctx.drawImage(diffIcon, diffPosX, artistPosY - 32, 36, 36);
-            }
-
-            diffPosX += 44;
-        }
-
-        ctx.textAlign = "left";
-        ctx.font = "26px VarelaRound";
-        const version = beatmap.version;
-        ctx.fillText(version, diffPosX, artistPosY);
-        ctx.strokeText(version, diffPosX, artistPosY);
-        const diffWidth = ctx.measureText(version).width;
 
         if (!(beatmap instanceof OsuBeatmap)) {
             return color;
@@ -416,14 +389,6 @@ export class OkiCardsGenerator {
             ctx.restore();
         }
 
-        const mapperNameX = compact ? diffPosX + diffWidth + 16 : 523;
-        const mapperNameY = compact ? artistPosY : 581;
-        ctx.font = "21px VarelaRound";
-        ctx.textAlign = compact ? "left" : "center";
-        const authorText = compact ? `by ${beatmap.author}` : beatmap.author;
-        ctx.fillText(authorText, mapperNameX, mapperNameY);
-        ctx.strokeText(authorText, mapperNameX, mapperNameY);
-
         ctx.textAlign = "left";
         ctx.font = "27px VarelaRound";
         const time = Util.formatBeatmapLength(beatmap.stats.length);
@@ -431,9 +396,8 @@ export class OkiCardsGenerator {
         const maxCombo = beatmap.maxCombo + "x";
         const maxComboWidth = ctx.measureText(maxCombo).width;
         const bpm = beatmap.stats.bpm.toFixed(0) + " bpm";
-        const bpmWidth = ctx.measureText(bpm).width;
 
-        const clockX = compact ? statusPosX + statusWidth + 16 : 500;
+        const clockX = compact ? statusPosX + statusWidth + 16 : 600;
         const clockTextX = clockX + 40;
         const timesX = clockTextX + timeWidth + 15;
         const timesTextX = timesX + 30;
@@ -466,9 +430,9 @@ export class OkiCardsGenerator {
 
         const starsMargin = 18;
         const starWidth = 33;
-        const starsMaxWidth = starWidth * 10;
-        const starsPosX = compact ? drumTextX + bpmWidth + 15 : statsPosX;
-        const starsPosY = compact ? mapRegularInfoY - 25 : 420;
+        let starsMaxWidth = 0;
+        const starsPosX = compact ? statsTextPosX + 80 : statsPosX;
+        const starsPosY = compact ? statsPosY + statsPosYAddition : 420;
 
         const starAsset = this.getColoredSvgAsset("star", mainColor);
         if (starAsset) {
@@ -477,14 +441,17 @@ export class OkiCardsGenerator {
                 for (let i = 0; i < 10; i++) {
                     ctx.drawImage(star, starsPosX + starWidth * i, starsPosY, 28, 27);
                 }
+                starsMaxWidth = starWidth * 10;
             } else {
                 let i = 0;
                 for (; i < Math.floor(beatmap.stats.stars); i++) {
                     ctx.drawImage(star, starsPosX + starWidth * i, starsPosY, 28, 27);
+                    starsMaxWidth += starWidth;
                 }
                 const lastStarSize = beatmap.stats.stars - Math.floor(beatmap.stats.stars);
                 const minSize = 0.5;
                 const multiplier = 1 - minSize + minSize * lastStarSize;
+                starsMaxWidth += starWidth * multiplier;
                 ctx.drawImage(
                     star,
                     starsPosX + starWidth * i + (28 - 28 * multiplier) / 2,
@@ -495,12 +462,52 @@ export class OkiCardsGenerator {
             }
         }
 
+        if (!compact) {
+            starsMaxWidth = starWidth * 10;
+        }
+
         const starsVal = beatmap.stats.stars.toFixed(2);
         ctx.fillStyle = mainColor;
         ctx.strokeStyle = mainColor;
         ctx.font = "22px VarelaRound";
         ctx.fillText(starsVal, starsPosX + starsMaxWidth + starsMargin, starsPosY + 25);
         ctx.strokeText(starsVal, starsPosX + starsMaxWidth + starsMargin, starsPosY + 25);
+
+        let diffPosX = compact ? starsPosX : titleArtisPosX + artistTextWidth + 24;
+        const diffPosY = compact ? statsPosTextY : artistPosY;
+        if (beatmap instanceof OsuBeatmap && beatmap.mode >= 0 && beatmap.mode <= 3) {
+            const modeNames = ["osu", "taiko", "fruits", "mania"];
+            const stars = beatmap.stats.stars;
+            let diffName = "extra";
+            if (stars < 2.0) diffName = "easy";
+            else if (stars < 2.7) diffName = "normal";
+            else if (stars < 4.0) diffName = "hard";
+            else if (stars < 5.3) diffName = "insane";
+            else if (stars < 6.5) diffName = "expert";
+
+            const diffIconAsset = this.getAssetData(`${diffName}_${modeNames[beatmap.mode]}.png`);
+            if (diffIconAsset) {
+                const diffIcon = await Canvas.loadImage(diffIconAsset);
+                ctx.drawImage(diffIcon, diffPosX, diffPosY - 26, 32, 32);
+            }
+
+            diffPosX += 36;
+        }
+
+        ctx.textAlign = "left";
+        ctx.font = "26px VarelaRound";
+        const version = beatmap.version;
+        ctx.fillText(version, diffPosX, diffPosY);
+        ctx.strokeText(version, diffPosX, diffPosY);
+        const diffWidth = ctx.measureText(version).width;
+
+        const mapperNameX = compact ? diffPosX + diffWidth + 16 : 523;
+        const mapperNameY = compact ? diffPosY : 581;
+        ctx.font = "21px VarelaRound";
+        ctx.textAlign = compact ? "left" : "center";
+        const authorText = compact ? `by ${beatmap.author}` : beatmap.author;
+        ctx.fillText(authorText, mapperNameX, mapperNameY);
+        ctx.strokeText(authorText, mapperNameX, mapperNameY);
 
         await this.drawMods(ctx, beatmap.currentMods, ctx.canvas.width - 80, 240, 70);
 
@@ -526,7 +533,7 @@ export class OkiCardsGenerator {
         const padding = 200;
         if (gradeAsset) {
             const gradeImage = await loadImage(gradeAsset);
-            ctx.drawImage(gradeImage, canvas.width - 160 - padding, 333, 160, 80);
+            ctx.drawImage(gradeImage, canvas.width - 160 - padding, 328, 160, 80);
         } else if (score.rank) {
             ctx.font = "80px Mulish";
             ctx.fillStyle = accentColor;
@@ -564,10 +571,10 @@ export class OkiCardsGenerator {
         const measureField = (text: string, value: string) => {
             ctx.textAlign = "center";
 
-            ctx.font = "24px Mulish, NotoSansSC";
+            ctx.font = "28px Mulish, NotoSansSC";
             const keyW = ctx.measureText(text).width;
 
-            ctx.font = "24px Torus";
+            ctx.font = "28px Torus";
             const valW = ctx.measureText(value).width;
 
             return Math.max(keyW, valW) + 24;
@@ -592,10 +599,12 @@ export class OkiCardsGenerator {
                 ...(pp.ss && pp.ss != pp.pp ? [{ text: "SS", value: pp.ss.toFixed(2) }] : []),
             ],
             [
+                ...(score.mode == 3 ? [{ text: "320", value: score.counts.geki.toLocaleString() }] : []),
                 {
                     text: "300",
                     value: score.counts[300].toLocaleString(),
                 },
+                ...(score.mode == 3 ? [{ text: "200", value: score.counts.katu.toLocaleString() }] : []),
                 {
                     text: "100",
                     value: score.counts[100].toLocaleString(),
@@ -674,6 +683,7 @@ export class OkiCardsGenerator {
 
             ctx.fillStyle = color.foreground;
             ctx.strokeStyle = color.foreground;
+            ctx.textAlign = "left";
             ctx.font = "30px VarelaRound, NotoSansSC";
 
             const accText = l.tr("score-accuracy") + ": ";
