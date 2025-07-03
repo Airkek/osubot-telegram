@@ -157,6 +157,8 @@ export class OsuReplay extends Command {
             if (!ctx.messagePayload) {
                 if (await ctx.preferCardsOutput()) {
                     cover = new InputFile(await module.bot.okiChanCards.generateScoreCard(replay, beatmap, ctx));
+                    const beatmapUrl = `https://osu.ppy.sh/b/${beatmap.id}`;
+                    fullBody = `${ctx.tr("score-beatmap-link")}: ${beatmapUrl}` + renderAdditional;
                 } else {
                     const ppCalc = new BanchoPP(beatmap, replay.mods);
                     if (beatmap.coverUrl) {

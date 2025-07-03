@@ -190,6 +190,7 @@ export class OkiCardsGenerator {
         try {
             const res = await axios.get(url, {
                 responseType: "arraybuffer",
+                timeout: 15000,
             });
             return res.data;
         } catch {

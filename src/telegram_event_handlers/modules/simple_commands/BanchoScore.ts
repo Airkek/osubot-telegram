@@ -34,6 +34,8 @@ export class BanchoScore extends Command {
             let cover: string | InputFile;
             if (await ctx.preferCardsOutput()) {
                 cover = new InputFile(await module.bot.okiChanCards.generateScoreCard(score, map, ctx));
+                const beatmapUrl = `https://osu.ppy.sh/b/${map.id}`;
+                message += `\n\n${ctx.tr("score-beatmap-link")}: ${beatmapUrl}`;
             } else {
                 const ppCalc = new BanchoPP(map, score.mods);
                 if (map.coverUrl) {

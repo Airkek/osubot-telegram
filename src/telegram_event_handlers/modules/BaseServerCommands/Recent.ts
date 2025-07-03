@@ -69,6 +69,8 @@ export default class AbstractRecent extends ServerCommand {
                 let cover: string | InputFile;
                 if (await self.ctx.preferCardsOutput()) {
                     cover = new InputFile(await self.module.bot.okiChanCards.generateScoreCard(recent, map, self.ctx));
+                    const beatmapUrl = map.url ?? `${self.module.link}/b/${map.id}`;
+                    responseMessage += `${self.ctx.tr("score-beatmap-link")}: ${beatmapUrl}`;
                 } else {
                     const calculator = new Calculator(map, recent.mods);
                     if (map.coverUrl) {

@@ -229,8 +229,10 @@ export default class AbstractTop extends ServerCommand {
 
         let message = `${header} ${user.nickname} (${Mode[score.mode]})`;
 
-        if (await context.ctx.preferCardsOutput()) {
+        if (await this.needGraphics(context)) {
             cover = new InputFile(await context.module.bot.okiChanCards.generateScoreCard(score, map, context.ctx));
+            const beatmapUrl = map.url ?? `${context.module.link}/b/${map.id}`;
+            message += `\n\n${context.ctx.tr("score-beatmap-link")}: ${beatmapUrl}`;
         } else {
             const ppCalc = new BanchoPP(map, score.mods);
             if (map.coverUrl) {

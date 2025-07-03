@@ -53,6 +53,8 @@ export default class AbstractCompare extends ServerCommand {
                 let message = self.ctx.tr("best-players-score-on-this-beatmap");
                 if (await self.ctx.preferCardsOutput()) {
                     cover = new InputFile(await self.module.bot.okiChanCards.generateScoreCard(score, map, self.ctx));
+                    const beatmapUrl = map.url ?? `${self.module.link}/b/${map.id}`;
+                    message += `\n\n${self.ctx.tr("score-beatmap-link")}: ${beatmapUrl}`;
                 } else {
                     const ppCalc = new BanchoPP(map, score.mods);
                     if (map.coverUrl) {

@@ -48,7 +48,7 @@ export default class AbstractUser extends ServerCommand {
                 if (userNeedPhoto) {
                     const card = await self.module.bot.okiChanCards.generateUserCard(user, self.ctx);
                     if (card) {
-                        await self.reply("", {
+                        await self.reply(`${self.module.link}/u/${user.id}`, {
                             keyboard,
                             photo: new InputFile(card),
                         });

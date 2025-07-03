@@ -17,7 +17,9 @@ export class MapStats extends Command {
 
             if (await ctx.preferCardsOutput()) {
                 const photo = await module.bot.okiChanCards.generateBeatmapPPCard(map, ctx, args);
-                await ctx.reply("", {
+
+                const beatmapUrl = `https://osu.ppy.sh/b/${map.id}`;
+                await ctx.reply(`${ctx.tr("score-beatmap-link")}: ${beatmapUrl}`, {
                     photo: new InputFile(photo),
                 });
             } else {

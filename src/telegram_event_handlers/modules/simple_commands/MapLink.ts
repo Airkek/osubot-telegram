@@ -11,7 +11,8 @@ export class MapLink extends Command {
             const map = await module.bot.osuBeatmapProvider.getBeatmapById(mapId);
             if (await ctx.preferCardsOutput()) {
                 const mapImg = await module.bot.okiChanCards.generateBeatmapPPCard(map, ctx);
-                await ctx.reply("", {
+                const beatmapUrl = `https://osu.ppy.sh/b/${map.id}`;
+                await ctx.reply(`${ctx.tr("score-beatmap-link")}: ${beatmapUrl}`, {
                     photo: new InputFile(mapImg),
                 });
             } else {
