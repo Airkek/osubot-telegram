@@ -1,6 +1,6 @@
 import { Command } from "../../Command";
 import { Module } from "../Module";
-import { ControllableFeature } from "../../../Database";
+import { ControllableFeature } from "../../../data/Models/FeatureControlModel";
 
 export default class DisableFeature extends Command {
     constructor(module: Module) {

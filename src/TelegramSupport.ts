@@ -4,8 +4,11 @@ import { FileApiFlavor, FileFlavor } from "@grammyjs/files";
 import { I18nFlavor, TranslateFunction } from "@grammyjs/i18n";
 import fs from "fs";
 import TextLinkMessageEntity = MessageEntity.TextLinkMessageEntity;
-import Database, { ChatSettings, Language, UserSettings } from "./Database";
 import { ILocalisator } from "./ILocalisator";
+import { UserSettings } from "./data/Models/Settings/UserSettingsModel";
+import { ChatSettings } from "./data/Models/Settings/ChatSettingsModel";
+import { Language } from "./data/Models/Settings/SettingsTypes";
+import Database from "./data/Database";
 
 export type TgContext = FileFlavor<Context & I18nFlavor>;
 export type TgApi = FileApiFlavor<Api>;

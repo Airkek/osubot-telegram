@@ -5,7 +5,7 @@ import AttributesCalculator from "../../osu_specific/pp/AttributesCalculator";
 import { getRosuBeatmap } from "../../osu_specific/pp/RosuUtils";
 import * as rosu from "@kotrikd/rosu-pp";
 import { APIBeatmap } from "../../Types";
-import { IOsuBeatmapMetadata } from "../../Database";
+import { IOsuBeatmapMetadata } from "../../data/Models/OsuBeatmapCacheModel";
 
 export class OsuBeatmapStats implements IBeatmapStats {
     readonly ar: number;
