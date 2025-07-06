@@ -7,6 +7,7 @@
 /local_bot_api_data
 .idea/
 .env
+/grafana-storage
 docker-compose.override.yml
 
 **/*test.ts

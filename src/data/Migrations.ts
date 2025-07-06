@@ -159,8 +159,8 @@ const migrations: IMigration[] = [
             await db.run(
                 `CREATE TABLE IF NOT EXISTS chat_settings
                  (
-                     chat_id          BIGINT UNIQUE NOT NULL,
-                     render_enabled   BOOLEAN  DEFAULT true
+                     chat_id        BIGINT UNIQUE NOT NULL,
+                     render_enabled BOOLEAN DEFAULT true
                  )`
             );
             return true;
@@ -170,9 +170,12 @@ const migrations: IMigration[] = [
         version: 10,
         name: "Remove Qualified maps from cache",
         process: async (db: Database) => {
-            await db.run(`DELETE FROM osu_beatmap_metadata WHERE status = $1`, [
-                BeatmapStatus[BeatmapStatus.Qualified],
-            ]);
+            await db.run(
+                `DELETE
+                          FROM osu_beatmap_metadata
+                          WHERE status = $1`,
+                [BeatmapStatus[BeatmapStatus.Qualified]]
+            );
             return true;
         },
     },
@@ -182,11 +185,11 @@ const migrations: IMigration[] = [
         process: async (db: Database) => {
             await db.run(
                 `ALTER TABLE chat_settings
-             ADD COLUMN notifications_enabled BOOLEAN DEFAULT true`
+                    ADD COLUMN notifications_enabled BOOLEAN DEFAULT true`
             );
             await db.run(
                 `ALTER TABLE settings
-             ADD COLUMN notifications_enabled BOOLEAN DEFAULT true`
+                    ADD COLUMN notifications_enabled BOOLEAN DEFAULT true`
             );
             return true;
         },
@@ -244,7 +247,8 @@ const migrations: IMigration[] = [
                 `ALTER TABLE settings
                     ADD COLUMN content_output TEXT DEFAULT 'oki-cards'`
             );
-            await db.run(`UPDATE settings SET content_output = 'legacy-text'`);
+            await db.run(`UPDATE settings
+                          SET content_output = 'legacy-text'`);
             return true;
         },
     },
@@ -255,12 +259,13 @@ const migrations: IMigration[] = [
             await db.run(
                 `CREATE TABLE IF NOT EXISTS feature_control
                  (
-                     feature          TEXT UNIQUE NOT NULL,
-                     enabled_for_all  BOOLEAN  DEFAULT false
+                     feature         TEXT UNIQUE NOT NULL,
+                     enabled_for_all BOOLEAN DEFAULT false
                  )`
             );
 
-            await db.run(`INSERT INTO feature_control (feature, enabled_for_all) VALUES ('oki-cards', false)`);
+            await db.run(`INSERT INTO feature_control (feature, enabled_for_all)
+                          VALUES ('oki-cards', false)`);
             return true;
         },
     },
@@ -269,7 +274,8 @@ const migrations: IMigration[] = [
         name: "Add feature 'plaintext-overrides'",
         process: async (db: Database) => {
             await db.run(
-                `INSERT INTO feature_control (feature, enabled_for_all) VALUES ('plaintext-overrides', false)`
+                `INSERT INTO feature_control (feature, enabled_for_all)
+                 VALUES ('plaintext-overrides', false)`
             );
             return true;
         },
@@ -279,13 +285,13 @@ const migrations: IMigration[] = [
         name: "Add cover url to beatmap cache",
         process: async (db: Database) => {
             await db.run(
-                `ALTER TABLE osu_beatmap_metadata 
-             ADD COLUMN cover_url TEXT`
+                `ALTER TABLE osu_beatmap_metadata
+                    ADD COLUMN cover_url TEXT`
             );
 
             await db.run(
-                `UPDATE osu_beatmap_metadata 
-             SET cover_url = 'https://assets.ppy.sh/beatmaps/' || set_id || '/covers/cover@2x.jpg'`
+                `UPDATE osu_beatmap_metadata
+                 SET cover_url = 'https://assets.ppy.sh/beatmaps/' || set_id || '/covers/cover@2x.jpg'`
             );
 
             return true;
@@ -296,12 +302,13 @@ const migrations: IMigration[] = [
         name: "Add author_id to beatmap cache",
         process: async (db: Database) => {
             await db.run(
-                `ALTER TABLE osu_beatmap_metadata 
-             ADD COLUMN author_id BIGINT`
+                `ALTER TABLE osu_beatmap_metadata
+                    ADD COLUMN author_id BIGINT`
             );
 
             // invalidate cache
-            await db.run(`DELETE FROM osu_beatmap_metadata`);
+            await db.run(`DELETE
+                          FROM osu_beatmap_metadata`);
 
             return true;
         },
@@ -311,6 +318,27 @@ const migrations: IMigration[] = [
         name: "Force enable oki-cards for all",
         process: async (db: Database) => {
             await db.run("UPDATE settings SET content_output = 'oki-cards'");
+            return true;
+        },
+    },
+    {
+        version: 21,
+        name: "Create 'statistics' table",
+        process: async (db: Database) => {
+            await db.run("CREATE EXTENSION IF NOT EXISTS timescaledb");
+
+            await db.run(`CREATE TABLE bot_events
+                          (
+                              time       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                              event_type TEXT        NOT NULL,
+                              user_id    BIGINT,
+                              chat_id    BIGINT,
+                              event_data JSONB
+                          );`);
+
+            await db.run("SELECT create_hypertable('bot_events', 'time')");
+            await db.run("CREATE INDEX idx_event_type ON bot_events (event_type)");
+            await db.run("CREATE INDEX idx_user_id ON bot_events (user_id)");
             return true;
         },
     },

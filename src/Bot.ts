@@ -325,6 +325,7 @@ export class Bot {
         }
         const context = await this.buildActivatedContext(ctx);
         this.totalMessages++;
+        await this.database.statsModel.logMessage(context);
 
         const ticket = this.createCallbackTicket(context);
         const cb = this.pendingCallbacks[ticket];
@@ -453,6 +454,7 @@ export class Bot {
                 },
             });
         }
+        await this.database.statsModel.logStartup(this.me);
         global.logger.info(`Bot started as @${this.me.username} (${this.me.first_name})`);
     }
 
