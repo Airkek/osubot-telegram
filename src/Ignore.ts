@@ -1,4 +1,4 @@
-import Database from "./Database";
+import Database from "./data/Database";
 
 export default class IgnoreList {
     list: Set<number>;

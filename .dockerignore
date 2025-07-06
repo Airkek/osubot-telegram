@@ -19,3 +19,4 @@ beatmap_cache
 local_bot_api_data
 osubot_data
 osubot_postgres
+grafana-storage

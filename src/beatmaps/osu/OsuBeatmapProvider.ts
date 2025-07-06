@@ -2,13 +2,13 @@ import { IBeatmapProvider } from "../IBeatmapProvider";
 import { OsuBeatmap } from "./OsuBeatmap";
 import BanchoAPIV2 from "../../api/BanchoV2";
 import { APIBeatmap, BeatmapStatus } from "../../Types";
-import { DatabaseOsuBeatmapMetadataCache, IOsuBeatmapMetadata } from "../../Database";
+import { IOsuBeatmapMetadata, OsuBeatmapCacheModel } from "../../data/Models/OsuBeatmapCacheModel";
 
 export class OsuBeatmapProvider implements IBeatmapProvider {
     private api: BanchoAPIV2;
-    private db: DatabaseOsuBeatmapMetadataCache;
+    private db: OsuBeatmapCacheModel;
 
-    constructor(api: BanchoAPIV2, db: DatabaseOsuBeatmapMetadataCache) {
+    constructor(api: BanchoAPIV2, db: OsuBeatmapCacheModel) {
         this.api = api;
         this.db = db;
     }

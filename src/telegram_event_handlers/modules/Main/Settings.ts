@@ -3,9 +3,10 @@ import { Module } from "../Module";
 import { InlineKeyboard } from "grammy";
 import Util, { IKBButton } from "../../../Util";
 import UnifiedMessageContext from "../../../TelegramSupport";
-import { ChatSettings, UserSettings } from "../../../Database";
 import { OrdrSkinsProvider } from "../../../osu_specific/replay_render/OrdrSkinsProvider";
 import { ILocalisator } from "../../../ILocalisator";
+import { ChatSettings } from "../../../data/Models/Settings/ChatSettingsModel";
+import { UserSettings } from "../../../data/Models/Settings/UserSettingsModel";
 
 type SettingsPageWithPageControl = "skin_sel";
 type SettingsPage = "home" | "render" | "language" | "output_type" | SettingsPageWithPageControl;

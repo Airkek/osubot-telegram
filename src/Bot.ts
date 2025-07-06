@@ -8,7 +8,7 @@ import { limit } from "@grammyjs/ratelimiter";
 import { I18n } from "@grammyjs/i18n";
 import express from "express";
 import { Module } from "./telegram_event_handlers/modules/Module";
-import Database from "./Database";
+import Database from "./data/Database";
 import { APICollection } from "./api/APICollection";
 import { Templates, ITemplates } from "./telegram_event_handlers/templates";
 import Maps from "./Maps";
@@ -49,7 +49,7 @@ export type PendingCallback = (ctx: UnifiedMessageContext) => Promise<ShouldRemo
 export class Bot {
     public readonly config: IBotConfig;
     public readonly tg: TelegramBot;
-    public readonly database: Database;
+    public readonly database: Database; // TODO: make private
     public readonly api: APICollection;
     public readonly osuBeatmapProvider: OsuBeatmapProvider; // TODO: move somewhere out of there
     public readonly templates: ITemplates = Templates;
@@ -325,6 +325,7 @@ export class Bot {
         }
         const context = await this.buildActivatedContext(ctx);
         this.totalMessages++;
+        await this.database.statsModel.logMessage(context);
 
         const ticket = this.createCallbackTicket(context);
         const cb = this.pendingCallbacks[ticket];
@@ -453,6 +454,7 @@ export class Bot {
                 },
             });
         }
+        await this.database.statsModel.logStartup(this.me);
         global.logger.info(`Bot started as @${this.me.username} (${this.me.first_name})`);
     }
 

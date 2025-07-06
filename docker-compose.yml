@@ -17,7 +17,7 @@ services:
       - telegram_api
 
   database:
-    image: postgres
+    image: timescale/timescaledb:latest-pg17
     container_name: osubot_postgres
     restart: always
 
@@ -27,6 +27,7 @@ services:
       POSTGRES_DB: ${DB_DATABASE_NAME}
       TELEGRAM_MAX_WEBHOOK_CONNECTIONS: ${TELEGRAM_LOCAL_API_MAX_WEBHOOK_CONNECTIONS}
       POSTGRES_INITDB_ARGS: '--data-checksums'
+      TIMESCALEDB_TELEMETRY: 'off'
       
     volumes:
       - ${DB_DATA_LOCATION}:/var/lib/postgresql/data
@@ -50,6 +51,7 @@ services:
               -c checkpoint_completion_target=0.7
               -c wal_buffers=16MB
               -c default_statistics_target=100
+              -c shared_preload_libraries='timescaledb'
 
   telegram_api:
     image: aiogram/telegram-bot-api:latest

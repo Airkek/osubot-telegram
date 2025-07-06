@@ -69,6 +69,7 @@ export class Command {
             await ctx.reply(`${Util.error(errorText, ctx)} (${err})`);
         }
 
+        await this.module.bot.database.statsModel.logCommand(this, ctx);
         global.logger.trace(`[${this.module.name}::${this.name}] command processing took ${timer.ms}`);
     }
 

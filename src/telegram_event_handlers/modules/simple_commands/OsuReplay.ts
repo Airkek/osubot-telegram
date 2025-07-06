@@ -4,7 +4,7 @@ import { Command } from "../../Command";
 import { SimpleCommandsModule } from "./index";
 import UnifiedMessageContext from "../../../TelegramSupport";
 import Util from "../../../Util";
-import { IReplayRenderer } from "../../../osu_specific/replay_render/IReplayRenderer";
+import { IReplayRenderer, RenderSettings } from "../../../osu_specific/replay_render/IReplayRenderer";
 import { IssouBestRenderer } from "../../../osu_specific/replay_render/IssouBestRenderer";
 import { OsrReplay } from "../../../osu_specific/OsrReplay";
 import { ExperimentalRenderer } from "../../../osu_specific/replay_render/ExperimentalRenderer";
@@ -183,7 +183,7 @@ export class OsuReplay extends Command {
                 return;
             }
 
-            const replayResponse = await renderer.render(file, {
+            const renderSettings: RenderSettings = {
                 skin: settings.ordr_skin,
                 video: settings.ordr_video,
                 storyboard: settings.ordr_storyboard,
@@ -196,9 +196,18 @@ export class OsuReplay extends Command {
                 masterVolume: settings.ordr_master_volume,
                 musicVolume: settings.ordr_music_volume,
                 effectsVolume: settings.ordr_effects_volume,
-            });
+            };
+
+            await this.module.bot.database.statsModel.logRenderStart(ctx, renderSettings, replay.mode, useExperimental);
+            const replayResponse = await renderer.render(file, renderSettings);
 
             if (replayResponse.success) {
+                await this.module.bot.database.statsModel.logRenderSuccess(
+                    ctx,
+                    renderSettings,
+                    replay.mode,
+                    useExperimental
+                );
                 if (useExperimental) {
                     this.rendered_experimental++;
                 } else {
@@ -214,6 +223,13 @@ export class OsuReplay extends Command {
                 });
             } else {
                 this.removeLimit(ctx.senderId);
+                await this.module.bot.database.statsModel.logRenderFailed(
+                    ctx,
+                    renderSettings,
+                    replay.mode,
+                    replayResponse.error,
+                    useExperimental
+                );
                 if (useExperimental) {
                     this.failedRenders_experimental++;
                 } else {
