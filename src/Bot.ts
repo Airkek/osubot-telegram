@@ -253,22 +253,7 @@ export class Bot {
 
     private handleCallbackQuery = async (ctx): Promise<void> => {
         const context = await this.buildActivatedContext(ctx);
-
-        for (const module of this.modules) {
-            const match = module.checkContext(context);
-            if (!match) {
-                continue;
-            }
-
-            if (match.map) {
-                const chatMap = this.maps.getChat(context.chatId);
-                if (!chatMap || chatMap.map.id !== match.map) {
-                    const beatmap = await this.osuBeatmapProvider.getBeatmapById(match.map);
-                    this.maps.setMap(context.chatId, beatmap);
-                }
-            }
-
-            await match.command.process(context);
+        if (await this.processCommands(context)) {
             await ctx.answerCallbackQuery();
         }
     };
@@ -353,14 +338,14 @@ export class Bot {
             return;
         }
 
-        await this.processRegularMessage(context);
+        await this.processCommands(context);
     };
 
     private shouldSkipMessage(ctx: TgContext): boolean {
         return ctx.from.is_bot || this.ignored.isIgnored(ctx.from.id);
     }
 
-    private async processRegularMessage(ctx: UnifiedMessageContext): Promise<void> {
+    private async processCommands(ctx: UnifiedMessageContext): Promise<boolean> {
         for (const module of this.modules) {
             const match = module.checkContext(ctx);
             if (!match) {
@@ -383,7 +368,10 @@ export class Bot {
             }
 
             await match.command.process(ctx);
+            return true;
         }
+
+        return false;
     }
 
     private configureCommandAliases(): void {
@@ -408,13 +396,8 @@ export class Bot {
                 if (spl != "") {
                     ctx.message.text += " " + spl;
                 }
-                const context = await this.buildActivatedContext(ctx as TgContext);
-                for (const module of this.modules) {
-                    const match = module.checkContext(context);
-                    if (match) {
-                        await match.command.process(context);
-                    }
-                }
+                const unifiedCtx = await this.buildActivatedContext(ctx as TgContext);
+                await this.processCommands(unifiedCtx);
             });
         });
     }
