@@ -84,7 +84,14 @@ export class StatisticsModel {
         await this.db.run(
             `INSERT INTO bot_events_commands (user_id, chat_id, module, command, text, is_payload)
              VALUES ($1, $2, $3, $4, $5, $6)`,
-            [ctx.senderId, ctx.chatId, command.module.name, command.name, ctx.text, !!ctx.messagePayload]
+            [
+                ctx.senderId,
+                ctx.chatId,
+                command.module.name,
+                command.name,
+                ctx.messagePayload ?? ctx.text ?? "",
+                !!ctx.messagePayload,
+            ]
         );
     }
 
