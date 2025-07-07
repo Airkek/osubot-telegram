@@ -32,7 +32,7 @@ import Util from "./Util";
 import { OkiCardsGenerator } from "./oki-cards/OkiCardsGenerator";
 import RippleRelax from "./telegram_event_handlers/modules/RippleRelax";
 import { setInterval, clearInterval } from "node:timers";
-import { PACKAGE_VERSION} from "./version";
+import { PACKAGE_VERSION } from "./version";
 
 export interface IBotConfig {
     tg: {

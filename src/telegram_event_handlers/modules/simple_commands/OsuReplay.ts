@@ -196,11 +196,7 @@ export class OsuReplay extends Command {
             const replayResponse = await renderer.render(file, renderSettings);
 
             if (replayResponse.success) {
-                await this.module.bot.database.statsModel.logRenderSuccess(
-                    ctx,
-                    replay.mode,
-                    useExperimental
-                );
+                await this.module.bot.database.statsModel.logRenderSuccess(ctx, replay.mode, useExperimental);
                 await ctx.reply("", {
                     video: {
                         url: replayResponse.video.url,
