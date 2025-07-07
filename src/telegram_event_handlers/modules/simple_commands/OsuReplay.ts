@@ -8,7 +8,7 @@ import { IReplayRenderer, RenderSettings } from "../../../osu_specific/replay_re
 import { IssouBestRenderer } from "../../../osu_specific/replay_render/IssouBestRenderer";
 import { OsrReplay } from "../../../osu_specific/OsrReplay";
 import { ExperimentalRenderer } from "../../../osu_specific/replay_render/ExperimentalRenderer";
-import { InputFile } from "grammy";
+import { InlineKeyboard, InputFile } from "grammy";
 import BanchoPP from "../../../osu_specific/pp/bancho";
 
 export class OsuReplay extends Command {
@@ -141,6 +141,38 @@ export class OsuReplay extends Command {
                 }
             }
 
+            const maxSongLengthMinutes = 15;
+            if (needRender && beatmap.stats.length > maxSongLengthMinutes * 60) {
+                renderAdditional =
+                    "\n\n" +
+                    ctx.tr("renderer-max-length-exceeded", {
+                        max_minutes: maxSongLengthMinutes,
+                    });
+                needRender = false;
+                this.removeLimit(ctx.senderId);
+            }
+
+            let maxStarrate: number;
+            switch (beatmap.mode) {
+                case 0:
+                case 1:
+                case 2:
+                case 3:
+                default:
+                    // TODO: adjust by mode and renderer
+                    maxStarrate = 20;
+                    break;
+            }
+            if (needRender && beatmap.stats.stars > maxStarrate) {
+                renderAdditional =
+                    "\n\n" +
+                    ctx.tr("renderer-max-starrate-exceeded", {
+                        max_stars: maxStarrate,
+                    });
+                needRender = false;
+                this.removeLimit(ctx.senderId);
+            }
+
             const renderHeader =
                 ctx.tr("player-name", {
                     player_name: replay.player,
@@ -207,24 +239,28 @@ export class OsuReplay extends Command {
                 });
             } else {
                 this.removeLimit(ctx.senderId);
-                await this.module.bot.database.statsModel.logRenderFailed(
-                    ctx,
-                    replay.mode,
-                    replayResponse.error,
-                    useExperimental
-                );
                 if (replayResponse.error.includes("This replay is already rendering or in queue")) {
                     let text = ctx.tr("already-rendering-warning");
+                    let keyboard: InlineKeyboard = undefined;
                     if (ctx.isInGroupChat) {
                         text += "\n\n";
                         text += ctx.tr("already-rendering-warning-chat");
+                        keyboard = Util.createKeyboard([
+                            [{ text: ctx.tr("chat-settings-button"), command: "osu settings" }],
+                        ]);
                     }
                     await ctx.reply(text, {
-                        keyboard: Util.createKeyboard([
-                            [{ text: ctx.tr("chat-settings-button"), command: "osu settings" }],
-                        ]),
+                        keyboard: keyboard,
                     });
+                } else if (replayResponse.error.includes("This player is banned from o!rdr")) {
+                    await ctx.reply(ctx.tr("ordr-ban-warning"));
                 } else {
+                    await this.module.bot.database.statsModel.logRenderFailed(
+                        ctx,
+                        replay.mode,
+                        replayResponse.error,
+                        useExperimental
+                    );
                     await ctx.reply(
                         ctx.tr("render-error-text", {
                             error: replayResponse.error,
