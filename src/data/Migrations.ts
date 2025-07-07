@@ -172,8 +172,8 @@ const migrations: IMigration[] = [
         process: async (db: Database) => {
             await db.run(
                 `DELETE
-                          FROM osu_beatmap_metadata
-                          WHERE status = $1`,
+                 FROM osu_beatmap_metadata
+                 WHERE status = $1`,
                 [BeatmapStatus[BeatmapStatus.Qualified]]
             );
             return true;
@@ -339,6 +339,138 @@ const migrations: IMigration[] = [
             await db.run("SELECT create_hypertable('bot_events', 'time')");
             await db.run("CREATE INDEX idx_event_type ON bot_events (event_type)");
             await db.run("CREATE INDEX idx_user_id ON bot_events (user_id)");
+            return true;
+        },
+    },
+    {
+        version: 22,
+        name: "Optimize stats events",
+        process: async (db: Database) => {
+            await db.run(`CREATE TABLE bot_events_metrics
+                          (
+                              time       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                              event_type TEXT        NOT NULL,
+                              count      INTEGER     NOT NULL
+                          )`);
+            await db.run("SELECT create_hypertable('bot_events_metrics', 'time')");
+            await db.run("CREATE INDEX idx_metrics_event_type ON bot_events_metrics (event_type)");
+
+            await db.run(`CREATE TABLE bot_events_render
+                          (
+                              time          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                              event_type    TEXT        NOT NULL,
+                              user_id       BIGINT,
+                              chat_id       BIGINT,
+                              experimental  BOOLEAN     NOT NULL,
+                              mode          INTEGER     NOT NULL,
+                              error_message TEXT
+                          )`);
+            await db.run("SELECT create_hypertable('bot_events_render', 'time')");
+            await db.run("CREATE INDEX idx_render_event_type ON bot_events_render (event_type)");
+            await db.run("CREATE INDEX idx_render_is_exp ON bot_events_render (experimental)");
+
+            await db.run(`CREATE TABLE bot_events_commands
+                          (
+                              time       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                              user_id    BIGINT,
+                              chat_id    BIGINT,
+                              module     TEXT        NOT NULL,
+                              command    TEXT        NOT NULL,
+                              text       TEXT,
+                              is_payload BOOLEAN     NOT NULL
+                          )`);
+            await db.run("SELECT create_hypertable('bot_events_commands', 'time')");
+            await db.run("CREATE INDEX idx_commands_module ON bot_events_commands (module)");
+            await db.run("CREATE INDEX idx_commands_command ON bot_events_commands (command)");
+            await db.run("CREATE INDEX idx_commands_payload ON bot_events_commands (is_payload)");
+
+            await db.run(`CREATE TABLE bot_events_startup
+                          (
+                              time       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                              bot_id     BIGINT,
+                              username   TEXT,
+                              first_name TEXT,
+                              last_name  TEXT
+                          )`);
+            await db.run("SELECT create_hypertable('bot_events_startup', 'time')");
+
+            // count metrics
+            const metrics = await db.all(`SELECT time, event_type, event_data ->> 'count' as count
+                                          FROM bot_events
+                                          WHERE event_type IN ('user_count', 'chat_count', 'cached_beatmap_files_count',
+                                                               'cached_beatmap_metadata_count')`);
+            for (const row of metrics) {
+                await db.run(
+                    `INSERT INTO bot_events_metrics (time, event_type, count)
+                     VALUES ($1, $2, $3)`,
+                    [row.time, row.event_type, row.count]
+                );
+            }
+            await db.run(`DELETE
+                          FROM bot_events
+                          WHERE event_type IN ('user_count', 'chat_count', 'cached_beatmap_files_count',
+                                               'cached_beatmap_metadata_count')`);
+
+            // render_start, render_success, render_failed
+            const renders = await db.all(`SELECT time,
+                                                 event_type,
+                                                 user_id,
+                                                 chat_id,
+                                                 event_data ->> 'mode'         as mode,
+                                                 event_data ->> 'experimental' as experimental,
+                                                 event_data ->> 'message'      as message
+                                          FROM bot_events
+                                          WHERE event_type IN ('render_start', 'render_success', 'render_failed')`);
+            for (const row of renders) {
+                await db.run(
+                    `INSERT INTO bot_events_render (time, event_type, user_id, chat_id, experimental, mode,
+                                                    error_message)
+                     VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+                    [row.time, row.event_type, row.user_id, row.chat_id, row.experimental, row.mode, row.message]
+                );
+            }
+            await db.run(
+                "DELETE FROM bot_events WHERE event_type IN ('render_start', 'render_success', 'render_failed')"
+            );
+
+            // command_used
+            const commands = await db.all(`SELECT time,
+                                                  user_id,
+                                                  chat_id,
+                                                  event_data ->> 'module'     as module,
+                                                  event_data ->> 'command'    as command,
+                                                  event_data ->> 'text'       as text,
+                                                  event_data ->> 'is_payload' as is_payload
+                                           FROM bot_events
+                                           WHERE event_type = 'command_used'`);
+            for (const row of commands) {
+                await db.run(
+                    `INSERT INTO bot_events_commands (time, user_id, chat_id, module, command, text, is_payload)
+                     VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+                    [row.time, row.user_id, row.chat_id, row.module, row.command, row.text, row.is_payload]
+                );
+            }
+            await db.run("DELETE FROM bot_events WHERE event_type = 'command_used'");
+
+            // bot_startup
+            const startups = await db.all(`SELECT time,
+                                                  event_data ->> 'id'         as id,
+                                                  event_data ->> 'username'   as username,
+                                                  event_data ->> 'first_name' as first_name,
+                                                  event_data ->> 'last_name'  as last_name
+                                           FROM bot_events
+                                           WHERE event_type = 'bot_startup'`);
+            for (const row of startups) {
+                await db.run(
+                    `INSERT INTO bot_events_startup (time, bot_id, username, first_name, last_name)
+                     VALUES ($1, $2, $3, $4, $5)`,
+                    [row.time, row.id, row.username, row.first_name, row.last_name]
+                );
+            }
+            await db.run("DELETE FROM bot_events WHERE event_type = 'bot_startup'");
+
+            await db.run("ALTER TABLE bot_events DROP COLUMN event_data");
+
             return true;
         },
     },

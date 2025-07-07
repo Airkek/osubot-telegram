@@ -15,6 +15,8 @@ node_modules
 dist
 build
 
+src/version.ts
+
 beatmap_cache
 local_bot_api_data
 osubot_data

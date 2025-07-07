@@ -1,5 +1,7 @@
 import { Logger, ILogObj } from "tslog";
 import { Bot, IBotConfig } from "./src/Bot";
+import dotenv from "dotenv";
+dotenv.config();
 
 const config: IBotConfig = {
     tg: {

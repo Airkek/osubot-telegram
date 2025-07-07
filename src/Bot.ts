@@ -32,6 +32,7 @@ import Util from "./Util";
 import { OkiCardsGenerator } from "./oki-cards/OkiCardsGenerator";
 import RippleRelax from "./telegram_event_handlers/modules/RippleRelax";
 import { setInterval, clearInterval } from "node:timers";
+import { PACKAGE_VERSION} from "./version";
 
 export interface IBotConfig {
     tg: {
@@ -97,8 +98,7 @@ export class Bot {
         this.maps = new Maps();
         this.track = new OsuTrackAPI();
 
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        this.version = require("../../package.json").version;
+        this.version = PACKAGE_VERSION;
 
         this.initialize();
     }

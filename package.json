@@ -6,8 +6,9 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node ./build",
+    "preinstall": "node -p \"'export const PACKAGE_VERSION = ' + JSON.stringify(require('./package.json').version) + ';'\" > src/version.ts",
     "build": "npx tsc",
-    "update": "git pull && npm run build"
+    "update": "git pull && npm ci && npm run build"
   },
   "author": "keijia",
   "license": "UNLICENSED",
@@ -38,6 +39,7 @@
     "querystring": "^0.2.1",
     "sharp": "^0.34.2",
     "socket.io-client": "^4.8.1",
+    "dotenv": "^17.0.1",
     "tslog": "^4.9.3"
   },
   "devDependencies": {
@@ -49,6 +51,7 @@
     "eslint-config-prettier": "^10.1.5",
     "eslint-plugin-prettier": "^5.4.1",
     "prettier": "3.5.3",
+    "ts-node": "^10.9.2",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.34.0"
   }

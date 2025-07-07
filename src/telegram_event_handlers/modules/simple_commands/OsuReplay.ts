@@ -192,13 +192,12 @@ export class OsuReplay extends Command {
                 effectsVolume: settings.ordr_effects_volume,
             };
 
-            await this.module.bot.database.statsModel.logRenderStart(ctx, renderSettings, replay.mode, useExperimental);
+            await this.module.bot.database.statsModel.logRenderStart(ctx, replay.mode, useExperimental);
             const replayResponse = await renderer.render(file, renderSettings);
 
             if (replayResponse.success) {
                 await this.module.bot.database.statsModel.logRenderSuccess(
                     ctx,
-                    renderSettings,
                     replay.mode,
                     useExperimental
                 );
@@ -214,7 +213,6 @@ export class OsuReplay extends Command {
                 this.removeLimit(ctx.senderId);
                 await this.module.bot.database.statsModel.logRenderFailed(
                     ctx,
-                    renderSettings,
                     replay.mode,
                     replayResponse.error,
                     useExperimental
