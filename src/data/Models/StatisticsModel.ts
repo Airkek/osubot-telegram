@@ -117,8 +117,8 @@ export class StatisticsModel {
     private async logRawEvent(type: RawEvents, userId: number, chatId: number) {
         try {
             await this.db.run(
-                `INSERT INTO bot_events (event_type, user_id, chat_id, event_data)
-                 VALUES ($1, $2, $3, $4)`,
+                `INSERT INTO bot_events (event_type, user_id, chat_id)
+                 VALUES ($1, $2, $3)`,
                 [type, userId, chatId]
             );
         } catch (error) {
