@@ -31,7 +31,7 @@ import { SimpleCommandsModule } from "./telegram_event_handlers/modules/simple_c
 import Util from "./Util";
 import { OkiCardsGenerator } from "./oki-cards/OkiCardsGenerator";
 import RippleRelax from "./telegram_event_handlers/modules/RippleRelax";
-import { setInterval } from "node:timers/promises";
+import { setInterval, clearInterval } from "node:timers";
 
 export interface IBotConfig {
     tg: {
@@ -448,15 +448,30 @@ export class Bot {
     }
 
     private async logStatsInfo() {
+        global.logger.info("Logging stats");
         await this.database.statsModel.logUserCount();
         await this.database.statsModel.logChatCount();
         await this.database.statsModel.logBeatmapMetadataCacheCount();
         await this.database.statsModel.logBeatmapFilesCount();
+        await global.logger.info("Stats logged");
     }
 
+    private statsInterval: NodeJS.Timeout = undefined;
     private async startStatsLogger() {
+        this.stopStatsLogger();
         await this.logStatsInfo();
-        setInterval(15 * 60 * 1000, this.logStatsInfo);
+        this.statsInterval = setInterval(
+            () => {
+                this.logStatsInfo();
+            },
+            15 * 60 * 1000
+        );
+    }
+    private stopStatsLogger() {
+        if (this.statsInterval) {
+            clearInterval(this.statsInterval);
+            this.statsInterval = undefined;
+        }
     }
 
     public async stop(): Promise<void> {
@@ -465,6 +480,7 @@ export class Bot {
         } else {
             await this.handle.stop();
         }
+        clearInterval(this.statsInterval);
         global.logger.info("Bot stopped");
     }
 
