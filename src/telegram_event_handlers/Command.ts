@@ -23,7 +23,6 @@ export class Command {
     readonly name: string;
     readonly prefixes: string[];
     readonly module: Module;
-    uses: number;
     function: (ctx: UnifiedMessageContext, self: Command, args: ICommandArgs) => Promise<void>;
 
     permission: (ctx: UnifiedMessageContext) => boolean;
@@ -36,8 +35,6 @@ export class Command {
         this.prefixes = prefixes;
         this.module = module;
         this.function = func;
-
-        this.uses = 0;
         this.permission = () => true;
     }
 
@@ -46,7 +43,6 @@ export class Command {
             return;
         }
         const timer = Util.timer();
-        this.uses++;
 
         try {
             let text = "";

@@ -16,12 +16,6 @@ export class OsuReplay extends Command {
     experimental_renderer: IReplayRenderer;
     rate = {};
 
-    rendered = 0;
-    failedRenders = 0;
-
-    rendered_experimental = 0;
-    failedRenders_experimental = 0;
-
     constructor(module: SimpleCommandsModule) {
         super(["osu_replay"], module, async (ctx) => {
             const MAX_FILE_SIZE = 5 * 1024 * 1024;
@@ -208,11 +202,6 @@ export class OsuReplay extends Command {
                     replay.mode,
                     useExperimental
                 );
-                if (useExperimental) {
-                    this.rendered_experimental++;
-                } else {
-                    this.rendered++;
-                }
                 await ctx.reply("", {
                     video: {
                         url: replayResponse.video.url,
@@ -230,11 +219,6 @@ export class OsuReplay extends Command {
                     replayResponse.error,
                     useExperimental
                 );
-                if (useExperimental) {
-                    this.failedRenders_experimental++;
-                } else {
-                    this.failedRenders++;
-                }
                 if (replayResponse.error.includes("This replay is already rendering or in queue")) {
                     let text = ctx.tr("already-rendering-warning");
                     if (ctx.isInGroupChat) {

@@ -66,7 +66,7 @@ export class Bot {
 
     public modules: Module[] = [];
     public startTime: number = 0;
-    public totalMessages: number = 0;
+    private totalMessages: number = 0;
     public me: UserFromGetMe;
     public readonly version: string;
 

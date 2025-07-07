@@ -1,14 +1,4 @@
 bot_status_header = Bot status
 bot_version = Version
 bot_uptime = Uptime
-bot_known_chats = Known chats
-bot_total_messages = Messages received
-bot_commands_used = Commands used
-bot_messages_per_hour = Messages per hour
-bot_commands_per_hour = Commands per hour
-bot_commands_percentage = Command percentage
-bot_replays_received = Replays received
-bot_replays_rendered = Replays rendered (s/e)
-bot_render_errors = Render errors (s/e)
-bot_replays_per_commands = Replays per commands
-bot_renders_per_commands = Renders per commands
+bot_grafana_link = Detailed statistics with graphs

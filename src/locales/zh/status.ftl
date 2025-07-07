@@ -1,14 +1,4 @@
 bot_status_header = 机器人状态
 bot_version = 版本
 bot_uptime = 运行时间
-bot_known_chats = 已知聊天数量
-bot_total_messages = 接收消息总数
-bot_commands_used = 使用命令次数
-bot_messages_per_hour = 每小时消息数
-bot_commands_per_hour = 每小时命令数
-bot_commands_percentage = 命令占消息百分比
-bot_replays_received = 接收回放数
-bot_replays_rendered = 回放已渲染数 (s/e)
-bot_render_errors = 渲染错误数 (s/e)
-bot_replays_per_commands = 回放占命令百分比
-bot_renders_per_commands = 渲染占命令百分比
+bot_grafana_link = 带图表的详细统计信息
