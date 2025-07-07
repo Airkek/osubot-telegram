@@ -31,6 +31,7 @@ import { SimpleCommandsModule } from "./telegram_event_handlers/modules/simple_c
 import Util from "./Util";
 import { OkiCardsGenerator } from "./oki-cards/OkiCardsGenerator";
 import RippleRelax from "./telegram_event_handlers/modules/RippleRelax";
+import { setInterval } from "node:timers/promises";
 
 export interface IBotConfig {
     tg: {
@@ -441,7 +442,21 @@ export class Bot {
             });
         }
         await this.database.statsModel.logStartup(this.me);
+        await this.startStatsLogger();
+
         global.logger.info(`Bot started as @${this.me.username} (${this.me.first_name})`);
+    }
+
+    private async logStatsInfo() {
+        await this.database.statsModel.logUserCount();
+        await this.database.statsModel.logChatCount();
+        await this.database.statsModel.logBeatmapMetadataCacheCount();
+        await this.database.statsModel.logBeatmapFilesCount();
+    }
+
+    private async startStatsLogger() {
+        await this.logStatsInfo();
+        setInterval(15 * 60 * 1000, this.logStatsInfo);
     }
 
     public async stop(): Promise<void> {

@@ -3,16 +3,62 @@ import { Command } from "../../telegram_event_handlers/Command";
 import UnifiedMessageContext from "../../TelegramSupport";
 import { UserFromGetMe } from "@grammyjs/types";
 import { RenderSettings } from "../../osu_specific/replay_render/IReplayRenderer";
+import fs from "fs";
 
 type RenderEvents = "render_start" | "render_success" | "render_failed";
+type GenericEvents = "bot_startup" | "new_message" | "command_used";
+type DbGraphEvents = "user_count" | "chat_count" | "cached_beatmap_files_count" | "cached_beatmap_metadata_count";
 
-type StatsEventType = "new_message" | "command_used" | "bot_startup" | RenderEvents;
+type StatsEventType = GenericEvents | RenderEvents | DbGraphEvents;
 
 export class StatisticsModel {
     private readonly db: Database;
 
     constructor(db: Database) {
         this.db = db;
+    }
+
+    public async logUserCount() {
+        const result = await this.db.get("SELECT COUNT(DISTINCT id) AS count FROM users");
+        if (!result.count) {
+            return;
+        }
+        await this.logEvent("user_count", 0, 0, {
+            count: ~~result.count,
+        });
+    }
+
+    public async logChatCount() {
+        const result = await this.db.get("SELECT COUNT(DISTINCT chat_id) AS count FROM users_to_chat");
+        if (!result.count) {
+            return;
+        }
+        await this.logEvent("chat_count", 0, 0, {
+            count: ~~result.count,
+        });
+    }
+
+    public async logBeatmapMetadataCacheCount() {
+        const result = await this.db.get("SELECT COUNT(*) AS count FROM osu_beatmap_metadata");
+        if (!result.count) {
+            return;
+        }
+        await this.logEvent("cached_beatmap_metadata_count", 0, 0, {
+            count: ~~result.count,
+        });
+    }
+
+    public async logBeatmapFilesCount() {
+        const folderPath = "./beatmap_cache";
+        try {
+            const files = fs.readdirSync(folderPath);
+            const count = files.length;
+            await this.logEvent("cached_beatmap_files_count", 0, 0, {
+                count: count,
+            });
+        } catch {
+            // ignore
+        }
     }
 
     public async logRenderStart(
