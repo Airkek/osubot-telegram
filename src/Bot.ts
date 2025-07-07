@@ -164,6 +164,7 @@ export class Bot {
                 limit: 3,
                 onLimitExceeded: async (tgCtx: TgContext) => {
                     const ctx = await this.buildActivatedContext(tgCtx);
+                    await this.database.statsModel.logMessage(ctx);
                     if (ctx.messagePayload) {
                         await ctx.answer(ctx.tr("too-fast-notification"));
                         await tgCtx.answerCallbackQuery();
@@ -253,6 +254,7 @@ export class Bot {
 
     private handleCallbackQuery = async (ctx): Promise<void> => {
         const context = await this.buildActivatedContext(ctx);
+        await this.database.statsModel.logMessage(context);
         if (await this.processCommands(context)) {
             await ctx.answerCallbackQuery();
         }
@@ -397,6 +399,7 @@ export class Bot {
                     ctx.message.text += " " + spl;
                 }
                 const unifiedCtx = await this.buildActivatedContext(ctx as TgContext);
+                await this.database.statsModel.logMessage(unifiedCtx);
                 await this.processCommands(unifiedCtx);
             });
         });
