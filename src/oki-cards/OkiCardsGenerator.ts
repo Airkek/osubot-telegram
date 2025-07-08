@@ -515,8 +515,82 @@ export class OkiCardsGenerator {
         return color;
     }
 
+    private drawRows(
+        ctx: SKRSContext2D,
+        startPosY: number,
+        centerX: number,
+        textColor: string,
+        textSize: number,
+        valSize: number,
+        fieldSpacing: number,
+        verticalRowSpacing: number,
+        fieldVerticalMargin: number,
+        fieldHorizontalMargin: number,
+        fieldRadius: number,
+        fieldToValSpacing: number,
+        rows: {
+            text: string;
+            value: string;
+        }[][]
+    ) {
+        const oldFont = ctx.font;
+        const oldAlignment = ctx.textAlign;
+        const oldColor = ctx.fillStyle;
+        const oldBaseline = ctx.textBaseline;
+
+        const textFont = `${textSize}px Mulish, NotoSansSC`;
+        const valFont = `${valSize}px Torus`;
+
+        const fieldHeight = textSize + fieldVerticalMargin * 2;
+
+        const measureField = (text: string, value: string) => {
+            ctx.textAlign = "center";
+
+            ctx.font = textFont;
+            const keyMeasure = ctx.measureText(text);
+
+            ctx.font = valFont;
+            const valMeasure = ctx.measureText(value);
+
+            return Math.max(keyMeasure.width, valMeasure.width) + fieldHorizontalMargin * 2;
+        };
+
+        rows.forEach((fields, rowIndex) => {
+            const totalWidth =
+                fields.reduce((sum, field) => sum + measureField(field.text, field.value), 0) +
+                fieldSpacing * (fields.length - 1);
+
+            let x = centerX - totalWidth / 2;
+
+            fields.forEach((field) => {
+                const fieldWidth = measureField(field.text, field.value);
+                const posY = startPosY + (fieldHeight + valSize + fieldToValSpacing + verticalRowSpacing) * rowIndex;
+
+                ctx.fillStyle = textColor + "21";
+                OkiFormat.rect(ctx, x, posY, fieldWidth, fieldHeight, fieldRadius);
+
+                ctx.fillStyle = textColor;
+
+                ctx.font = textFont;
+                ctx.textBaseline = "middle";
+                ctx.fillText(field.text, x + fieldWidth / 2, posY + fieldHeight / 2);
+
+                ctx.font = valFont;
+                ctx.textBaseline = "top";
+                ctx.fillText(field.value, x + fieldWidth / 2, posY + fieldHeight + fieldToValSpacing);
+
+                x += fieldWidth + fieldSpacing;
+            });
+        });
+
+        ctx.font = oldFont;
+        ctx.textAlign = oldAlignment;
+        ctx.fillStyle = oldColor;
+        ctx.textBaseline = oldBaseline;
+    }
+
     async generateScoreCard(score: APIScore, beatmap: IBeatmap, l: ILocalisator): Promise<Buffer> {
-        const canvas = Canvas.createCanvas(1080, 590);
+        const canvas = Canvas.createCanvas(1080, 600);
         const ctx = canvas.getContext("2d");
 
         const colors = await this.drawFullBeatmap(ctx, beatmap, true);
@@ -566,21 +640,6 @@ export class OkiCardsGenerator {
                 ? ((score.counts.totalHits() / beatmap.hitObjectsCount) * 100).toFixed(1) + "%"
                 : undefined;
 
-        const fieldMargin = 12;
-        const fieldHeight = 36;
-
-        const measureField = (text: string, value: string) => {
-            ctx.textAlign = "center";
-
-            ctx.font = "28px Mulish, NotoSansSC";
-            const keyW = ctx.measureText(text).width;
-
-            ctx.font = "28px Torus";
-            const valW = ctx.measureText(value).width;
-
-            return Math.max(keyW, valW) + 24;
-        };
-
         const pp = score.fcPp
             ? { pp: score.pp, fc: score.fcPp, ss: undefined }
             : new BanchoPP(beatmap, score.mods).calculate(score);
@@ -622,32 +681,7 @@ export class OkiCardsGenerator {
             ],
         ];
 
-        const rowYPostiton = 440;
-        rows.forEach((fields, rowIndex) => {
-            const totalWidth =
-                fields.reduce((sum, field) => sum + measureField(field.text, field.value), 0) +
-                fieldMargin * (fields.length - 1);
-
-            let x = (ctx.canvas.width - totalWidth) / 2;
-
-            fields.forEach((field) => {
-                const fieldWidth = measureField(field.text, field.value);
-                const posY = rowYPostiton + 70 * rowIndex;
-
-                ctx.fillStyle = mainColor + "21";
-                OkiFormat.rect(ctx, x, posY, fieldWidth, fieldHeight, 20);
-
-                ctx.fillStyle = mainColor;
-
-                ctx.font = "24px Mulish, NotoSansSC";
-                ctx.fillText(field.text, x + fieldWidth / 2, posY + fieldHeight / 1.5);
-
-                ctx.font = "24px Torus";
-                ctx.fillText(field.value, x + fieldWidth / 2, posY + fieldHeight * 1.5 + 2);
-
-                x += fieldWidth + fieldMargin;
-            });
-        });
+        this.drawRows(ctx, 440, canvas.width / 2, mainColor, 26, 32, 12, 6, 6, 16, 20, 6, rows);
 
         return canvas.toBuffer("image/png");
     }
@@ -1020,25 +1054,26 @@ export class OkiCardsGenerator {
         ctx.font = "21px VarelaRound, NotoSansSC";
         ctx.fillText(Math.floor(user.levelProgress || 0) + "%", 960, 359 + 21);
 
-        ctx.fillStyle = mainColor + "21";
-        OkiFormat.rect(ctx, 44, 472, 191, 53, 30);
-        OkiFormat.rect(ctx, 278, 472, 232, 53, 30);
-        OkiFormat.rect(ctx, 547, 472, 306, 53, 30);
-        OkiFormat.rect(ctx, 897, 472, 250, 53, 30);
-
-        ctx.fillStyle = mainColor;
-        ctx.textAlign = "center";
-        ctx.font = "30px Mulish, NotoSansSC";
-        ctx.fillText("pp", 118 + 20, 476 + 30);
-        ctx.fillText(l.tr("player-accuracy"), 314 + 80, 478 + 30);
-        ctx.fillText(l.tr("player-playtime"), 592 + 110, 476 + 30);
-        ctx.fillText(l.tr("player-totalscore"), 973 + 50, 478 + 30);
-
-        ctx.font = "40px Mulish, NotoSansSC";
-        ctx.fillText(OkiFormat.number(Math.round(user.pp || 0)), 82 + 60, 534 + 40);
-        ctx.fillText(Math.round((user.accuracy || 0) * 100) / 100 + "%", 324 + 75, 537 + 40);
-        ctx.fillText(Util.minutesToPlaytimeString(user.playtime), 651 + 50, 536 + 40);
-        ctx.fillText(OkiFormat.numberSuffix(user.total_score || 0), 930 + 100, 536 + 40);
+        this.drawRows(ctx, 480, canvas.width / 2, mainColor, 32, 40, 24, 12, 10, 48, 28, 16, [
+            [
+                {
+                    text: "pp",
+                    value: Util.round(user.pp, 0).toLocaleString(),
+                },
+                {
+                    text: l.tr("player-accuracy"),
+                    value: Util.round(user.accuracy, 2).toLocaleString() + "%",
+                },
+                {
+                    text: l.tr("player-playtime"),
+                    value: Util.minutesToPlaytimeString(user.playtime),
+                },
+                {
+                    text: l.tr("player-playcount"),
+                    value: user.playcount.toLocaleString(),
+                },
+            ],
+        ]);
 
         return canvas.toBuffer("image/png");
     }

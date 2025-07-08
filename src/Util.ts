@@ -43,6 +43,9 @@ const errors: Err[] = [
 
 export default {
     round(num: number, p: number): number {
+        if (!num) {
+            return 0;
+        }
         return Math.round(num * 10 ** p) / 10 ** p;
     },
     profileModes: ["STD", "Taiko", "Catch", "Mania"],
