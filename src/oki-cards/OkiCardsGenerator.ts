@@ -176,13 +176,21 @@ export class OkiCardsGenerator {
         }
     }
 
-    private getColoredSvgAsset(svgFileNameWithoutExtension: string, color: string): Buffer {
+    private getColoredSvgAsset(
+        svgFileNameWithoutExtension: string,
+        color: string,
+        width: number,
+        height: number
+    ): Buffer {
         const assetPath = this.getAssetPath(`${svgFileNameWithoutExtension}.svg`);
         if (!fs.existsSync(assetPath)) {
             return undefined;
         }
         let svgFile = fs.readFileSync(assetPath, "utf8");
         svgFile = svgFile.replace(/fill="[#.a-zA-Z0-9]+"/g, `fill="${color}"`);
+        svgFile = svgFile.replace(/width="[#.a-zA-Z0-9]+"/g, "");
+        svgFile = svgFile.replace(/height="[#.a-zA-Z0-9]+"/g, "");
+        svgFile = svgFile.replace(/<svg/g, `<svg width="${width}" height="${height}" `);
         return Buffer.from(svgFile);
     }
 
@@ -400,30 +408,30 @@ export class OkiCardsGenerator {
 
         const clockX = compact ? statusPosX + statusWidth + 16 : 600;
         const clockTextX = clockX + 40;
-        const timesX = clockTextX + timeWidth + 15;
-        const timesTextX = timesX + 30;
-        const drumX = timesTextX + maxComboWidth + 15;
+        const chainX = clockTextX + timeWidth + 15;
+        const chainTextX = chainX + 40;
+        const drumX = chainTextX + maxComboWidth + 15;
         const drumTextX = drumX + 42;
 
         const mapRegularInfoY = compact ? statusPosY + 34 : 412 + 30;
 
         ctx.fillText(time, clockTextX, mapRegularInfoY);
         ctx.strokeText(time, clockTextX, mapRegularInfoY);
-        ctx.fillText(maxCombo, timesTextX, mapRegularInfoY);
-        ctx.strokeText(maxCombo, timesTextX, mapRegularInfoY);
+        ctx.fillText(maxCombo, chainTextX, mapRegularInfoY);
+        ctx.strokeText(maxCombo, chainTextX, mapRegularInfoY);
         ctx.fillText(bpm, drumTextX, mapRegularInfoY);
         ctx.strokeText(bpm, drumTextX, mapRegularInfoY);
-        const clockAsset = this.getColoredSvgAsset("clock", mainColor);
+        const clockAsset = this.getColoredSvgAsset("clock", mainColor, 38, 38);
         if (clockAsset) {
             const clock = await Canvas.loadImage(clockAsset);
             ctx.drawImage(clock, clockX, mapRegularInfoY - 29, 38, 38);
         }
-        const timesAsset = this.getColoredSvgAsset("times", mainColor);
-        if (timesAsset) {
-            const times = await Canvas.loadImage(timesAsset);
-            ctx.drawImage(times, timesX, mapRegularInfoY - 24, 28, 28);
+        const chainAsset = this.getColoredSvgAsset("chain", mainColor, 38, 38);
+        if (chainAsset) {
+            const chain = await Canvas.loadImage(chainAsset);
+            ctx.drawImage(chain, chainX, mapRegularInfoY - 29, 38, 38);
         }
-        const drumAsset = this.getColoredSvgAsset("drum", mainColor);
+        const drumAsset = this.getColoredSvgAsset("drum", mainColor, 40, 35);
         if (drumAsset) {
             const drum = await Canvas.loadImage(drumAsset);
             ctx.drawImage(drum, drumX, mapRegularInfoY - 29, 40, 35);
@@ -435,7 +443,7 @@ export class OkiCardsGenerator {
         const starsPosX = compact ? statsTextPosX + 80 : statsPosX;
         const starsPosY = compact ? statsPosY + statsPosYAddition : 420;
 
-        const starAsset = this.getColoredSvgAsset("star", mainColor);
+        const starAsset = this.getColoredSvgAsset("star", mainColor, 28, 27);
         if (starAsset) {
             const star = await Canvas.loadImage(starAsset);
             if (beatmap.stats.stars > 10) {
@@ -453,13 +461,21 @@ export class OkiCardsGenerator {
                 const minSize = 0.5;
                 const multiplier = 1 - minSize + minSize * lastStarSize;
                 starsMaxWidth += starWidth * multiplier;
-                ctx.drawImage(
-                    star,
-                    starsPosX + starWidth * i + (28 - 28 * multiplier) / 2,
-                    starsPosY + (27 - 27 * multiplier) / 2,
-                    28 * multiplier,
-                    27 * multiplier
-                );
+
+                const miniStarW = 28 * multiplier;
+                const miniStarH = 27 * multiplier;
+
+                const miniStarAsset = this.getColoredSvgAsset("star", mainColor, miniStarW, miniStarH);
+                if (miniStarAsset) {
+                    const miniStar = await Canvas.loadImage(miniStarAsset);
+                    ctx.drawImage(
+                        miniStar,
+                        starsPosX + starWidth * i + (28 - 28 * multiplier) / 2,
+                        starsPosY + (27 - 27 * multiplier) / 2,
+                        miniStarW,
+                        miniStarH
+                    );
+                }
             }
         }
 
@@ -539,7 +555,7 @@ export class OkiCardsGenerator {
         const oldBaseline = ctx.textBaseline;
 
         const textFont = `${textSize}px Mulish, NotoSansSC`;
-        const valFont = `${valSize}px Torus`;
+        const valFont = `bold ${valSize}px Torus`;
 
         const fieldHeight = textSize + fieldVerticalMargin * 2;
 
@@ -590,7 +606,7 @@ export class OkiCardsGenerator {
     }
 
     async generateScoreCard(score: APIScore, beatmap: IBeatmap, l: ILocalisator): Promise<Buffer> {
-        const canvas = Canvas.createCanvas(1080, 600);
+        const canvas = Canvas.createCanvas(1080, 610);
         const ctx = canvas.getContext("2d");
 
         const colors = await this.drawFullBeatmap(ctx, beatmap, true);
@@ -604,34 +620,53 @@ export class OkiCardsGenerator {
 
         const mainColor = accentColor;
 
+        let scoreByCenter = false;
         const gradeAsset = this.getGradeAssetData(score.rank);
         const padding = 200;
+        const gradeSize = [140, 70];
+        const baseScoreGradePosY = score.top100_number ? 320 : 335;
         if (gradeAsset) {
             const gradeImage = await loadImage(gradeAsset);
-            ctx.drawImage(gradeImage, canvas.width - 160 - padding, 328, 160, 80);
+            ctx.drawImage(
+                gradeImage,
+                canvas.width - gradeSize[0] - padding,
+                baseScoreGradePosY,
+                gradeSize[0],
+                gradeSize[1]
+            );
         } else if (score.rank) {
             ctx.font = "80px Mulish";
             ctx.fillStyle = accentColor;
+            ctx.textBaseline = "middle";
             ctx.textAlign = "right";
-            ctx.fillText(score.rank, canvas.width - padding, 400);
+            ctx.fillText(score.rank, canvas.width - padding, baseScoreGradePosY + gradeSize[1] / 2);
+        } else {
+            scoreByCenter = true;
         }
 
         ctx.font = "80px Torus";
         ctx.fillStyle = colors.foreground;
-        ctx.textAlign = "left";
-        ctx.fillText(score.score.toLocaleString(), padding, 400);
+        ctx.textBaseline = "middle";
+        ctx.textAlign = scoreByCenter ? "center" : "left";
+        ctx.fillText(
+            score.score.toLocaleString(),
+            scoreByCenter ? canvas.width / 2 : padding,
+            baseScoreGradePosY + gradeSize[1] / 2
+        );
 
         if (score.rank_global && score.rank_global < 1000000) {
             ctx.font = "60px Torus";
             ctx.fillStyle = accentColor + "40";
             ctx.textAlign = "right";
-            ctx.fillText("#" + score.rank_global.toLocaleString(), canvas.width - 40, canvas.height - 25);
+            ctx.textBaseline = "bottom";
+            ctx.fillText("#" + score.rank_global.toLocaleString(), canvas.width - 40, canvas.height - 10);
         }
 
         if (score.top100_number) {
-            ctx.font = "22px VarelaRound, NotoSansSC";
+            ctx.font = "24px VarelaRound, NotoSansSC";
             ctx.fillStyle = accentColor;
             ctx.textAlign = "center";
+            ctx.textBaseline = "bottom";
             ctx.fillText(l.tr("personal_top_score", { number: score.top100_number }), canvas.width / 2, 430);
         }
 
@@ -681,7 +716,7 @@ export class OkiCardsGenerator {
             ],
         ];
 
-        this.drawRows(ctx, 440, canvas.width / 2, mainColor, 26, 32, 12, 6, 6, 16, 20, 6, rows);
+        this.drawRows(ctx, 440, canvas.width / 2, mainColor, 26, 32, 12, 6, 6, 16, 20, 8, rows);
 
         return canvas.toBuffer("image/png");
     }
