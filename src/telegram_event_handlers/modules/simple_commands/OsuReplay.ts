@@ -127,7 +127,7 @@ export class OsuReplay extends Command {
                     if (fallbackToExperimental) {
                         renderAdditional = "\n\n" + ctx.tr("experimental-gamemode-unavailable");
                     } else {
-                        const rendererName = settings.render_enabled ? "experimental" : "o!rdr";
+                        const rendererName = useExperimental ? "experimental" : "o!rdr";
                         renderAdditional =
                             "\n\n" +
                             ctx.tr("renderer-unavailable", {
@@ -250,6 +250,13 @@ export class OsuReplay extends Command {
                     });
                 } else if (replayResponse.error.includes("This player is banned from o!rdr")) {
                     await ctx.reply(ctx.tr("ordr-ban-warning"));
+                } else if (replayResponse.error.includes("o!rdr is not ready to take render jobs at the moment")) {
+                    const rendererName = useExperimental ? "experimental" : "o!rdr";
+                    await ctx.reply(
+                        ctx.tr("renderer-unavailable", {
+                            renderer: rendererName,
+                        })
+                    );
                 } else {
                     await this.module.bot.database.statsModel.logRenderFailed(
                         ctx,
