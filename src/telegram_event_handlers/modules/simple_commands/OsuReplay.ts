@@ -236,6 +236,12 @@ export class OsuReplay extends Command {
                     },
                 });
             } else {
+                await this.module.bot.database.statsModel.logRenderFailed(
+                    ctx,
+                    replay.mode,
+                    replayResponse.error,
+                    useExperimental
+                );
                 this.removeLimit(ctx.senderId);
                 if (replayResponse.error.includes("This replay is already rendering or in queue")) {
                     let text = ctx.tr("already-rendering-warning");
@@ -258,12 +264,6 @@ export class OsuReplay extends Command {
                         })
                     );
                 } else {
-                    await this.module.bot.database.statsModel.logRenderFailed(
-                        ctx,
-                        replay.mode,
-                        replayResponse.error,
-                        useExperimental
-                    );
                     await ctx.reply(
                         ctx.tr("render-error-text", {
                             error: replayResponse.error,
