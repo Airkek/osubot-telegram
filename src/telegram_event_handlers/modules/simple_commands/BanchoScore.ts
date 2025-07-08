@@ -2,7 +2,7 @@ import { Command } from "../../Command";
 import UnifiedMessageContext from "../../../TelegramSupport";
 import { SimpleCommandsModule } from "./index";
 import { getScoreIdFromText } from "../../../osu_specific/regexes/ScoreRegexp";
-import Util, { IKBButton } from "../../../Util";
+import { IKeyboard } from "../../../Util";
 import { InputFile } from "grammy";
 import BanchoPP from "../../../osu_specific/pp/bancho";
 
@@ -16,7 +16,7 @@ export class BanchoScore extends Command {
             const user = await module.bot.banchoApi.getUserById(score.player_id);
             module.bot.maps.setMap(ctx.chatId, map);
 
-            const buttons: IKBButton[][] = [];
+            const buttons: IKeyboard = [];
             if (score.has_replay && score.api_score_id) {
                 const settingsAllowed = process.env.RENDER_REPLAYS === "true";
                 if (settingsAllowed) {
@@ -48,7 +48,7 @@ export class BanchoScore extends Command {
 
             await ctx.reply(message, {
                 photo: cover,
-                keyboard: buttons.length > 0 ? Util.createKeyboard(buttons) : undefined,
+                keyboard: buttons,
             });
         });
     }

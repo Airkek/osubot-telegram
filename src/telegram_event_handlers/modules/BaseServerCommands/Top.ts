@@ -1,10 +1,10 @@
 import { ServerModule } from "../Module";
-import Util from "../../../Util";
+import Util, { IKeyboard } from "../../../Util";
 import BanchoPP from "../../../osu_specific/pp/bancho";
 import Mods from "../../../osu_specific/pp/Mods";
 import { ServerCommand, CommandContext } from "../../ServerCommand";
 import { Mode, APIUser, APIScore } from "../../../Types";
-import { GrammyError, InlineKeyboard, InputFile } from "grammy";
+import { GrammyError, InputFile } from "grammy";
 import { IBeatmap } from "../../../beatmaps/BeatmapTypes";
 import { ILocalisator } from "../../../ILocalisator";
 
@@ -40,14 +40,6 @@ export default class AbstractTop extends ServerCommand {
 
     private determineGameMode(context: CommandContext): number {
         return context.args.mode !== null ? context.args.mode : context.user.dbUser?.mode || 0;
-    }
-
-    private async needGraphics(context: CommandContext): Promise<boolean> {
-        if (context.args.graphicmode == -1) {
-            return await context.ctx.preferCardsOutput();
-        }
-
-        return context.args.graphicmode == 2;
     }
 
     private async fetchUserData(context: CommandContext, mode: number): Promise<APIUser> {
@@ -149,7 +141,7 @@ export default class AbstractTop extends ServerCommand {
 
         const page = context.args.page ?? 1;
 
-        const needCards = await this.needGraphics(context);
+        const needCards = await context.ctx.preferCardsOutput();
 
         const scoresOnPage = needCards ? 5 : 3;
         const maxPage = Math.ceil(scores.length / scoresOnPage);
@@ -168,7 +160,7 @@ export default class AbstractTop extends ServerCommand {
         const topThree = scores.slice(startI, endI);
         const maps = await Promise.all(topThree.map((score) => this.resolveBeatmap(context, score, mode)));
 
-        const keyboard = this.createPageKeyboard(context, maxPage, page, user, mode, needCards);
+        const keyboard = this.createPageKeyboard(context, maxPage, page, user, mode);
 
         let message = "";
         let photo: InputFile = undefined;
@@ -229,7 +221,7 @@ export default class AbstractTop extends ServerCommand {
 
         let message = `${header} ${user.nickname} (${Mode[score.mode]})`;
 
-        if (await this.needGraphics(context)) {
+        if (await context.ctx.preferCardsOutput()) {
             cover = new InputFile(await context.module.bot.okiChanCards.generateScoreCard(score, map, context.ctx));
             const beatmapUrl = map.url ?? `${context.module.link}/b/${map.id}`;
             message += `\n\n${context.ctx.tr("score-beatmap-link")}: ${beatmapUrl}`;
@@ -249,7 +241,7 @@ export default class AbstractTop extends ServerCommand {
         context.module.bot.maps.setMap(context.ctx.chatId, map);
     }
 
-    private createScoreKeyboard(context: CommandContext, mapId: number, score: APIScore): InlineKeyboard {
+    private createScoreKeyboard(context: CommandContext, mapId: number, score: APIScore): IKeyboard {
         if (!context.module.api.getScore) {
             return undefined;
         }
@@ -282,7 +274,7 @@ export default class AbstractTop extends ServerCommand {
             }
         }
 
-        return Util.createKeyboard(buttons);
+        return buttons;
     }
 
     private createPageKeyboard(
@@ -290,12 +282,10 @@ export default class AbstractTop extends ServerCommand {
         maxPage: number,
         currentPage: number,
         user: APIUser,
-        mode: number,
-        needCards: boolean
+        mode: number
     ) {
         const prefix = context.module.prefix[0];
         const modeArg = this.modeArg(mode);
-        const gmode = needCards ? "^g2" : "^g1";
 
         const prevPage = Math.max(currentPage - 1, 1);
         const nextPage = Math.min(currentPage + 1, maxPage);
@@ -304,20 +294,20 @@ export default class AbstractTop extends ServerCommand {
 
         const buttonPrev = {
             text: "⬅️",
-            command: `${prefix} t ${nickname} ^p${prevPage} ${gmode} ${modeArg}`,
+            command: `${prefix} t ${nickname} ^p${prevPage} ${modeArg}`,
         };
         const buttonPage = {
             text: `${currentPage}/${maxPage} 🔄`,
-            command: `${prefix} t ${nickname} ^p${currentPage} ${gmode} ${modeArg}`,
+            command: `${prefix} t ${nickname} ^p${currentPage} ${modeArg}`,
         };
         const buttonNext = {
             text: "➡️",
-            command: `${prefix} t ${nickname} ^p${nextPage} ${gmode} ${modeArg}`,
+            command: `${prefix} t ${nickname} ^p${nextPage} ${modeArg}`,
         };
 
         const buttons = [buttonPrev, buttonPage, buttonNext];
 
-        return Util.createKeyboard([buttons]);
+        return [buttons];
     }
 
     private modeArg(mode: number) {

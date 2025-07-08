@@ -17,6 +17,6 @@ ${err.info}
 ${err.error}`);
         });
 
-        this.permission = (ctx) => ctx.senderId == module.bot.config.tg.owner;
+        this.permission = (ctx) => ctx.isFromOwner;
     }
 }

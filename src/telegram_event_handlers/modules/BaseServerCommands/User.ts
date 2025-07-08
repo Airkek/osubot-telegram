@@ -21,14 +21,14 @@ export default class AbstractUser extends ServerCommand {
                 }
 
                 const userNeedPhoto = await self.ctx.preferCardsOutput();
-                const keyboard = Util.createKeyboard([
+                const keyboard = [
                     self.module.api.getUserTopById
                         ? [
                               {
                                   text: self.ctx.tr("players-top-scores", {
                                       player_name: user.nickname,
                                   }),
-                                  command: `${module.prefix[0]} top ${self.module.api.getUserTop ? user.nickname : user.id} ${Util.getModeArg(mode)} ^g${userNeedPhoto ? 2 : 1}`,
+                                  command: `${module.prefix[0]} top ${self.module.api.getUserTop ? user.nickname : user.id} ${Util.getModeArg(mode)}`,
                               },
                           ]
                         : [],
@@ -42,7 +42,7 @@ export default class AbstractUser extends ServerCommand {
                               },
                           ]
                         : [],
-                ]);
+                ];
 
                 let templateAddition = "";
                 if (userNeedPhoto) {

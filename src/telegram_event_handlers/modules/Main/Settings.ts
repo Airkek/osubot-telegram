@@ -1,7 +1,6 @@
 import { Command } from "../../Command";
 import { Module } from "../Module";
-import { InlineKeyboard } from "grammy";
-import Util, { IKBButton } from "../../../Util";
+import { IKBButton, IKeyboard } from "../../../Util";
 import UnifiedMessageContext from "../../../TelegramSupport";
 import { OrdrSkinsProvider } from "../../../osu_specific/replay_render/OrdrSkinsProvider";
 import { ILocalisator } from "../../../ILocalisator";
@@ -96,7 +95,7 @@ function buildStartKeyboard(
     settings: UserSettings,
     showOutputType: boolean,
     l: ILocalisator
-): InlineKeyboard {
+): IKeyboard {
     const kb = [
         [buildPageButton(userId, "render", l.tr("render-page"))],
         [
@@ -114,23 +113,23 @@ function buildStartKeyboard(
     }
     kb.push([buildPageButton(userId, "language", "🌐Language/Язык")]);
 
-    return Util.createKeyboard(kb);
+    return kb;
 }
 
-function buildCancelKeyboard(userId: number, page: SettingsPage, ticket: string, l: ILocalisator): InlineKeyboard {
-    return Util.createKeyboard([
+function buildCancelKeyboard(userId: number, page: SettingsPage, ticket: string, l: ILocalisator): IKeyboard {
+    return [
         [
             {
                 text: l.tr("cancel-button"),
                 command: buildEvent(userId, `cancel:${ticket}:${page}`),
             },
         ],
-    ]);
+    ];
 }
 
-function buildLeveledPageKeyboard(userId: number, previousPage: SettingsPage, l: ILocalisator, rows: IKBButton[][]) {
+function buildLeveledPageKeyboard(userId: number, previousPage: SettingsPage, l: ILocalisator, rows: IKeyboard) {
     rows.push([buildPageButton(userId, previousPage, l.tr("previous-page-button"))]);
-    return Util.createKeyboard(rows);
+    return rows;
 }
 
 function buildChatPageButton(chatId: number, page: ChatSettingsPage, text: string, pageNum?: number): IKBButton {
@@ -144,10 +143,10 @@ function buildChatLeveledPageKeyboard(
     chatId: number,
     previousPage: ChatSettingsPage,
     l: ILocalisator,
-    rows: IKBButton[][]
+    rows: IKeyboard
 ) {
     rows.push([buildChatPageButton(chatId, previousPage, l.tr("previous-page-button"))]);
-    return Util.createKeyboard(rows);
+    return rows;
 }
 
 function buildPaginationControl(
@@ -221,9 +220,9 @@ function genericSetButton(
     };
 }
 
-function buildChatSettingsKeyboard(settings: ChatSettings, l: ILocalisator): InlineKeyboard {
+function buildChatSettingsKeyboard(settings: ChatSettings, l: ILocalisator): IKeyboard {
     const page: ChatSettingsPage = "home";
-    return Util.createKeyboard([
+    return [
         [toggleableChatButton(settings.chat_id, page, l.tr("auto-render"), "render_enabled", settings.render_enabled)],
         [
             toggleableChatButton(
@@ -235,10 +234,10 @@ function buildChatSettingsKeyboard(settings: ChatSettings, l: ILocalisator): Inl
             ),
         ],
         [buildChatPageButton(settings.chat_id, "language", l.tr("chat-language-page"))],
-    ]);
+    ];
 }
 
-function buildUserLanguagePage(settings: UserSettings, l: ILocalisator): InlineKeyboard {
+function buildUserLanguagePage(settings: UserSettings, l: ILocalisator): IKeyboard {
     const page: SettingsPage = "language";
     return buildLeveledPageKeyboard(settings.user_id, "home", l, [
         [toggleableButton(settings.user_id, page, "🇷🇺 Русский", "lang_russian", settings.language_override == "ru")],
@@ -256,7 +255,7 @@ function buildUserLanguagePage(settings: UserSettings, l: ILocalisator): InlineK
     ]);
 }
 
-function buildOutputTypePage(settings: UserSettings, l: ILocalisator): InlineKeyboard {
+function buildOutputTypePage(settings: UserSettings, l: ILocalisator): IKeyboard {
     const page: SettingsPage = "output_type";
     return buildLeveledPageKeyboard(settings.user_id, "home", l, [
         [
@@ -280,7 +279,7 @@ function buildOutputTypePage(settings: UserSettings, l: ILocalisator): InlineKey
     ]);
 }
 
-function buildChatLanguagePage(settings: ChatSettings, l: ILocalisator): InlineKeyboard {
+function buildChatLanguagePage(settings: ChatSettings, l: ILocalisator): IKeyboard {
     const page: ChatSettingsPage = "language";
     return buildChatLeveledPageKeyboard(settings.chat_id, "home", l, [
         [
@@ -322,7 +321,7 @@ function buildChatLanguagePage(settings: ChatSettings, l: ILocalisator): InlineK
     ]);
 }
 
-function buildRenderPage(settings: UserSettings, l: ILocalisator): InlineKeyboard {
+function buildRenderPage(settings: UserSettings, l: ILocalisator): IKeyboard {
     const page: SettingsPage = "render";
     return buildLeveledPageKeyboard(settings.user_id, "home", l, [
         [toggleableButton(settings.user_id, page, l.tr("auto-render"), "render_enabled", settings.render_enabled)],
@@ -398,10 +397,10 @@ function buildRenderPage(settings: UserSettings, l: ILocalisator): InlineKeyboar
 }
 
 const skinsProvider = new OrdrSkinsProvider();
-async function buildSkinSelector(settings: UserSettings, pageNum: number, l: ILocalisator): Promise<InlineKeyboard> {
+async function buildSkinSelector(settings: UserSettings, pageNum: number, l: ILocalisator): Promise<IKeyboard> {
     const page: SettingsPage = "skin_sel";
 
-    let buttons: IKBButton[][] = [];
+    let buttons: IKeyboard = [];
     let maxPage = undefined as number;
     if (!settings.ordr_is_skin_custom) {
         const res = await skinsProvider.getPage(pageNum);
@@ -458,8 +457,7 @@ export default class SettingsCommand extends Command {
                     });
                 } else {
                     const stgs = await ctx.userSettings();
-                    const cardsEnabled =
-                        await this.module.bot.database.featureControlModel.isFeatureEnabled("oki-cards");
+                    const cardsEnabled = await ctx.checkFeature("oki-cards");
                     await ctx.reply(ctx.tr("user-settings-header"), {
                         keyboard: buildStartKeyboard(ctx.senderId, stgs, cardsEnabled, ctx),
                     });
@@ -498,7 +496,7 @@ export default class SettingsCommand extends Command {
                     newMessage: boolean = false,
                     customCtx: UnifiedMessageContext = ctx
                 ) => {
-                    let answer: InlineKeyboard = undefined;
+                    let answer: IKeyboard = undefined;
                     switch (page) {
                         case "language": {
                             answer = buildChatLanguagePage(chatSettings, customCtx);
@@ -579,11 +577,10 @@ export default class SettingsCommand extends Command {
                 newMessage: boolean = false,
                 customCtx: UnifiedMessageContext = ctx
             ) => {
-                let answer: InlineKeyboard = undefined;
+                let answer: IKeyboard = undefined;
                 switch (page) {
                     case "home": {
-                        const cardsEnabled =
-                            await this.module.bot.database.featureControlModel.isFeatureEnabled("oki-cards");
+                        const cardsEnabled = await customCtx.checkFeature("oki-cards");
                         answer = buildStartKeyboard(settings.user_id, settings, cardsEnabled, customCtx);
                         break;
                     }

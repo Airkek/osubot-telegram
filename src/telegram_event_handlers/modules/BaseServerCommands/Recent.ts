@@ -1,9 +1,9 @@
 import { ServerModule } from "../Module";
 import Calculator from "../../../osu_specific/pp/bancho";
-import Util from "../../../Util";
+import { IKeyboard } from "../../../Util";
 import { ServerCommand } from "../../ServerCommand";
 import { APIScore } from "../../../Types";
-import { InlineKeyboard, InputFile } from "grammy";
+import { InputFile } from "grammy";
 import { IBeatmap } from "../../../beatmaps/BeatmapTypes";
 
 export default class AbstractRecent extends ServerCommand {
@@ -33,21 +33,21 @@ export default class AbstractRecent extends ServerCommand {
                     await map.applyMods(recent.mods);
                 }
 
-                let keyboard: InlineKeyboard;
+                const keyboard: IKeyboard = [];
                 if (self.module.api.getScore !== undefined) {
                     const firstButton = {
                         text: `[${self.module.prefix[0].toUpperCase()}] ${self.ctx.tr("my-score-on-map-button")}`,
                         command: `{map${map.id}}${self.module.prefix[0]} c`,
                     };
 
-                    const keyboardRows = [[firstButton]];
+                    keyboard.push([firstButton]);
 
                     if (self.ctx.isInGroupChat) {
                         const secondButton = {
                             text: `[${self.module.prefix[0].toUpperCase()}] ${self.ctx.tr("chat-map-leaderboard-button")}`,
                             command: `{map${map.id}}${self.module.prefix[0]} lb`,
                         };
-                        keyboardRows.push([secondButton]);
+                        keyboard.push([secondButton]);
                     }
 
                     if (recent.has_replay && recent.api_score_id) {
@@ -57,11 +57,9 @@ export default class AbstractRecent extends ServerCommand {
                                 text: self.ctx.tr("render-replay-button"),
                                 command: `render_bancho:${recent.api_score_id}`,
                             };
-                            keyboardRows.push([thirdButton]);
+                            keyboard.push([thirdButton]);
                         }
                     }
-
-                    keyboard = Util.createKeyboard(keyboardRows);
                 }
 
                 let responseMessage = "";

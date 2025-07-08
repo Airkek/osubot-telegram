@@ -2,7 +2,7 @@ import { ServerModule } from "../Module";
 import Mods from "../../../osu_specific/pp/Mods";
 import { ServerCommand } from "../../ServerCommand";
 import { IBeatmap } from "../../../beatmaps/BeatmapTypes";
-import Util, { IKBButton } from "../../../Util";
+import { IKeyboard } from "../../../Util";
 import { InputFile } from "grammy";
 import BanchoPP from "../../../osu_specific/pp/bancho";
 
@@ -38,7 +38,7 @@ export default class AbstractCompare extends ServerCommand {
                 }
                 let cover: string | InputFile;
 
-                const buttons: IKBButton[][] = [];
+                const buttons: IKeyboard = [];
                 if (score.has_replay && score.api_score_id) {
                     const settingsAllowed = process.env.RENDER_REPLAYS === "true";
                     if (settingsAllowed) {
@@ -68,7 +68,7 @@ export default class AbstractCompare extends ServerCommand {
 
                 await self.reply(message, {
                     photo: cover,
-                    keyboard: buttons.length > 0 ? Util.createKeyboard(buttons) : undefined,
+                    keyboard: buttons,
                 });
             },
             true

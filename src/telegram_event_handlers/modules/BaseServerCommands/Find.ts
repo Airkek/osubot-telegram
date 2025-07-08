@@ -1,5 +1,4 @@
 import { ServerModule } from "../Module";
-import Util from "../../../Util";
 import { ServerCommand } from "../../ServerCommand";
 
 export default class AbstractFind extends ServerCommand {
@@ -16,14 +15,14 @@ export default class AbstractFind extends ServerCommand {
                 await self.reply(self.ctx.tr("no-users-found-nickname-find"));
                 return;
             }
-            const keyboard = Util.createKeyboard([
+            const keyboard = [
                 [
                     {
                         text: self.ctx.tr("check-profile-button"),
                         command: `${self.module.prefix[0]} user ${u.nickname}`,
                     },
                 ],
-            ]);
+            ];
             await self.reply(
                 self.ctx.tr("users-with-nickname-find", {
                     nickname: u.nickname,

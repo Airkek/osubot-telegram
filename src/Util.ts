@@ -1,5 +1,4 @@
 import { CalcArgs, HitCounts, PPArgs } from "./Types";
-import { InlineKeyboard } from "grammy";
 import { IBeatmap } from "./beatmaps/BeatmapTypes";
 import { ILocalisator } from "./ILocalisator";
 
@@ -8,10 +7,12 @@ interface Err {
     t: string;
 }
 
+// TODO: move out of utils
 export interface IKBButton {
     text: string;
     command: string;
 }
+export type IKeyboard = IKBButton[][];
 
 const errors: Err[] = [
     {
@@ -97,10 +98,6 @@ export default {
     error(e: string, l: ILocalisator): string {
         const f = errors.find((er) => er.e == e);
         return f ? l.tr(f.t) : l.tr("unknown-error");
-    },
-    createKeyboard(rows: IKBButton[][]): InlineKeyboard {
-        const buttonRows = rows.map((row) => row.map((button) => InlineKeyboard.text(button.text, button.command)));
-        return InlineKeyboard.from(buttonRows);
     },
     getModeArg(mode: number) {
         return ["-std", "-taiko", "-ctb", "-mania"][mode];

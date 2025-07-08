@@ -21,6 +21,6 @@ export default class DisableFeature extends Command {
             await ctx.reply("Фича выключена");
         });
 
-        this.permission = (ctx) => ctx.senderId == module.bot.config.tg.owner;
+        this.permission = (ctx) => ctx.isFromOwner;
     }
 }

@@ -104,14 +104,14 @@ export class Bot {
     }
 
     private async buildActivatedContext(tgCtx: TgContext): Promise<UnifiedMessageContext> {
-        const ctx = new UnifiedMessageContext(tgCtx, this.me, this.useLocalApi, this.database);
+        const ctx = new UnifiedMessageContext(tgCtx, this.config.tg.owner, this.me, this.useLocalApi, this.database);
         await ctx.activate();
 
         return ctx;
     }
 
     private buildContextForInternalUse(ctx: TgContext): UnifiedMessageContext {
-        return new UnifiedMessageContext(ctx, this.me, this.useLocalApi, this.database);
+        return new UnifiedMessageContext(ctx, this.config.tg.owner, this.me, this.useLocalApi, this.database);
     }
 
     private initialize(): void {
@@ -261,57 +261,40 @@ export class Bot {
         }
     };
 
-    private applyPlaintextOverrides(ctx: TgContext) {
-        const text = ctx.message?.text ?? ctx.message?.caption;
-        if (!text) {
-            return;
-        }
-
-        const lowerText = text.toLowerCase();
-        const aliases: Record<string, string> = {
-            "o!me": "s u",
-            "osu!me": "s u",
-            "o!get": "s u",
-            "osu!get": "s u",
-            "o!u": "s u",
-            "osu!u": "s u",
-            "o!user": "s u",
-            "osu!user": "s u",
-            "o!best": "s t",
-            "osu!best": "s t",
-            "o!last": "s r",
-            "osu!last": "s r",
-            "o!settings": "osu s",
-            "osu!settings": "osu s",
-            "o!set": "osu s",
-            "osu!set": "osu s",
-            "o!help": "osu help",
-            "osu!help": "osu help",
-            "o!link": "s n",
-            "osu!link": "s n",
-        };
-
-        for (const [alias, command] of Object.entries(aliases)) {
-            const lowerOverride = alias.toLowerCase();
-
-            if (lowerText.startsWith(lowerOverride)) {
-                if (text.length === alias.length || /^\s$/.test(text.charAt(alias.length))) {
-                    ctx.message.text = command + " " + text.slice(alias.length).trim();
-                    return;
-                }
-            }
-        }
-    }
+    private readonly okiChanAliases: Record<string, string> = {
+        "o!me": "s u",
+        "osu!me": "s u",
+        "o!get": "s u",
+        "osu!get": "s u",
+        "o!u": "s u",
+        "osu!u": "s u",
+        "o!user": "s u",
+        "osu!user": "s u",
+        "o!best": "s t",
+        "osu!best": "s t",
+        "o!last": "s r",
+        "osu!last": "s r",
+        "o!settings": "osu s",
+        "osu!settings": "osu s",
+        "o!set": "osu s",
+        "osu!set": "osu s",
+        "o!help": "osu help",
+        "osu!help": "osu help",
+        "o!link": "s n",
+        "osu!link": "s n",
+    };
 
     private handleMessage = async (ctx): Promise<void> => {
         if (this.shouldSkipMessage(ctx)) {
             return;
         }
 
-        if (await this.database.featureControlModel.isFeatureEnabled("plaintext-overrides")) {
-            this.applyPlaintextOverrides(ctx);
-        }
         const context = await this.buildActivatedContext(ctx);
+
+        if (await context.checkFeature("plaintext-overrides")) {
+            context.applyTextOverrides(this.okiChanAliases);
+        }
+
         this.totalMessages++;
         await this.database.statsModel.logMessage(context);
 
@@ -393,13 +376,13 @@ export class Bot {
 
         Object.entries(aliases).forEach(([command, alias]) => {
             this.tg.command(command, async (ctx) => {
-                const command = ctx.message.text.split(/\s+/)[0];
-                const spl = ctx.message.text.replace(command, "").trim();
-                ctx.message.text = alias;
-                if (spl != "") {
-                    ctx.message.text += " " + spl;
-                }
+                const realCommand = ctx.message.text.split(/\s+/)[0];
+                const realAlias = {};
+                realAlias[realCommand] = alias;
+
                 const unifiedCtx = await this.buildActivatedContext(ctx as TgContext);
+                unifiedCtx.applyTextOverrides(realAlias);
+
                 await this.database.statsModel.logMessage(unifiedCtx);
                 await this.processCommands(unifiedCtx);
             });

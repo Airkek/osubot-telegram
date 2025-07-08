@@ -21,6 +21,6 @@ export default class DropCommand extends Command {
             await ctx.send(`Привязки ников tg://user?id=${id} удалены!`);
         });
 
-        this.permission = (ctx) => ctx.senderId == module.bot.config.tg.owner;
+        this.permission = (ctx) => ctx.isFromOwner;
     }
 }

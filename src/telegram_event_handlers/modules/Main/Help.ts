@@ -1,11 +1,10 @@
-import { InlineKeyboard } from "grammy";
 import { Command } from "../../Command";
 import { Module } from "../Module";
-import Util from "../../../Util";
+import { IKeyboard } from "../../../Util";
 import { ILocalisator } from "../../../ILocalisator";
 
 interface IHelpPage {
-    keyboard: InlineKeyboard;
+    keyboard: IKeyboard;
     text: string;
 }
 
@@ -18,38 +17,38 @@ const button = (text: string, page: pageNames) => {
 const buildPages = (l: ILocalisator): { [pageName in pageNames]: IHelpPage } => {
     return {
         default: {
-            keyboard: Util.createKeyboard([
+            keyboard: [
                 [button(l.tr("osuservers-help-button"), "servers")],
                 [button(l.tr("osucommands-help-button"), "osucommands")],
                 [button(l.tr("basiccommands-help-button"), "basiccommands")],
-            ]),
+            ],
             text: l.tr("main-help-text"),
         },
         servers: {
             text: l.tr("osuservers-text"),
-            keyboard: Util.createKeyboard([
+            keyboard: [
                 [button(l.tr("to-prefixes-help-button"), "prefixes")],
                 [button(l.tr("home-page-button"), "default")],
-            ]),
+            ],
         },
         prefixes: {
             text: l.tr("serverprefixes-text"),
-            keyboard: Util.createKeyboard([
+            keyboard: [
                 [button(l.tr("to-commands-help-button"), "osucommands")],
                 [button(l.tr("previous-page-button"), "servers")],
                 [button(l.tr("home-page-button"), "default")],
-            ]),
+            ],
         },
         osucommands: {
             text: l.tr("osucommands-text"),
-            keyboard: Util.createKeyboard([
+            keyboard: [
                 [button(l.tr("osuservers-help-button"), "servers")],
                 [button(l.tr("home-page-button"), "default")],
-            ]),
+            ],
         },
         basiccommands: {
             text: l.tr("basiccommands-text"),
-            keyboard: Util.createKeyboard([[button(l.tr("home-page-button"), "default")]]),
+            keyboard: [[button(l.tr("home-page-button"), "default")]],
         },
     };
 };

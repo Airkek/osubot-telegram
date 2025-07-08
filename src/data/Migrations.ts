@@ -474,6 +474,17 @@ const migrations: IMigration[] = [
             return true;
         },
     },
+    {
+        version: 23,
+        name: "add 'admin-all-features' feature",
+        process: async (db: Database) => {
+            await db.run(
+                `INSERT INTO feature_control (feature, enabled_for_all)
+                 VALUES ('admin-all-features', false)`
+            );
+            return true;
+        },
+    },
 ];
 
 export async function applyMigrations(db: Database) {

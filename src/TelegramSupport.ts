@@ -3,12 +3,14 @@ import { MessageEntity, UserFromGetMe } from "@grammyjs/types";
 import { FileApiFlavor, FileFlavor } from "@grammyjs/files";
 import { I18nFlavor, TranslateFunction } from "@grammyjs/i18n";
 import fs from "fs";
-import TextLinkMessageEntity = MessageEntity.TextLinkMessageEntity;
 import { ILocalisator } from "./ILocalisator";
 import { UserSettings } from "./data/Models/Settings/UserSettingsModel";
 import { ChatSettings } from "./data/Models/Settings/ChatSettingsModel";
 import { Language } from "./data/Models/Settings/SettingsTypes";
 import Database from "./data/Database";
+import { ControllableFeature } from "./data/Models/FeatureControlModel";
+import TextLinkMessageEntity = MessageEntity.TextLinkMessageEntity;
+import { IKeyboard } from "./Util";
 
 export type TgContext = FileFlavor<Context & I18nFlavor>;
 export type TgApi = FileApiFlavor<Api>;
@@ -33,7 +35,7 @@ interface IVideoMeta {
 }
 
 export interface SendOptions {
-    keyboard?: InlineKeyboard;
+    keyboard?: IKeyboard;
     photo?: string | InputFile;
     video?: IVideoMeta;
     dont_parse_links?: boolean;
@@ -55,15 +57,12 @@ export default class UnifiedMessageContext implements ILocalisator {
     readonly chatId: number;
     readonly senderId: number;
 
-    readonly text?: string;
-    readonly messagePayload?: string;
+    readonly plainText?: string;
+    readonly plainPayload?: string;
 
     readonly replyMessage?: ReplyToMessage;
 
     readonly isInGroupChat: boolean;
-
-    readonly isFromBot: boolean;
-    readonly isFromUser: boolean;
 
     private readonly tgCtx: TgContext;
     private readonly me: UserFromGetMe;
@@ -80,20 +79,112 @@ export default class UnifiedMessageContext implements ILocalisator {
     private language: Language = undefined;
     tr: TranslateFunction = undefined;
 
-    constructor(ctx: TgContext, me: UserFromGetMe, isLocal: boolean, database: Database) {
+    private readonly ownerId: number;
+    get isFromOwner(): boolean {
+        return this.senderId == this.ownerId;
+    }
+
+    private graphicalModeOverride: "no" | "cards" | "plain" = "no";
+
+    constructor(ctx: TgContext, ownerId: number, me: UserFromGetMe, isLocal: boolean, database: Database) {
         this.tgCtx = ctx;
         this.me = me;
         this.localServer = isLocal;
         this.database = database;
 
-        this.text = ctx.message?.text ? ctx.message?.text : ctx.message?.caption;
-        this.messagePayload = ctx.callbackQuery?.data;
+        this.plainText = ctx.message?.text ?? ctx.message?.caption;
+        this.plainPayload = ctx.callbackQuery?.data;
         this.replyMessage = ctx.message?.reply_to_message ? new ReplyToMessage(ctx) : undefined;
         this.isInGroupChat = ctx.chat.type == "supergroup" || ctx.chat.type == "group";
         this.senderId = ctx.from.id;
         this.chatId = ctx.chatId;
-        this.isFromBot = ctx.from.is_bot;
-        this.isFromUser = !ctx.from.is_bot;
+        this.ownerId = ownerId;
+
+        this.parsePayload();
+    }
+
+    private overridenText: string = undefined;
+    get text(): string {
+        return this.overridenText ?? this.plainText;
+    }
+
+    private overridenPayload: string = undefined;
+    get messagePayload(): string {
+        return this.overridenPayload ?? this.plainPayload;
+    }
+
+    applyTextOverrides(aliases: Record<string, string>) {
+        const text = this.text;
+        const lowerText = text.toLowerCase();
+        for (const [alias, command] of Object.entries(aliases)) {
+            const lowerOverride = alias.toLowerCase();
+
+            if (lowerText.startsWith(lowerOverride)) {
+                if (text.length === alias.length || /^\s$/.test(text.charAt(alias.length))) {
+                    this.overridenText = (command + " " + text.slice(alias.length).trim()).trim();
+                    return;
+                }
+            }
+        }
+    }
+
+    private parsePayload() {
+        if (!this.plainPayload?.startsWith("^")) {
+            return;
+        }
+
+        const payloadSplit = this.plainPayload.slice(1).split("^");
+        if (payloadSplit.length < 2) {
+            this.overridenPayload = payloadSplit[0];
+            return;
+        }
+
+        //g1^payload payload payload (this payload too!! ->> ^ <<- payload!!!)
+        const payload = [];
+        let argsEnded = false;
+        for (const string of payloadSplit) {
+            if (!argsEnded) {
+                if (string.startsWith("g") && string.length == 2) {
+                    const mode = Number(string.slice(1));
+                    if (mode == 1) {
+                        this.graphicalModeOverride = "plain";
+                    } else if (mode == 2) {
+                        this.graphicalModeOverride = "cards";
+                    }
+                } else {
+                    argsEnded = true;
+                }
+            }
+
+            if (argsEnded) {
+                payload.push(string);
+            }
+        }
+
+        this.overridenPayload = payload.join("^");
+    }
+
+    private async prepareButtonPayloadPrefix(): Promise<string> {
+        const ctxData = [];
+        if (await this.preferCardsOutput()) {
+            ctxData.push("g2");
+        } else {
+            ctxData.push("g1");
+        }
+
+        return "^" + ctxData.join("^") + "^";
+    }
+
+    private async createKeyboard(rows: IKeyboard): Promise<InlineKeyboard> {
+        if (!rows || rows.length == 0) {
+            return undefined;
+        }
+
+        const payloadPrefix = await this.prepareButtonPayloadPrefix();
+        const buttonRows = rows.map((row) =>
+            row.map((button) => InlineKeyboard.text(button.text, payloadPrefix + button.command))
+        );
+        return InlineKeyboard.from(buttonRows);
     }
 
     async activate() {
@@ -129,10 +220,29 @@ export default class UnifiedMessageContext implements ILocalisator {
         await this.activate();
     }
 
+    public async checkFeature(feature: ControllableFeature) {
+        if (this.isFromOwner) {
+            const allFeatures = await this.database.featureControlModel.isFeatureEnabled("admin-all-features");
+            if (allFeatures) {
+                return true;
+            }
+        }
+
+        return await this.database.featureControlModel.isFeatureEnabled(feature);
+    }
+
     async preferCardsOutput(): Promise<boolean> {
-        const cardsEnabled = await this.database.featureControlModel.isFeatureEnabled("oki-cards");
+        const cardsEnabled = await this.checkFeature("oki-cards");
+        if (!cardsEnabled) {
+            return false;
+        }
+
+        if (this.graphicalModeOverride != "no") {
+            return this.graphicalModeOverride == "cards";
+        }
+
         const settings = await this.userSettings();
-        return cardsEnabled && settings.content_output == "oki-cards";
+        return settings.content_output == "oki-cards";
     }
 
     async userSettings(): Promise<UserSettings> {
@@ -186,13 +296,14 @@ export default class UnifiedMessageContext implements ILocalisator {
 
     async send(text: string, options?: SendOptions, replyTo?: number) {
         try {
+            const keyboard = await this.createKeyboard(options?.keyboard);
             if (options?.photo) {
                 return await this.tgCtx.replyWithPhoto(options.photo, {
                     caption: text,
                     reply_parameters: {
                         message_id: replyTo,
                     },
-                    reply_markup: options.keyboard,
+                    reply_markup: keyboard,
                 });
             }
 
@@ -219,7 +330,7 @@ export default class UnifiedMessageContext implements ILocalisator {
                 reply_parameters: {
                     message_id: replyTo,
                 },
-                reply_markup: options?.keyboard,
+                reply_markup: keyboard,
             });
         } catch (e) {
             global.logger.error(e);
@@ -244,11 +355,12 @@ export default class UnifiedMessageContext implements ILocalisator {
             return;
         }
 
+        const keyboard = await this.createKeyboard(options?.keyboard);
         const hasMedia = options?.photo || options?.video || this.tgCtx.message?.photo || this.tgCtx.message?.video;
         if (hasMedia) {
             if (options?.photo) {
                 await this.tgCtx.editMessageMedia(InputMediaBuilder.photo(options.photo), {
-                    reply_markup: options?.keyboard,
+                    reply_markup: keyboard,
                 });
             } else if (options?.video) {
                 // TODO: support both
@@ -260,11 +372,11 @@ export default class UnifiedMessageContext implements ILocalisator {
                     caption: text,
                 });
                 await this.tgCtx.editMessageMedia(video, {
-                    reply_markup: options?.keyboard,
+                    reply_markup: keyboard,
                 });
             }
             await this.tgCtx.editMessageCaption({
-                reply_markup: options?.keyboard,
+                reply_markup: keyboard,
                 caption: text,
             });
         } else if (text != this.text) {
@@ -272,21 +384,25 @@ export default class UnifiedMessageContext implements ILocalisator {
                 link_preview_options: {
                     is_disabled: options?.dont_parse_links !== false,
                 },
-                reply_markup: options?.keyboard,
+                reply_markup: keyboard,
             });
         } else if (options?.keyboard) {
             await this.tgCtx.editMessageReplyMarkup({
-                reply_markup: options.keyboard,
+                reply_markup: keyboard,
             });
         }
     }
 
-    async editMarkup(keyboard: InlineKeyboard) {
-        if (!this.messagePayload || !keyboard) {
+    async editMarkup(keyboard: IKeyboard) {
+        if (!this.messagePayload) {
+            return undefined;
+        }
+        const kb = await this.createKeyboard(keyboard);
+        if (!kb) {
             return undefined;
         }
         return await this.tgCtx.editMessageReplyMarkup({
-            reply_markup: keyboard,
+            reply_markup: kb,
         });
     }
 

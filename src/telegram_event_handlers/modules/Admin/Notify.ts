@@ -1,7 +1,6 @@
 import { Command } from "../../Command";
 import { Module } from "../Module";
 import { createHash } from "node:crypto";
-import Util from "../../../Util";
 
 export default class NotifyCommand extends Command {
     pending = {};
@@ -85,15 +84,15 @@ export default class NotifyCommand extends Command {
 
             await ctx.send(text);
             await ctx.reply(`Будет оповещено:\n${usersToNotifyCount} пользователей\n${chatsToNotifyCount} чатов`, {
-                keyboard: Util.createKeyboard([
+                keyboard: [
                     [{ text: "✅Отправить всем", command: `admin notify ${hash}:1` }],
                     [{ text: "✅Отправить только пользователям", command: `admin notify ${hash}:2` }],
                     [{ text: "✅Отправить только чатам", command: `admin notify ${hash}:3` }],
                     [{ text: ctx.tr("cancel-button"), command: `admin notify ${hash}:0` }],
-                ]),
+                ],
             });
         });
 
-        this.permission = (ctx) => ctx.senderId == module.bot.config.tg.owner;
+        this.permission = (ctx) => ctx.isFromOwner;
     }
 }

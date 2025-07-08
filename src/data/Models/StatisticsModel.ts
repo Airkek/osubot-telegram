@@ -89,8 +89,8 @@ export class StatisticsModel {
                 ctx.chatId,
                 command.module.name,
                 command.name,
-                ctx.messagePayload ?? ctx.text ?? "",
-                !!ctx.messagePayload,
+                ctx.plainPayload ?? ctx.plainText ?? "",
+                !!ctx.plainPayload,
             ]
         );
     }

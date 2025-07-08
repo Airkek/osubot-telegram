@@ -243,7 +243,7 @@ class DatabaseErrors {
     }
 
     async addError(ctx: UnifiedMessageContext, error: unknown): Promise<string> {
-        let info = `Sent by: ${ctx.senderId}; Text: ${ctx.text}`;
+        let info = `Sent by: ${ctx.senderId}; Text: ${ctx.plainPayload ?? ctx.plainText}`;
         if (ctx.replyMessage) {
             info += `; Replied to: ${ctx.replyMessage.senderId}`;
         }

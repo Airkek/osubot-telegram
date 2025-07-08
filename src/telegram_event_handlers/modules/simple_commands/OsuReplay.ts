@@ -3,12 +3,12 @@ import { ScoreDecoder } from "osu-parsers";
 import { Command } from "../../Command";
 import { SimpleCommandsModule } from "./index";
 import UnifiedMessageContext from "../../../TelegramSupport";
-import Util from "../../../Util";
+import Util, { IKeyboard } from "../../../Util";
 import { IReplayRenderer, RenderSettings } from "../../../osu_specific/replay_render/IReplayRenderer";
 import { IssouBestRenderer } from "../../../osu_specific/replay_render/IssouBestRenderer";
 import { OsrReplay } from "../../../osu_specific/OsrReplay";
 import { ExperimentalRenderer } from "../../../osu_specific/replay_render/ExperimentalRenderer";
-import { InlineKeyboard, InputFile } from "grammy";
+import { InputFile } from "grammy";
 import BanchoPP from "../../../osu_specific/pp/bancho";
 
 export class OsuReplay extends Command {
@@ -58,26 +58,24 @@ export class OsuReplay extends Command {
             const beatmap = await module.bot.osuBeatmapProvider.getBeatmapByHash(replay.beatmapHash, replay.mode);
             await beatmap.applyMods(replay.mods);
 
-            const keyboard = Util.createKeyboard(
-                [
-                    ["B", "s"],
-                    ["G", "g"],
-                    ["R", "r"],
-                ].map((group) => [
-                    {
-                        text: `[${group[0]}] ${ctx.tr("my-score-on-map-button")}`,
-                        command: `${group[1]} c ${Util.getModeArg(replay.mode)}`,
-                    },
-                    ...(ctx.isInGroupChat
-                        ? [
-                              {
-                                  text: `[${group[0]}] ${ctx.tr("chat-map-leaderboard-button")}`,
-                                  command: `${group[1]} lb ${Util.getModeArg(replay.mode)}`,
-                              },
-                          ]
-                        : []),
-                ])
-            );
+            const keyboard = [
+                ["B", "s"],
+                ["G", "g"],
+                ["R", "r"],
+            ].map((group) => [
+                {
+                    text: `[${group[0]}] ${ctx.tr("my-score-on-map-button")}`,
+                    command: `${group[1]} c ${Util.getModeArg(replay.mode)}`,
+                },
+                ...(ctx.isInGroupChat
+                    ? [
+                          {
+                              text: `[${group[0]}] ${ctx.tr("chat-map-leaderboard-button")}`,
+                              command: `${group[1]} lb ${Util.getModeArg(replay.mode)}`,
+                          },
+                      ]
+                    : []),
+            ]);
 
             const settings = await ctx.userSettings();
             let settingsAllowed = settings.render_enabled || !!ctx.messagePayload;
@@ -108,7 +106,7 @@ export class OsuReplay extends Command {
             let needRender = canRender;
             if (
                 needRender &&
-                !(useExperimental && ctx.senderId == module.bot.config.tg.owner) // allow admin to use experimental renderer without timeout
+                !(useExperimental && ctx.isFromOwner) // allow admin to use experimental renderer without timeout
             ) {
                 if (this.checkLimit(ctx.senderId)) {
                     needRender = false;
@@ -241,13 +239,11 @@ export class OsuReplay extends Command {
                 this.removeLimit(ctx.senderId);
                 if (replayResponse.error.includes("This replay is already rendering or in queue")) {
                     let text = ctx.tr("already-rendering-warning");
-                    let keyboard: InlineKeyboard = undefined;
+                    let keyboard: IKeyboard = undefined;
                     if (ctx.isInGroupChat) {
                         text += "\n\n";
                         text += ctx.tr("already-rendering-warning-chat");
-                        keyboard = Util.createKeyboard([
-                            [{ text: ctx.tr("chat-settings-button"), command: "osu settings" }],
-                        ]);
+                        keyboard = [[{ text: ctx.tr("chat-settings-button"), command: "osu settings" }]];
                     }
                     await ctx.reply(text, {
                         keyboard: keyboard,
