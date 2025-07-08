@@ -115,6 +115,9 @@ export default class UnifiedMessageContext implements ILocalisator {
 
     applyTextOverrides(aliases: Record<string, string>) {
         const text = this.text;
+        if (!text) {
+            return;
+        }
         const lowerText = text.toLowerCase();
         for (const [alias, command] of Object.entries(aliases)) {
             const lowerOverride = alias.toLowerCase();
