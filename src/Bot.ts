@@ -33,6 +33,7 @@ import { OkiCardsGenerator } from "./oki-cards/OkiCardsGenerator";
 import RippleRelax from "./telegram_event_handlers/modules/RippleRelax";
 import { setInterval, clearInterval } from "node:timers";
 import { PACKAGE_VERSION } from "./version";
+import path from "path";
 
 export interface IBotConfig {
     tg: {
@@ -78,6 +79,8 @@ export class Bot {
     private handle: RunnerHandle;
     private app: express;
 
+    private _initializationPromise: Promise<void>;
+
     constructor(config: IBotConfig) {
         this.config = config;
         global.logger.info("Set owner id: ", config.tg.owner);
@@ -100,7 +103,7 @@ export class Bot {
 
         this.version = PACKAGE_VERSION;
 
-        this.initialize();
+        this._initializationPromise = this.initialize();
     }
 
     private async buildActivatedContext(tgCtx: TgContext): Promise<UnifiedMessageContext> {
@@ -114,8 +117,8 @@ export class Bot {
         return new UnifiedMessageContext(ctx, this.config.tg.owner, this.me, this.useLocalApi, this.database);
     }
 
-    private initialize(): void {
-        this.setupDatabase();
+    private async initialize(): Promise<void> {
+        await this.setupDatabase();
         this.registerModules();
         this.setupBot();
         this.setupErrorHandling();
@@ -123,8 +126,9 @@ export class Bot {
         this.setupEventHandlers();
     }
 
-    private setupDatabase(): void {
-        this.database.init().then(() => this.ignored.init());
+    private async setupDatabase(): Promise<void> {
+        await this.database.init();
+        await this.ignored.init();
     }
 
     private registerModules(): void {
@@ -148,7 +152,7 @@ export class Bot {
         const i18n = new I18n<TgContext>({
             defaultLocale: "en",
             useSession: false,
-            directory: "src/locales",
+            directory: path.join("./src", "locales"),
             globalTranslationContext(ctx) {
                 return {
                     first_name: ctx.from?.first_name ?? "",
@@ -390,6 +394,9 @@ export class Bot {
     }
 
     public async start(): Promise<void> {
+        if (this._initializationPromise) {
+            await this._initializationPromise;
+        }
         await this.banchoApi.login();
         this.startTime = Date.now();
 
