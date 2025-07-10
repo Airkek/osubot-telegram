@@ -958,9 +958,9 @@ export class OkiCardsGenerator {
 
         const colors = await OkiColors.getColors(background);
 
-        const isActiveColorBlack = OkiColors.getColorBlack(colors.background);
+        const isActiveColorDark = OkiColors.getColorBlack(colors.background);
         let mainColor: string;
-        if (isActiveColorBlack) {
+        if (isActiveColorDark) {
             mainColor = "#ffffff";
         } else {
             mainColor = "#000000";
@@ -978,23 +978,22 @@ export class OkiCardsGenerator {
         OkiFormat.rect(ctx, 0, 0, canvas.width, 432, 45);
         ctx.clip();
 
+        if (!isActiveColorDark) {
+            ctx.globalCompositeOperation = "soft-light";
+        }
+
         ctx.drawImage(backgroundImage, -500, 0, canvas.width + 1000, canvas.height + 71);
 
-        if (isActiveColorBlack) {
+        ctx.fillStyle = "rgb(100, 100, 100)";
+        if (isActiveColorDark) {
             ctx.globalCompositeOperation = "multiply";
-            ctx.fillStyle = "rgb(100, 100, 100)"; // dest pixels will darken by
-            // (128/255) * dest
             ctx.globalAlpha = 0.5;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.globalCompositeOperation = "source-over";
-            ctx.globalAlpha = 1;
         } else {
-            ctx.fillStyle = "rgb(100, 100, 100)";
             ctx.globalAlpha = 0.3;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.globalCompositeOperation = "source-over";
-            ctx.globalAlpha = 1;
         }
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.globalCompositeOperation = "source-over";
+        ctx.globalAlpha = 1;
 
         ctx.clip();
         ctx.restore();
