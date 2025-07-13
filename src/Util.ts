@@ -108,10 +108,9 @@ export default {
     minutesToPlaytimeString(time: number) {
         time = Math.round(time / 60);
         const minutes = time % 60;
-        const hours = Math.floor(time / 60) % 24;
-        const days = Math.floor(time / (60 * 24));
+        const hours = Math.floor(time / 60);
 
-        return `${days}d ${hours}h ${minutes}m`;
+        return `${hours}h ${minutes}m`;
     },
     timer() {
         let timeStart = new Date().getTime();
