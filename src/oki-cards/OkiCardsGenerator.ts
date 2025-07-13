@@ -215,26 +215,28 @@ export class OkiCardsGenerator {
                 }
 
                 if (mod.rate !== undefined) {
-                    const colors = this.extractModSvgColors(asset);
                     const rawExtWidth = extWidth - width;
-                    const extendedAsset = this.getColoredSvgAssetByPath(
-                        this.getModAssetPath("extended"),
-                        colors.foreground,
-                        extWidth,
-                        height
-                    );
+                    const colors = this.extractModSvgColors(asset);
+                    if (colors != undefined) {
+                        const extendedAsset = this.getColoredSvgAssetByPath(
+                            this.getModAssetPath("extended"),
+                            colors.foreground,
+                            extWidth,
+                            height
+                        );
 
-                    const extImage = await Canvas.loadImage(extendedAsset);
-                    const extX = toLeft ? posX - rawExtWidth : posX;
-                    ctx.drawImage(extImage, extX, posY, extWidth, height);
+                        const extImage = await Canvas.loadImage(extendedAsset);
+                        const extX = toLeft ? posX - rawExtWidth : posX;
+                        ctx.drawImage(extImage, extX, posY, extWidth, height);
 
-                    ctx.fillStyle = colors.background;
-                    ctx.font = `bold ${height / 1.7}px Torus`;
-                    ctx.textAlign = "center";
-                    ctx.textBaseline = "middle";
-                    const textX = extX + width + rawExtWidth / 2;
-                    const textY = posY + height / 2;
-                    ctx.fillText(`${Util.round(mod.rate, 2)}x`, textX, textY);
+                        ctx.fillStyle = colors.background;
+                        ctx.font = `bold ${height / 1.8}px Torus`;
+                        ctx.textAlign = "center";
+                        ctx.textBaseline = "middle";
+                        const textX = extX + width + rawExtWidth / 2 - width / 10;
+                        const textY = posY + height / 2;
+                        ctx.fillText(`${Util.round(mod.rate, 2)}x`, textX, textY);
+                    }
 
                     if (toLeft) {
                         posX -= rawExtWidth;
