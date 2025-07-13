@@ -364,26 +364,42 @@ function buildRenderPage(settings: UserSettings, l: ILocalisator): IKeyboard {
                 settings.ordr_bgdim.toString() + "%"
             ),
         ],
-        [
-            toggleableButton(settings.user_id, page, l.tr("pp-counter"), "ordr_pp_counter", settings.ordr_pp_counter),
-            toggleableButton(settings.user_id, page, l.tr("ur-counter"), "ordr_ur_counter", settings.ordr_ur_counter),
-        ],
-        [
-            toggleableButton(
-                settings.user_id,
-                page,
-                l.tr("hit-counter"),
-                "ordr_hit_counter",
-                settings.ordr_hit_counter
-            ),
-            toggleableButton(
-                settings.user_id,
-                page,
-                l.tr("difficulty-graph"),
-                "ordr_strain_graph",
-                settings.ordr_strain_graph
-            ),
-        ],
+        ...(settings.experimental_renderer
+            ? []
+            : [
+                  [
+                      toggleableButton(
+                          settings.user_id,
+                          page,
+                          l.tr("pp-counter"),
+                          "ordr_pp_counter",
+                          settings.ordr_pp_counter
+                      ),
+                      toggleableButton(
+                          settings.user_id,
+                          page,
+                          l.tr("ur-counter"),
+                          "ordr_ur_counter",
+                          settings.ordr_ur_counter
+                      ),
+                  ],
+                  [
+                      toggleableButton(
+                          settings.user_id,
+                          page,
+                          l.tr("hit-counter"),
+                          "ordr_hit_counter",
+                          settings.ordr_hit_counter
+                      ),
+                      toggleableButton(
+                          settings.user_id,
+                          page,
+                          l.tr("difficulty-graph"),
+                          "ordr_strain_graph",
+                          settings.ordr_strain_graph
+                      ),
+                  ],
+              ]),
         [
             toggleableButton(
                 settings.user_id,
@@ -397,6 +413,7 @@ function buildRenderPage(settings: UserSettings, l: ILocalisator): IKeyboard {
 }
 
 const skinsProvider = new OrdrSkinsProvider();
+
 async function buildSkinSelector(settings: UserSettings, pageNum: number, l: ILocalisator): Promise<IKeyboard> {
     const page: SettingsPage = "skin_sel";
 
