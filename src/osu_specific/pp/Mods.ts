@@ -1,4 +1,5 @@
 import { V2Mod } from "../../Types";
+import Util from "../../Util";
 
 export enum ModsBitwise {
     Nomod = 0,
@@ -173,6 +174,11 @@ type Mod =
     | "ScoreV2"
     | "Mirror";
 
+interface ExtendedMod {
+    acronym: string;
+    rate?: number;
+}
+
 export default class Mods {
     mods: number[];
     flags: number;
@@ -249,14 +255,17 @@ export default class Mods {
         return m;
     }
 
-    toAcronymList(ignoreMeta: boolean = false): string[] {
+    toExtendedMods(): ExtendedMod[] {
         if (this.modsv2) {
             return this.modsv2.map((m) => {
-                if (!ignoreMeta && m.settings?.speed_change !== undefined) {
-                    return `${m.acronym}x${m.settings.speed_change}`;
+                const mod: ExtendedMod = {
+                    acronym: m.acronym,
+                };
+                if (m.settings?.speed_change !== undefined) {
+                    mod.rate = m.settings.speed_change;
                 }
 
-                return m.acronym;
+                return mod;
             });
         }
         let tempMods = this.sum();
@@ -267,16 +276,33 @@ export default class Mods {
             tempMods -= ModsBitwise.SuddenDeath;
         }
         const p = this.parse(tempMods);
-        const str = p.map((mod) => ModsAcronyms2[ModsBitwise[mod]]);
+        const str: ExtendedMod[] = p.map((mod) => {
+            return {
+                acronym: ModsAcronyms2[ModsBitwise[mod]],
+            };
+        });
         if (!this.lazer) {
-            str.push("CL");
+            str.push({
+                acronym: "CL",
+            });
         }
 
         return str;
     }
 
+    toAcronymList(ignoreMeta: boolean = false): string[] {
+        return this.toExtendedMods().map((m) => {
+            let mod = m.acronym;
+            if (!ignoreMeta && m.rate !== undefined) {
+                mod += "x" + Util.round(m.rate, 2);
+            }
+
+            return mod;
+        });
+    }
+
     toString(): string {
-        const list = this.toAcronymList();
+        const list = this.toAcronymList(false);
         if (list.length == 0) {
             return "";
         }
