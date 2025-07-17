@@ -1,7 +1,7 @@
 import { IPPCalculator as ICalc } from "../Calculator";
 import * as rosu from "@kotrikd/rosu-pp";
 import Mods, { ModsBitwise } from "../Mods";
-import { APIScore, CalcArgs } from "../../../Types";
+import { APIScore, CalcArgs, HitCounts } from "../../../Types";
 import { OsrReplay } from "../../OsrReplay";
 import { getRosuBeatmapSync } from "../RosuUtils";
 import { IBeatmap } from "../../../beatmaps/BeatmapTypes";
@@ -34,6 +34,9 @@ class BanchoPP implements ICalc {
     }
 
     PP(score: APIScore | CalcArgs | OsrReplay, rmap: rosu.Beatmap) {
+        if (!(score.counts instanceof HitCounts)) {
+            return undefined;
+        }
         switch (score.mode) {
             case 1:
                 rmap.convert(rosu.GameMode.Taiko);
@@ -60,17 +63,18 @@ class BanchoPP implements ICalc {
             flags ^= ModsBitwise.Autoplay;
         }
 
+        const hitData = score.counts.hitData;
         const currAttrs = new rosu.Performance({
             mods: flags,
             clockRate: this.speedMultiplier,
-            n300: score.fake ? undefined : score.counts[300],
-            n100: score.fake ? undefined : score.counts[100],
-            n50: score.fake ? undefined : score.counts[50],
-            nGeki: score.fake ? undefined : score.counts.geki,
-            nKatu: score.fake ? undefined : score.counts.katu,
-            misses: score.counts.miss,
-            largeTickHits: score.counts.slider_large,
-            sliderEndHits: score.counts.slider_tail,
+            n300: score.fake ? undefined : hitData[300],
+            n100: score.fake ? undefined : hitData[100],
+            n50: score.fake ? undefined : hitData[50],
+            nGeki: score.fake ? undefined : hitData.geki,
+            nKatu: score.fake ? undefined : hitData.katu,
+            misses: hitData.miss,
+            largeTickHits: hitData.slider_large,
+            sliderEndHits: hitData.slider_tail,
             lazer: this.mods.isLazer(),
             accuracy: score.fake ? score.accuracy() * 100 : undefined,
             combo: score.combo,
@@ -79,20 +83,20 @@ class BanchoPP implements ICalc {
         const fcAttrs = new rosu.Performance({
             mods: flags,
             clockRate: this.speedMultiplier,
-            n300: score.counts[300] + score.counts.miss,
-            n100: score.counts[100],
-            n50: score.counts[50],
-            nGeki: score.counts.geki,
-            nKatu: score.counts.katu,
+            n300: hitData[300] + hitData.miss,
+            n100: hitData[100],
+            n50: hitData[50],
+            nGeki: hitData.geki,
+            nKatu: hitData.katu,
             lazer: this.mods.isLazer(),
         }).calculate(rmap);
 
         const maxAttrs =
             score.accuracy() === 1 &&
-            score.counts[100] === 0 &&
-            score.counts[50] === 0 &&
-            score.counts.miss === 0 &&
-            (score.mode != 3 || (score.counts.katu === 0 && score.counts[300] === 0))
+            hitData[100] === 0 &&
+            hitData[50] === 0 &&
+            hitData.miss === 0 &&
+            (score.mode != 3 || (hitData.katu === 0 && hitData[300] === 0))
                 ? currAttrs
                 : new rosu.Performance({
                       mods: flags,

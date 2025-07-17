@@ -1,9 +1,19 @@
 import IAPI from "./base";
 import * as axios from "axios";
 import qs from "querystring";
-import { APIBeatmap, APIScore, APIUser, IBeatmapObjects, IBeatmapStars, IBeatmapStats, IHitCounts } from "../Types";
+import {
+    APIBeatmap,
+    APIScore,
+    APIUser,
+    IBeatmapObjects,
+    IBeatmapStars,
+    IBeatmapStats,
+    ICustomHit,
+    IHitCounts,
+} from "../Types";
 import Mods from "../osu_specific/pp/Mods";
 import { ScoreSaberBeatmap } from "../beatmaps/beatsaber/ScoreSaberBeatmap";
+import { ILocalisator } from "../ILocalisator";
 
 interface SSUserResponse {
     scoreStats: {
@@ -163,23 +173,32 @@ interface IHitData {
 }
 
 class BSHitCounts implements IHitCounts {
-    300: number;
-    100: number;
-    50: number;
-    miss: number;
-
     hitData: IHitData;
     constructor(data: IHitData) {
         this.hitData = data;
-    }
-    accuracy(): number {
-        return NaN;
     }
     totalHits(): number {
         return NaN;
     }
     toString(): string {
         return `${this.hitData.badCuts}xBad ${this.hitData.missedNotes}xMiss`;
+    }
+
+    getCountNames(l: ILocalisator): ICustomHit[] {
+        return [
+            {
+                name: l.tr("score-bad"),
+                value: this.hitData.badCuts,
+            },
+            this.getMissLikeValue(l),
+        ];
+    }
+
+    getMissLikeValue(l: ILocalisator): ICustomHit {
+        return {
+            name: l.tr("score-misses"),
+            value: this.hitData.missedNotes,
+        };
     }
 }
 

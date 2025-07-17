@@ -11,6 +11,11 @@ score-date = Date
 score-beatmap-link = Beatmap link
 score-failed-at = Pass progress
 
+score-bombs = 炸弹
+score-bad = 坏
+score-walls = 墙
+score-pauses = 暂停
+
 score-misses-calc = { $count ->
     [one] {$count} miss
     *[other] {$count} misses

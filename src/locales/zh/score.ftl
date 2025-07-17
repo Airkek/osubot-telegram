@@ -11,6 +11,11 @@ score-date = 日期
 score-beatmap-link = 谱面链接
 score-failed-at = 通过进度
 
+score-bombs = Бомб
+score-bad = Bad
+score-walls = Стен
+score-pauses = Пауз
+
 score-misses-calc = { $count ->
     [one] {$count}次失误
     *[other] {$count}次失误

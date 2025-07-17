@@ -34,7 +34,7 @@ ${l.tr("score-accuracy")}: ${Util.round(ppArgs.acc * 100, 2)}%${
         map.mode !== 3
             ? `
 ${l.tr("score-combo")}: ${Util.formatCombo(ppArgs.combo, map.maxCombo)} | ${l.tr("score-misses-calc", {
-                  count: ppArgs.counts.miss,
+                  count: ppArgs.counts.hitData.miss,
               })}`
             : ""
     }

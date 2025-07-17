@@ -12,6 +12,8 @@ import BanchoPP from "../osu_specific/pp/bancho";
 import { OsuBeatmap } from "../beatmaps/osu/OsuBeatmap";
 import Mods from "../osu_specific/pp/Mods";
 import { ICommandArgs } from "../telegram_event_handlers/Command";
+import { BeatLeaderBeatmap } from "../beatmaps/beatsaber/BeatLeaderBeatmap";
+import { ScoreSaberBeatmap } from "../beatmaps/beatsaber/ScoreSaberBeatmap";
 
 type CountryCodes = {
     [key: string]: string;
@@ -235,7 +237,7 @@ export class OkiCardsGenerator {
                         ctx.textBaseline = "middle";
                         const textX = extX + width + rawExtWidth / 2 - width / 10;
                         const textY = posY + height / 2;
-                        ctx.fillText(`${Util.round(mod.rate, 2)}x`, textX, textY);
+                        ctx.fillText(`${mod.rate.toFixed(2)}x`, textX, textY);
                     }
 
                     if (toLeft) {
@@ -429,10 +431,6 @@ export class OkiCardsGenerator {
         ctx.strokeText(beatmap.artist, titleArtisPosX, artistPosY);
         const artistTextWidth = ctx.measureText(beatmap.artist).width;
 
-        if (!(beatmap instanceof OsuBeatmap)) {
-            return color;
-        }
-
         const statsPosX = compact ? titleArtisPosX : 40;
         const statsRectPosX = statsPosX + 44;
         const statsRectWidth = 284;
@@ -444,174 +442,204 @@ export class OkiCardsGenerator {
 
         const statsPosYAddition = 36;
 
-        const csVal = beatmap.stats.cs.toFixed(1);
-        const arVal = beatmap.stats.ar.toFixed(1);
-        const hpVal = beatmap.stats.hp.toFixed(1);
-        const odVal = beatmap.stats.od.toFixed(1);
-        ctx.fillStyle = mainColor;
-        ctx.strokeStyle = mainColor;
-        ctx.font = "22px VarelaRound";
-        ctx.fillText("CS", statsPosX, statsPosTextY);
-        ctx.strokeText("CS", statsPosX, statsPosTextY);
-        ctx.fillText("AR", statsPosX, statsPosTextY + statsPosYAddition);
-        ctx.strokeText("AR", statsPosX, statsPosTextY + statsPosYAddition);
-        ctx.fillText("HP", statsPosX, statsPosTextY + statsPosYAddition * 2);
-        ctx.strokeText("HP", statsPosX, statsPosTextY + statsPosYAddition * 2);
-        ctx.fillText("OD", statsPosX, statsPosTextY + statsPosYAddition * 3);
-        ctx.strokeText("OD", statsPosX, statsPosTextY + statsPosYAddition * 3);
-        ctx.fillText(csVal, statsTextPosX, statsPosTextY);
-        ctx.strokeText(csVal, statsTextPosX, statsPosTextY);
-        ctx.fillText(arVal, statsTextPosX, statsPosTextY + statsPosYAddition);
-        ctx.strokeText(arVal, statsTextPosX, statsPosTextY + statsPosYAddition);
-        ctx.fillText(hpVal, statsTextPosX, statsPosTextY + statsPosYAddition * 2);
-        ctx.strokeText(hpVal, statsTextPosX, statsPosTextY + statsPosYAddition * 2);
-        ctx.fillText(odVal, statsTextPosX, statsPosTextY + statsPosYAddition * 3);
-        ctx.strokeText(odVal, statsTextPosX, statsPosTextY + statsPosYAddition * 3);
-        ctx.beginPath();
-        ctx.fillStyle = mainColor + "31";
-        OkiFormat.rect(ctx, statsRectPosX, statsPosRectY, statsRectWidth, 13, 7);
-        OkiFormat.rect(ctx, statsRectPosX, statsPosRectY + statsPosYAddition, statsRectWidth, 13, 7);
-        OkiFormat.rect(ctx, statsRectPosX, statsPosRectY + statsPosYAddition * 2, statsRectWidth, 13, 7);
-        OkiFormat.rect(ctx, statsRectPosX, statsPosRectY + statsPosYAddition * 3, statsRectWidth, 13, 7);
-        ctx.beginPath();
-        ctx.fillStyle = mainColor;
-        OkiFormat.rect(
-            ctx,
-            statsRectPosX,
-            statsPosRectY,
-            (statsRectWidth / 10) * Math.min(beatmap.stats.cs > 0 ? beatmap.stats.cs : 0.5, 10),
-            13,
-            7
-        );
-        OkiFormat.rect(
-            ctx,
-            statsRectPosX,
-            statsPosRectY + statsPosYAddition,
-            (statsRectWidth / 10) * Math.min(beatmap.stats.ar > 0 ? beatmap.stats.ar : 0.5, 10),
-            13,
-            7
-        );
-        OkiFormat.rect(
-            ctx,
-            statsRectPosX,
-            statsPosRectY + statsPosYAddition * 2,
-            (statsRectWidth / 10) * Math.min(beatmap.stats.hp > 0 ? beatmap.stats.hp : 0.5, 10),
-            13,
-            7
-        );
-        OkiFormat.rect(
-            ctx,
-            statsRectPosX,
-            statsPosRectY + statsPosYAddition * 3,
-            (statsRectWidth / 10) * Math.min(beatmap.stats.od > 0 ? beatmap.stats.od : 0.5, 10),
-            13,
-            7
-        );
+        let statsRendered = false;
+        if (beatmap instanceof OsuBeatmap) {
+            statsRendered = true;
+            const csVal = beatmap.stats.cs.toFixed(1);
+            const arVal = beatmap.stats.ar.toFixed(1);
+            const hpVal = beatmap.stats.hp.toFixed(1);
+            const odVal = beatmap.stats.od.toFixed(1);
+            ctx.fillStyle = mainColor;
+            ctx.strokeStyle = mainColor;
+            ctx.font = "22px VarelaRound";
+            ctx.fillText("CS", statsPosX, statsPosTextY);
+            ctx.strokeText("CS", statsPosX, statsPosTextY);
+            ctx.fillText("AR", statsPosX, statsPosTextY + statsPosYAddition);
+            ctx.strokeText("AR", statsPosX, statsPosTextY + statsPosYAddition);
+            ctx.fillText("HP", statsPosX, statsPosTextY + statsPosYAddition * 2);
+            ctx.strokeText("HP", statsPosX, statsPosTextY + statsPosYAddition * 2);
+            ctx.fillText("OD", statsPosX, statsPosTextY + statsPosYAddition * 3);
+            ctx.strokeText("OD", statsPosX, statsPosTextY + statsPosYAddition * 3);
+            ctx.fillText(csVal, statsTextPosX, statsPosTextY);
+            ctx.strokeText(csVal, statsTextPosX, statsPosTextY);
+            ctx.fillText(arVal, statsTextPosX, statsPosTextY + statsPosYAddition);
+            ctx.strokeText(arVal, statsTextPosX, statsPosTextY + statsPosYAddition);
+            ctx.fillText(hpVal, statsTextPosX, statsPosTextY + statsPosYAddition * 2);
+            ctx.strokeText(hpVal, statsTextPosX, statsPosTextY + statsPosYAddition * 2);
+            ctx.fillText(odVal, statsTextPosX, statsPosTextY + statsPosYAddition * 3);
+            ctx.strokeText(odVal, statsTextPosX, statsPosTextY + statsPosYAddition * 3);
+            ctx.beginPath();
+            ctx.fillStyle = mainColor + "31";
+            OkiFormat.rect(ctx, statsRectPosX, statsPosRectY, statsRectWidth, 13, 7);
+            OkiFormat.rect(ctx, statsRectPosX, statsPosRectY + statsPosYAddition, statsRectWidth, 13, 7);
+            OkiFormat.rect(ctx, statsRectPosX, statsPosRectY + statsPosYAddition * 2, statsRectWidth, 13, 7);
+            OkiFormat.rect(ctx, statsRectPosX, statsPosRectY + statsPosYAddition * 3, statsRectWidth, 13, 7);
+            ctx.beginPath();
+            ctx.fillStyle = mainColor;
+            OkiFormat.rect(
+                ctx,
+                statsRectPosX,
+                statsPosRectY,
+                (statsRectWidth / 10) * Math.min(beatmap.stats.cs > 0 ? beatmap.stats.cs : 0.5, 10),
+                13,
+                7
+            );
+            OkiFormat.rect(
+                ctx,
+                statsRectPosX,
+                statsPosRectY + statsPosYAddition,
+                (statsRectWidth / 10) * Math.min(beatmap.stats.ar > 0 ? beatmap.stats.ar : 0.5, 10),
+                13,
+                7
+            );
+            OkiFormat.rect(
+                ctx,
+                statsRectPosX,
+                statsPosRectY + statsPosYAddition * 2,
+                (statsRectWidth / 10) * Math.min(beatmap.stats.hp > 0 ? beatmap.stats.hp : 0.5, 10),
+                13,
+                7
+            );
+            OkiFormat.rect(
+                ctx,
+                statsRectPosX,
+                statsPosRectY + statsPosYAddition * 3,
+                (statsRectWidth / 10) * Math.min(beatmap.stats.od > 0 ? beatmap.stats.od : 0.5, 10),
+                13,
+                7
+            );
 
-        if (!compact) {
-            let mapperPfpBuffer = await this.loadImageFromUrl(`https://a.ppy.sh/${beatmap.authorId}`);
-            if (!mapperPfpBuffer) {
-                mapperPfpBuffer = this.getAssetData("avatar-guest.png");
+            if (!compact) {
+                let mapperPfpBuffer = await this.loadImageFromUrl(`https://a.ppy.sh/${beatmap.authorId}`);
+                if (!mapperPfpBuffer) {
+                    mapperPfpBuffer = this.getAssetData("avatar-guest.png");
+                }
+                const mapperPfp = await Canvas.loadImage(mapperPfpBuffer);
+                ctx.save();
+                OkiFormat.rect(ctx, 478, 466, 91, 91, 16);
+                ctx.clip();
+                ctx.drawImage(mapperPfp, 478, 466, 91, 91);
+                ctx.restore();
             }
-            const mapperPfp = await Canvas.loadImage(mapperPfpBuffer);
-            ctx.save();
-            OkiFormat.rect(ctx, 478, 466, 91, 91, 16);
-            ctx.clip();
-            ctx.drawImage(mapperPfp, 478, 466, 91, 91);
-            ctx.restore();
         }
 
+        let timeVal: number = undefined;
+        let bpmVal: number = undefined;
+        let starsVal: number = undefined;
+        if (
+            beatmap instanceof OsuBeatmap ||
+            beatmap instanceof BeatLeaderBeatmap ||
+            beatmap instanceof ScoreSaberBeatmap
+        ) {
+            if (beatmap instanceof OsuBeatmap || beatmap instanceof BeatLeaderBeatmap) {
+                timeVal = beatmap.stats.length;
+                bpmVal = beatmap.stats.bpm;
+            }
+
+            starsVal = beatmap.stats.stars;
+        }
         ctx.textAlign = "left";
         ctx.font = "27px VarelaRound";
-        const time = Util.formatBeatmapLength(beatmap.stats.length);
-        const timeWidth = ctx.measureText(time).width;
-        const maxCombo = beatmap.maxCombo + "x";
-        const maxComboWidth = ctx.measureText(maxCombo).width;
-        const bpm = beatmap.stats.bpm.toFixed(0) + " bpm";
+        const time = timeVal ? Util.formatBeatmapLength(timeVal) : undefined;
+        const timeWidth = time ? ctx.measureText(time).width : 0;
+        const maxCombo = beatmap.maxCombo ? beatmap.maxCombo + "x" : undefined;
+        const maxComboWidth = maxCombo ? ctx.measureText(maxCombo).width : 0;
+        const bpm = bpmVal ? bpmVal.toFixed(0) + " bpm" : undefined;
 
         const clockX = compact ? statusPosX + statusWidth + 16 : 600;
         const clockTextX = clockX + 40;
-        const chainX = clockTextX + timeWidth + 15;
+        const chainX = time ? clockTextX + timeWidth + 15 : clockX;
         const chainTextX = chainX + 40;
-        const drumX = chainTextX + maxComboWidth + 15;
+        const drumX = maxCombo ? chainTextX + maxComboWidth + 15 : chainX;
         const drumTextX = drumX + 42;
 
         const mapRegularInfoY = compact ? statusPosY + 34 : 412 + 30;
 
-        ctx.fillText(time, clockTextX, mapRegularInfoY);
-        ctx.strokeText(time, clockTextX, mapRegularInfoY);
-        ctx.fillText(maxCombo, chainTextX, mapRegularInfoY);
-        ctx.strokeText(maxCombo, chainTextX, mapRegularInfoY);
-        ctx.fillText(bpm, drumTextX, mapRegularInfoY);
-        ctx.strokeText(bpm, drumTextX, mapRegularInfoY);
-        const clockAsset = this.getColoredSvgAsset("clock", mainColor, 38, 38);
-        if (clockAsset) {
-            const clock = await Canvas.loadImage(clockAsset);
-            ctx.drawImage(clock, clockX, mapRegularInfoY - 29, 38, 38);
-        }
-        const chainAsset = this.getColoredSvgAsset("chain", mainColor, 38, 38);
-        if (chainAsset) {
-            const chain = await Canvas.loadImage(chainAsset);
-            ctx.drawImage(chain, chainX, mapRegularInfoY - 29, 38, 38);
-        }
-        const drumAsset = this.getColoredSvgAsset("drum", mainColor, 40, 35);
-        if (drumAsset) {
-            const drum = await Canvas.loadImage(drumAsset);
-            ctx.drawImage(drum, drumX, mapRegularInfoY - 29, 40, 35);
+        if (time) {
+            const clockAsset = this.getColoredSvgAsset("clock", mainColor, 38, 38);
+            if (clockAsset) {
+                const clock = await Canvas.loadImage(clockAsset);
+                ctx.drawImage(clock, clockX, mapRegularInfoY - 29, 38, 38);
+            }
+
+            ctx.fillText(time, clockTextX, mapRegularInfoY);
+            ctx.strokeText(time, clockTextX, mapRegularInfoY);
         }
 
+        if (maxCombo) {
+            const chainAsset = this.getColoredSvgAsset("chain", mainColor, 38, 38);
+            if (chainAsset) {
+                const chain = await Canvas.loadImage(chainAsset);
+                ctx.drawImage(chain, chainX, mapRegularInfoY - 29, 38, 38);
+            }
+            ctx.fillText(maxCombo, chainTextX, mapRegularInfoY);
+            ctx.strokeText(maxCombo, chainTextX, mapRegularInfoY);
+        }
+
+        if (bpm) {
+            const drumAsset = this.getColoredSvgAsset("drum", mainColor, 40, 35);
+            if (drumAsset) {
+                const drum = await Canvas.loadImage(drumAsset);
+                ctx.drawImage(drum, drumX, mapRegularInfoY - 29, 40, 35);
+            }
+
+            ctx.fillText(bpm, drumTextX, mapRegularInfoY);
+            ctx.strokeText(bpm, drumTextX, mapRegularInfoY);
+        }
+
+        const starsPosX = compact && statsRendered ? statsTextPosX + 80 : statsPosX;
+        const starsPosY = compact ? statsPosY + statsPosYAddition : 420;
         const starsMargin = 18;
         const starWidth = 33;
         let starsMaxWidth = 0;
-        const starsPosX = compact ? statsTextPosX + 80 : statsPosX;
-        const starsPosY = compact ? statsPosY + statsPosYAddition : 420;
+        if (starsVal) {
+            const starAsset = this.getColoredSvgAsset("star", mainColor, 28, 27);
+            if (starAsset) {
+                const star = await Canvas.loadImage(starAsset);
+                if (starsVal > 10) {
+                    for (let i = 0; i < 10; i++) {
+                        ctx.drawImage(star, starsPosX + starWidth * i, starsPosY, 28, 27);
+                    }
+                    starsMaxWidth = starWidth * 10;
+                } else {
+                    let i = 0;
+                    for (; i < Math.floor(starsVal); i++) {
+                        ctx.drawImage(star, starsPosX + starWidth * i, starsPosY, 28, 27);
+                        starsMaxWidth += starWidth;
+                    }
+                    const lastStarSize = starsVal - Math.floor(starsVal);
+                    const minSize = 0.5;
+                    const multiplier = 1 - minSize + minSize * lastStarSize;
+                    starsMaxWidth += starWidth * multiplier;
 
-        const starAsset = this.getColoredSvgAsset("star", mainColor, 28, 27);
-        if (starAsset) {
-            const star = await Canvas.loadImage(starAsset);
-            if (beatmap.stats.stars > 10) {
-                for (let i = 0; i < 10; i++) {
-                    ctx.drawImage(star, starsPosX + starWidth * i, starsPosY, 28, 27);
-                }
-                starsMaxWidth = starWidth * 10;
-            } else {
-                let i = 0;
-                for (; i < Math.floor(beatmap.stats.stars); i++) {
-                    ctx.drawImage(star, starsPosX + starWidth * i, starsPosY, 28, 27);
-                    starsMaxWidth += starWidth;
-                }
-                const lastStarSize = beatmap.stats.stars - Math.floor(beatmap.stats.stars);
-                const minSize = 0.5;
-                const multiplier = 1 - minSize + minSize * lastStarSize;
-                starsMaxWidth += starWidth * multiplier;
+                    const miniStarW = 28 * multiplier;
+                    const miniStarH = 27 * multiplier;
 
-                const miniStarW = 28 * multiplier;
-                const miniStarH = 27 * multiplier;
-
-                const miniStarAsset = this.getColoredSvgAsset("star", mainColor, miniStarW, miniStarH);
-                if (miniStarAsset) {
-                    const miniStar = await Canvas.loadImage(miniStarAsset);
-                    ctx.drawImage(
-                        miniStar,
-                        starsPosX + starWidth * i + (28 - 28 * multiplier) / 2,
-                        starsPosY + (27 - 27 * multiplier) / 2,
-                        miniStarW,
-                        miniStarH
-                    );
+                    const miniStarAsset = this.getColoredSvgAsset("star", mainColor, miniStarW, miniStarH);
+                    if (miniStarAsset) {
+                        const miniStar = await Canvas.loadImage(miniStarAsset);
+                        ctx.drawImage(
+                            miniStar,
+                            starsPosX + starWidth * i + (28 - 28 * multiplier) / 2,
+                            starsPosY + (27 - 27 * multiplier) / 2,
+                            miniStarW,
+                            miniStarH
+                        );
+                    }
                 }
             }
-        }
 
-        if (!compact) {
-            starsMaxWidth = starWidth * 10;
-        }
+            if (!compact) {
+                starsMaxWidth = starWidth * 10;
+            }
 
-        const starsVal = beatmap.stats.stars.toFixed(2);
-        ctx.fillStyle = mainColor;
-        ctx.strokeStyle = mainColor;
-        ctx.font = "22px VarelaRound";
-        ctx.fillText(starsVal, starsPosX + starsMaxWidth + starsMargin, starsPosY + 25);
-        ctx.strokeText(starsVal, starsPosX + starsMaxWidth + starsMargin, starsPosY + 25);
+            const starsText = starsVal.toFixed(2);
+            ctx.fillStyle = mainColor;
+            ctx.strokeStyle = mainColor;
+            ctx.font = "22px VarelaRound";
+            ctx.fillText(starsText, starsPosX + starsMaxWidth + starsMargin, starsPosY + 25);
+            ctx.strokeText(starsText, starsPosX + starsMaxWidth + starsMargin, starsPosY + 25);
+        }
 
         let diffPosX = compact ? starsPosX : titleArtisPosX + artistTextWidth + 24;
         const diffPosY = compact ? statsPosTextY : artistPosY;
@@ -817,24 +845,12 @@ export class OkiCardsGenerator {
                 ...(pp.ss && pp.ss != pp.pp ? [{ text: "SS", value: pp.ss.toFixed(2) }] : []),
             ],
             [
-                ...(score.mode == 3 ? [{ text: "320", value: score.counts.geki.toLocaleString() }] : []),
-                {
-                    text: "300",
-                    value: score.counts[300].toLocaleString(),
-                },
-                ...(score.mode == 3 ? [{ text: "200", value: score.counts.katu.toLocaleString() }] : []),
-                {
-                    text: "100",
-                    value: score.counts[100].toLocaleString(),
-                },
-                {
-                    text: "50",
-                    value: score.counts[50].toLocaleString(),
-                },
-                {
-                    text: l.tr("score-misses"),
-                    value: score.counts.miss.toLocaleString(),
-                },
+                ...score.counts.getCountNames(l).map((c) => {
+                    return {
+                        text: c.name,
+                        value: c.value?.toLocaleString() ?? "0",
+                    };
+                }),
                 ...(gradeProgress ? [{ text: l.tr("score-failed-at"), value: gradeProgress }] : []),
             ],
         ];

@@ -1,6 +1,7 @@
 import Mods from "./osu_specific/pp/Mods";
 import Util from "./Util";
 import { IBeatmap } from "./beatmaps/BeatmapTypes";
+import { ILocalisator } from "./ILocalisator";
 
 interface IDatabaseServer {
     getUser(id: number): Promise<IDatabaseUser | null>;
@@ -27,7 +28,7 @@ class CalcArgs {
     score?: number;
     acc?: number;
     combo?: number;
-    counts?: IHitCounts;
+    counts?: HitCounts;
     mods: Mods;
     mode: number;
     fake: boolean;
@@ -118,48 +119,44 @@ interface IHits {
     slider_tail?: number;
 }
 
-interface IHitCounts extends IHits {
-    accuracy(): number;
+interface ICustomHit {
+    name: string;
+    value: number;
+}
+
+interface IHitCounts {
+    hitData?: unknown;
     totalHits(): number;
     toString(): string;
+    getCountNames(l: ILocalisator): ICustomHit[];
+    getMissLikeValue(l: ILocalisator): ICustomHit;
 }
 
 class HitCounts implements IHitCounts {
-    300: number;
-    100: number;
-    50: number;
-    miss: number;
-    katu?: number;
-    geki?: number;
+    hitData: IHits;
     mode: number;
-    slider_large?: number;
-    slider_tail?: number;
     constructor(hits: IHits, mode: number) {
-        this[300] = hits[300];
-        this[100] = hits[100];
-        this[50] = hits[50];
-        this.miss = hits.miss;
-        this.katu = hits.katu;
-        this.geki = hits.geki;
+        this.hitData = hits;
         this.mode = mode;
-        this.slider_large = hits.slider_large;
-        this.slider_tail = hits.slider_tail;
-    }
-
-    accuracy(): number {
-        return Util.accuracy(this);
     }
 
     totalHits(): number {
         switch (this.mode) {
             case 1:
-                return this[300] + this[100] + this[50] + this.miss;
+                return this.hitData[300] + this.hitData[100] + this.hitData[50] + this.hitData.miss;
             case 2:
                 return 0;
             case 3:
-                return this.geki + this.katu + this[300] + this[100] + this[50] + this.miss;
+                return (
+                    this.hitData.geki +
+                    this.hitData.katu +
+                    this.hitData[300] +
+                    this.hitData[100] +
+                    this.hitData[50] +
+                    this.hitData.miss
+                );
             default:
-                return this[300] + this[100] + this[50] + this.miss;
+                return this.hitData[300] + this.hitData[100] + this.hitData[50] + this.hitData.miss;
         }
     }
 
@@ -168,14 +165,55 @@ class HitCounts implements IHitCounts {
             case 0:
             case 1:
             case 2:
-                return `${this[300]}/${this[100]}/${this[50]}/${this.miss}`;
+                return `${this.hitData[300]}/${this.hitData[100]}/${this.hitData[50]}/${this.hitData.miss}`;
 
             case 3:
-                return `${this.geki}/${this[300]}/${this.katu}/${this[100]}/${this[50]}/${this.miss}`;
+                return `${this.hitData.geki}/${this.hitData[300]}/${this.hitData.katu}/${this.hitData[100]}/${this.hitData[50]}/${this.hitData.miss}`;
 
             default:
                 return "";
         }
+    }
+
+    getCountNames(l: ILocalisator): ICustomHit[] {
+        return [
+            ...(this.mode === 3
+                ? [
+                      {
+                          name: "320",
+                          value: this.hitData.geki,
+                      },
+                  ]
+                : []),
+            {
+                name: "300",
+                value: this.hitData[300],
+            },
+            ...(this.mode === 3
+                ? [
+                      {
+                          name: "200",
+                          value: this.hitData.katu,
+                      },
+                  ]
+                : []),
+            {
+                name: "100",
+                value: this.hitData[100],
+            },
+            {
+                name: "50",
+                value: this.hitData[50],
+            },
+            this.getMissLikeValue(l),
+        ];
+    }
+
+    getMissLikeValue(l: ILocalisator): ICustomHit {
+        return {
+            name: l.tr("score-misses"),
+            value: this.hitData.miss,
+        };
     }
 }
 
@@ -391,6 +429,7 @@ export {
     Mode,
     HitCounts,
     IHits,
+    ICustomHit,
     IHitCounts,
     IBeatmapStats,
     IBeatmapStars,

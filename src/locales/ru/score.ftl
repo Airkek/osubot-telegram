@@ -11,6 +11,11 @@ score-date = Дата
 score-beatmap-link = Ссылка на карту
 score-failed-at = Процент прохождения
 
+score-bombs = Бомб
+score-bad = Bad
+score-walls = Стен
+score-pauses = Пауз
+
 score-misses-calc = { $count ->
     [one] {$count} мисс
     [few] {$count} мисса

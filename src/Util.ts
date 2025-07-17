@@ -62,21 +62,37 @@ export default {
     accuracy(counts: HitCounts): number {
         switch (counts.mode) {
             case 1:
-                return (counts[300] * 2 + counts[100]) / ((counts[300] + counts[100] + counts[50] + counts.miss) * 2);
+                return (
+                    (counts.hitData[300] * 2 + counts.hitData[100]) /
+                    ((counts.hitData[300] + counts.hitData[100] + counts.hitData[50] + counts.hitData.miss) * 2)
+                );
             case 2:
                 return (
-                    (counts[50] + counts[100] + counts[300]) /
-                    (counts[50] + counts[100] + counts[300] + counts.miss + counts.katu)
+                    (counts.hitData[50] + counts.hitData[100] + counts.hitData[300]) /
+                    (counts.hitData[50] +
+                        counts.hitData[100] +
+                        counts.hitData[300] +
+                        counts.hitData.miss +
+                        counts.hitData.katu)
                 );
             case 3:
                 return (
-                    ((counts[300] + counts.geki) * 6 + counts.katu * 4 + counts[100] * 2 + counts[50]) /
-                    ((counts[300] + counts[100] + counts.geki + counts.katu + counts[50] + counts.miss) * 6)
+                    ((counts.hitData[300] + counts.hitData.geki) * 6 +
+                        counts.hitData.katu * 4 +
+                        counts.hitData[100] * 2 +
+                        counts.hitData[50]) /
+                    ((counts.hitData[300] +
+                        counts.hitData[100] +
+                        counts.hitData.geki +
+                        counts.hitData.katu +
+                        counts.hitData[50] +
+                        counts.hitData.miss) *
+                        6)
                 );
             default:
                 return (
-                    (counts[300] * 6 + counts[100] * 2 + counts[50]) /
-                    ((counts[300] + counts[100] + counts[50] + counts.miss) * 6)
+                    (counts.hitData[300] * 6 + counts.hitData[100] * 2 + counts.hitData[50]) /
+                    ((counts.hitData[300] + counts.hitData[100] + counts.hitData[50] + counts.hitData.miss) * 6)
                 );
         }
     },

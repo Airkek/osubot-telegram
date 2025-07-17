@@ -1,9 +1,19 @@
 import IAPI from "./base";
 import * as axios from "axios";
 import qs from "querystring";
-import { APIBeatmap, APIScore, APIUser, IBeatmapObjects, IBeatmapStars, IBeatmapStats, IHitCounts } from "../Types";
+import {
+    APIBeatmap,
+    APIScore,
+    APIUser,
+    IBeatmapObjects,
+    IBeatmapStars,
+    IBeatmapStats,
+    ICustomHit,
+    IHitCounts,
+} from "../Types";
 import Mods from "../osu_specific/pp/Mods";
 import { BeatLeaderBeatmap } from "../beatmaps/beatsaber/BeatLeaderBeatmap";
+import { ILocalisator } from "../ILocalisator";
 
 interface BLUserResponse {
     scoreStats: {
@@ -149,23 +159,43 @@ interface IHitData {
 }
 
 class BSHitCounts implements IHitCounts {
-    300: number;
-    100: number;
-    50: number;
-    miss: number;
-
     hitData: IHitData;
     constructor(data: IHitData) {
         this.hitData = data;
-    }
-    accuracy(): number {
-        return NaN;
     }
     totalHits(): number {
         return NaN;
     }
     toString(): string {
         return `${this.hitData.pauses}xPause ${this.hitData.wallsHit}xWall ${this.hitData.badCuts}xBad ${this.hitData.bombsHit}xBomb ${this.hitData.missedNotes}xMiss`;
+    }
+    getCountNames(l: ILocalisator): ICustomHit[] {
+        return [
+            {
+                name: l.tr("score-pauses"),
+                value: this.hitData.pauses,
+            },
+            {
+                name: l.tr("score-walls"),
+                value: this.hitData.wallsHit,
+            },
+            {
+                name: l.tr("score-bad"),
+                value: this.hitData.badCuts,
+            },
+            {
+                name: l.tr("score-bombs"),
+                value: this.hitData.bombsHit,
+            },
+            this.getMissLikeValue(l),
+        ];
+    }
+
+    getMissLikeValue(l: ILocalisator): ICustomHit {
+        return {
+            name: l.tr("score-misses"),
+            value: this.hitData.missedNotes,
+        };
     }
 }
 
