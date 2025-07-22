@@ -75,7 +75,7 @@ export default class UnifiedMessageContext implements ILocalisator {
     private userSettingsCache: UserSettings;
     private chatSettingsCache: ChatSettings;
 
-    private activated: boolean = false;
+    private isLocalisatorActivated: boolean = false;
     private language: Language = undefined;
     tr: TranslateFunction = undefined;
 
@@ -190,8 +190,8 @@ export default class UnifiedMessageContext implements ILocalisator {
         return InlineKeyboard.from(buttonRows);
     }
 
-    async activate() {
-        if (this.activated) {
+    async activateLocalisator() {
+        if (this.isLocalisatorActivated) {
             return;
         }
 
@@ -214,13 +214,13 @@ export default class UnifiedMessageContext implements ILocalisator {
         }
 
         this.tr = this.tgCtx.translate;
-        this.activated = true;
+        this.isLocalisatorActivated = true;
     }
 
-    async reactivate() {
-        this.activated = false;
+    async reactivateLocalisator() {
+        this.isLocalisatorActivated = false;
         this.language = undefined;
-        await this.activate();
+        await this.activateLocalisator();
     }
 
     public async checkFeature(feature: ControllableFeature) {

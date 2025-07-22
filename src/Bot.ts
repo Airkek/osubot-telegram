@@ -106,14 +106,7 @@ export class Bot {
         this._initializationPromise = this.initialize();
     }
 
-    private async buildActivatedContext(tgCtx: TgContext): Promise<UnifiedMessageContext> {
-        const ctx = new UnifiedMessageContext(tgCtx, this.config.tg.owner, this.me, this.useLocalApi, this.database);
-        await ctx.activate();
-
-        return ctx;
-    }
-
-    private buildContextForInternalUse(ctx: TgContext): UnifiedMessageContext {
+    private buildContext(ctx: TgContext): UnifiedMessageContext {
         return new UnifiedMessageContext(ctx, this.config.tg.owner, this.me, this.useLocalApi, this.database);
     }
 
@@ -168,7 +161,8 @@ export class Bot {
                 timeFrame: 5000,
                 limit: 3,
                 onLimitExceeded: async (tgCtx: TgContext) => {
-                    const ctx = await this.buildActivatedContext(tgCtx);
+                    const ctx = this.buildContext(tgCtx);
+                    await ctx.activateLocalisator();
                     await this.database.statsModel.logMessage(ctx);
                     if (ctx.messagePayload) {
                         await ctx.answer(ctx.tr("too-fast-notification"));
@@ -178,7 +172,7 @@ export class Bot {
                     }
                 },
                 keyGenerator: (tgCtx: TgContext) => {
-                    const ctx = this.buildContextForInternalUse(tgCtx);
+                    const ctx = this.buildContext(tgCtx);
 
                     let isCommand = !!this.pendingCallbacks[this.createCallbackTicket(ctx)];
 
@@ -258,7 +252,7 @@ export class Bot {
     };
 
     private handleCallbackQuery = async (ctx): Promise<void> => {
-        const context = await this.buildActivatedContext(ctx);
+        const context = this.buildContext(ctx);
         await this.database.statsModel.logMessage(context);
         if (await this.processCommands(context)) {
             await ctx.answerCallbackQuery();
@@ -293,7 +287,7 @@ export class Bot {
             return;
         }
 
-        const context = await this.buildActivatedContext(ctx);
+        const context = this.buildContext(ctx);
 
         if (await context.checkFeature("plaintext-overrides")) {
             context.applyTextOverrides(this.okiChanAliases);
@@ -342,6 +336,7 @@ export class Bot {
                 continue;
             }
 
+            await ctx.activateLocalisator();
             if (ctx.isInGroupChat) {
                 const inChat = await this.database.chats.isUserInChat(ctx.senderId, ctx.chatId);
                 if (!inChat) {
@@ -384,7 +379,7 @@ export class Bot {
                 const realAlias = {};
                 realAlias[realCommand] = alias;
 
-                const unifiedCtx = await this.buildActivatedContext(ctx as TgContext);
+                const unifiedCtx = this.buildContext(ctx as TgContext);
                 unifiedCtx.applyTextOverrides(realAlias);
 
                 await this.database.statsModel.logMessage(unifiedCtx);

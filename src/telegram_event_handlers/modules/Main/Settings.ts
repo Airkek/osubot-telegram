@@ -568,7 +568,7 @@ export default class SettingsCommand extends Command {
                         }
                         if (allowUpdate) {
                             await ctx.updateChatSettings(chatSettings);
-                            await ctx.reactivate();
+                            await ctx.reactivateLocalisator();
                             await showChatPage(page);
                         }
                         break;
@@ -680,7 +680,7 @@ export default class SettingsCommand extends Command {
                     }
                     if (allowUpdate) {
                         await ctx.updateUserSettings(settings);
-                        await ctx.reactivate();
+                        await ctx.reactivateLocalisator();
                         await showPage(page);
                     }
                     break;

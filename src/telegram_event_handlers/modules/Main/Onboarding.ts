@@ -222,7 +222,7 @@ export default class OnboardingCommand extends Command {
                 break;
         }
 
-        await ctx.reactivate();
+        await ctx.reactivateLocalisator();
     }
 
     async applyAutoRenderSet(step: OnboardingStepsYesNo, value: BoolParams, ctx: UnifiedMessageContext) {
