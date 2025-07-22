@@ -311,7 +311,7 @@ class V2User implements APIUser {
     profileBackgroundUrl?: string;
     total_score?: number;
 
-    constructor(data: User) {
+    constructor(data: User, mode?: number) {
         this.id = data.id;
         this.nickname = data.username;
         this.playcount = data.statistics.play_count;
@@ -325,7 +325,7 @@ class V2User implements APIUser {
         this.accuracy = data.statistics.hit_accuracy;
         this.level = data.statistics.level.current;
         this.levelProgress = data.statistics.level.progress;
-        this.mode = getRulesetId(data.playmode);
+        this.mode = mode ?? getRulesetId(data.playmode);
         this.profileAvatarUrl = data.avatar_url;
         this.profileBackgroundUrl = data.cover?.url;
         this.grades = data.statistics?.grade_counts;
@@ -480,7 +480,7 @@ class BanchoAPIV2 implements IAPI {
             throw new Error("User not found");
         }
 
-        return new V2User(data);
+        return new V2User(data, mode);
     }
 
     async getUserById(id: number | string, mode?: number): Promise<APIUser> {
@@ -492,7 +492,7 @@ class BanchoAPIV2 implements IAPI {
             throw new Error("User not found");
         }
 
-        return new V2User(data);
+        return new V2User(data, mode);
     }
 
     async getUserRecent(nickname: string, mode?: number, limit?: number): Promise<APIScore> {
