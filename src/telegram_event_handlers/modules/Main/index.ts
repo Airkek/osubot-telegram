@@ -6,6 +6,7 @@ import StatusCommand from "./Status";
 import SearchCommand from "./Search";
 import ClearCommand from "./Clear";
 import SettingsCommand from "./Settings";
+import OnboardingCommand from "./Onboarding";
 
 export default class Main extends Module {
     constructor(bot: Bot) {
@@ -20,6 +21,7 @@ export default class Main extends Module {
             new SearchCommand(this),
             new ClearCommand(this),
             new SettingsCommand(this),
+            new OnboardingCommand(this),
         ]);
     }
 }

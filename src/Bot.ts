@@ -366,7 +366,7 @@ export class Bot {
 
     private configureCommandAliases(): void {
         const aliases: Record<string, string> = {
-            start: "osu help",
+            start: "osu onboarding",
             help: "osu help",
             settings: "osu settings",
             user: "s u",
