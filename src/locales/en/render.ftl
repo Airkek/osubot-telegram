@@ -27,5 +27,6 @@ render-timeout-warning-minutes = Replay rendering is available once every { $min
 
 experimental-gamemode-unavailable = This game mode is only supported by the experimental renderer, which is currently unavailable. Please try again later.
 renderer-unavailable = The selected renderer ({$renderer}) is currently unavailable. Please try again later or change the renderer in the settings. To do this, enter /settings in private messages with the bot.
+renderer-no-replay-frames = The replay has no data to render. Try re-exporting it in osu!.
 renderer-max-length-exceeded = The maximum beatmap length for rendering is {$max_minutes} minutes.
 renderer-max-starrate-exceeded = This mode supports replay rendering only for maps up to {$max_stars} stars.

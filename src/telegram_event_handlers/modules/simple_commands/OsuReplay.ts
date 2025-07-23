@@ -120,6 +120,12 @@ export class OsuReplay extends Command {
                 }
             }
 
+            if (needRender && (!score.replay?.frames || score.replay.frames.length < 1)) {
+                renderAdditional = "\n\n" + ctx.tr("renderer-no-replay-frames");
+                needRender = false;
+                this.removeLimit(ctx.senderId);
+            }
+
             if (needRender) {
                 const rendererAvailable = await renderer.available();
                 if (!rendererAvailable) {
