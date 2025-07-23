@@ -41,6 +41,7 @@ export class Command {
         if (!this.permission(ctx)) {
             return;
         }
+        await ctx.activateLocalisator();
         const timer = Util.timer();
 
         try {

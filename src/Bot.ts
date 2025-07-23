@@ -313,7 +313,8 @@ export class Bot {
                     errorText = String(e);
                 }
 
-                await ctx.reply(`${Util.error(errorText, ctx)} (${err})`);
+                await context.activateLocalisator();
+                await context.reply(`${Util.error(errorText, context)} (${err})`);
             } finally {
                 if (res) {
                     this.pendingCallbacks[ticket] = undefined;
@@ -336,7 +337,6 @@ export class Bot {
                 continue;
             }
 
-            await ctx.activateLocalisator();
             if (ctx.isInGroupChat) {
                 const inChat = await this.database.chats.isUserInChat(ctx.senderId, ctx.chatId);
                 if (!inChat) {
