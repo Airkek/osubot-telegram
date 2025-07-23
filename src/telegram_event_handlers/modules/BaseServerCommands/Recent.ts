@@ -1,9 +1,7 @@
 import { ServerModule } from "../Module";
-import Calculator from "../../../osu_specific/pp/bancho";
 import { IKeyboard } from "../../../Util";
 import { ServerCommand } from "../../ServerCommand";
 import { APIScore } from "../../../Types";
-import { InputFile } from "grammy";
 import { IBeatmap } from "../../../beatmaps/BeatmapTypes";
 
 export default class AbstractRecent extends ServerCommand {
@@ -62,31 +60,16 @@ export default class AbstractRecent extends ServerCommand {
                     }
                 }
 
-                let responseMessage = "";
-
-                let cover: string | InputFile;
-                if (await self.ctx.preferCardsOutput()) {
-                    cover = new InputFile(await self.module.bot.okiChanCards.generateScoreCard(recent, map, self.ctx));
-                    const beatmapUrl = map.url ?? `${self.module.link}/b/${map.id}`;
-                    responseMessage += `${self.ctx.tr("score-beatmap-link")}: ${beatmapUrl}`;
-                } else {
-                    const calculator = new Calculator(map, recent.mods);
-                    if (map.coverUrl) {
-                        cover = await self.module.bot.database.covers.getPhotoDoc(map.coverUrl);
-                    } else {
-                        cover = await self.module.bot.database.covers.getCover(map.setId);
-                    }
-                    responseMessage = self.module.bot.templates.ScoreFull(
-                        self.ctx,
-                        recent,
-                        map,
-                        calculator,
-                        self.module.link
-                    );
-                }
-                await self.reply(responseMessage, {
-                    photo: cover,
-                    keyboard: keyboard,
+                const replyData = await this.module.bot.replyUtils.scoreData(
+                    self.ctx,
+                    self.ctx,
+                    recent,
+                    map,
+                    self.module.link
+                );
+                await self.reply(replyData.text, {
+                    keyboard,
+                    photo: replyData.photo,
                 });
 
                 self.module.bot.maps.setMap(self.ctx.chatId, map);

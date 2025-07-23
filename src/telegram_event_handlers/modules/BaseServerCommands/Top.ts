@@ -1,10 +1,9 @@
 import { ServerModule } from "../Module";
-import Util, { IKeyboard } from "../../../Util";
-import BanchoPP from "../../../osu_specific/pp/bancho";
+import { IKeyboard } from "../../../Util";
 import Mods from "../../../osu_specific/pp/Mods";
 import { ServerCommand, CommandContext } from "../../ServerCommand";
 import { Mode, APIUser, APIScore } from "../../../Types";
-import { GrammyError, InputFile } from "grammy";
+import { GrammyError } from "grammy";
 import { IBeatmap } from "../../../beatmaps/BeatmapTypes";
 import { ILocalisator } from "../../../ILocalisator";
 
@@ -157,36 +156,23 @@ export default class AbstractTop extends ServerCommand {
         const startI = (page - 1) * scoresOnPage;
         const endI = startI + scoresOnPage;
 
-        const topThree = scores.slice(startI, endI);
-        const maps = await Promise.all(topThree.map((score) => this.resolveBeatmap(context, score, mode)));
+        const topScores = scores.slice(startI, endI);
+        const maps = await Promise.all(topScores.map((score) => this.resolveBeatmap(context, score, mode)));
 
         const keyboard = this.createPageKeyboard(context, maxPage, page, user, mode);
 
-        let message = "";
-        let photo: InputFile = undefined;
-        if (needCards) {
-            photo = new InputFile(await this.module.bot.okiChanCards.generateTopScoresCard(topThree, maps, user, l));
-        } else {
-            const response = maps
-                .map((map, i) => {
-                    const calc = new BanchoPP(map, topThree[i].mods);
-                    return context.module.bot.templates.TopScore(
-                        l,
-                        topThree[i],
-                        map,
-                        startI + i + 1,
-                        calc,
-                        context.module.link
-                    );
-                })
-                .join("\n");
-            message = `${l.tr("players-top-scores", {
-                player_name: user.nickname,
-            })} [${Util.profileModes[mode]}]:\n${response}`;
-        }
+        const data = await context.module.bot.replyUtils.topScores(
+            l,
+            context.ctx,
+            user,
+            topScores,
+            maps,
+            context.module.link,
+            startI + 1
+        );
         if (context.isPayload) {
             try {
-                await context.edit(message, { keyboard, photo });
+                await context.edit(data.text, { keyboard, photo: data.photo });
             } catch (e) {
                 if (e instanceof GrammyError && e.message.includes("message is not modified")) {
                     await context.answer(l.tr("no-updates-notification"));
@@ -195,7 +181,7 @@ export default class AbstractTop extends ServerCommand {
                 throw e;
             }
         } else {
-            await context.reply(message, { keyboard, photo });
+            await context.reply(data.text, { keyboard, photo: data.photo });
         }
     }
 
@@ -217,27 +203,14 @@ export default class AbstractTop extends ServerCommand {
         l: ILocalisator
     ) {
         const map = await this.resolveBeatmap(context, score, mode);
-        let cover: string | InputFile;
-
-        let message = `${header} ${user.nickname} (${Mode[score.mode]})`;
-
-        if (await context.ctx.preferCardsOutput()) {
-            cover = new InputFile(await context.module.bot.okiChanCards.generateScoreCard(score, map, context.ctx));
-            const beatmapUrl = map.url ?? `${context.module.link}/b/${map.id}`;
-            message += `\n\n${context.ctx.tr("score-beatmap-link")}: ${beatmapUrl}`;
-        } else {
-            const ppCalc = new BanchoPP(map, score.mods);
-            if (map.coverUrl) {
-                cover = await context.module.bot.database.covers.getPhotoDoc(map.coverUrl);
-            } else {
-                cover = await context.module.bot.database.covers.getCover(map.setId);
-            }
-            message += ":\n" + context.module.bot.templates.ScoreFull(l, score, map, ppCalc, context.module.link);
-        }
-
+        const message = `${header} ${user.nickname} (${Mode[score.mode]})`;
         const keyboard = this.createScoreKeyboard(context, map.id, score);
 
-        await context.reply(message, { photo: cover, keyboard });
+        const replyData = await this.module.bot.replyUtils.scoreData(l, context.ctx, score, map, context.module.link);
+        await context.reply(message + "\n\n" + replyData.text, {
+            keyboard,
+            photo: replyData.photo,
+        });
         context.module.bot.maps.setMap(context.ctx.chatId, map);
     }
 

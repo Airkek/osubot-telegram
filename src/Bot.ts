@@ -34,6 +34,7 @@ import RippleRelax from "./telegram_event_handlers/modules/RippleRelax";
 import { setInterval, clearInterval } from "node:timers";
 import { PACKAGE_VERSION } from "./version";
 import path from "path";
+import { ReplyUtils } from "./telegram_event_handlers/utils/ReplyUtils";
 
 export interface IBotConfig {
     tg: {
@@ -63,6 +64,8 @@ export class Bot {
     public readonly banchoApi: BanchoAPIV2; // TODO: make private
 
     public readonly okiChanCards: OkiCardsGenerator = new OkiCardsGenerator();
+
+    public readonly replyUtils: ReplyUtils;
 
     private readonly pendingCallbacks: { [id: string]: PendingCallback } = {};
 
@@ -102,6 +105,8 @@ export class Bot {
         this.track = new OsuTrackAPI();
 
         this.version = PACKAGE_VERSION;
+
+        this.replyUtils = new ReplyUtils(this.okiChanCards, this.templates, this.database.covers);
 
         this._initializationPromise = this.initialize();
     }

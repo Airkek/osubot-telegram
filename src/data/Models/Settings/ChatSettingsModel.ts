@@ -16,7 +16,7 @@ export class ChatSettingsModel {
     }
 
     async getChatSettings(id: number): Promise<ChatSettings | null> {
-        const res = await this.db.get("SELECT * FROM chat_settings WHERE chat_id = $1", [id]);
+        const res = await this.db.get<ChatSettings>("SELECT * FROM chat_settings WHERE chat_id = $1", [id]);
         if (!res) {
             await this.db.run("INSERT INTO chat_settings (chat_id) VALUES ($1)", [id]);
             return await this.getChatSettings(id);

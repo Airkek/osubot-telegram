@@ -15,7 +15,7 @@ export default function (
     return `#${place}
 ${Util.formatBeatmap(beatmap)} ${score.mods}
 ${l.tr("score-grade")}: ${score.rank} → ${Util.formatCombo(score.combo, beatmap.maxCombo)}
-${l.tr("score-accuracy")}: ${Util.round(score.accuracy() * 100, 2)}% → ${score.counts}
+${l.tr("score-accuracy")}: ${(score.accuracy() * 100).toFixed(2)}% → ${score.counts}
 PP: ${Util.round(score.pp, 2)}
 ${Util.formatDate(score.date)}
 ${beatmap.url ?? `${link}/b/${beatmap.id}`}`;

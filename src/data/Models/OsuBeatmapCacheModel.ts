@@ -28,11 +28,11 @@ export class OsuBeatmapCacheModel {
     }
 
     async getBeatmapById(id: number): Promise<IOsuBeatmapMetadata | null> {
-        return await this.db.get("SELECT * FROM osu_beatmap_metadata WHERE id = $1", [id]);
+        return await this.db.get<IOsuBeatmapMetadata>("SELECT * FROM osu_beatmap_metadata WHERE id = $1", [id]);
     }
 
     async getBeatmapByHash(hash: string): Promise<IOsuBeatmapMetadata | null> {
-        return await this.db.get("SELECT * FROM osu_beatmap_metadata WHERE hash = $1", [hash]);
+        return await this.db.get<IOsuBeatmapMetadata>("SELECT * FROM osu_beatmap_metadata WHERE hash = $1", [hash]);
     }
 
     async addToCache(map: OsuBeatmap): Promise<void> {

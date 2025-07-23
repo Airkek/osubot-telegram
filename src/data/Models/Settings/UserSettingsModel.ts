@@ -30,7 +30,7 @@ export class UserSettingsModel {
     }
 
     async getUserSettings(id: number): Promise<UserSettings | null> {
-        const res = await this.db.get("SELECT * FROM settings WHERE user_id = $1", [id]);
+        const res = await this.db.get<UserSettings>("SELECT * FROM settings WHERE user_id = $1", [id]);
         if (!res) {
             await this.db.run("INSERT INTO settings (user_id) VALUES ($1)", [id]);
             return await this.getUserSettings(id);

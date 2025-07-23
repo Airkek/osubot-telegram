@@ -395,7 +395,8 @@ const migrations: IMigration[] = [
             await db.run("SELECT create_hypertable('bot_events_startup', 'time')");
 
             // count metrics
-            const metrics = await db.all(`SELECT time, event_type, event_data ->> 'count' as count
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const metrics = await db.all<any>(`SELECT time, event_type, event_data ->> 'count' as count
                                           FROM bot_events
                                           WHERE event_type IN ('user_count', 'chat_count', 'cached_beatmap_files_count',
                                                                'cached_beatmap_metadata_count')`);
@@ -412,7 +413,8 @@ const migrations: IMigration[] = [
                                                'cached_beatmap_metadata_count')`);
 
             // render_start, render_success, render_failed
-            const renders = await db.all(`SELECT time,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const renders = await db.all<any>(`SELECT time,
                                                  event_type,
                                                  user_id,
                                                  chat_id,
@@ -434,7 +436,8 @@ const migrations: IMigration[] = [
             );
 
             // command_used
-            const commands = await db.all(`SELECT time,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const commands = await db.all<any>(`SELECT time,
                                                   user_id,
                                                   chat_id,
                                                   event_data ->> 'module'     as module,
@@ -453,7 +456,8 @@ const migrations: IMigration[] = [
             await db.run("DELETE FROM bot_events WHERE event_type = 'command_used'");
 
             // bot_startup
-            const startups = await db.all(`SELECT time,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const startups = await db.all<any>(`SELECT time,
                                                   event_data ->> 'id'         as id,
                                                   event_data ->> 'username'   as username,
                                                   event_data ->> 'first_name' as first_name,
@@ -490,7 +494,7 @@ const migrations: IMigration[] = [
 export async function applyMigrations(db: Database) {
     global.logger.info("Applying migrations");
     const applied = new Set<number>();
-    const dbData: IMigration[] = await db.all("SELECT version FROM migrations");
+    const dbData: IMigration[] = await db.all<IMigration>("SELECT version FROM migrations");
     for (const m of dbData) {
         applied.add(m.version);
     }

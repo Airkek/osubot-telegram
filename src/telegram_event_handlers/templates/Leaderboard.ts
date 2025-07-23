@@ -20,7 +20,7 @@ export default function (l: ILocalisator, leaderboard: LeaderboardResponse): str
                     `#${i + 1} ${lbscore.user.nickname} | ` +
                     `${lbscore.score.score?.toLocaleString()} | ` +
                     `${Util.formatCombo(lbscore.score.combo, map.maxCombo)} | ` +
-                    `${Util.round(lbscore.score.accuracy() * 100, 2)}% | ` +
+                    `${(lbscore.score.accuracy() * 100).toFixed(2)}% | ` +
                     `${missLike.name}: ${missLike.value} | ` +
                     `${Util.round(lbscore.score.pp, 2)}pp ` +
                     `${lbscore.score.mods} | ` +

@@ -28,7 +28,7 @@ export class FeatureControlModel {
             return this.cache.get(feature)!;
         }
 
-        const featureStatus: FeatureControlSchema = await this.db.get(
+        const featureStatus = await this.db.get<FeatureControlSchema>(
             "SELECT * FROM feature_control WHERE feature = $1",
             [feature]
         );
@@ -53,7 +53,7 @@ export class FeatureControlModel {
     }
 
     async listFeatures(): Promise<FeatureControlSchema[]> {
-        return await this.db.all("SELECT * FROM feature_control");
+        return await this.db.all<FeatureControlSchema>("SELECT * FROM feature_control");
     }
 
     clearCache(): void {

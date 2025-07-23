@@ -1,7 +1,7 @@
 import { Command } from "../../Command";
 import { SimpleCommandsModule } from "./index";
 import Mods from "../../../osu_specific/pp/Mods";
-import { InputFile } from "grammy";
+import { PPArgs } from "../../../Types";
 
 export class MapStats extends Command {
     constructor(module: SimpleCommandsModule) {
@@ -15,19 +15,27 @@ export class MapStats extends Command {
             const map = await module.bot.osuBeatmapProvider.getBeatmapById(chat.map.id, chat.map.mode);
             await map.applyMods(mods);
 
-            if (await ctx.preferCardsOutput()) {
-                const photo = await module.bot.okiChanCards.generateBeatmapPPCard(map, ctx, args);
+            const hits = map.hitObjectsCount;
+            const accuracy = args.acc / 100 || 1;
+            const maxCombo = args.combo ? Math.min(map.maxCombo, Math.max(1, args.combo)) : map.maxCombo;
+            const missCount = args.miss ? Math.min(hits, Math.max(0, args.miss)) : 0;
 
-                const beatmapUrl = `https://osu.ppy.sh/b/${map.id}`;
-                await ctx.reply(`${ctx.tr("score-beatmap-link")}: ${beatmapUrl}`, {
-                    photo: new InputFile(photo),
-                });
-            } else {
-                const cover = await module.bot.database.covers.getCover(map.setId);
-                await ctx.reply(module.bot.templates.PP(ctx, map, args), {
-                    photo: cover,
-                });
-            }
+            const ppArgs: PPArgs = {
+                acc: accuracy,
+                combo: maxCombo,
+                hits,
+                miss: missCount,
+                mods: new Mods(args.mods),
+                counts: {
+                    50: args.c50,
+                },
+            };
+
+            const data = await this.module.bot.replyUtils.beatmapPP(ctx, ctx, map, ppArgs);
+
+            await ctx.reply(data.text, {
+                photo: data.photo,
+            });
         });
     }
 

@@ -2,7 +2,7 @@ import path from "path";
 import fs from "fs";
 import axios from "axios";
 import Canvas, { GlobalFonts, SKRSContext2D } from "@napi-rs/canvas";
-import { APIScore, APIUser } from "../Types";
+import { APIScore, APIUser, PPArgs } from "../Types";
 import * as OkiColors from "./utils/OkiColors";
 import * as OkiFormat from "./utils/OkiFormat";
 import { ILocalisator } from "../ILocalisator";
@@ -11,7 +11,6 @@ import { IBeatmap } from "../beatmaps/BeatmapTypes";
 import BanchoPP from "../osu_specific/pp/bancho";
 import { OsuBeatmap } from "../beatmaps/osu/OsuBeatmap";
 import Mods from "../osu_specific/pp/Mods";
-import { ICommandArgs } from "../telegram_event_handlers/Command";
 import { BeatLeaderBeatmap } from "../beatmaps/beatsaber/BeatLeaderBeatmap";
 import { ScoreSaberBeatmap } from "../beatmaps/beatsaber/ScoreSaberBeatmap";
 
@@ -860,7 +859,57 @@ export class OkiCardsGenerator {
         return canvas.toBuffer("image/png");
     }
 
-    async generateBeatmapPPCard(beatmap: IBeatmap, l: ILocalisator, args?: ICommandArgs): Promise<Buffer> {
+    async generateBeatmapInfoCard(beatmap: IBeatmap): Promise<Buffer> {
+        const canvas = Canvas.createCanvas(1080, 620);
+        const ctx = canvas.getContext("2d");
+
+        const color = await this.drawFullBeatmap(ctx, beatmap);
+
+        if (beatmap instanceof OsuBeatmap) {
+            const calc = new BanchoPP(beatmap, beatmap.currentMods);
+            const hits = beatmap.hitObjectsCount;
+
+            // Удаляем args и задаем фиксированные значения для расчета PP
+            const ppValues = [
+                { acc: 0.95, label: "95%" },
+                { acc: 0.98, label: "98%" },
+                { acc: 0.99, label: "99%" },
+                { acc: 1.0, label: "100%" },
+            ];
+
+            ctx.fillStyle = color.foreground;
+            ctx.strokeStyle = color.foreground;
+            ctx.textAlign = "left";
+            ctx.font = "30px VarelaRound, NotoSansSC";
+
+            let yPosition = 459 + 22; // Начальная позиция по Y
+
+            ppValues.forEach((item) => {
+                const ppArgs = Util.createPPArgs(
+                    {
+                        acc: item.acc,
+                        combo: beatmap.maxCombo, // Максимальное комбо
+                        hits,
+                        miss: 0, // Без миссов
+                        mods: beatmap.currentMods,
+                        counts: { 50: 0 }, // Без 50
+                    },
+                    beatmap.mode
+                );
+
+                const pp = calc.calculate(ppArgs);
+                const ppText = `${item.label}: ${pp.pp.toFixed(2)}pp`;
+
+                ctx.fillText(ppText, 629, yPosition);
+                ctx.strokeText(ppText, 629, yPosition);
+
+                yPosition += 36; // Отступ между строками
+            });
+        }
+
+        return canvas.toBuffer("image/png");
+    }
+    async generateBeatmapPPCard(beatmap: IBeatmap, l: ILocalisator, args?: PPArgs): Promise<Buffer> {
         const canvas = Canvas.createCanvas(1080, 620);
         const ctx = canvas.getContext("2d");
 
@@ -869,25 +918,7 @@ export class OkiCardsGenerator {
         if (beatmap instanceof OsuBeatmap) {
             // pp
             const calc = new BanchoPP(beatmap, beatmap.currentMods);
-            const hits = beatmap.hitObjectsCount;
-            const accuracy = args?.acc / 100 || 1;
-            const desiredCombo = args?.combo ? Math.min(beatmap.maxCombo, Math.max(1, args.combo)) : beatmap.maxCombo;
-            const missCount = args?.miss ? Math.min(hits, Math.max(0, args.miss)) : 0;
-
-            const ppArgs = Util.createPPArgs(
-                {
-                    acc: accuracy,
-                    combo: desiredCombo,
-                    hits,
-                    miss: missCount,
-                    mods: beatmap.currentMods,
-                    counts: {
-                        50: args?.c50 ?? 0,
-                    },
-                },
-                beatmap.mode
-            );
-
+            const ppArgs = Util.createPPArgs(args, beatmap.mode);
             const pp = calc.calculate(ppArgs);
 
             ctx.fillStyle = color.foreground;
@@ -900,7 +931,7 @@ export class OkiCardsGenerator {
             ctx.fillText(accText, 629, 459 + 22);
             ctx.strokeText(accText, 629, 459 + 22);
 
-            const accVal = (accuracy * 100).toFixed(2) + "%";
+            const accVal = (ppArgs.acc * 100).toFixed(2) + "%";
             ctx.fillText(accVal, 629 + accWidth, 459 + 22);
             ctx.strokeText(accVal, 629 + accWidth, 459 + 22);
 
@@ -909,7 +940,7 @@ export class OkiCardsGenerator {
             ctx.fillText(comboText, 629, 495 + 22);
             ctx.strokeText(comboText, 629, 495 + 22);
 
-            const comboVal = Util.formatCombo(desiredCombo, beatmap.maxCombo);
+            const comboVal = Util.formatCombo(ppArgs.combo, beatmap.maxCombo);
             ctx.fillText(comboVal, 629 + comboWidth, 495 + 22);
             ctx.strokeText(comboVal, 629 + comboWidth, 495 + 22);
 
@@ -918,7 +949,7 @@ export class OkiCardsGenerator {
             ctx.fillText(missText, 629, 531 + 22);
             ctx.strokeText(missText, 629, 531 + 22);
 
-            const missVal = missCount.toString();
+            const missVal = ppArgs.counts.hitData.miss.toString();
             ctx.fillText(missVal, 629 + missWidth, 531 + 22);
             ctx.strokeText(missVal, 629 + missWidth, 531 + 22);
 
@@ -1058,7 +1089,7 @@ export class OkiCardsGenerator {
             ctx.textAlign = "left";
             ctx.font = "bold 20px Torus";
             ctx.fillStyle = "#FFCC22";
-            ctx.fillText(`${Util.round(score.accuracy() * 100, 2)}%`, 950, startpos + 35);
+            ctx.fillText(`${(score.accuracy() * 100).toFixed(2)}%`, 950, startpos + 35);
 
             await this.drawMods(ctx, score.mods, 935, startpos + 10, 32);
 
@@ -1235,7 +1266,7 @@ export class OkiCardsGenerator {
                 },
                 {
                     text: l.tr("player-accuracy"),
-                    value: Util.round(user.accuracy, 2).toLocaleString() + "%",
+                    value: user.accuracy.toFixed(2) + "%",
                 },
                 {
                     text: l.tr("player-playtime"),

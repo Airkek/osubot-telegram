@@ -1,6 +1,4 @@
-/* eslint-disable  @typescript-eslint/no-explicit-any */
-
-import { Bot as TG, InputFile } from "grammy";
+import { Bot as TG } from "grammy";
 import { Pool, QueryResult } from "pg";
 import { APIUser, IDatabaseServer, IDatabaseUser, IDatabaseUserStats } from "../Types";
 import UnifiedMessageContext from "../TelegramSupport";
@@ -12,6 +10,8 @@ import { ChatSettingsModel } from "./Models/Settings/ChatSettingsModel";
 import { UserSettingsModel } from "./Models/Settings/UserSettingsModel";
 import { OsuBeatmapCacheModel } from "./Models/OsuBeatmapCacheModel";
 import { StatisticsModel } from "./Models/StatisticsModel";
+import { CoversModel } from "./Models/CoversModel";
+import { ChatMembersModel } from "./Models/ChatMembersModel";
 
 // TODO: move all classes to src/data/Models/Settings
 class DatabaseServer implements IDatabaseServer {
@@ -24,11 +24,17 @@ class DatabaseServer implements IDatabaseServer {
     }
 
     async getUser(id: number): Promise<IDatabaseUser | null> {
-        return await this.db.get("SELECT * FROM users WHERE id = $1 AND server = $2", [id, this.serverName]);
+        return await this.db.get<IDatabaseUser>("SELECT * FROM users WHERE id = $1 AND server = $2", [
+            id,
+            this.serverName,
+        ]);
     }
 
     async findByUserId(id: number | string): Promise<IDatabaseUser[]> {
-        return await this.db.all("SELECT * FROM users WHERE game_id = $1 AND server = $2", [id, this.serverName]);
+        return await this.db.all<IDatabaseUser>("SELECT * FROM users WHERE game_id = $1 AND server = $2", [
+            id,
+            this.serverName,
+        ]);
     }
 
     async setNickname(id: number, game_id: number | string, nickname: string, mode: number = 0): Promise<void> {
@@ -61,11 +67,10 @@ class DatabaseServer implements IDatabaseServer {
     }
 
     async updateInfo(user: APIUser, mode: number): Promise<void> {
-        const dbUser = await this.db.get("SELECT * FROM stats WHERE id = $1 AND mode = $2 AND server = $3 LIMIT 1", [
-            user.id,
-            mode,
-            this.serverName,
-        ]);
+        const dbUser = await this.db.get<IDatabaseUserStats>(
+            "SELECT * FROM stats WHERE id = $1 AND mode = $2 AND server = $3 LIMIT 1",
+            [user.id, mode, this.serverName]
+        );
         if (!dbUser) {
             await this.db.run(
                 "INSERT INTO stats (id, nickname, pp, rank, acc, mode, server) VALUES ($1, $2, $3, $4, $5, $6, $7)",
@@ -84,116 +89,15 @@ class DatabaseServer implements IDatabaseServer {
         if (!u) {
             return null;
         }
-        return await this.db.get("SELECT * FROM stats WHERE id = $1 AND mode = $2 AND server = $3", [
-            u.game_id,
-            mode,
-            this.serverName,
-        ]);
+        return await this.db.get<IDatabaseUserStats>(
+            "SELECT * FROM stats WHERE id = $1 AND mode = $2 AND server = $3",
+            [u.game_id, mode, this.serverName]
+        );
     }
 }
 
-class DatabaseCovers {
-    private readonly db: Database;
-    private readonly tg: TG;
-    private readonly owner: number;
-
-    constructor(db: Database, tg: TG, owner: number) {
-        this.db = db;
-        this.tg = tg;
-        this.owner = owner;
-    }
-
-    async addCover(id: number): Promise<string> {
-        try {
-            const file = new InputFile(new URL(`https://assets.ppy.sh/beatmaps/${id}/covers/cover@2x.jpg`));
-            const send = await this.tg.api.sendPhoto(this.owner, file);
-            const photo = send.photo[0].file_id;
-
-            await this.db.run("INSERT INTO covers (id, attachment) VALUES ($1, $2)", [id, photo.toString()]);
-
-            return photo.toString();
-        } catch {
-            return "";
-        }
-    }
-
-    async getCover(id: number): Promise<string> {
-        const cover = await this.db.get("SELECT * FROM covers WHERE id = $1", [id]);
-        if (!cover) {
-            return this.addCover(id);
-        }
-        return cover.attachment;
-    }
-
-    async addPhotoDoc(photoUrl: string): Promise<string> {
-        try {
-            const file = new InputFile(new URL(photoUrl));
-            const send = await this.tg.api.sendPhoto(this.owner, file);
-            const photo = send.photo[0].file_id;
-
-            await this.db.run("INSERT INTO photos (url, attachment) VALUES ($1, $2)", [photoUrl, photo.toString()]);
-
-            return photo.toString();
-        } catch {
-            return "";
-        }
-    }
-
-    async getPhotoDoc(photoUrl: string): Promise<string> {
-        const cover = await this.db.get("SELECT * FROM photos WHERE url = $1", [photoUrl]);
-        if (!cover) {
-            return this.addPhotoDoc(photoUrl);
-        }
-        return cover.attachment;
-    }
-
-    async removeEmpty() {
-        await this.db.run("DELETE FROM covers WHERE attachment = $1", [""]);
-        await this.db.run("DELETE FROM photos WHERE attachment = $1", [""]);
-    }
-}
-
-class DatabaseUsersToChat {
-    db: Database;
-
-    constructor(db: Database) {
-        this.db = db;
-    }
-
-    async userJoined(userId: number, chatId: number): Promise<void> {
-        await this.db.run("INSERT INTO users_to_chat (user_id, chat_id) VALUES ($1, $2)", [userId, chatId]);
-    }
-
-    async userLeft(userId: number, chatId: number): Promise<void> {
-        await this.db.run("DELETE FROM users_to_chat WHERE user_id = $1 AND chat_id = $2", [userId, chatId]);
-    }
-
-    async getChatUsers(chatId: number): Promise<number[]> {
-        const users = await this.db.all("SELECT * FROM users_to_chat WHERE chat_id = $1", [chatId]);
-        return users.map((u) => u.user_id);
-    }
-
-    async removeChat(chatId: number): Promise<void> {
-        await this.db.run("DELETE FROM users_to_chat WHERE chat_id = $1", [chatId]);
-    }
-
-    async getChats(): Promise<number[]> {
-        const chats = await this.db.all("SELECT DISTINCT chat_id FROM users_to_chat");
-        return chats.map((chat) => chat.chat_id);
-    }
-
-    async getChatCount(): Promise<number> {
-        const result = await this.db.get("SELECT COUNT(DISTINCT chat_id) AS count FROM users_to_chat");
-        return result.count;
-    }
-
-    async isUserInChat(userId: number, chatId: number): Promise<boolean> {
-        const user = await this.db.get("SELECT * FROM users_to_chat WHERE user_id = $1 AND chat_id = $2", [
-            userId,
-            chatId,
-        ]);
-        return !!user;
-    }
+interface IgnoredUsers {
+    id: number;
 }
 
 class DatabaseIgnore {
@@ -204,7 +108,7 @@ class DatabaseIgnore {
     }
 
     async getIgnoredUsers(): Promise<number[]> {
-        const users = await this.db.all("SELECT id FROM ignored_users");
+        const users = await this.db.all<IgnoredUsers>("SELECT id FROM ignored_users");
         return users.map((u) => Number(u.id));
     }
 
@@ -268,7 +172,7 @@ class DatabaseErrors {
     }
 
     async getError(code: string): Promise<IDatabaseError | null> {
-        return await this.db.get("SELECT * FROM errors WHERE code = $1", [code]);
+        return await this.db.get<IDatabaseError>("SELECT * FROM errors WHERE code = $1", [code]);
     }
 
     async clear() {
@@ -288,9 +192,9 @@ interface IServersList {
 export default class Database {
     // TODO: move out of there
     readonly servers: IServersList;
-    readonly covers: DatabaseCovers;
+    readonly covers: CoversModel;
     readonly errors: DatabaseErrors;
-    readonly chats: DatabaseUsersToChat;
+    readonly chats: ChatMembersModel;
     readonly ignore: DatabaseIgnore;
     readonly drop: DatabaseDrop;
     readonly osuBeatmapMeta: OsuBeatmapCacheModel;
@@ -317,9 +221,9 @@ export default class Database {
             scoresaber: new DatabaseServer("scoresaber", this),
         };
 
-        this.covers = new DatabaseCovers(this, this.tg, this.owner);
+        this.covers = new CoversModel(this, this.tg, this.owner);
         this.errors = new DatabaseErrors(this);
-        this.chats = new DatabaseUsersToChat(this);
+        this.chats = new ChatMembersModel(this);
         this.ignore = new DatabaseIgnore(this);
         this.drop = new DatabaseDrop(this);
         this.osuBeatmapMeta = new OsuBeatmapCacheModel(this);
@@ -338,9 +242,10 @@ export default class Database {
         });
     }
 
-    async get(stmt: string, opts: any[] = []): Promise<any> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    async get<T>(stmt: string, opts: any[] = []): Promise<T> {
         return new Promise((resolve, reject) => {
-            this.db.query(stmt, opts, (err: Error, res: QueryResult<any>) => {
+            this.db.query(stmt, opts, (err: Error, res: QueryResult<T>) => {
                 if (err) {
                     reject(err);
                 } else {
@@ -350,9 +255,10 @@ export default class Database {
         });
     }
 
-    async all(stmt: string, opts: any[] = []): Promise<any[]> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    async all<T>(stmt: string, opts: any[] = []): Promise<T[]> {
         return new Promise((resolve, reject) => {
-            this.db.query(stmt, opts, (err: Error, res: QueryResult<any>) => {
+            this.db.query(stmt, opts, (err: Error, res: QueryResult<T>) => {
                 if (err) {
                     reject(err);
                 } else {
@@ -362,9 +268,10 @@ export default class Database {
         });
     }
 
-    async run(stmt: string, opts: any[] = []): Promise<QueryResult<any>> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    async run(stmt: string, opts: any[] = []): Promise<QueryResult<unknown>> {
         return new Promise((resolve, reject) => {
-            this.db.query(stmt, opts, (err: Error, res: QueryResult<any>) => {
+            this.db.query(stmt, opts, (err: Error, res: QueryResult<unknown>) => {
                 if (err) {
                     reject(err);
                 } else {

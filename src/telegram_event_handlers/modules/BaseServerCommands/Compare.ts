@@ -3,8 +3,6 @@ import Mods from "../../../osu_specific/pp/Mods";
 import { ServerCommand } from "../../ServerCommand";
 import { IBeatmap } from "../../../beatmaps/BeatmapTypes";
 import { IKeyboard } from "../../../Util";
-import { InputFile } from "grammy";
-import BanchoPP from "../../../osu_specific/pp/bancho";
 
 export default class AbstractCompare extends ServerCommand {
     constructor(module: ServerModule) {
@@ -36,7 +34,6 @@ export default class AbstractCompare extends ServerCommand {
                     map = await self.module.beatmapProvider.getBeatmapById(chat.map.id, score.mode);
                     await map.applyMods(score.mods);
                 }
-                let cover: string | InputFile;
 
                 const buttons: IKeyboard = [];
                 if (score.has_replay && score.api_score_id) {
@@ -50,26 +47,20 @@ export default class AbstractCompare extends ServerCommand {
                     }
                 }
 
-                let message = self.ctx.tr("best-players-score-on-this-beatmap");
-                if (await self.ctx.preferCardsOutput()) {
-                    cover = new InputFile(await self.module.bot.okiChanCards.generateScoreCard(score, map, self.ctx));
-                    const beatmapUrl = map.url ?? `${self.module.link}/b/${map.id}`;
-                    message += `\n\n${self.ctx.tr("score-beatmap-link")}: ${beatmapUrl}`;
-                } else {
-                    const ppCalc = new BanchoPP(map, score.mods);
-                    if (map.coverUrl) {
-                        cover = await self.module.bot.database.covers.getPhotoDoc(map.coverUrl);
-                    } else {
-                        cover = await self.module.bot.database.covers.getCover(map.setId);
-                    }
-                    message +=
-                        ":\n" + self.module.bot.templates.ScoreFull(self.ctx, score, map, ppCalc, self.module.link);
-                }
-
-                await self.reply(message, {
-                    photo: cover,
+                const message = self.ctx.tr("best-players-score-on-this-beatmap");
+                const replyData = await this.module.bot.replyUtils.scoreData(
+                    self.ctx,
+                    self.ctx,
+                    score,
+                    map,
+                    self.module.link
+                );
+                await self.reply(message + "\n\n" + replyData.text, {
                     keyboard: buttons,
+                    photo: replyData.photo,
                 });
+
+                self.module.bot.maps.setMap(self.ctx.chatId, map);
             },
             true
         );

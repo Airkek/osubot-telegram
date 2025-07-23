@@ -8,6 +8,10 @@ type RenderEvents = "render_start" | "render_success" | "render_failed";
 type Metrics = "user_count" | "chat_count" | "cached_beatmap_files_count" | "cached_beatmap_metadata_count";
 type RawEvents = "new_message";
 
+interface Counter {
+    count: number;
+}
+
 export class StatisticsModel {
     private readonly db: Database;
 
@@ -16,7 +20,7 @@ export class StatisticsModel {
     }
 
     public async logUserCount() {
-        const result = await this.db.get("SELECT COUNT(DISTINCT id) AS count FROM users");
+        const result = await this.db.get<Counter>("SELECT COUNT(DISTINCT id) AS count FROM users");
         if (!result.count) {
             return;
         }
@@ -25,7 +29,7 @@ export class StatisticsModel {
     }
 
     public async logChatCount() {
-        const result = await this.db.get("SELECT COUNT(DISTINCT chat_id) AS count FROM users_to_chat");
+        const result = await this.db.get<Counter>("SELECT COUNT(DISTINCT chat_id) AS count FROM users_to_chat");
         if (!result.count) {
             return;
         }
@@ -33,7 +37,7 @@ export class StatisticsModel {
     }
 
     public async logBeatmapMetadataCacheCount() {
-        const result = await this.db.get("SELECT COUNT(*) AS count FROM osu_beatmap_metadata");
+        const result = await this.db.get<Counter>("SELECT COUNT(*) AS count FROM osu_beatmap_metadata");
         if (!result.count) {
             return;
         }

@@ -1,7 +1,6 @@
 import { ServerModule } from "../Module";
 import Util from "../../../Util";
 import { ServerCommand } from "../../ServerCommand";
-import { InputFile } from "grammy";
 
 export default class AbstractUser extends ServerCommand {
     ignoreDbUpdate: boolean;
@@ -19,8 +18,6 @@ export default class AbstractUser extends ServerCommand {
                 if (!this.ignoreDbUpdate) {
                     await self.module.db.updateInfo(user, mode);
                 }
-
-                const userNeedPhoto = await self.ctx.preferCardsOutput();
                 const keyboard = [
                     self.module.api.getUserTopById
                         ? [
@@ -44,25 +41,11 @@ export default class AbstractUser extends ServerCommand {
                         : [],
                 ];
 
-                let templateAddition = "";
-                if (userNeedPhoto) {
-                    const card = await self.module.bot.okiChanCards.generateUserCard(user, self.ctx);
-                    if (card) {
-                        await self.reply(`${self.module.link}/u/${user.id}`, {
-                            keyboard,
-                            photo: new InputFile(card),
-                        });
-                        return;
-                    }
-                    templateAddition = "\n\n" + self.ctx.tr("card-gen-failed");
-                }
-
-                await self.reply(
-                    self.module.bot.templates.User(self.ctx, user, mode, self.module.link) + templateAddition,
-                    {
-                        keyboard,
-                    }
-                );
+                const replyData = await self.module.bot.replyUtils.userData(self.ctx, self.ctx, user, self.module.link);
+                await self.reply(replyData.text, {
+                    keyboard,
+                    photo: replyData.photo,
+                });
             },
             true
         );

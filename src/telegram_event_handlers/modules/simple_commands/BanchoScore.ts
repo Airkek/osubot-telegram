@@ -3,8 +3,6 @@ import UnifiedMessageContext from "../../../TelegramSupport";
 import { SimpleCommandsModule } from "./index";
 import { getScoreIdFromText } from "../../../osu_specific/regexes/ScoreRegexp";
 import { IKeyboard } from "../../../Util";
-import { InputFile } from "grammy";
-import BanchoPP from "../../../osu_specific/pp/bancho";
 
 export class BanchoScore extends Command {
     constructor(module: SimpleCommandsModule) {
@@ -28,28 +26,17 @@ export class BanchoScore extends Command {
                 }
             }
 
-            let message = ctx.tr("player-name", {
+            const message = ctx.tr("player-name", {
                 player_name: user.nickname,
             });
-            let cover: string | InputFile;
-            if (await ctx.preferCardsOutput()) {
-                cover = new InputFile(await module.bot.okiChanCards.generateScoreCard(score, map, ctx));
-                const beatmapUrl = `https://osu.ppy.sh/b/${map.id}`;
-                message += `\n\n${ctx.tr("score-beatmap-link")}: ${beatmapUrl}`;
-            } else {
-                const ppCalc = new BanchoPP(map, score.mods);
-                if (map.coverUrl) {
-                    cover = await module.bot.database.covers.getPhotoDoc(map.coverUrl);
-                } else {
-                    cover = await module.bot.database.covers.getCover(map.setId);
-                }
-                message += "\n\n" + module.bot.templates.ScoreFull(ctx, score, map, ppCalc, "https://osu.ppy.sh");
-            }
 
-            await ctx.reply(message, {
-                photo: cover,
+            const replyData = await this.module.bot.replyUtils.scoreData(ctx, ctx, score, map, "https://osu.ppy.sh");
+            await ctx.reply(message + "\n\n" + replyData.text, {
                 keyboard: buttons,
+                photo: replyData.photo,
             });
+
+            this.module.bot.maps.setMap(ctx.chatId, map);
         });
     }
 

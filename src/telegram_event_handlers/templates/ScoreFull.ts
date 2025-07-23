@@ -23,7 +23,7 @@ export default function (l: ILocalisator, score: APIScore, beatmap: IBeatmap, ca
         "",
         `${l.tr("score-score")}: ${score.score?.toLocaleString()}`,
         `${l.tr("score-combo")}: ${Util.formatCombo(score.combo, beatmap.maxCombo)}`,
-        `${l.tr("score-accuracy")}: ${Util.round(score.accuracy() * 100, 2)}%`,
+        `${l.tr("score-accuracy")}: ${(score.accuracy() * 100).toFixed(2)}%`,
         ppString,
         `${l.tr("score-hitcounts")}: ${score.counts.toString()}`,
     ];

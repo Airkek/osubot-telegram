@@ -9,7 +9,6 @@ import { IssouBestRenderer } from "../../../osu_specific/replay_render/IssouBest
 import { OsrReplay } from "../../../osu_specific/OsrReplay";
 import { ExperimentalRenderer } from "../../../osu_specific/replay_render/ExperimentalRenderer";
 import { InputFile } from "grammy";
-import BanchoPP from "../../../osu_specific/pp/bancho";
 
 export class OsuReplay extends Command {
     renderer: IReplayRenderer;
@@ -185,22 +184,15 @@ export class OsuReplay extends Command {
             let fullBody = renderAdditional.trim();
             let cover: string | InputFile;
             if (!ctx.messagePayload) {
-                if (await ctx.preferCardsOutput()) {
-                    cover = new InputFile(await module.bot.okiChanCards.generateScoreCard(replay, beatmap, ctx));
-                    const beatmapUrl = `https://osu.ppy.sh/b/${beatmap.id}`;
-                    fullBody = `${ctx.tr("score-beatmap-link")}: ${beatmapUrl}` + renderAdditional;
-                } else {
-                    const ppCalc = new BanchoPP(beatmap, replay.mods);
-                    if (beatmap.coverUrl) {
-                        cover = await module.bot.database.covers.getPhotoDoc(beatmap.coverUrl);
-                    } else {
-                        cover = await module.bot.database.covers.getCover(beatmap.setId);
-                    }
-                    fullBody =
-                        renderHeader +
-                        module.bot.templates.ScoreFull(ctx, replay, beatmap, ppCalc, "https://osu.ppy.sh") +
-                        renderAdditional;
-                }
+                const replyData = await this.module.bot.replyUtils.scoreData(
+                    ctx,
+                    ctx,
+                    replay,
+                    beatmap,
+                    "https://osu.ppy.sh"
+                );
+                fullBody = renderHeader + replyData.text + renderAdditional;
+                cover = replyData.photo;
             }
 
             await ctx.reply(fullBody, {
