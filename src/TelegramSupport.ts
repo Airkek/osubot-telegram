@@ -1,9 +1,9 @@
 import { Api, Context, InlineKeyboard, InputFile, InputMediaBuilder } from "grammy";
 import { MessageEntity, UserFromGetMe } from "@grammyjs/types";
 import { FileApiFlavor, FileFlavor } from "@grammyjs/files";
-import { I18nFlavor, TranslateFunction } from "@grammyjs/i18n";
+import { I18nFlavor } from "@grammyjs/i18n";
 import fs from "fs";
-import { ILocalisator } from "./ILocalisator";
+import { ILocalisator, TranslateFunction, TranslationVariables } from "./ILocalisator";
 import { UserSettings } from "./data/Models/Settings/UserSettingsModel";
 import { ChatSettings } from "./data/Models/Settings/ChatSettingsModel";
 import { Language } from "./data/Models/Settings/SettingsTypes";
@@ -77,7 +77,15 @@ export default class UnifiedMessageContext implements ILocalisator {
 
     private isLocalisatorActivated: boolean = false;
     private language: Language = undefined;
-    tr: TranslateFunction = undefined;
+    internalTranslate: TranslateFunction = undefined;
+
+    tr(key: string, vars?: TranslationVariables) {
+        if (this.isLocalisatorActivated) {
+            return this.internalTranslate(key, vars);
+        }
+
+        return `Error: Translation context is not activated. Please, report this to developer. Translation key: '${key}'.`;
+    }
 
     private readonly ownerId: number;
     get isFromOwner(): boolean {
@@ -213,7 +221,7 @@ export default class UnifiedMessageContext implements ILocalisator {
             this.tgCtx.i18n.useLocale(this.language);
         }
 
-        this.tr = this.tgCtx.translate;
+        this.internalTranslate = this.tgCtx.translate;
         this.isLocalisatorActivated = true;
     }
 

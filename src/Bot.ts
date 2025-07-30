@@ -304,7 +304,8 @@ export class Bot {
         const ticket = this.createCallbackTicket(context);
         const cb = this.pendingCallbacks[ticket];
         if (cb) {
-            let res = false;
+            let res: ShouldRemoveCallback = false;
+            await context.activateLocalisator();
             try {
                 res = await cb(context);
             } catch (e: unknown) {
@@ -318,11 +319,10 @@ export class Bot {
                     errorText = String(e);
                 }
 
-                await context.activateLocalisator();
                 await context.reply(`${Util.error(errorText, context)} (${err})`);
             } finally {
                 if (res) {
-                    this.pendingCallbacks[ticket] = undefined;
+                    this.removeCallback(ticket);
                 }
             }
             return;
