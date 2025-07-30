@@ -33,7 +33,7 @@ output-style-text = 🔤 Text
 select-page-action = Send a page number or write "{$action}" to cancel
 
 enter-custom-skin-id-action =
-    🔹 Send a skin ID from o!rdr or type {$action} to cancel.
+    🔹 Send a skin ID from o!rdr or type "{$action}" to cancel.
     🔹 Get your skin ID here: {$ordr_upload_skin_url}
 invalid-skin-id-value = ID contains forbidden characters
 custom-skin-not-found = Custom skin with this ID was not found on o!rdr.

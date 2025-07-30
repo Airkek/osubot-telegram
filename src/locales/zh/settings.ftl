@@ -33,7 +33,7 @@ output-style-text = 🔤 纯文本
 select-page-action = 发送页码或输入"{$action}"取消操作
 
 enter-custom-skin-id-action =
-    🔹 请发送来自 o!rdr 的 皮肤ID，或输入 {$action} 取消操作。
+    🔹 请发送来自 o!rdr 的 皮肤ID，或输入 "{$action}" 取消操作。
     🔹 获取皮肤ID请点击：{$ordr_upload_skin_url}
 invalid-skin-id-value = ID包含非法字符
 custom-skin-not-found = 在 o!rdr 上未找到此ID的自定义皮肤。
