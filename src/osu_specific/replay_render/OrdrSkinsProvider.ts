@@ -22,10 +22,20 @@ interface ApiSkin {
     hasCursorMiddle: boolean;
 }
 
+interface CustomSkinInfo {
+    found: boolean;
+    removed?: boolean;
+    message?: string;
+    skinName?: string;
+    skinAuthor?: string;
+    downloadLink?: string;
+}
+
 const PageSize = 6;
 export class OrdrSkinsProvider {
     private readonly cached: { [page: number]: OrdrSkinMetadata[] } = {};
     private cachedMaxPage: number;
+    private readonly cachedCustom: { [id: string]: CustomSkinInfo } = {};
     constructor() {}
 
     async getPage(page: number): Promise<PageResponse> {
@@ -78,5 +88,35 @@ export class OrdrSkinsProvider {
         }
         global.logger.warn(`Unable to get skin safe name by id and page: (id - ${id}, page - ${page})`);
         return id.toString();
+    }
+
+    async getCustomSkinInfo(id: string): Promise<CustomSkinInfo> {
+        if (this.cachedCustom[id]) {
+            return this.cachedCustom[id];
+        }
+
+        let skinInfo: CustomSkinInfo = {
+            found: false,
+        };
+        try {
+            const { data } = await axios.get(`https://apis.issou.best/ordr/skins/custom?id=${id}`);
+            skinInfo = data;
+        } catch (e) {
+            if (e?.response?.status === 404) {
+                skinInfo = e.response.data as CustomSkinInfo;
+            }
+        }
+
+        if (skinInfo) {
+            this.cachedCustom[id] = skinInfo;
+            setTimeout(
+                () => {
+                    this.cachedCustom[id] = undefined;
+                },
+                60 * 1000 * 60
+            );
+        }
+
+        return skinInfo;
     }
 }

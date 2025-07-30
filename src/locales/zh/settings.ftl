@@ -12,8 +12,7 @@ ur-counter = UR计数器
 hit-counter = 命中计数器
 difficulty-graph = 难度曲线图
 prefer-experimental-renderer = 优先使用实验性渲染器
-enter-skin-id = ✍️ 手动输入皮肤ID
-is-custom-skin = 这是自定义o!rdr皮肤
+enter-custom-skin-id = 输入自定义皮肤ID
 
 render-page = 🎥回放渲染
 
@@ -33,8 +32,13 @@ output-style-text = 🔤 纯文本
 
 select-page-action = 发送页码或输入"{$action}"取消操作
 
-enter-skin-id-action = 发送o!rdr皮肤ID或输入"{$action}"取消操作
+enter-custom-skin-id-action =
+    🔹 请发送来自 o!rdr 的 皮肤ID，或输入 {$action} 取消操作。
+    🔹 获取皮肤ID请点击：{$ordr_upload_skin_url}
 invalid-skin-id-value = ID包含非法字符
+custom-skin-not-found = 在 o!rdr 上未找到此ID的自定义皮肤。
+custom-skin-removed = 该皮肤已从 o!rdr 删除，请尝试其他皮肤。
+custom-skin-success = 已启用自定义皮肤：{$skin_name}
 
 invalid-percent-value = 数值必须在0到100之间
 

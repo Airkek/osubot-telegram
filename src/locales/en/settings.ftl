@@ -12,8 +12,7 @@ ur-counter = UR counter
 hit-counter = Hit counter
 difficulty-graph = Difficulty graph
 prefer-experimental-renderer = Prefer experimental renderer
-enter-skin-id = ✍️ Enter skin ID manually
-is-custom-skin = It's custom o!rdr skin
+enter-custom-skin-id = Enter custom skin ID
 
 render-page = 🎥Replay rendering
 
@@ -33,8 +32,13 @@ output-style-text = 🔤 Text
 
 select-page-action = Send a page number or write "{$action}" to cancel
 
-enter-skin-id-action = Send a skin ID from o!rdr or write "{$action}" to cancel
+enter-custom-skin-id-action =
+    🔹 Send a skin ID from o!rdr or type {$action} to cancel.
+    🔹 Get your skin ID here: {$ordr_upload_skin_url}
 invalid-skin-id-value = ID contains forbidden characters
+custom-skin-not-found = Custom skin with this ID was not found on o!rdr.
+custom-skin-removed = This skin has been deleted from o!rdr. Please try another one.
+custom-skin-success = Custom skin applied: {$skin_name}
 
 invalid-percent-value = Number must be between 0 and 100
 

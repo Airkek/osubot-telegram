@@ -17,7 +17,6 @@ type ToggleableSettingsKey =
     | "ordr_ur_counter"
     | "ordr_hit_counter"
     | "ordr_strain_graph"
-    | "ordr_is_custom"
     | "notifications_enabled"
     | "experimental_renderer"
     | "lang_russian"
@@ -321,15 +320,34 @@ function buildChatLanguagePage(settings: ChatSettings, l: ILocalisator): IKeyboa
     ]);
 }
 
-function buildRenderPage(settings: UserSettings, l: ILocalisator): IKeyboard {
+async function buildRenderPage(settings: UserSettings, l: ILocalisator): Promise<IKeyboard> {
     const page: SettingsPage = "render";
+
+    let skinName: string;
+    if (settings.ordr_is_skin_custom) {
+        const info = await skinsProvider.getCustomSkinInfo(settings.ordr_skin);
+        if (info.found) {
+            skinName = info.skinName;
+        } else {
+            skinName = settings.ordr_skin;
+        }
+
+        skinName = "⚙️ " + skinName;
+    } else {
+        skinName = settings.ordr_skin;
+    }
+
+    if (skinName.length > 52) {
+        skinName = skinName.slice(0, 51) + "…";
+    }
+
     return buildLeveledPageKeyboard(settings.user_id, "home", l, [
         [toggleableButton(settings.user_id, page, l.tr("auto-render"), "render_enabled", settings.render_enabled)],
         [
             toggleableButton(settings.user_id, page, l.tr("background-video"), "ordr_video", settings.ordr_video),
             toggleableButton(settings.user_id, page, l.tr("storyboard"), "ordr_storyboard", settings.ordr_storyboard),
         ],
-        [buildPageButton(settings.user_id, "skin_sel", l.tr("skin-button", { skin: settings.ordr_skin }))],
+        [buildPageButton(settings.user_id, "skin_sel", l.tr("skin-button", { skin: skinName }))],
         [
             genericSetButton(
                 settings.user_id,
@@ -419,39 +437,27 @@ async function buildSkinSelector(settings: UserSettings, pageNum: number, l: ILo
 
     let buttons: IKeyboard = [];
     let maxPage = undefined as number;
-    if (!settings.ordr_is_skin_custom) {
-        const res = await skinsProvider.getPage(pageNum);
-        maxPage = res.maxPage;
-        buttons = res.skins.map((val) => {
-            const isSelected = val.id.toString() == settings.ordr_skin || val.safe_name == settings.ordr_skin;
-            return [
-                {
-                    text: `${isSelected ? "✅" : ""}${val.name}`,
-                    command: buildSetEvent(settings.user_id, page, "ordr_skin", `set:${val.id}:${pageNum}`),
-                },
-            ];
-        });
-    }
+    const res = await skinsProvider.getPage(pageNum);
+    maxPage = res.maxPage;
+    buttons = res.skins.map((val) => {
+        const isSelected =
+            !settings.ordr_is_skin_custom &&
+            (val.id.toString() == settings.ordr_skin || val.safe_name == settings.ordr_skin);
+        return [
+            {
+                text: `${isSelected ? "✅ " : ""}${val.name}`,
+                command: buildSetEvent(settings.user_id, page, "ordr_skin", `set:${val.id}:${pageNum}`),
+            },
+        ];
+    });
 
     buttons.push([
         {
-            text: l.tr("enter-skin-id"),
+            text: "✍️ " + l.tr("enter-custom-skin-id"),
             command: buildSetEvent(settings.user_id, "render", "ordr_skin", "request"),
         },
     ]);
-    buttons.push([
-        toggleableButton(
-            settings.user_id,
-            page,
-            l.tr("is-custom-skin"),
-            "ordr_is_custom",
-            settings.ordr_is_skin_custom
-        ),
-    ]);
-
-    if (!settings.ordr_is_skin_custom) {
-        buttons.push(buildPaginationControl(settings.user_id, page, pageNum, maxPage));
-    }
+    buttons.push(buildPaginationControl(settings.user_id, page, pageNum, maxPage));
 
     return buildLeveledPageKeyboard(settings.user_id, "render", l, buttons);
 }
@@ -602,7 +608,7 @@ export default class SettingsCommand extends Command {
                         break;
                     }
                     case "render": {
-                        answer = buildRenderPage(settings, customCtx);
+                        answer = await buildRenderPage(settings, customCtx);
                         break;
                     }
                     case "language": {
@@ -649,10 +655,6 @@ export default class SettingsCommand extends Command {
                             allowUpdate = true;
                             break;
                         }
-                        case "ordr_is_custom":
-                            settings.ordr_is_skin_custom = value;
-                            allowUpdate = true;
-                            break;
                         case "lang_auto":
                             settings.language_override = "do_not_override";
                             allowUpdate = value;
@@ -729,11 +731,13 @@ export default class SettingsCommand extends Command {
                                 const id = Number(eventParams[5]);
                                 pageNum = Number(eventParams[6]);
                                 settings.ordr_skin = await skinsProvider.getSkinByIdAndPage(pageNum, id);
+                                settings.ordr_is_skin_custom = false;
                                 allowUpdate = true;
                             } else if (action == "request") {
                                 const cancelAction = ctx.tr("cancel-action");
-                                const msg = ctx.tr("enter-skin-id-action", {
+                                const msg = ctx.tr("enter-custom-skin-id-action", {
                                     action: cancelAction,
+                                    ordr_upload_skin_url: "https://ordr.issou.best/skinupload",
                                 });
                                 const ticket = this.module.bot.addCallback(ctx, async (ctx) => {
                                     if (!ctx.text) {
@@ -744,12 +748,38 @@ export default class SettingsCommand extends Command {
                                         await showPage(page, undefined, true, ctx);
                                         return true;
                                     }
-                                    if (ctx.text.includes(" ") || ctx.text.includes("&") || ctx.text.includes("?")) {
+                                    if (
+                                        ctx.text.includes(" ") ||
+                                        ctx.text.includes("&") ||
+                                        ctx.text.includes("?") ||
+                                        ctx.text.includes("/")
+                                    ) {
                                         await ctx.reply(ctx.tr("invalid-skin-id-value"));
                                         return false;
                                     }
 
-                                    settings.ordr_skin = encodeURIComponent(ctx.text);
+                                    const id = encodeURIComponent(ctx.text);
+
+                                    const info = await skinsProvider.getCustomSkinInfo(id);
+                                    if (!info.found) {
+                                        await ctx.reply(ctx.tr("custom-skin-not-found"));
+                                        return false;
+                                    }
+
+                                    if (info.removed) {
+                                        await ctx.reply(ctx.tr("custom-skin-removed"));
+                                        return false;
+                                    }
+
+                                    settings.ordr_skin = id;
+                                    settings.ordr_is_skin_custom = true;
+
+                                    await ctx.reply(
+                                        ctx.tr("custom-skin-success", {
+                                            skin_name: info.skinName,
+                                        })
+                                    );
+
                                     await ctx.updateUserSettings(settings);
                                     await showPage(page, undefined, true, ctx);
 
