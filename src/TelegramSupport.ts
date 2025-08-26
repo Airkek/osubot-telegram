@@ -334,7 +334,7 @@ export default class UnifiedMessageContext implements ILocalisator {
                 return sent[0];
             }
 
-            return await this.tgCtx.reply(text, {
+            return await this.tgCtx.api.sendMessage(this.tgCtx.chatId, text, {
                 link_preview_options: {
                     is_disabled: options?.dont_parse_links !== false,
                 },

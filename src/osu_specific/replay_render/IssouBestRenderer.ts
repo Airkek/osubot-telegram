@@ -65,11 +65,12 @@ class OrdinalWebSocket {
         });
     }
 
-    public waitForRenderCompletion(renderId: number, timeoutMs: number = 300000): Promise<void> {
+    public waitForRenderCompletion(renderId: number, timeoutMs: number = 600000): Promise<void> {
         return new Promise((resolve, reject) => {
             const timeout = setTimeout(() => {
                 this.pendingRenders.delete(renderId);
-                reject(`Timeout after ${timeoutMs}ms waiting for render ${renderId}`);
+                global.logger.error(`Timeout after ${timeoutMs}ms waiting for render ${renderId}`);
+                reject(`Timeout after ${timeoutMs}ms`);
             }, timeoutMs);
 
             this.pendingRenders.set(renderId, { resolve, reject, timeout });
