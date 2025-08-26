@@ -30,7 +30,9 @@ export class ExperimentalRenderer implements IReplayRenderer {
         }
 
         try {
-            const { data } = await axios.get(`${this.base_url}/available`);
+            const { data } = await axios.get(`${this.base_url}/available`, {
+                timeout: 5000,
+            });
             return data.trim() == "1";
         } catch {
             return false;
