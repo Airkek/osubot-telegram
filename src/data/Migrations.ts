@@ -490,25 +490,6 @@ const migrations: IMigration[] = [
             return true;
         },
     },
-    {
-        version: 24,
-        name: "remove duplicates in metrics",
-        process: async (db: Database) => {
-            await db.run(
-                `DELETE
-                 FROM bot_events_metrics
-                 WHERE ctid IN (SELECT ctid
-                                FROM (SELECT ctid,
-                                             event_type,
-                                             count,
-                                             time,
-                                             LAG(count) OVER (PARTITION BY event_type ORDER BY time) AS prev_count
-                                      FROM bot_events_metrics) t
-                                WHERE count = prev_count);`
-            );
-            return true;
-        },
-    },
 ];
 
 export async function applyMigrations(db: Database) {
