@@ -55,7 +55,17 @@ export class StatisticsModel {
         }
     }
 
-    private async logMetric(metric: Metrics, value: number) {
+    private async logMetric(metric: Metrics, value: number, force: boolean = false) {
+        if (!force) {
+            const entry = await this.db.get<{ count: number }>(
+                `SELECT count FROM bot_events_metrics WHERE event_type = $1 ORDER BY time DESC LIMIT 1`,
+                [metric]
+            );
+            if (entry && entry.count == value) {
+                return;
+            }
+        }
+
         await this.db.run(
             `INSERT INTO bot_events_metrics (event_type, count)
              VALUES ($1, $2)`,

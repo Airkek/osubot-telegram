@@ -397,9 +397,10 @@ const migrations: IMigration[] = [
             // count metrics
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const metrics = await db.all<any>(`SELECT time, event_type, event_data ->> 'count' as count
-                                          FROM bot_events
-                                          WHERE event_type IN ('user_count', 'chat_count', 'cached_beatmap_files_count',
-                                                               'cached_beatmap_metadata_count')`);
+                                               FROM bot_events
+                                               WHERE event_type IN
+                                                     ('user_count', 'chat_count', 'cached_beatmap_files_count',
+                                                      'cached_beatmap_metadata_count')`);
             for (const row of metrics) {
                 await db.run(
                     `INSERT INTO bot_events_metrics (time, event_type, count)
@@ -415,14 +416,14 @@ const migrations: IMigration[] = [
             // render_start, render_success, render_failed
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const renders = await db.all<any>(`SELECT time,
-                                                 event_type,
-                                                 user_id,
-                                                 chat_id,
-                                                 event_data ->> 'mode'         as mode,
-                                                 event_data ->> 'experimental' as experimental,
-                                                 event_data ->> 'message'      as message
-                                          FROM bot_events
-                                          WHERE event_type IN ('render_start', 'render_success', 'render_failed')`);
+                                                      event_type,
+                                                      user_id,
+                                                      chat_id,
+                                                      event_data ->> 'mode'         as mode,
+                                                      event_data ->> 'experimental' as experimental,
+                                                      event_data ->> 'message'      as message
+                                               FROM bot_events
+                                               WHERE event_type IN ('render_start', 'render_success', 'render_failed')`);
             for (const row of renders) {
                 await db.run(
                     `INSERT INTO bot_events_render (time, event_type, user_id, chat_id, experimental, mode,
@@ -438,14 +439,14 @@ const migrations: IMigration[] = [
             // command_used
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const commands = await db.all<any>(`SELECT time,
-                                                  user_id,
-                                                  chat_id,
-                                                  event_data ->> 'module'     as module,
-                                                  event_data ->> 'command'    as command,
-                                                  event_data ->> 'text'       as text,
-                                                  event_data ->> 'is_payload' as is_payload
-                                           FROM bot_events
-                                           WHERE event_type = 'command_used'`);
+                                                       user_id,
+                                                       chat_id,
+                                                       event_data ->> 'module'     as module,
+                                                       event_data ->> 'command'    as command,
+                                                       event_data ->> 'text'       as text,
+                                                       event_data ->> 'is_payload' as is_payload
+                                                FROM bot_events
+                                                WHERE event_type = 'command_used'`);
             for (const row of commands) {
                 await db.run(
                     `INSERT INTO bot_events_commands (time, user_id, chat_id, module, command, text, is_payload)
@@ -458,12 +459,12 @@ const migrations: IMigration[] = [
             // bot_startup
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const startups = await db.all<any>(`SELECT time,
-                                                  event_data ->> 'id'         as id,
-                                                  event_data ->> 'username'   as username,
-                                                  event_data ->> 'first_name' as first_name,
-                                                  event_data ->> 'last_name'  as last_name
-                                           FROM bot_events
-                                           WHERE event_type = 'bot_startup'`);
+                                                       event_data ->> 'id'         as id,
+                                                       event_data ->> 'username'   as username,
+                                                       event_data ->> 'first_name' as first_name,
+                                                       event_data ->> 'last_name'  as last_name
+                                                FROM bot_events
+                                                WHERE event_type = 'bot_startup'`);
             for (const row of startups) {
                 await db.run(
                     `INSERT INTO bot_events_startup (time, bot_id, username, first_name, last_name)
@@ -485,6 +486,25 @@ const migrations: IMigration[] = [
             await db.run(
                 `INSERT INTO feature_control (feature, enabled_for_all)
                  VALUES ('admin-all-features', false)`
+            );
+            return true;
+        },
+    },
+    {
+        version: 24,
+        name: "remove duplicates in metrics",
+        process: async (db: Database) => {
+            await db.run(
+                `DELETE
+                 FROM bot_events_metrics
+                 WHERE ctid IN (SELECT ctid
+                                FROM (SELECT ctid,
+                                             event_type,
+                                             count,
+                                             time,
+                                             LAG(count) OVER (PARTITION BY event_type ORDER BY time) AS prev_count
+                                      FROM bot_events_metrics) t
+                                WHERE count = prev_count);`
             );
             return true;
         },
