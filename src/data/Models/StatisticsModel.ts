@@ -55,7 +55,7 @@ export class StatisticsModel {
         }
     }
 
-    private async logMetric(metric: Metrics, value: number, force: boolean = false) {
+    private async logMetric(metric: Metrics, value: number, force: boolean = true) {
         if (!force) {
             const entry = await this.db.get<{ count: number }>(
                 `SELECT count FROM bot_events_metrics WHERE event_type = $1 ORDER BY time DESC LIMIT 1`,
