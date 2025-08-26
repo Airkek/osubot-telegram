@@ -256,20 +256,20 @@ export default class UnifiedMessageContext implements ILocalisator {
         return settings.content_output == "oki-cards";
     }
 
-    async userSettings(): Promise<UserSettings> {
-        if (!this.userSettingsCache) {
+    async userSettings(forceUpdate: boolean = false): Promise<UserSettings> {
+        if (forceUpdate || !this.userSettingsCache) {
             this.userSettingsCache = await this.database.userSettings.getUserSettings(this.senderId);
         }
 
         return this.userSettingsCache;
     }
 
-    async chatSettings(): Promise<ChatSettings> {
+    async chatSettings(forceUpdate: boolean = false): Promise<ChatSettings> {
         if (!this.isInGroupChat) {
             return undefined;
         }
 
-        if (!this.chatSettingsCache) {
+        if (forceUpdate || !this.chatSettingsCache) {
             this.chatSettingsCache = await this.database.chatSettings.getChatSettings(this.chatId);
         }
 

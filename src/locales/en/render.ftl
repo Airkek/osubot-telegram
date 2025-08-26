@@ -30,3 +30,4 @@ renderer-unavailable = The selected renderer ({$renderer}) is currently unavaila
 renderer-no-replay-frames = The replay has no data to render. Try re-exporting it in osu!.
 renderer-max-length-exceeded = The maximum beatmap length for rendering is {$max_minutes} minutes.
 renderer-max-starrate-exceeded = This mode supports replay rendering only for maps up to {$max_stars} stars.
+renderer-unknown-skin-restored-default = The skin you installed was not found on o!rdr; the default skin has been applied. Please retry rendering the replay.

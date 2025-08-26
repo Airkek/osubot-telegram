@@ -261,6 +261,12 @@ export class OsuReplay extends Command {
                             renderer: rendererName,
                         })
                     );
+                } else if (replayResponse.error.includes("This skin does not exist")) {
+                    const settings = await ctx.userSettings(true);
+                    settings.ordr_skin = "whitecatCK1.0";
+                    settings.ordr_is_skin_custom = false;
+                    await ctx.updateUserSettings(settings);
+                    await ctx.reply("renderer-unknown-skin-restored-default");
                 } else {
                     await ctx.reply(
                         ctx.tr("render-error-text", {

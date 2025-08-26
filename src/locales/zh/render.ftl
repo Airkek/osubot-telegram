@@ -31,3 +31,4 @@ renderer-unavailable = 选择的渲染器({$renderer})当前不可用。请稍�
 renderer-no-replay-frames = 该回放没有可渲染的数据。请重新在 osu! 中导出。
 renderer-max-length-exceeded = 渲染支持的最大谱面长度为{$max_minutes}分钟。
 renderer-max-starrate-exceeded = 该模式仅支持星级不超过{$max_stars}的谱面进行回放渲染。
+renderer-unknown-skin-restored-default = 未在 o!rdr 上找到您安装的皮肤，已恢复为默认皮肤。请尝试重新渲染回放。
