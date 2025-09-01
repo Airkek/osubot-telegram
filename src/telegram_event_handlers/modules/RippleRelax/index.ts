@@ -19,7 +19,7 @@ export default class RippleRelax extends ServerModule {
             new AbstractUser(this, true),
             new AbstractTop(this, true),
             new AbstractRecent(this),
-            new AbstractNick(this, bot.api.akatsuki, bot.database.servers.akatsuki),
+            new AbstractNick(this, bot.api.ripple, bot.database.servers.ripple),
         ]);
     }
 }
