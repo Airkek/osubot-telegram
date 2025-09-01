@@ -10,7 +10,7 @@ export default class DropCommand extends Command {
                 return;
             }
 
-            const id = arg !== undefined ? Number(arg) : ctx.replyMessage.senderId;
+            const id = arg ? Number(arg) : ctx.replyMessage.senderId;
             if (isNaN(id)) {
                 await ctx.send("Невалидный id");
                 return;

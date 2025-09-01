@@ -11,10 +11,17 @@ export default class AbstractFind extends ServerCommand {
 
             const u = await self.module.api.getUser(self.args.nickname.join(" "));
             const users = await self.module.db.findByUserId(u.id);
-            if (!users[0]) {
+            if (!users || users.length == 0) {
                 await self.reply(self.ctx.tr("no-users-found-nickname-find"));
                 return;
             }
+
+            let usersText = "";
+            for (let i = 0; i < users.length; i++) {
+                usersText += `${i + 1}. tg://user?id=${users[i].id}\n`;
+            }
+            usersText = usersText.trim();
+
             const keyboard = [
                 [
                     {
@@ -23,10 +30,13 @@ export default class AbstractFind extends ServerCommand {
                     },
                 ],
             ];
+
             await self.reply(
                 self.ctx.tr("users-with-nickname-find", {
                     nickname: u.nickname,
-                }),
+                }) +
+                    ":\n" +
+                    usersText,
                 { keyboard }
             );
         });
