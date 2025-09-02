@@ -52,7 +52,6 @@ export class OnboardingModel {
             await this.db.run("INSERT INTO onboarded_users (user_id, version) VALUES ($1, $2)", [userId, version]);
         }
 
-
         this.cache.delete(userId);
         this.lastUpdated.delete(userId);
     }
