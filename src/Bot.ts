@@ -35,6 +35,7 @@ import { setInterval, clearInterval } from "node:timers";
 import { PACKAGE_VERSION } from "./version";
 import path from "path";
 import { ReplyUtils } from "./telegram_event_handlers/utils/ReplyUtils";
+import { Command } from "./telegram_event_handlers/Command";
 
 export interface IBotConfig {
     tg: {
@@ -335,11 +336,42 @@ export class Bot {
         return ctx.from.is_bot || this.ignored.isIgnored(ctx.from.id);
     }
 
+    private async processOnboardings(ctx: UnifiedMessageContext): Promise<boolean> {
+        if (!(await ctx.checkFeature("force-onboarding"))) {
+            return false;
+        }
+
+        if (!(await this.database.onboardingModel.isUserNeedOnboarding(ctx.senderId))) {
+            return false;
+        }
+
+        let onboardingCommand: Command = undefined;
+        for (const module of this.modules) {
+            if (module.name != "Main") {
+                continue;
+            }
+
+            for (const cmd of module.commands) {
+                if (cmd.name == "onboarding") {
+                    onboardingCommand = cmd;
+                    break;
+                }
+            }
+        }
+
+        await onboardingCommand.process(ctx);
+        return true;
+    }
+
     private async processCommands(ctx: UnifiedMessageContext): Promise<boolean> {
         for (const module of this.modules) {
             const match = module.checkContext(ctx);
             if (!match) {
                 continue;
+            }
+
+            if (await this.processOnboardings(ctx)) {
+                return;
             }
 
             if (ctx.isInGroupChat) {

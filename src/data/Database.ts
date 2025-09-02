@@ -12,6 +12,7 @@ import { OsuBeatmapCacheModel } from "./Models/OsuBeatmapCacheModel";
 import { StatisticsModel } from "./Models/StatisticsModel";
 import { CoversModel } from "./Models/CoversModel";
 import { ChatMembersModel } from "./Models/ChatMembersModel";
+import { OnboardingModel } from "./Models/OnboardingModel";
 
 // TODO: move all classes to src/data/Models/Settings
 class DatabaseServer implements IDatabaseServer {
@@ -203,6 +204,7 @@ export default class Database {
     readonly notifications: NotificationsModel;
     readonly featureControlModel: FeatureControlModel;
     readonly statsModel: StatisticsModel;
+    readonly onboardingModel: OnboardingModel;
 
     private readonly db: Pool;
     private readonly tg: TG;
@@ -232,6 +234,7 @@ export default class Database {
         this.notifications = new NotificationsModel(this);
         this.featureControlModel = new FeatureControlModel(this);
         this.statsModel = new StatisticsModel(this);
+        this.onboardingModel = new OnboardingModel(this);
 
         this.db = new Pool({
             user: process.env.DB_USERNAME,

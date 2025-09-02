@@ -490,6 +490,20 @@ const migrations: IMigration[] = [
             return true;
         },
     },
+    {
+        version: 24,
+        name: "add 'force-onboarding' feature",
+        process: async (db: Database) => {
+            await db.run(`CREATE TABLE onboarded_users (user_id BIGINT UNIQUE, version INTEGER)`);
+
+            await db.run(
+                `INSERT INTO feature_control (feature, enabled_for_all)
+                 VALUES ('force-onboarding', false)`
+            );
+
+            return true;
+        },
+    },
 ];
 
 export async function applyMigrations(db: Database) {

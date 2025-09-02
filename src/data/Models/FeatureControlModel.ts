@@ -1,6 +1,6 @@
 import Database from "../Database";
 
-export type ControllableFeature = "oki-cards" | "plaintext-overrides" | "admin-all-features";
+export type ControllableFeature = "oki-cards" | "plaintext-overrides" | "force-onboarding" | "admin-all-features";
 
 interface FeatureControlSchema {
     feature: ControllableFeature;

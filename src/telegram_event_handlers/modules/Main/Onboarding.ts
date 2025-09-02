@@ -3,6 +3,7 @@ import { Module } from "../Module";
 import { IKBButton, IKeyboard } from "../../../Util";
 import { ILocalisator } from "../../../ILocalisator";
 import UnifiedMessageContext from "../../../TelegramSupport";
+import { ONBOARDING_VERSION, OnboardingModel } from "../../../data/Models/OnboardingModel";
 
 type LanguageStep = "language";
 type OutputStyleStep = "output-style";
@@ -16,7 +17,9 @@ type Actions = "show" | "set";
 interface StepInfo {
     next?: OnboardingSteps;
     previous?: OnboardingSteps;
-    build(l: ILocalisator): StepData;
+
+    build(userId: number, l: ILocalisator): StepData;
+    postprocess?(userId: number, onboardingModel: OnboardingModel): Promise<void>;
 }
 
 const stepFlow: Record<OnboardingSteps, StepInfo> = {
@@ -42,6 +45,7 @@ const stepFlow: Record<OnboardingSteps, StepInfo> = {
     final: {
         previous: "experimental-renderer",
         build: stepFinal,
+        postprocess: finalPostProcess,
     },
 };
 
@@ -51,34 +55,35 @@ interface StepData {
     buttons: IKeyboard;
 }
 
-function buildEvent(event: string): string {
-    return `osu ob ${event}`;
+function buildEvent(userId: number, event: string): string {
+    return `osu ob ${userId}:${event}`;
 }
 
-function openStepEvent(step: OnboardingSteps): string {
+function openStepEvent(userId: number, step: OnboardingSteps): string {
     const action: Actions = "show";
-    return buildEvent(`${step}:${action}`);
+    return buildEvent(userId, `${step}:${action}`);
 }
 
-function previousStepButton(step: OnboardingSteps, l: ILocalisator): IKBButton {
+function previousStepButton(userId: number, step: OnboardingSteps, l: ILocalisator): IKBButton {
     return {
         text: "⬅️ " + l.tr("previous-step-button-text"),
-        command: openStepEvent(step),
+        command: openStepEvent(userId, step),
     };
 }
 
-function buildFlowButtons(currentStep: OnboardingSteps, l: ILocalisator): IKeyboard {
+function buildFlowButtons(userId: number, currentStep: OnboardingSteps, l: ILocalisator): IKeyboard {
     const info = stepFlow[currentStep];
     if (!info) {
         return [];
     }
-    return [...(info.previous ? [[previousStepButton(info.previous, l)]] : [])];
+    return [...(info.previous ? [[previousStepButton(userId, info.previous, l)]] : [])];
 }
 
 type LangParams = "ru" | "en" | "zh" | "auto";
-function buildLangParamButton(step: LanguageStep, text: string, param: LangParams) {
+
+function buildLangParamButton(userId: number, step: LanguageStep, text: string, param: LangParams) {
     const action: Actions = "set";
-    const event = buildEvent(`${step}:${action}:${param}`);
+    const event = buildEvent(userId, `${step}:${action}:${param}`);
 
     return {
         text: text,
@@ -86,24 +91,25 @@ function buildLangParamButton(step: LanguageStep, text: string, param: LangParam
     };
 }
 
-function stepLang(l: ILocalisator): StepData {
+function stepLang(userId: number, l: ILocalisator): StepData {
     const currentStep: LanguageStep = "language";
     return {
         step: currentStep,
         text: l.tr("onboarding-text-greeting") + "\n\n" + l.tr("onboarding-text-step-language"),
         buttons: [
-            [buildLangParamButton(currentStep, "🇷🇺 Русский", "ru")],
-            [buildLangParamButton(currentStep, "🇺🇸 English", "en")],
-            [buildLangParamButton(currentStep, "🇨🇳 简体中文", "zh")],
-            [buildLangParamButton(currentStep, "🌐 Auto", "auto")],
+            [buildLangParamButton(userId, currentStep, "🇷🇺 Русский", "ru")],
+            [buildLangParamButton(userId, currentStep, "🇺🇸 English", "en")],
+            [buildLangParamButton(userId, currentStep, "🇨🇳 简体中文", "zh")],
+            [buildLangParamButton(userId, currentStep, "🌐 Auto", "auto")],
         ],
     };
 }
 
 type StyleParams = "oki-cards" | "legacy-text";
-function buildOutputStyleButton(step: OutputStyleStep, text: string, param: StyleParams) {
+
+function buildOutputStyleButton(userId: number, step: OutputStyleStep, text: string, param: StyleParams) {
     const action: Actions = "set";
-    const event = buildEvent(`${step}:${action}:${param}`);
+    const event = buildEvent(userId, `${step}:${action}:${param}`);
 
     return {
         text: text,
@@ -111,23 +117,24 @@ function buildOutputStyleButton(step: OutputStyleStep, text: string, param: Styl
     };
 }
 
-function stepOutputStyle(l: ILocalisator): StepData {
+function stepOutputStyle(userId: number, l: ILocalisator): StepData {
     const currentStep: OutputStyleStep = "output-style";
     return {
         step: currentStep,
         text: l.tr("onboarding-text-step-output-style"),
         buttons: [
-            [buildOutputStyleButton(currentStep, l.tr("output-style-oki-cards"), "oki-cards")],
-            [buildOutputStyleButton(currentStep, l.tr("output-style-text"), "legacy-text")],
+            [buildOutputStyleButton(userId, currentStep, l.tr("output-style-oki-cards"), "oki-cards")],
+            [buildOutputStyleButton(userId, currentStep, l.tr("output-style-text"), "legacy-text")],
         ],
     };
 }
 
 type BoolParams = "yes" | "no";
-function buildBoolButton(step: OnboardingStepsYesNo, value: boolean, l: ILocalisator) {
+
+function buildBoolButton(userId: number, step: OnboardingStepsYesNo, value: boolean, l: ILocalisator) {
     const param: BoolParams = value ? "yes" : "no";
     const action: Actions = "set";
-    const event = buildEvent(`${step}:${action}:${param}`);
+    const event = buildEvent(userId, `${step}:${action}:${param}`);
 
     return {
         text: value ? "✅ " + l.tr("boolean-true-button-text") : "❌ " + l.tr("boolean-false-button-text"),
@@ -135,11 +142,11 @@ function buildBoolButton(step: OnboardingStepsYesNo, value: boolean, l: ILocalis
     };
 }
 
-function stepBoolean(currentStep: OnboardingStepsYesNo, text: string, l: ILocalisator): StepData {
+function stepBoolean(userId: number, currentStep: OnboardingStepsYesNo, text: string, l: ILocalisator): StepData {
     return {
         step: currentStep,
         text: text,
-        buttons: [[buildBoolButton(currentStep, true, l)], [buildBoolButton(currentStep, false, l)]],
+        buttons: [[buildBoolButton(userId, currentStep, true, l)], [buildBoolButton(userId, currentStep, false, l)]],
     };
 }
 
@@ -147,17 +154,17 @@ function extractBoolFromParam(value: BoolParams): boolean {
     return value == "yes";
 }
 
-function stepAutoRender(l: ILocalisator): StepData {
+function stepAutoRender(userId: number, l: ILocalisator): StepData {
     const step: OnboardingStepsYesNo = "automatic-render";
-    return stepBoolean(step, l.tr("onboarding-text-step-automatic-render"), l);
+    return stepBoolean(userId, step, l.tr("onboarding-text-step-automatic-render"), l);
 }
 
-function stepExperimentalRender(l: ILocalisator): StepData {
+function stepExperimentalRender(userId: number, l: ILocalisator): StepData {
     const step: OnboardingStepsYesNo = "experimental-renderer";
-    return stepBoolean(step, l.tr("onboarding-text-step-experimental-renderer"), l);
+    return stepBoolean(userId, step, l.tr("onboarding-text-step-experimental-renderer"), l);
 }
 
-function stepFinal(l: ILocalisator): StepData {
+function stepFinal(userId: number, l: ILocalisator): StepData {
     return {
         step: "final",
         text: l.tr("onboarding-text-step-final"),
@@ -172,18 +179,25 @@ function stepFinal(l: ILocalisator): StepData {
     };
 }
 
+async function finalPostProcess(userId: number, onboardingModel: OnboardingModel) {
+    await onboardingModel.userOnboarded(userId, ONBOARDING_VERSION);
+}
+
 export default class OnboardingCommand extends Command {
+    onboardingModel: OnboardingModel;
+
     constructor(module: Module) {
         super(["onboarding", "start", "старт", "начать", "ыефке", "ob"], module, async (ctx, self, args) => {
-            if (ctx.isInGroupChat) {
-                return;
-            }
-
             const startStep: OnboardingSteps = "language";
 
             const payload = args.fullString?.split(":");
             if (!ctx.messagePayload || !payload || payload.length < 2) {
-                await this.replyWithStep(startStep, ctx, ctx);
+                await this.replyWithStep(startStep, ctx, ctx, this.onboardingModel);
+                return;
+            }
+
+            const userId = Number(payload.shift());
+            if (userId != ctx.senderId) {
                 return;
             }
 
@@ -192,18 +206,20 @@ export default class OnboardingCommand extends Command {
 
             switch (action) {
                 case "show":
-                    await this.replyWithStep(currentStep, ctx, ctx);
+                    await this.replyWithStep(currentStep, ctx, ctx, this.onboardingModel);
                     break;
 
                 case "set":
                     if (payload.length >= 3) {
                         const value = payload[2];
                         await this.applyStepSet(currentStep as OnboardingStepsWithSetters, value, ctx);
-                        await this.replyWithNextStep(currentStep, ctx, ctx);
+                        await this.replyWithNextStep(currentStep, ctx, ctx, this.onboardingModel);
                     }
                     break;
             }
         });
+
+        this.onboardingModel = module.bot.database.onboardingModel;
     }
 
     async applyStepSet(step: OnboardingStepsWithSetters, value: string, ctx: UnifiedMessageContext) {
@@ -269,23 +285,33 @@ export default class OnboardingCommand extends Command {
         await ctx.updateUserSettings(settings);
     }
 
-    async replyWithNextStep(step: OnboardingSteps, ctx: UnifiedMessageContext, l: ILocalisator) {
+    async replyWithNextStep(
+        step: OnboardingSteps,
+        ctx: UnifiedMessageContext,
+        l: ILocalisator,
+        onboardingModel: OnboardingModel
+    ) {
         const info = stepFlow[step];
         if (!info) {
             await ctx.reply("unknown-step-error");
         }
 
-        return await this.replyWithStep(info.next, ctx, l);
+        return await this.replyWithStep(info.next, ctx, l, onboardingModel);
     }
 
-    async replyWithStep(step: OnboardingSteps, ctx: UnifiedMessageContext, l: ILocalisator) {
+    async replyWithStep(
+        step: OnboardingSteps,
+        ctx: UnifiedMessageContext,
+        l: ILocalisator,
+        onboardingModel: OnboardingModel
+    ) {
         const info = stepFlow[step];
         if (!info) {
             await ctx.reply("unknown-step-error");
         }
 
-        const stepData = info.build(l);
-        const realKeyboard = [...stepData.buttons, ...buildFlowButtons(stepData.step, l)];
+        const stepData = info.build(ctx.senderId, l);
+        const realKeyboard = [...stepData.buttons, ...buildFlowButtons(ctx.senderId, stepData.step, l)];
         if (ctx.messagePayload) {
             await ctx.edit(stepData.text, {
                 keyboard: realKeyboard,
@@ -294,6 +320,10 @@ export default class OnboardingCommand extends Command {
             await ctx.reply(stepData.text, {
                 keyboard: realKeyboard,
             });
+        }
+
+        if (info.postprocess) {
+            await info.postprocess(ctx.senderId, onboardingModel);
         }
     }
 }
