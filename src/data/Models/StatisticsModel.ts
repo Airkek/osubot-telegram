@@ -2,7 +2,7 @@ import Database from "../Database";
 import { Command } from "../../telegram_event_handlers/Command";
 import UnifiedMessageContext from "../../TelegramSupport";
 import { UserFromGetMe } from "@grammyjs/types";
-import fs from "fs";
+import fs from "fs/promises";
 
 type RenderEvents = "render_start" | "render_success" | "render_failed";
 type Metrics = "user_count" | "chat_count" | "cached_beatmap_files_count" | "cached_beatmap_metadata_count";
@@ -47,7 +47,7 @@ export class StatisticsModel {
     public async logBeatmapFilesCount() {
         const folderPath = "./beatmap_cache";
         try {
-            const files = fs.readdirSync(folderPath);
+            const files = await fs.readdir(folderPath);
             const count = files.length;
             await this.logMetric("cached_beatmap_files_count", count);
         } catch {
