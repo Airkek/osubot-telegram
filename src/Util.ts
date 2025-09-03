@@ -1,6 +1,7 @@
 import { CalcArgs, HitCounts, PPArgs } from "./Types";
 import { IBeatmap } from "./beatmaps/BeatmapTypes";
 import { ILocalisator } from "./ILocalisator";
+import fs from "fs/promises";
 
 interface Err {
     e: string;
@@ -12,6 +13,7 @@ export interface IKBButton {
     text: string;
     command: string;
 }
+
 export type IKeyboard = IKBButton[][];
 
 const errors: Err[] = [
@@ -42,6 +44,28 @@ const errors: Err[] = [
 ];
 
 export default {
+    async fileExists(filename: string): Promise<boolean> {
+        try {
+            await fs.access(filename);
+            return true;
+        } catch (e) {
+            if (e.code == "ENOENT") {
+                return false;
+            }
+            throw e;
+        }
+    },
+    async directoryExists(path: string): Promise<boolean> {
+        try {
+            const stat = await fs.stat(path);
+            return stat.isDirectory();
+        } catch (e) {
+            if (e.code == "ENOENT") {
+                return false;
+            }
+            throw e;
+        }
+    },
     round(num: number, p: number): number {
         if (!num) {
             return 0;

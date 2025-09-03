@@ -2,7 +2,7 @@ import { Api, Context, InlineKeyboard, InputFile, InputMediaBuilder } from "gram
 import { MessageEntity, UserFromGetMe } from "@grammyjs/types";
 import { FileApiFlavor, FileFlavor } from "@grammyjs/files";
 import { I18nFlavor } from "@grammyjs/i18n";
-import fs from "fs";
+import fs from "fs/promises";
 import { ILocalisator, TranslateFunction, TranslationVariables } from "./ILocalisator";
 import { UserSettings } from "./data/Models/Settings/UserSettingsModel";
 import { ChatSettings } from "./data/Models/Settings/ChatSettingsModel";
@@ -11,6 +11,7 @@ import Database from "./data/Database";
 import { ControllableFeature } from "./data/Models/FeatureControlModel";
 import TextLinkMessageEntity = MessageEntity.TextLinkMessageEntity;
 import { IKeyboard } from "./Util";
+import Util from "./Util";
 
 export type TgContext = FileFlavor<Context & I18nFlavor>;
 export type TgApi = FileApiFlavor<Api>;
@@ -41,13 +42,13 @@ export interface SendOptions {
     dont_parse_links?: boolean;
 }
 
-const registry = new FinalizationRegistry((path: string) => {
-    if (!fs.existsSync(path)) {
+const registry = new FinalizationRegistry(async (path: string) => {
+    if (!(await Util.fileExists(path))) {
         return;
     }
     global.logger.warn(`Removing file ${path} after destructing object`);
     try {
-        fs.rmSync(path);
+        await fs.rm(path);
     } catch {
         global.logger.fatal(`Failed to remove file: ${path}`);
     }
@@ -518,13 +519,13 @@ export default class UnifiedMessageContext implements ILocalisator {
         return this.tmpFile;
     }
 
-    removeFile(): void {
+    async removeFile(): Promise<void> {
         if (!this.tmpFile) {
             return;
         }
         try {
-            if (fs.existsSync(this.tmpFile)) {
-                fs.rmSync(this.tmpFile);
+            if (await Util.fileExists(this.tmpFile)) {
+                await fs.rm(this.tmpFile);
             }
             if (this.registryToken) {
                 registry.unregister(this.registryToken);

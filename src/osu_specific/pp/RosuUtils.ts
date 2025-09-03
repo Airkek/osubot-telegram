@@ -1,36 +1,20 @@
 import * as rosu from "@kotrikd/rosu-pp";
-import fs from "fs";
+import fs from "fs/promises";
+import fsSync from "fs";
 import axios from "axios";
 import crypto from "crypto";
 import { IBeatmap } from "../../beatmaps/BeatmapTypes";
+import Util from "../../Util";
 
 const folderPath = "./beatmap_cache";
 
-function ensureHashed(map: IBeatmap) {
-    if (!fs.existsSync(folderPath)) {
-        fs.mkdirSync(folderPath);
-    }
-
-    const idFile = `${folderPath}/${map.id}.osu`;
-    if (fs.existsSync(idFile)) {
-        const buffer = fs.readFileSync(idFile);
-        const md5sum = crypto.createHash("md5").update(buffer).digest("hex");
-
-        const newFile = `${folderPath}/${md5sum}.osu`;
-        fs.renameSync(idFile, newFile);
-        global.logger.info(`Renamed '${idFile}' to '${newFile}'`);
-    }
-}
-
 async function downloadRosuBeatmap(map: IBeatmap) {
-    if (!fs.existsSync(folderPath)) {
-        fs.mkdirSync(folderPath);
+    if (!(await Util.directoryExists(folderPath))) {
+        await fs.mkdir(folderPath);
     }
-
-    ensureHashed(map);
 
     const filePath = `${folderPath}/${map.hash}.osu`;
-    if (!fs.existsSync(filePath)) {
+    if (!(await Util.fileExists(filePath))) {
         const response = await axios.get(`https://osu.ppy.sh/osu/${map.id}`, {
             responseType: "arraybuffer",
         });
@@ -41,31 +25,30 @@ async function downloadRosuBeatmap(map: IBeatmap) {
         if (md5sum !== map.hash) {
             savePath = `${folderPath}/${md5sum}.osu`;
             global.logger.error(`Beatmap ${map.id}: hash mismatch - expected '${map.hash}', got ${md5sum}`);
-            if (fs.existsSync(savePath)) {
-                return filePath;
+            if (await Util.fileExists(savePath)) {
+                return savePath;
             }
         }
 
-        fs.writeFileSync(savePath, buffer);
+        await fs.writeFile(savePath, buffer);
     }
 
     return filePath;
 }
 export async function getRosuBeatmap(map: IBeatmap): Promise<rosu.Beatmap> {
     const filePath = await downloadRosuBeatmap(map);
-    if (fs.existsSync(filePath)) {
-        return new rosu.Beatmap(fs.readFileSync(filePath, "utf-8"));
+    try {
+        return new rosu.Beatmap(await fs.readFile(filePath, "utf-8"));
+    } catch {
+        global.logger.error(`Cannot download beatmap with hash ${map.hash}`);
     }
-
-    global.logger.error(`Cannot download beatmap with hash ${map.hash}`);
     return null;
 }
 
 export function getRosuBeatmapSync(map: IBeatmap): rosu.Beatmap {
-    ensureHashed(map);
     const filePath = `${folderPath}/${map.hash}.osu`;
-    if (fs.existsSync(filePath)) {
-        return new rosu.Beatmap(fs.readFileSync(filePath, "utf-8"));
+    if (fsSync.existsSync(filePath)) {
+        return new rosu.Beatmap(fsSync.readFileSync(filePath, "utf-8"));
     }
 
     global.logger.error(`Beatmap with hash ${map.hash} not found in .osu cache`);

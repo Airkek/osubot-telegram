@@ -1,4 +1,4 @@
-import fs from "fs";
+import fs from "fs/promises";
 import { ScoreDecoder } from "osu-parsers";
 import { Command } from "../../Command";
 import { SimpleCommandsModule } from "./index";
@@ -45,9 +45,9 @@ export class OsuReplay extends Command {
 
                 const localPath = await ctx.downloadFile();
                 try {
-                    file = fs.readFileSync(localPath);
+                    file = await fs.readFile(localPath);
                 } finally {
-                    ctx.removeFile();
+                    await ctx.removeFile();
                 }
             }
 

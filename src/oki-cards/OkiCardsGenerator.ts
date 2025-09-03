@@ -1,5 +1,6 @@
 import path from "path";
-import fs from "fs";
+import fs from "fs/promises";
+import fsSync from "fs";
 import axios from "axios";
 import Canvas, { GlobalFonts, SKRSContext2D } from "@napi-rs/canvas";
 import { APIScore, APIUser, PPArgs } from "../Types";
@@ -20,25 +21,35 @@ type CountryCodes = {
 
 export class OkiCardsGenerator {
     private readonly assetsDirectory: string;
-    private readonly countryCodes: CountryCodes;
+    private countryCodes: CountryCodes;
+    private flagsInited: boolean = false;
 
     constructor() {
         this.assetsDirectory = path.join("./assets", "oki-chan");
-        try {
-            const data = fs.readFileSync(this.getAssetPath("country_codes.json"), "utf8");
-            this.countryCodes = JSON.parse(data);
-        } catch (err) {
-            global.logger.fatal(`failed to get country code names: ${err}`);
-        }
 
-        this.registerFont("Torus.ttf", "Torus");
-        this.registerFont("Mulish.ttf", "Mulish");
-        this.registerFont("VarelaRound.ttf", "VarelaRound");
-        this.registerFont("NotoSansSC-Regular.ttf", "NotoSansSC");
+        this.registerFontSync("Torus.ttf", "Torus");
+        this.registerFontSync("Mulish.ttf", "Mulish");
+        this.registerFontSync("VarelaRound.ttf", "VarelaRound");
+        this.registerFontSync("NotoSansSC-Regular.ttf", "NotoSansSC");
     }
 
-    private registerFont(assetName: string, fontName: string) {
-        const font = this.getAssetData(assetName);
+    private async getCountryName(countryCode: string): Promise<string> {
+        if (!this.flagsInited) {
+            try {
+                const data = await fs.readFile(this.getAssetPath("country_codes.json"), "utf8");
+                this.countryCodes = JSON.parse(data);
+                this.flagsInited = true;
+            } catch (err) {
+                global.logger.fatal(`failed to get country code names: ${err}`);
+                return "Unknown";
+            }
+        }
+
+        return this.countryCodes[countryCode] || "Unknown";
+    }
+
+    private registerFontSync(assetName: string, fontName: string) {
+        const font = this._getAssetDataSync(assetName);
         if (font) {
             GlobalFonts.register(font, fontName);
         } else {
@@ -73,31 +84,44 @@ export class OkiCardsGenerator {
         return this.getAssetPath(path.join("mods", realAcronym + ".svg"));
     }
 
-    private getAssetDataByPath(path: string): Buffer {
-        if (!fs.existsSync(path)) {
+    private async getAssetDataByPath(path: string): Promise<Buffer> {
+        try {
+            const file = await fs.readFile(path);
+            return Buffer.from(file);
+        } catch {
             return undefined;
         }
-
-        return Buffer.from(fs.readFileSync(path));
     }
 
-    private getAssetData(assetName: string): Buffer {
+    private async getAssetData(assetName: string): Promise<Buffer> {
         const path = this.getAssetPath(assetName);
         return this.getAssetDataByPath(path);
     }
 
-    private getModAssetData(modAcronym: string, width: number, height: number): Buffer {
+    private _getAssetDataByPathSync(path: string): Buffer {
+        if (!fsSync.existsSync(path)) {
+            return undefined;
+        }
+        return Buffer.from(fsSync.readFileSync(path));
+    }
+
+    private _getAssetDataSync(assetName: string): Buffer {
+        const path = this.getAssetPath(assetName);
+        return this._getAssetDataByPathSync(path);
+    }
+
+    private async getModAssetData(modAcronym: string, width: number, height: number): Promise<Buffer> {
         const path = this.getModAssetPath(modAcronym);
-        return this.getSvgAssetByPath(path, width, height);
+        return await this.getSvgAssetByPath(path, width, height);
     }
 
     private getFlagAssetPath(countryCode: string): string {
         return this.getAssetPath(path.join("flags", countryCode + ".png"));
     }
 
-    private getFlagAssetData(countryCode: string): Buffer {
+    private async getFlagAssetData(countryCode: string): Promise<Buffer> {
         const path = this.getFlagAssetPath(countryCode);
-        const flag = this.getAssetDataByPath(path);
+        const flag = await this.getAssetDataByPath(path);
 
         if (!flag) {
             const unknownFlagPath = this.getFlagAssetPath("XX");
@@ -107,7 +131,7 @@ export class OkiCardsGenerator {
         return flag;
     }
 
-    private getModeAssetData(mode: number): Buffer {
+    private async getModeAssetData(mode: number): Promise<Buffer> {
         let modIconAsset: string = undefined;
         switch (mode) {
             case 0:
@@ -130,7 +154,7 @@ export class OkiCardsGenerator {
         return this.getAssetData(modIconAsset);
     }
 
-    private getGradeAssetData(grade: string): Buffer {
+    private async getGradeAssetData(grade: string): Promise<Buffer> {
         let gradeIconAsset: string = undefined;
         switch (grade?.toLowerCase()) {
             case "a":
@@ -210,7 +234,7 @@ export class OkiCardsGenerator {
             let posX = toLeft ? firstModX - width : firstModX;
             for (let i = extendedMods.length - 1; i >= 0; i--) {
                 const mod = extendedMods[i];
-                const asset = this.getModAssetData(mod.acronym, width, height);
+                const asset = await this.getModAssetData(mod.acronym, width, height);
                 if (!asset) {
                     continue;
                 }
@@ -219,7 +243,7 @@ export class OkiCardsGenerator {
                     const rawExtWidth = extWidth - width;
                     const colors = this.extractModSvgColors(asset);
                     if (colors != undefined) {
-                        const extendedAsset = this.getColoredSvgAssetByPath(
+                        const extendedAsset = await this.getColoredSvgAssetByPath(
                             this.getModAssetPath("extended"),
                             colors.foreground,
                             extWidth,
@@ -265,18 +289,23 @@ export class OkiCardsGenerator {
         ctx.textBaseline = oldBaseline;
     }
 
-    private getColoredSvgAsset(
+    private async getColoredSvgAsset(
         svgFileNameWithoutExtension: string,
         color: string,
         width: number,
         height: number
-    ): Buffer {
+    ): Promise<Buffer> {
         const assetPath = this.getAssetPath(`${svgFileNameWithoutExtension}.svg`);
         return this.getColoredSvgAssetByPath(assetPath, color, width, height);
     }
 
-    private getColoredSvgAssetByPath(assetPath: string, color: string, width: number, height: number): Buffer {
-        let svgFile = this._getSvgAssetInternal(assetPath, width, height);
+    private async getColoredSvgAssetByPath(
+        assetPath: string,
+        color: string,
+        width: number,
+        height: number
+    ): Promise<Buffer> {
+        let svgFile = await this._getSvgAssetInternal(assetPath, width, height);
         if (!svgFile) {
             return undefined;
         }
@@ -284,38 +313,39 @@ export class OkiCardsGenerator {
         return Buffer.from(svgFile);
     }
 
-    private getSvgAssetByPath(assetPath: string, width: number, height: number): Buffer {
-        const svgFile = this._getSvgAssetInternal(assetPath, width, height);
+    private async getSvgAssetByPath(assetPath: string, width: number, height: number): Promise<Buffer> {
+        const svgFile = await this._getSvgAssetInternal(assetPath, width, height);
         if (!svgFile) {
             return undefined;
         }
         return Buffer.from(svgFile);
     }
 
-    private getSvgAsset(svgFileNameWithoutExtension: string, width: number, height: number): Buffer {
+    private async getSvgAsset(svgFileNameWithoutExtension: string, width: number, height: number): Promise<Buffer> {
         const assetPath = this.getAssetPath(`${svgFileNameWithoutExtension}.svg`);
         return this.getSvgAssetByPath(assetPath, width, height);
     }
 
-    private _getSvgAssetInternal(assetPath: string, width: number, height: number): string {
-        if (!fs.existsSync(assetPath)) {
+    private async _getSvgAssetInternal(assetPath: string, width: number, height: number): Promise<string> {
+        try {
+            let svgFile = await fs.readFile(assetPath, "utf8");
+
+            const svgTagRegex = /<svg\s*([^>]*)>/;
+
+            svgFile = svgFile.replace(svgTagRegex, (match, attributes) => {
+                const newAttributes = attributes
+                    .replace(/\s*(width|height)\s*=\s*(['"]).*?\2\s*/gi, " ")
+                    .replace(/\s*(width|height)\s*=\s*[^'"\s]+\s*/gi, " ")
+                    .replace(/\s+/g, " ")
+                    .trim();
+
+                return `<svg width="${width}" height="${height}" ${newAttributes}>`;
+            });
+
+            return svgFile;
+        } catch {
             return undefined;
         }
-        let svgFile = fs.readFileSync(assetPath, "utf8");
-
-        const svgTagRegex = /<svg\s*([^>]*)>/;
-
-        svgFile = svgFile.replace(svgTagRegex, (match, attributes) => {
-            const newAttributes = attributes
-                .replace(/\s*(width|height)\s*=\s*(['"]).*?\2\s*/gi, " ")
-                .replace(/\s*(width|height)\s*=\s*[^'"\s]+\s*/gi, " ")
-                .replace(/\s+/g, " ")
-                .trim();
-
-            return `<svg width="${width}" height="${height}" ${newAttributes}>`;
-        });
-
-        return svgFile;
     }
 
     private async loadImageFromUrl(url: string): Promise<Buffer> {
@@ -340,7 +370,7 @@ export class OkiCardsGenerator {
     }> {
         let coverBuffer = await this.loadImageFromUrl(beatmap.coverUrl);
         if (!coverBuffer) {
-            coverBuffer = this.getAssetData("unknown_bg.png");
+            coverBuffer = await this.getAssetData("unknown_bg.png");
         }
 
         const color = await OkiColors.getColors(coverBuffer);
@@ -405,7 +435,7 @@ export class OkiCardsGenerator {
         ctx.fillText(beatmap.status, 127, 51);
         ctx.strokeText(beatmap.status, 127, 51);
 
-        const statusAsset = this.getAssetData(`${beatmap.status.toLowerCase()}.png`);
+        const statusAsset = await this.getAssetData(`${beatmap.status.toLowerCase()}.png`);
         if (statusAsset) {
             const statusImage = await Canvas.loadImage(statusAsset);
             ctx.drawImage(statusImage, 37, 33, 20, 20);
@@ -511,7 +541,7 @@ export class OkiCardsGenerator {
             if (!compact) {
                 let mapperPfpBuffer = await this.loadImageFromUrl(`https://a.ppy.sh/${beatmap.authorId}`);
                 if (!mapperPfpBuffer) {
-                    mapperPfpBuffer = this.getAssetData("avatar-guest.png");
+                    mapperPfpBuffer = await this.getAssetData("avatar-guest.png");
                 }
                 const mapperPfp = await Canvas.loadImage(mapperPfpBuffer);
                 ctx.save();
@@ -555,7 +585,7 @@ export class OkiCardsGenerator {
         const mapRegularInfoY = compact ? statusPosY + 34 : 412 + 30;
 
         if (time) {
-            const clockAsset = this.getColoredSvgAsset("clock", mainColor, 38, 38);
+            const clockAsset = await this.getColoredSvgAsset("clock", mainColor, 38, 38);
             if (clockAsset) {
                 const clock = await Canvas.loadImage(clockAsset);
                 ctx.drawImage(clock, clockX, mapRegularInfoY - 29, 38, 38);
@@ -566,7 +596,7 @@ export class OkiCardsGenerator {
         }
 
         if (maxCombo) {
-            const chainAsset = this.getColoredSvgAsset("chain", mainColor, 38, 38);
+            const chainAsset = await this.getColoredSvgAsset("chain", mainColor, 38, 38);
             if (chainAsset) {
                 const chain = await Canvas.loadImage(chainAsset);
                 ctx.drawImage(chain, chainX, mapRegularInfoY - 29, 38, 38);
@@ -576,7 +606,7 @@ export class OkiCardsGenerator {
         }
 
         if (bpm) {
-            const drumAsset = this.getColoredSvgAsset("drum", mainColor, 40, 35);
+            const drumAsset = await this.getColoredSvgAsset("drum", mainColor, 40, 35);
             if (drumAsset) {
                 const drum = await Canvas.loadImage(drumAsset);
                 ctx.drawImage(drum, drumX, mapRegularInfoY - 29, 40, 35);
@@ -592,7 +622,7 @@ export class OkiCardsGenerator {
         const starWidth = 33;
         let starsMaxWidth = 0;
         if (starsVal) {
-            const starAsset = this.getColoredSvgAsset("star", mainColor, 28, 27);
+            const starAsset = await this.getColoredSvgAsset("star", mainColor, 28, 27);
             if (starAsset) {
                 const star = await Canvas.loadImage(starAsset);
                 if (starsVal > 10) {
@@ -614,7 +644,7 @@ export class OkiCardsGenerator {
                     const miniStarW = 28 * multiplier;
                     const miniStarH = 27 * multiplier;
 
-                    const miniStarAsset = this.getColoredSvgAsset("star", mainColor, miniStarW, miniStarH);
+                    const miniStarAsset = await this.getColoredSvgAsset("star", mainColor, miniStarW, miniStarH);
                     if (miniStarAsset) {
                         const miniStar = await Canvas.loadImage(miniStarAsset);
                         ctx.drawImage(
@@ -652,7 +682,7 @@ export class OkiCardsGenerator {
             else if (stars < 5.3) diffName = "insane";
             else if (stars < 6.5) diffName = "expert";
 
-            const diffIconAsset = this.getAssetData(`${diffName}_${modeNames[beatmap.mode]}.png`);
+            const diffIconAsset = await this.getAssetData(`${diffName}_${modeNames[beatmap.mode]}.png`);
             if (diffIconAsset) {
                 const diffIcon = await Canvas.loadImage(diffIconAsset);
                 ctx.drawImage(diffIcon, diffPosX, diffPosY - 26, 32, 32);
@@ -771,7 +801,7 @@ export class OkiCardsGenerator {
         const mainColor = accentColor;
 
         let scoreByCenter = false;
-        const gradeAsset = this.getGradeAssetData(score.rank);
+        const gradeAsset = await this.getGradeAssetData(score.rank);
         const padding = 200;
         const gradeSize = [140, 70];
         const baseScoreGradePosY = score.top100_number ? 320 : 335;
@@ -1008,7 +1038,7 @@ export class OkiCardsGenerator {
             OkiFormat.rect(ctx, 45, startpos, canvas.width - 45 * 2, 52, 10);
 
             // Rank icon
-            const rankAsset = this.getGradeAssetData(score.rank);
+            const rankAsset = await this.getGradeAssetData(score.rank);
             if (rankAsset) {
                 const rankImage = await Canvas.loadImage(rankAsset);
                 ctx.drawImage(rankImage, 57, startpos + 12, 49, 25);
@@ -1112,14 +1142,14 @@ export class OkiCardsGenerator {
             background = await this.loadImageFromUrl(user.profileBackgroundUrl);
         }
         if (!background) {
-            background = this.getAssetData("unknown_bg.png");
+            background = await this.getAssetData("unknown_bg.png");
         }
 
         if (user.profileAvatarUrl) {
             avatar = await this.loadImageFromUrl(user.profileAvatarUrl);
         }
         if (!avatar) {
-            avatar = this.getAssetData("avatar-guest.png");
+            avatar = await this.getAssetData("avatar-guest.png");
         }
 
         if (!background || !avatar) {
@@ -1187,14 +1217,14 @@ export class OkiCardsGenerator {
         ctx.ellipse(268 + 30, 277 + 30, 40, 40, 0, 0, Math.PI * 2);
         ctx.fill();
 
-        const modeIconAsset = this.getModeAssetData(user.mode);
+        const modeIconAsset = await this.getModeAssetData(user.mode);
         if (modeIconAsset) {
             const modeIcon = await Canvas.loadImage(modeIconAsset);
             ctx.drawImage(modeIcon, 252, 261, 86, 86);
         }
 
         if (user.is_supporter) {
-            const heartAsset = this.getAssetData("heart.png");
+            const heartAsset = await this.getAssetData("heart.png");
             if (heartAsset) {
                 const heart = await Canvas.loadImage(heartAsset);
                 ctx.drawImage(heart, 40, 261, 86, 86);
@@ -1206,19 +1236,19 @@ export class OkiCardsGenerator {
         ctx.fillText(user.nickname, 347, 56 + 63);
 
         ctx.font = "40px VarelaRound, NotoSansSC";
-        const country = this.countryCodes[user.country] || "Unknown";
-        const flagAsset = this.getFlagAssetData(user.country);
+        const country = await this.getCountryName(user.country);
+        const flagAsset = await this.getFlagAssetData(user.country);
         if (flagAsset) {
             const flag = await Canvas.loadImage(flagAsset);
             ctx.drawImage(flag, 350, 130, 60, 40);
             ctx.fillText(country, 420, 127 + 40);
         }
 
-        const gradeA = await Canvas.loadImage(this.getGradeAssetData("a"));
-        const gradeS = await Canvas.loadImage(this.getGradeAssetData("s"));
-        const gradeSS = await Canvas.loadImage(this.getGradeAssetData("x"));
-        const gradeSH = await Canvas.loadImage(this.getGradeAssetData("sh"));
-        const gradeSSH = await Canvas.loadImage(this.getGradeAssetData("xh"));
+        const gradeA = await Canvas.loadImage(await this.getGradeAssetData("a"));
+        const gradeS = await Canvas.loadImage(await this.getGradeAssetData("s"));
+        const gradeSS = await Canvas.loadImage(await this.getGradeAssetData("x"));
+        const gradeSH = await Canvas.loadImage(await this.getGradeAssetData("sh"));
+        const gradeSSH = await Canvas.loadImage(await this.getGradeAssetData("xh"));
 
         ctx.drawImage(gradeA, 766, 112 + 25, 98, 50);
         ctx.drawImage(gradeS, 922, 112 + 25, 98, 50);
@@ -1241,7 +1271,7 @@ export class OkiCardsGenerator {
         ctx.font = "57px VarelaRound, NotoSansSC";
         ctx.fillText("#" + OkiFormat.number(user.rank.country || 0), 347, 259 + 57);
 
-        const hexagon = await Canvas.loadImage(this.getAssetData("hexagon.png"));
+        const hexagon = await Canvas.loadImage(await this.getAssetData("hexagon.png"));
         ctx.drawImage(hexagon, 342, 332, 72, 77);
 
         const levelText = Math.floor(user.level | 0).toString();
