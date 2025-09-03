@@ -134,40 +134,45 @@ export class OsuBeatmap implements IBeatmap {
 
     async calculate(): Promise<void> {
         const rmap = await getRosuBeatmap(this);
-        switch (this.mode) {
-            case 1:
-                rmap.convert(rosu.GameMode.Taiko);
-                break;
-            case 2:
-                rmap.convert(rosu.GameMode.Catch);
-                break;
-            case 3:
-                rmap.convert(rosu.GameMode.Mania);
-                break;
-            default:
-                rmap.convert(rosu.GameMode.Osu);
-                break;
+        if (!rmap) {
+            return;
         }
-        const calc = new AttributesCalculator(rmap.ar, rmap.od, rmap.hp, rmap.cs, this.mods);
-        const diffCalc = new rosu.Difficulty({
-            mods: this.mods.flags,
-            clockRate: this.mods.speed(),
-        }).calculate(rmap);
+        try {
+            switch (this.mode) {
+                case 1:
+                    rmap.convert(rosu.GameMode.Taiko);
+                    break;
+                case 2:
+                    rmap.convert(rosu.GameMode.Catch);
+                    break;
+                case 3:
+                    rmap.convert(rosu.GameMode.Mania);
+                    break;
+                default:
+                    rmap.convert(rosu.GameMode.Osu);
+                    break;
+            }
+            const calc = new AttributesCalculator(rmap.ar, rmap.od, rmap.hp, rmap.cs, this.mods);
+            const diffCalc = new rosu.Difficulty({
+                mods: this.mods.flags,
+                clockRate: this.mods.speed(),
+            }).calculate(rmap);
 
-        this.hitObjectsCount = rmap.nObjects;
-        this.maxCombo = diffCalc.maxCombo;
+            this.hitObjectsCount = rmap.nObjects;
+            this.maxCombo = diffCalc.maxCombo;
 
-        this.stats = new OsuBeatmapStats(
-            calc.calculateMultipliedAR(),
-            calc.calculateMultipliedHP(),
-            calc.calculateMultipliedOD(),
-            calc.calculateMultipliedCS(),
-            rmap.bpm * this.mods.speed(),
-            this.native_length / this.mods.speed(),
-            diffCalc.stars,
-            this.mode
-        );
-
-        rmap.free();
+            this.stats = new OsuBeatmapStats(
+                calc.calculateMultipliedAR(),
+                calc.calculateMultipliedHP(),
+                calc.calculateMultipliedOD(),
+                calc.calculateMultipliedCS(),
+                rmap.bpm * this.mods.speed(),
+                this.native_length / this.mods.speed(),
+                diffCalc.stars,
+                this.mode
+            );
+        } finally {
+            rmap.free();
+        }
     }
 }

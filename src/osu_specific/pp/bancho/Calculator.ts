@@ -28,9 +28,11 @@ class BanchoPP implements ICalc {
             return { pp: 0, fc: 0, ss: 0 };
         }
 
-        const res = this.PP(score, map);
-        map.free();
-        return res;
+        try {
+            return this.PP(score, map);
+        } finally {
+            map.free();
+        }
     }
 
     PP(score: APIScore | CalcArgs | OsrReplay, rmap: rosu.Beatmap) {
