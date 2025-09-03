@@ -559,6 +559,20 @@ const migrations: IMigration[] = [
             return true;
         },
     },
+    {
+        version: 26,
+        name: "Set daily chunk interval for high-volume statistics tables",
+        process: async (db: Database) => {
+            const highVolumeTables = ["bot_events", "bot_events_commands", "bot_events_render"];
+
+            for (const tableName of highVolumeTables) {
+                global.logger.info(`Seting daily chunk interval for ${tableName}`);
+                await db.run(`SELECT set_chunk_time_interval('${tableName}', INTERVAL '1 day')`);
+            }
+
+            return true;
+        },
+    },
 ];
 
 export async function applyMigrations(db: Database) {
