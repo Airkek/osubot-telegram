@@ -494,12 +494,67 @@ const migrations: IMigration[] = [
         version: 24,
         name: "add 'force-onboarding' feature",
         process: async (db: Database) => {
-            await db.run(`CREATE TABLE onboarded_users (user_id BIGINT UNIQUE, version INTEGER)`);
+            await db.run(`CREATE TABLE onboarded_users
+                          (
+                              user_id BIGINT UNIQUE,
+                              version INTEGER
+                          )`);
 
             await db.run(
                 `INSERT INTO feature_control (feature, enabled_for_all)
                  VALUES ('force-onboarding', false)`
             );
+
+            return true;
+        },
+    },
+    {
+        version: 25,
+        name: "Enable compression for statistics hypertables",
+        process: async (db: Database) => {
+            const tables = [
+                {
+                    name: "bot_events",
+                    segmentby: "event_type",
+                    orderby: "time DESC",
+                },
+                {
+                    name: "bot_events_metrics",
+                    segmentby: "event_type",
+                    orderby: "time DESC",
+                },
+                {
+                    name: "bot_events_render",
+                    segmentby: "event_type, experimental",
+                    orderby: "time DESC",
+                },
+                {
+                    name: "bot_events_commands",
+                    segmentby: "module, command",
+                    orderby: "time DESC",
+                },
+                {
+                    name: "bot_events_startup",
+                    segmentby: "",
+                    orderby: "time DESC",
+                },
+            ];
+
+            for (const table of tables) {
+                global.logger.info(`Enabling timescaledb.compress for ${table.name}`);
+                let alterQuery = `ALTER TABLE ${table.name} ` + "SET (timescaledb.compress";
+                if (table.segmentby) {
+                    alterQuery += `, timescaledb.compress_segmentby = '${table.segmentby}'`;
+                }
+                if (table.orderby) {
+                    alterQuery += `, timescaledb.compress_orderby = '${table.orderby}'`;
+                }
+                alterQuery += ")";
+
+                await db.run(alterQuery);
+                global.logger.info(`Adding compression policy for ${table.name}`);
+                await db.run(`SELECT add_compression_policy('${table.name}', INTERVAL '7 days')`);
+            }
 
             return true;
         },
