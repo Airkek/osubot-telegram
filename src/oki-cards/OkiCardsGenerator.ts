@@ -194,23 +194,52 @@ export class OkiCardsGenerator {
     }
 
     private extractModSvgColors(input: string | Buffer): { background: string; foreground: string } {
-        const svgString = input instanceof Buffer ? input.toString("utf-8") : (input as string);
-        const pathFillMatches = svgString.matchAll(/<path[^>]*?fill="([^"]+)"[^>]*>/gis);
-        const colors: string[] = [];
+        const s = input instanceof Buffer ? input.toString("utf-8") : (input as string);
 
-        for (const match of pathFillMatches) {
-            if (match[1] && match[1].toUpperCase() !== "NONE") {
-                colors.push(match[1]);
-            }
+        const attrRe = /(fill|stroke)\s*=\s*(['"])(.*?)\2/gi;
+
+        const found: { type: "fill" | "stroke"; value: string; index: number }[] = [];
+
+        let m: RegExpExecArray | null;
+        while ((m = attrRe.exec(s)) !== null) {
+            const attr = m[1].toLowerCase() as "fill" | "stroke";
+            const val = m[3].trim();
+            const idx = m.index;
+
+            if (!val) continue;
+            if (val.toLowerCase() === "none") continue;
+
+            found.push({ type: attr, value: val, index: idx });
         }
 
-        if (colors.length < 2) {
-            return undefined;
+        if (found.length === 0) return undefined;
+
+        found.sort((a, b) => a.index - b.index);
+
+        const firstFill = found.find((f) => f.type === "fill");
+        const background = firstFill ? firstFill.value : found[0].value;
+
+        const bgIndex = found.findIndex((f) => f.value === background);
+        let foreground: string | undefined;
+
+        const strokeAfter = found.slice(bgIndex + 1).find((f) => f.type === "stroke");
+        if (strokeAfter) {
+            foreground = strokeAfter.value;
+        } else {
+            const nextAfter = found[bgIndex + 1];
+            if (nextAfter) foreground = nextAfter.value;
         }
+
+        if (!foreground) {
+            const anyStroke = found.find((f) => f.type === "stroke");
+            if (anyStroke && anyStroke.value !== background) foreground = anyStroke.value;
+        }
+
+        if (!foreground) return undefined;
 
         return {
-            background: colors[0],
-            foreground: colors[1],
+            background,
+            foreground,
         };
     }
 
@@ -240,9 +269,10 @@ export class OkiCardsGenerator {
                 }
 
                 if (mod.rate !== undefined) {
-                    const rawExtWidth = extWidth - width;
                     const colors = this.extractModSvgColors(asset);
                     if (colors != undefined) {
+                        const rawExtWidth = extWidth - width;
+
                         const extendedAsset = await this.getColoredSvgAssetByPath(
                             this.getModAssetPath("extended"),
                             colors.foreground,
@@ -261,10 +291,10 @@ export class OkiCardsGenerator {
                         const textX = extX + width + rawExtWidth / 2 - width / 10;
                         const textY = posY + height / 2;
                         ctx.fillText(`${mod.rate.toFixed(2)}x`, textX, textY);
-                    }
 
-                    if (toLeft) {
-                        posX -= rawExtWidth;
+                        if (toLeft) {
+                            posX -= rawExtWidth;
+                        }
                     }
                 }
 
@@ -939,6 +969,7 @@ export class OkiCardsGenerator {
 
         return canvas.toBuffer("image/png");
     }
+
     async generateBeatmapPPCard(beatmap: IBeatmap, l: ILocalisator, args?: PPArgs): Promise<Buffer> {
         const canvas = Canvas.createCanvas(1080, 620);
         const ctx = canvas.getContext("2d");
