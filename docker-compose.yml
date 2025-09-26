@@ -17,10 +17,11 @@ services:
       - telegram_api
 
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:${HEALTHCHECK_APP_PORT}/health"]
+      test: >-
+        PORT=${HEALTHCHECK_APP_PORT} node /usr/osubot/healthcheck.js
       interval: 5m
       timeout: 10s
-      start_period: 1m
+      start_period: 30s
       retries: 3
 
   database:
