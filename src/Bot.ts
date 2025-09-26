@@ -6,7 +6,7 @@ import { UserFromGetMe } from "@grammyjs/types";
 import { hydrateFiles } from "@grammyjs/files";
 import { limit } from "@grammyjs/ratelimiter";
 import { I18n } from "@grammyjs/i18n";
-import express from "express";
+import express, { Request, Response } from "express";
 import { Module } from "./telegram_event_handlers/modules/Module";
 import Database from "./data/Database";
 import { APICollection } from "./api/APICollection";
@@ -81,7 +81,9 @@ export class Bot {
     private readonly useWebhooks = process.env.USE_WEBHOOKS === "true";
 
     private handle: RunnerHandle;
-    private app: express;
+    private tgCallbacksApp: express;
+
+    private healthCheckApp: express;
 
     private _initializationPromise: Promise<void>;
 
@@ -425,6 +427,26 @@ export class Bot {
         });
     }
 
+    private startHealthCheck() {
+        this.healthCheckApp = express();
+        this.healthCheckApp.use(express.json());
+
+        this.healthCheckApp.get("/health", (req: Request, res: Response) => {
+            const healthStatus = {
+                status: "UP",
+                timestamp: new Date().toISOString(),
+                uptime: process.uptime(),
+                message: "Service is running",
+            };
+            return res.status(200).json(healthStatus);
+        });
+
+        const port = Number(process.env.HEALTHCHECK_APP_PORT);
+        this.healthCheckApp.listen(port, function () {
+            global.logger.info(`Healthcheck listening on ${port}`);
+        });
+    }
+
     public async start(): Promise<void> {
         if (this._initializationPromise) {
             await this._initializationPromise;
@@ -435,24 +457,24 @@ export class Bot {
         this.me = await this.tg.api.getMe();
 
         if (this.useWebhooks) {
-            this.app = express();
-            this.app.use(express.json());
-            this.app.use(webhookCallback(this.tg, "express"));
+            this.tgCallbacksApp = express();
+            this.tgCallbacksApp.use(express.json());
+            this.tgCallbacksApp.use(webhookCallback(this.tg, "express"));
 
             const port = Number(process.env.APP_PORT);
-            this.app.listen(port, function () {
+            this.tgCallbacksApp.listen(port, function () {
                 global.logger.info(`Bot webhooks listening on ${port}`);
             });
 
             const endpoint = process.env.WEBHOOK_ENDPOINT;
             await this.tg.api.setWebhook(endpoint, {
-                drop_pending_updates: true,
+                drop_pending_updates: process.env.IGNORE_OLD_UPDATES === "true",
                 allowed_updates: ["chat_member", "callback_query", "message"],
             });
         } else {
             // drop updates
             await this.tg.api.deleteWebhook({
-                drop_pending_updates: true,
+                drop_pending_updates: process.env.IGNORE_OLD_UPDATES === "true",
             });
 
             this.handle = run(this.tg, {
@@ -465,6 +487,8 @@ export class Bot {
         }
         await this.database.statsModel.logStartup(this.me);
         await this.startStatsLogger();
+
+        this.startHealthCheck();
 
         global.logger.info(`Bot started as @${this.me.username} (${this.me.first_name})`);
     }

@@ -16,6 +16,13 @@ services:
       - database
       - telegram_api
 
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${HEALTHCHECK_APP_PORT}/health"]
+      interval: 5m
+      timeout: 10s
+      start_period: 1m
+      retries: 3
+
   database:
     image: timescale/timescaledb:latest-pg17
     container_name: osubot_postgres
