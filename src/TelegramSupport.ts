@@ -95,6 +95,19 @@ export default class UnifiedMessageContext implements ILocalisator {
 
     private graphicalModeOverride: "no" | "cards" | "plain" = "no";
 
+    private convertReplyMessage(ctx: TgContext): ReplyToMessage {
+        if (!ctx.message?.reply_to_message) {
+            return undefined;
+        }
+
+        const reply = ctx.message.reply_to_message;
+        if (reply.forum_topic_created || reply.forum_topic_closed || reply.forum_topic_reopened) {
+            return undefined;
+        }
+
+        return new ReplyToMessage(ctx);
+    }
+
     constructor(ctx: TgContext, ownerId: number, me: UserFromGetMe, isLocal: boolean, database: Database) {
         this.tgCtx = ctx;
         this.me = me;
@@ -103,7 +116,7 @@ export default class UnifiedMessageContext implements ILocalisator {
 
         this.plainText = ctx.message?.text ?? ctx.message?.caption;
         this.plainPayload = ctx.callbackQuery?.data;
-        this.replyMessage = ctx.message?.reply_to_message ? new ReplyToMessage(ctx) : undefined;
+        this.replyMessage = this.convertReplyMessage(ctx);
         this.isInGroupChat = ctx.chat.type == "supergroup" || ctx.chat.type == "group";
         this.senderId = ctx.from.id;
         this.chatId = ctx.chatId;
