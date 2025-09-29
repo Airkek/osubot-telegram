@@ -321,6 +321,13 @@ export default class UnifiedMessageContext implements ILocalisator {
 
     async send(text: string, options?: SendOptions, replyTo?: number) {
         try {
+            if (replyTo === undefined && this.tgCtx.message?.reply_to_message) {
+                const rtm = this.tgCtx.message.reply_to_message;
+                if (rtm.forum_topic_created || rtm.forum_topic_reopened) {
+                    replyTo = rtm.message_id;
+                }
+            }
+
             const keyboard = await this.createKeyboard(options?.keyboard);
             if (options?.photo) {
                 return await this.tgCtx.replyWithPhoto(options.photo, {
