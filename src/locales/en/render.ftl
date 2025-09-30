@@ -10,9 +10,9 @@ ordr-ban-warning =
 
     Try using the experimental renderer instead.
 
-render-error-text = "Error while rendering the replay: {$error}
+render-error-text = Error while rendering the replay: {$error}
 file-is-too-big-render = The file is too big!
-cant-render = "Rendering is unavailable"
+cant-render = Rendering is unavailable"
 
 render-in-progress = Rendering the replay is in progress...
 

@@ -10,9 +10,9 @@ ordr-ban-warning =
 
     Попробуйте использовать экспериментальный рендер вместо этого.
 
-render-error-text = "Ошибка при рендере реплея: {$error}
+render-error-text = Ошибка при рендере реплея: {$error}
 file-is-too-big-render = Файл слишком большой!
-cant-render = "Рендер недоступен"
+cant-render = Рендер недоступен
 
 render-in-progress = Рендер реплея в процессе...
 
