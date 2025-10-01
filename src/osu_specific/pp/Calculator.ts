@@ -1,5 +1,4 @@
 import { APIScore, CalcArgs } from "../../Types";
-import * as rosu from "@kotrikd/rosu-pp";
 import Mods from "./Mods";
 import { OsrReplay } from "../OsrReplay";
 import { IBeatmap } from "../../beatmaps/BeatmapTypes";
@@ -15,7 +14,6 @@ interface IPPCalculator {
     map: IBeatmap;
     mods: Mods;
     calculate(score: APIScore | OsrReplay | CalcArgs): Promise<IPP>;
-    PP(score: APIScore | OsrReplay | CalcArgs, rmap: rosu.Beatmap): IPP;
 }
 
 export { IPP, IPPCalculator };
