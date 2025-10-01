@@ -887,7 +887,7 @@ export class OkiCardsGenerator {
 
         const pp = score.fcPp
             ? { pp: score.pp, fc: score.fcPp, ss: undefined }
-            : new BanchoPP(beatmap, score.mods).calculate(score);
+            : await new BanchoPP(beatmap, score.mods).calculate(score);
 
         const rows = [
             [
@@ -944,7 +944,7 @@ export class OkiCardsGenerator {
 
             let yPosition = 459 + 22; // Начальная позиция по Y
 
-            ppValues.forEach((item) => {
+            for (const item of ppValues) {
                 const ppArgs = Util.createPPArgs(
                     {
                         acc: item.acc,
@@ -957,14 +957,14 @@ export class OkiCardsGenerator {
                     beatmap.mode
                 );
 
-                const pp = calc.calculate(ppArgs);
+                const pp = await calc.calculate(ppArgs);
                 const ppText = `${item.label}: ${pp.pp.toFixed(2)}pp`;
 
                 ctx.fillText(ppText, 629, yPosition);
                 ctx.strokeText(ppText, 629, yPosition);
 
                 yPosition += 36; // Отступ между строками
-            });
+            }
         }
 
         return canvas.toBuffer("image/png");
@@ -980,7 +980,7 @@ export class OkiCardsGenerator {
             // pp
             const calc = new BanchoPP(beatmap, beatmap.currentMods);
             const ppArgs = Util.createPPArgs(args, beatmap.mode);
-            const pp = calc.calculate(ppArgs);
+            const pp = await calc.calculate(ppArgs);
 
             ctx.fillStyle = color.foreground;
             ctx.strokeStyle = color.foreground;
@@ -1104,7 +1104,7 @@ export class OkiCardsGenerator {
             // TODO: remove this dirty hack, calculate pp outside cards generator
             const pp = score.fcPp
                 ? { pp: score.pp, fc: score.fcPp, ss: undefined }
-                : new BanchoPP(beatmap, score.mods).calculate(score);
+                : await new BanchoPP(beatmap, score.mods).calculate(score);
 
             let ppx = 1040;
             let ppy = startpos + 20;

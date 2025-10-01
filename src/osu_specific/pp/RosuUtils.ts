@@ -1,6 +1,5 @@
 import * as rosu from "@kotrikd/rosu-pp";
 import fs from "fs/promises";
-import fsSync from "fs";
 import axios from "axios";
 import crypto from "crypto";
 import { IBeatmap } from "../../beatmaps/BeatmapTypes";
@@ -8,7 +7,7 @@ import Util from "../../Util";
 
 const folderPath = "./beatmap_cache";
 
-async function downloadRosuBeatmap(map: IBeatmap) {
+async function downloadRosuBeatmap(map: IBeatmap): Promise<string> {
     if (!(await Util.directoryExists(folderPath))) {
         await fs.mkdir(folderPath);
     }
@@ -42,15 +41,5 @@ export async function getRosuBeatmap(map: IBeatmap): Promise<rosu.Beatmap> {
     } catch {
         global.logger.error(`Cannot download beatmap with hash ${map.hash}`);
     }
-    return null;
-}
-
-export function getRosuBeatmapSync(map: IBeatmap): rosu.Beatmap {
-    const filePath = `${folderPath}/${map.hash}.osu`;
-    if (fsSync.existsSync(filePath)) {
-        return new rosu.Beatmap(fsSync.readFileSync(filePath, "utf-8"));
-    }
-
-    global.logger.error(`Beatmap with hash ${map.hash} not found in .osu cache`);
     return null;
 }

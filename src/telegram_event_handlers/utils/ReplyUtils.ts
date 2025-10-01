@@ -52,7 +52,7 @@ export class ReplyUtils {
         } else {
             cover = await this.coversModel.getCover(beatmap.setId);
         }
-        const message = this.templates.ScoreFull(l, score, beatmap, calculator, serverBase) + templateAddition;
+        const message = (await this.templates.ScoreFull(l, score, beatmap, calculator, serverBase)) + templateAddition;
 
         return {
             text: message,
@@ -141,7 +141,7 @@ export class ReplyUtils {
             cover = await this.coversModel.getCover(beatmap.setId);
         }
 
-        const message = this.templates.PP(l, beatmap, args);
+        const message = await this.templates.PP(l, beatmap, args);
 
         return {
             text: message + templateAddition,
@@ -172,7 +172,7 @@ export class ReplyUtils {
             cover = await this.coversModel.getCover(beatmap.setId);
         }
 
-        const message = this.templates.Beatmap(l, beatmap);
+        const message = await this.templates.Beatmap(l, beatmap);
 
         return {
             text: message + templateAddition,

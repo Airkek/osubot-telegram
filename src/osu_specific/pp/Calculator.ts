@@ -14,7 +14,7 @@ interface IPPCalculator {
     speedMultiplier: number;
     map: IBeatmap;
     mods: Mods;
-    calculate(score: APIScore | OsrReplay | CalcArgs): IPP;
+    calculate(score: APIScore | OsrReplay | CalcArgs): Promise<IPP>;
     PP(score: APIScore | OsrReplay | CalcArgs, rmap: rosu.Beatmap): IPP;
 }
 

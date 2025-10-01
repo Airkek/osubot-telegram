@@ -4,8 +4,14 @@ import { IPPCalculator as ICalc } from "../../osu_specific/pp/Calculator";
 import { IBeatmap } from "../../beatmaps/BeatmapTypes";
 import { ILocalisator } from "../../ILocalisator";
 
-export default function (l: ILocalisator, score: APIScore, beatmap: IBeatmap, calc: ICalc, serverLink: string) {
-    const pp = score.fcPp ? { pp: score.pp, fc: score.fcPp, ss: undefined } : calc.calculate(score);
+export default async function (
+    l: ILocalisator,
+    score: APIScore,
+    beatmap: IBeatmap,
+    calc: ICalc,
+    serverLink: string
+): Promise<string> {
+    const pp = score.fcPp ? { pp: score.pp, fc: score.fcPp, ss: undefined } : await calc.calculate(score);
 
     let ppString = `PP: ${score.pp ? score.pp.toFixed(2) : pp.pp.toFixed(2)}`;
     if (pp.fc !== undefined && pp.fc !== pp.pp) {

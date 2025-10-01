@@ -4,6 +4,7 @@ import Util from "../../Util";
 import Mods from "../../osu_specific/pp/Mods";
 import { IBeatmap } from "../../beatmaps/BeatmapTypes";
 import { ILocalisator } from "../../ILocalisator";
+import { IPP } from "../../osu_specific/pp/Calculator";
 
 interface PPResults {
     pp98: number;
@@ -11,11 +12,11 @@ interface PPResults {
     pp100: number;
 }
 
-export default function formatBeatmapInfo(l: ILocalisator, map: IBeatmap): string {
+export default async function formatBeatmapInfo(l: ILocalisator, map: IBeatmap): Promise<string> {
     const mapText = Util.formatBeatmap(map);
     const calculator = new BanchoPP(map, new Mods(0));
 
-    const getStandardPP = (accuracy: number): number => {
+    const getStandardPP = (accuracy: number): Promise<IPP> => {
         return calculator.calculate(
             Util.createPPArgs(
                 {
@@ -27,10 +28,10 @@ export default function formatBeatmapInfo(l: ILocalisator, map: IBeatmap): strin
                 },
                 map.mode
             )
-        ).pp;
+        );
     };
 
-    const getManiaPP = (): number => {
+    const getManiaPP = (): Promise<IPP> => {
         return calculator.calculate(
             Util.createPPArgs(
                 {
@@ -40,7 +41,7 @@ export default function formatBeatmapInfo(l: ILocalisator, map: IBeatmap): strin
                 },
                 map.mode
             )
-        ).pp;
+        );
     };
 
     const formatPPResults = ({ pp98, pp99, pp100 }: PPResults): string =>
@@ -55,16 +56,15 @@ export default function formatBeatmapInfo(l: ILocalisator, map: IBeatmap): strin
         case ProfileMode.STD:
         case ProfileMode.Taiko:
         case ProfileMode.Catch: {
-            const pp98 = getStandardPP(0.98);
-            const pp99 = getStandardPP(0.99);
-            const pp100 = getStandardPP(1.0);
-            content = formatPPResults({ pp98, pp99, pp100 });
+            const pp98 = await getStandardPP(0.98);
+            const pp99 = await getStandardPP(0.99);
+            content = formatPPResults({ pp98: pp98.pp, pp99: pp99.pp, pp100: pp98.ss });
             break;
         }
 
         case ProfileMode.Mania: {
-            const pp = getManiaPP();
-            content = `PP (1M score): ${Util.round(pp, 2)}`;
+            const pp = await getManiaPP();
+            content = `PP (1M score): ${Util.round(pp.pp, 2)}`;
             break;
         }
 

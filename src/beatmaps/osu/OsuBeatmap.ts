@@ -153,12 +153,17 @@ export class OsuBeatmap implements IBeatmap {
                     break;
             }
             const calc = new AttributesCalculator(rmap.ar, rmap.od, rmap.hp, rmap.cs, this.mods);
-            const diffCalc = new rosu.Difficulty({
-                mods: this.mods.flags,
-                clockRate: this.mods.speed(),
-            }).calculate(rmap);
 
             this.hitObjectsCount = rmap.nObjects;
+
+            let diffCalc: { stars: number; maxCombo: number } = { stars: 0, maxCombo: 0 };
+            if (!rmap.isSuspicious()) {
+                diffCalc = new rosu.Difficulty({
+                    mods: this.mods.flags,
+                    clockRate: this.mods.speed(),
+                }).calculate(rmap);
+            }
+
             this.maxCombo = diffCalc.maxCombo;
 
             this.stats = new OsuBeatmapStats(

@@ -3,7 +3,7 @@ import * as rosu from "@kotrikd/rosu-pp";
 import Mods, { ModsBitwise } from "../Mods";
 import { APIScore, CalcArgs, HitCounts } from "../../../Types";
 import { OsrReplay } from "../../OsrReplay";
-import { getRosuBeatmapSync } from "../RosuUtils";
+import { getRosuBeatmap } from "../RosuUtils";
 import { IBeatmap } from "../../../beatmaps/BeatmapTypes";
 
 interface IPP {
@@ -22,23 +22,33 @@ class BanchoPP implements ICalc {
         this.speedMultiplier = mods.speed();
     }
 
-    calculate(score: APIScore | CalcArgs | OsrReplay): IPP {
-        const map = getRosuBeatmapSync(this.map);
+    async calculate(score: APIScore | CalcArgs | OsrReplay): Promise<IPP> {
+        const placeholder = { pp: 0, fc: 0, ss: 0 };
+        if (!(score.counts instanceof HitCounts)) {
+            return placeholder;
+        }
+
+        const map = await getRosuBeatmap(this.map);
         if (map == null) {
-            return { pp: 0, fc: 0, ss: 0 };
+            return placeholder;
         }
 
         try {
-            return this.PP(score, map);
+            const pp = this.PP(score, map);
+            if (!pp) {
+                return placeholder;
+            }
+            return pp;
         } finally {
             map.free();
         }
     }
 
     PP(score: APIScore | CalcArgs | OsrReplay, rmap: rosu.Beatmap) {
-        if (!(score.counts instanceof HitCounts)) {
+        if (!rmap || !(score.counts instanceof HitCounts)) {
             return undefined;
         }
+
         switch (score.mode) {
             case 1:
                 rmap.convert(rosu.GameMode.Taiko);
@@ -52,6 +62,10 @@ class BanchoPP implements ICalc {
             default:
                 rmap.convert(rosu.GameMode.Osu);
                 break;
+        }
+
+        if (rmap.isSuspicious()) {
+            return undefined;
         }
 
         let flags = this.mods.flags;
