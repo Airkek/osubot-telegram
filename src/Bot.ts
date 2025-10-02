@@ -443,9 +443,7 @@ export class Bot {
     private initPrometheusMetrics() {
         this.ensureExpressAppCreated();
 
-        promClient.collectDefaultMetrics({
-            prefix: "osubot",
-        });
+        promClient.collectDefaultMetrics();
 
         this.expressApp.get("/metrics", async (req: Request, res: Response) => {
             try {
