@@ -7,6 +7,7 @@ import { hydrateFiles } from "@grammyjs/files";
 import { limit } from "@grammyjs/ratelimiter";
 import { I18n } from "@grammyjs/i18n";
 import express, { Request, Response } from "express";
+import * as promClient from "prom-client";
 import { Module } from "./telegram_event_handlers/modules/Module";
 import Database from "./data/Database";
 import { APICollection } from "./api/APICollection";
@@ -81,9 +82,7 @@ export class Bot {
     private readonly useWebhooks = process.env.USE_WEBHOOKS === "true";
 
     private handle: RunnerHandle;
-    private tgCallbacksApp: express;
-
-    private healthCheckApp: express;
+    private expressApp: express;
 
     private _initializationPromise: Promise<void>;
 
@@ -427,11 +426,10 @@ export class Bot {
         });
     }
 
-    private startHealthCheck() {
-        this.healthCheckApp = express();
-        this.healthCheckApp.use(express.json());
+    private initHealthCheck() {
+        this.ensureExpressAppCreated();
 
-        this.healthCheckApp.get("/health", (req: Request, res: Response) => {
+        this.expressApp.get("/health", (req: Request, res: Response) => {
             const healthStatus = {
                 status: "UP",
                 timestamp: new Date().toISOString(),
@@ -440,10 +438,41 @@ export class Bot {
             };
             return res.status(200).json(healthStatus);
         });
+    }
 
-        const port = Number(process.env.HEALTHCHECK_APP_PORT);
-        this.healthCheckApp.listen(port, function () {
-            global.logger.info(`Healthcheck listening on ${port}`);
+    private initPrometheusMetrics() {
+        this.ensureExpressAppCreated();
+
+        promClient.collectDefaultMetrics({
+            prefix: "osubot",
+        });
+
+        this.expressApp.get("/metrics", async (req: Request, res: Response) => {
+            try {
+                res.setHeader("Content-Type", promClient.register.contentType);
+                const metrics = await promClient.register.metrics();
+                res.status(200).send(metrics);
+            } catch (err) {
+                res.status(500).send(err instanceof Error ? err.message : String(err));
+            }
+        });
+    }
+
+    private ensureExpressAppCreated() {
+        if (!this.expressApp) {
+            this.expressApp = express();
+            this.expressApp.use(express.json());
+        }
+    }
+
+    private listenExpressAppIfNeeded() {
+        if (!this.expressApp) {
+            return;
+        }
+
+        const port = Number(process.env.APP_PORT);
+        this.expressApp.listen(port, () => {
+            global.logger.info(`Listening on ${port}`);
         });
     }
 
@@ -457,14 +486,8 @@ export class Bot {
         this.me = await this.tg.api.getMe();
 
         if (this.useWebhooks) {
-            this.tgCallbacksApp = express();
-            this.tgCallbacksApp.use(express.json());
-            this.tgCallbacksApp.use(webhookCallback(this.tg, "express"));
-
-            const port = Number(process.env.APP_PORT);
-            this.tgCallbacksApp.listen(port, function () {
-                global.logger.info(`Bot webhooks listening on ${port}`);
-            });
+            this.ensureExpressAppCreated();
+            this.expressApp.use(webhookCallback(this.tg, "express"));
 
             const endpoint = process.env.WEBHOOK_ENDPOINT;
             await this.tg.api.setWebhook(endpoint, {
@@ -472,7 +495,6 @@ export class Bot {
                 allowed_updates: ["chat_member", "callback_query", "message"],
             });
         } else {
-            // drop updates
             await this.tg.api.deleteWebhook({
                 drop_pending_updates: process.env.IGNORE_OLD_UPDATES === "true",
             });
@@ -488,7 +510,9 @@ export class Bot {
         await this.database.statsModel.logStartup(this.me);
         await this.startStatsLogger();
 
-        this.startHealthCheck();
+        this.initHealthCheck();
+        this.initPrometheusMetrics();
+        this.listenExpressAppIfNeeded();
 
         global.logger.info(`Bot started as @${this.me.username} (${this.me.first_name})`);
     }
