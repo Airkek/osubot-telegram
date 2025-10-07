@@ -97,7 +97,7 @@ class GatariUser implements APIUser {
         this.level = stats.level;
         this.levelProgress = stats.level_progress;
         this.mode = mode;
-        this.profileAvatarUrl = `https://a.gatari.pw/${user.id}`;
+        this.profileAvatarUrl = `https://a.osugatari.ru/${user.id}`;
 
         this.grades = {
             a: stats.a_count,
