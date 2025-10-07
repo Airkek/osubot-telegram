@@ -18,7 +18,7 @@ services:
 
     healthcheck:
       test: >-
-        PORT=${HEALTHCHECK_APP_PORT} node /usr/osubot/healthcheck.js
+        PORT=${APP_PORT} node /usr/osubot/healthcheck.js
       interval: 5m
       timeout: 10s
       start_period: 30s
