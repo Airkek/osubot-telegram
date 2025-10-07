@@ -9,7 +9,7 @@ Telegram: https://t.me/osulegacybot
 - osu! lazer support
 - Multi-language (en/ru/zh)
 - osu! custom servers support
-  - [Gatari](https://osu.gatari.pw)
+  - [Gatari](https://osugatari.ru)
   - [Akatsuki](https://akatsuki.gg)
   - [Ripple](https://ripple.moe)
   - Want to add your server? Consider open issue/pull request
