@@ -85,7 +85,7 @@ interface BeatmapExtended extends Beatmap {
     cs: number;
     deleted_at?: string;
     drain: number;
-    hit_length: number;
+    total_length: number;
     is_scoreable: boolean;
     last_updated: string;
     mode_int: number;
@@ -209,7 +209,7 @@ class V2Beatmap implements APIBeatmap {
         };
 
         this.bpm = beatmap.bpm;
-        this.length = beatmap.hit_length;
+        this.length = beatmap.total_length;
 
         this.creator = {
             nickname: beatmap.beatmapset.creator,
