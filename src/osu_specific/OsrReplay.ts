@@ -16,7 +16,7 @@ class OsrReplay implements APIScore {
     beatmapId: number;
     rank?: string;
     date: Date;
-    fake?: boolean;
+    fake?: boolean = false;
     constructor(score?: Score) {
         if (!score) {
             return;
@@ -40,13 +40,12 @@ class OsrReplay implements APIScore {
         this.score = score.info.totalScore;
         this.combo = score.info.maxCombo;
         this.perfect = score.info.perfect ? 1 : 0;
-        this.mods = new Mods(score.info.rawMods);
-        // this.rank = score.info.rank; // TODO: calculate
         this.beatmapId = score.info.beatmapId;
         this.date = score.info.date;
-        if ((score.replay?.gameVersion ?? 0) >= 30000000) {
-            // Lazer is 1000 years in the future
-            this.mods.lazer = true;
+        if (score.info.isLegacyScore) {
+            this.mods = new Mods(score.info.rawMods);
+        } else {
+            this.mods = new Mods(score.info.apiMods);
         }
     }
 

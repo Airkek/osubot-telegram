@@ -1,5 +1,6 @@
 import { V2Mod } from "../../Types";
 import Util from "../../Util";
+import { APIMod } from "osu-classes";
 
 export enum ModsBitwise {
     Nomod = 0,
@@ -185,12 +186,22 @@ export default class Mods {
     modsv2: V2Mod[];
     speedMultiplierV2: number = undefined;
     lazer: boolean = true;
-    constructor(m: number | string | V2Mod[]) {
+    constructor(m: number | string | APIMod[] | V2Mod[]) {
         if (typeof m === "string") {
             this.flags = this.fromString(m);
         } else if (typeof m === "number") {
             this.flags = m;
             this.lazer = false;
+        } else if (m instanceof APIMod) {
+            const conv: V2Mod[] = [];
+            for (const mod of m) {
+                conv.push({
+                    acronym: mod.acronym,
+                    settings: undefined,
+                });
+            }
+            this.modsv2 = conv;
+            this.flags = this.fromMods(this.modsv2);
         } else {
             this.modsv2 = m;
             this.flags = this.fromMods(m);
