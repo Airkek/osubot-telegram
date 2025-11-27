@@ -403,11 +403,8 @@ export class OkiCardsGenerator {
             coverBuffer = await this.getAssetData("unknown_bg.png");
         }
 
-        const color = await OkiColors.getColors(coverBuffer);
-
-        const colorNumber = OkiColors.toReadable(OkiColors.toRGB(color.foreground), OkiColors.toRGB(color.background));
-        color.foreground = OkiColors.toHex(colorNumber.foreground);
-        color.background = OkiColors.toHex(colorNumber.background);
+        const colorBase = await OkiColors.getColors(coverBuffer);
+        const color = OkiColors.toReadableContrastColors(colorBase);
 
         const isActiveColorDark = OkiColors.getColorBlack(color.background);
         let mainColor = color.foreground;

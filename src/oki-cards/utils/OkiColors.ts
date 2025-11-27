@@ -1,14 +1,22 @@
-import { Vibrant } from "node-vibrant/node";
 import sharp from "sharp";
+import { Vibrant } from "node-vibrant/node";
 
-export interface IColorContrast {
-    colors: [Array<number>, Array<number>];
+interface IColorContrast {
+    colors: [RgbColor, RgbColor];
     ratio: number;
     readable: boolean;
     luminosity: [number, number];
 }
 
-export function getColorBlack(colorHex: string): boolean {
+type RgbColor = Array<number>;
+
+export type HexColor = string;
+export interface IColors {
+    foreground: HexColor;
+    background: HexColor;
+}
+
+export function getColorBlack(colorHex: HexColor): boolean {
     const color = toRGB(colorHex);
     const red = color[0];
     const green = color[1];
@@ -17,7 +25,7 @@ export function getColorBlack(colorHex: string): boolean {
     return brightness <= 127;
 }
 
-export function toHex(rgb: Array<number>): string {
+function toHex(rgb: RgbColor): string {
     const componentToHex = (c: number) => {
         const hex = c.toString(16);
         return hex.length == 1 ? "0" + hex : hex;
@@ -26,24 +34,31 @@ export function toHex(rgb: Array<number>): string {
     return "#" + componentToHex(rgb[0]) + componentToHex(rgb[1]) + componentToHex(rgb[2]);
 }
 
-export function toRGB(hex: string): Array<number> {
+function toRGB(hex: HexColor): RgbColor {
     hex = hex.replace("#", "");
     return [parseInt(hex.slice(0, 2), 16), parseInt(hex.slice(2, 4), 16), parseInt(hex.slice(4, 6), 16)];
 }
 
-export async function getColors(image: Buffer): Promise<{ foreground: string; background: string }> {
+export async function getColors(image: Buffer): Promise<IColors> {
     const { dominant } = await sharp(image).stats();
     const { r, g, b } = dominant;
-    const dominantRgb = [r, g, b];
-    const palette = await Vibrant.from(image).maxColorCount(64).getPalette();
-
-    return {
-        foreground: palette.Vibrant.hex,
-        background: toHex(dominantRgb),
-    };
+    const dominantHex = toHex([r, g, b]);
+    try {
+        const palette = await Vibrant.from(image).maxColorCount(64).getPalette();
+        const vibrantColor = palette.Vibrant.hex;
+        return {
+            foreground: vibrantColor,
+            background: dominantHex,
+        };
+    } catch {
+        return toReadableContrastColors({
+            foreground: dominantHex,
+            background: dominantHex,
+        });
+    }
 }
 
-export function getContrastRatio(foreground: Array<number>, background: Array<number>): IColorContrast {
+function getContrastRatio(foreground: RgbColor, background: RgbColor): IColorContrast {
     let R1 = foreground[0] / 255;
     let R2 = background[0] / 255;
     let G1 = foreground[1] / 255;
@@ -126,10 +141,9 @@ export function getContrastRatio(foreground: Array<number>, background: Array<nu
     }
 }
 
-export function toReadable(
-    foreground: Array<number>,
-    background: Array<number>
-): { background: Array<number>; foreground: Array<number> } {
+export function toReadableContrastColors(scheme: IColors): IColors {
+    const foreground = toRGB(scheme.foreground);
+    const background = toRGB(scheme.background);
     let contrastRatioLight = getContrastRatio(foreground, background);
     let contrastRatioDark = getContrastRatio(foreground, background);
     let counter = 0;
@@ -141,8 +155,8 @@ export function toReadable(
     }
 
     return {
-        background: background,
-        foreground: contrastRatioLight.readable ? contrastRatioLight.colors[0] : contrastRatioDark.colors[0],
+        background: toHex(background),
+        foreground: toHex(contrastRatioLight.readable ? contrastRatioLight.colors[0] : contrastRatioDark.colors[0]),
     };
 }
 
