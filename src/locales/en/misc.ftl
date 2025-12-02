@@ -55,6 +55,8 @@ sender-nickname-not-specified =
     No nickname specified!
     Set yours using: {$prefix} nick <username>
 
+unknown-username = This user is unknown to the bot!
+
 specify-nickname = Please, specify the nickname!
 no-users-found-nickname-find = No users found with this username!
 users-with-nickname-find = Users with username '{$nickname}'

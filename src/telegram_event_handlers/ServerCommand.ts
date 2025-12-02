@@ -78,7 +78,25 @@ const createServerCommandRunner = (
             }
 
             if (args.nickname[0]) {
-                if (context.module.api.getUser == undefined) {
+                if (args.nickname[0].startsWith("@")) {
+                    const nickname = args.nickname[0].slice(1);
+                    const userInfo = await context.module.bot.database.userInfo.findByUsername(nickname);
+                    if (!userInfo) {
+                        ctx.tr("unknown-username", {
+                            prefix: context.module.prefix[0],
+                        });
+                        return;
+                    }
+
+                    context.user.dbUser = await self.module.db.getUser(userInfo.user_id);
+                    if (!context.user.dbUser) {
+                        ctx.tr("user-nickname-not-specified", {
+                            prefix: context.module.prefix[0],
+                        });
+                        return;
+                    }
+                } else if (context.module.api.getUser == undefined) {
+                    // server supports only user id
                     context.user.id = context.args.nickname[0];
                 } else {
                     context.user.username = context.args.nickname.join(" ");

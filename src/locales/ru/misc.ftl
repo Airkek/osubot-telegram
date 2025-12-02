@@ -50,9 +50,12 @@ user-id-not-specified =
 user-nickname-not-specified =
     У этого пользователя не указан ник!
     Привяжите через {$prefix} nick <ник>
+
 sender-nickname-not-specified =
     Не указан ник!
     Привяжите через {$prefix} nick <ник>
+
+unknown-username = Этот пользователь неизвестен боту!
 
 specify-nickname = Укажите ник!
 no-users-found-nickname-find = Не найдено пользователей с таким ником!

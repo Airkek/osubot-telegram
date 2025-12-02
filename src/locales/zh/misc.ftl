@@ -49,9 +49,12 @@ user-id-not-specified =
 user-nickname-not-specified =
     该用户未设置用户名!
         请使用 {$prefix} nick <用户名> 绑定
+
 sender-nickname-not-specified =
     未设置用户名!
     请使用 {$prefix} nick <用户名> 绑定
+
+unknown-username = 该用户不在机器人的识别范围内！
 
 specify-nickname = 请输入用户名!
 no-users-found-nickname-find = 未找到使用该用户名的玩家!
