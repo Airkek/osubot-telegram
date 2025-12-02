@@ -221,7 +221,7 @@ export default class UnifiedMessageContext implements ILocalisator {
         if (this.tgCtx.from && !this.tgCtx.from.is_bot) {
             await this.database.userInfo.set({
                 user_id: this.tgCtx.from.id,
-                username: this.tgCtx.from.username ?? null,
+                display_username: this.tgCtx.from.username ?? null,
                 first_name: this.tgCtx.from.first_name ?? null,
                 last_name: this.tgCtx.from.last_name ?? null,
             });

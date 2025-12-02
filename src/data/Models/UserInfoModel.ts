@@ -2,14 +2,18 @@ import Database from "../Database";
 
 export interface IUserInfo {
     user_id: number;
-    username?: string | null;
+    display_username?: string | null;
     first_name?: string | null;
     last_name?: string | null;
 }
 
+export interface IExtendedUserInfo extends IUserInfo {
+    username?: string | null;
+}
+
 export class UserInfoModel {
     private readonly db: Database;
-    private readonly cache: Map<number, { val: IUserInfo | null; expiresAt: number }> = new Map();
+    private readonly cache: Map<number, { val: IExtendedUserInfo | null; expiresAt: number }> = new Map();
     private readonly ttl: number; // milliseconds
     private readonly limit: number;
 
@@ -29,13 +33,13 @@ export class UserInfoModel {
         }
     }
 
-    private setCache(userId: number, val: IUserInfo | null) {
+    private setCache(userId: number, val: IExtendedUserInfo | null) {
         const expiresAt = Date.now() + this.ttl;
         this.cache.set(userId, { val, expiresAt });
         this.pruneIfNeeded();
     }
 
-    private getCache(userId: number): IUserInfo | null {
+    private getCache(userId: number): IExtendedUserInfo | null {
         const entry = this.cache.get(userId);
         if (!entry) return null;
         if (entry.expiresAt < Date.now()) {
@@ -45,50 +49,57 @@ export class UserInfoModel {
         return entry.val;
     }
 
-    async get(userId: number): Promise<IUserInfo | null> {
+    async get(userId: number): Promise<IExtendedUserInfo | null> {
         const cached = this.getCache(userId);
         if (cached !== null) return cached;
 
-        const row = await this.db.get<IUserInfo>(
-            "SELECT user_id, username, first_name, last_name FROM user_info WHERE user_id = $1",
+        const row = await this.db.get<IExtendedUserInfo>(
+            "SELECT user_id, username, display_username, first_name, last_name FROM user_info WHERE user_id = $1",
             [userId]
         );
         this.setCache(userId, row);
         return row;
     }
 
-    async findByUsername(username: string): Promise<number | null> {
+    async findByUsername(username: string): Promise<IExtendedUserInfo | null> {
         if (!username) return null;
-        const row = await this.db.get<{ user_id: number }>(
-            "SELECT user_id FROM user_info WHERE username = $1 LIMIT 1",
-            [username]
+        const row = await this.db.get<IExtendedUserInfo>(
+            "SELECT user_id, username, display_username, first_name, last_name FROM user_info WHERE username = $1 LIMIT 1",
+            [username.toLowerCase()]
         );
-        return row ? Number(row.user_id) : null;
+        return row ?? null;
     }
 
     async set(info: IUserInfo): Promise<void> {
+        // Convert username to lowercase for storage
+        const usernameLower = info.display_username ? info.display_username.toLowerCase() : null;
+        const displayUsername = info.display_username ?? null;
+
         // If username provided, ensure it's not attached to another user
-        if (info.username) {
+        if (usernameLower) {
             const existing = await this.db.get<{ user_id: number }>(
                 "SELECT user_id FROM user_info WHERE username = $1 LIMIT 1",
-                [info.username]
+                [usernameLower]
             );
             if (existing && Number(existing.user_id) !== Number(info.user_id)) {
-                await this.db.run("UPDATE user_info SET username = NULL WHERE user_id = $1", [existing.user_id]);
+                await this.db.run("UPDATE user_info SET username = NULL, display_username = NULL WHERE user_id = $1", [
+                    existing.user_id,
+                ]);
                 this.cache.delete(Number(existing.user_id));
             }
         }
 
         await this.db.run(
-            `INSERT INTO user_info (user_id, username, first_name, last_name)
-             VALUES ($1, $2, $3, $4)
-             ON CONFLICT (user_id) DO UPDATE SET username = EXCLUDED.username, first_name = EXCLUDED.first_name, last_name = EXCLUDED.last_name`,
-            [info.user_id, info.username ?? null, info.first_name ?? null, info.last_name ?? null]
+            `INSERT INTO user_info (user_id, username, display_username, first_name, last_name)
+             VALUES ($1, $2, $3, $4, $5)
+             ON CONFLICT (user_id) DO UPDATE SET username = EXCLUDED.username, display_username = EXCLUDED.display_username, first_name = EXCLUDED.first_name, last_name = EXCLUDED.last_name`,
+            [info.user_id, usernameLower, displayUsername, info.first_name ?? null, info.last_name ?? null]
         );
 
         this.setCache(Number(info.user_id), {
             user_id: Number(info.user_id),
-            username: info.username ?? null,
+            username: usernameLower,
+            display_username: displayUsername,
             first_name: info.first_name ?? null,
             last_name: info.last_name ?? null,
         });
@@ -96,8 +107,8 @@ export class UserInfoModel {
 
     async getMention(userId: number): Promise<string> {
         const info = await this.get(userId);
-        if (info && info.username) {
-            return `@${info.username}`;
+        if (info && info.display_username) {
+            return `@${info.display_username}`;
         }
         return `tg://user?id=${userId}`;
     }

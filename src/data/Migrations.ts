@@ -588,6 +588,22 @@ const migrations: IMigration[] = [
             return true;
         },
     },
+    {
+        version: 28,
+        name: "Add display_username to user_info and convert username to lowercase",
+        process: async (db: Database) => {
+            // Add display_username column
+            await db.run(`ALTER TABLE user_info ADD COLUMN display_username TEXT`);
+            
+            // Copy username to display_username (preserving original case)
+            await db.run(`UPDATE user_info SET display_username = username WHERE username IS NOT NULL`);
+            
+            // Convert username to lowercase
+            await db.run(`UPDATE user_info SET username = LOWER(username) WHERE username IS NOT NULL`);
+
+            return true;
+        },
+    },
 ];
 
 export async function applyMigrations(db: Database) {
