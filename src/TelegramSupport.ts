@@ -212,6 +212,24 @@ export default class UnifiedMessageContext implements ILocalisator {
         return InlineKeyboard.from(buttonRows);
     }
 
+    private userInfoUpdated: boolean = false;
+    async ensureUserInfoUpdated() {
+        if (this.userInfoUpdated) {
+            return;
+        }
+
+        if (this.tgCtx.from && !this.tgCtx.from.is_bot) {
+            await this.database.userInfo.set({
+                user_id: this.tgCtx.from.id,
+                username: this.tgCtx.from.username ?? null,
+                first_name: this.tgCtx.from.first_name ?? null,
+                last_name: this.tgCtx.from.last_name ?? null,
+            });
+        }
+
+        this.userInfoUpdated = true;
+    }
+
     async activateLocalisator() {
         if (this.isLocalisatorActivated) {
             return;

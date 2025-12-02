@@ -169,6 +169,7 @@ export class Bot {
                 limit: 3,
                 onLimitExceeded: async (tgCtx: TgContext) => {
                     const ctx = this.buildContext(tgCtx);
+                    await ctx.ensureUserInfoUpdated();
                     await ctx.activateLocalisator();
                     await this.database.statsModel.logMessage(ctx);
                     if (ctx.messagePayload) {
@@ -258,11 +259,12 @@ export class Bot {
         }
     };
 
-    private handleCallbackQuery = async (ctx): Promise<void> => {
-        const context = this.buildContext(ctx);
-        await this.database.statsModel.logMessage(context);
-        if (await this.processCommands(context)) {
-            await ctx.answerCallbackQuery();
+    private handleCallbackQuery = async (context: TgContext): Promise<void> => {
+        const ctx = this.buildContext(context);
+        await ctx.ensureUserInfoUpdated();
+        await this.database.statsModel.logMessage(ctx);
+        if (await this.processCommands(ctx)) {
+            await context.answerCallbackQuery();
         }
     };
 
@@ -289,30 +291,31 @@ export class Bot {
         "osu!link": "s n",
     };
 
-    private handleMessage = async (ctx): Promise<void> => {
-        if (this.shouldSkipMessage(ctx)) {
+    private handleMessage = async (context: TgContext): Promise<void> => {
+        if (this.shouldSkipMessage(context)) {
             return;
         }
 
-        const context = this.buildContext(ctx);
+        const ctx = this.buildContext(context);
+        await ctx.ensureUserInfoUpdated();
 
-        if (await context.checkFeature("plaintext-overrides")) {
-            context.applyTextOverrides(this.okiChanAliases);
+        if (await ctx.checkFeature("plaintext-overrides")) {
+            ctx.applyTextOverrides(this.okiChanAliases);
         }
 
         this.totalMessages++;
-        await this.database.statsModel.logMessage(context);
+        await this.database.statsModel.logMessage(ctx);
 
-        const ticket = this.createCallbackTicket(context);
+        const ticket = this.createCallbackTicket(ctx);
         const cb = this.pendingCallbacks[ticket];
         if (cb) {
             let res: ShouldRemoveCallback = false;
-            await context.activateLocalisator();
+            await ctx.activateLocalisator();
             try {
-                res = await cb(context);
+                res = await cb(ctx);
             } catch (e: unknown) {
                 res = true;
-                const err = await this.database.errors.addError(context, e);
+                const err = await this.database.errors.addError(ctx, e);
 
                 let errorText: string;
                 if (e instanceof Error) {
@@ -321,7 +324,7 @@ export class Bot {
                     errorText = String(e);
                 }
 
-                await context.reply(`${Util.error(errorText, context)} (${err})`);
+                await ctx.reply(`${Util.error(errorText, ctx)} (${err})`);
             } finally {
                 if (res) {
                     this.removeCallback(ticket);
@@ -330,7 +333,7 @@ export class Bot {
             return;
         }
 
-        await this.processCommands(context);
+        await this.processCommands(ctx);
     };
 
     private shouldSkipMessage(ctx: TgContext): boolean {
@@ -418,6 +421,7 @@ export class Bot {
                 realAlias[realCommand] = alias;
 
                 const unifiedCtx = this.buildContext(ctx as TgContext);
+                await unifiedCtx.ensureUserInfoUpdated();
                 unifiedCtx.applyTextOverrides(realAlias);
 
                 await this.database.statsModel.logMessage(unifiedCtx);

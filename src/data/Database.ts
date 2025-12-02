@@ -13,6 +13,7 @@ import { StatisticsModel } from "./Models/StatisticsModel";
 import { CoversModel } from "./Models/CoversModel";
 import { ChatMembersModel } from "./Models/ChatMembersModel";
 import { OnboardingModel } from "./Models/OnboardingModel";
+import UserInfoModel from "./Models/UserInfoModel";
 
 // TODO: move all classes to src/data/Models/Settings
 class DatabaseServer implements IDatabaseServer {
@@ -205,6 +206,7 @@ export default class Database {
     readonly featureControlModel: FeatureControlModel;
     readonly statsModel: StatisticsModel;
     readonly onboardingModel: OnboardingModel;
+    readonly userInfo: UserInfoModel;
 
     private readonly db: Pool;
     private readonly tg: TG;
@@ -235,6 +237,7 @@ export default class Database {
         this.featureControlModel = new FeatureControlModel(this);
         this.statsModel = new StatisticsModel(this);
         this.onboardingModel = new OnboardingModel(this);
+        this.userInfo = new UserInfoModel(this);
 
         this.db = new Pool({
             user: process.env.DB_USERNAME,

@@ -18,7 +18,8 @@ export default class DropCommand extends Command {
 
             await self.module.bot.database.drop.dropUser(id);
 
-            await ctx.send(`Привязки ников tg://user?id=${id} удалены!`);
+            const mention = await self.module.bot.database.userInfo.getMention(id);
+            await ctx.send(`Привязки ников ${mention} удалены!`);
         });
 
         this.permission = (ctx) => ctx.isFromOwner;

@@ -12,10 +12,9 @@ export default class IgnoreCommand extends Command {
             }
 
             const ignored = self.module.bot.ignored.switch(context.senderId);
+            const mention = await self.module.bot.database.userInfo.getMention(context.senderId);
 
-            await ctx.send(
-                `tg://user?id=${context.senderId} ${ignored ? "добавлен в игнор-лист" : "убран из игнор-листа"}!`
-            );
+            await ctx.send(`${mention} ${ignored ? "добавлен в игнор-лист" : "убран из игнор-листа"}!`);
         });
 
         this.permission = (ctx) => ctx.isFromOwner;

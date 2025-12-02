@@ -573,6 +573,21 @@ const migrations: IMigration[] = [
             return true;
         },
     },
+    {
+        version: 27,
+        name: "Create user_info table for telegram usernames cache",
+        process: async (db: Database) => {
+            await db.run(`CREATE TABLE IF NOT EXISTS user_info
+                          (
+                              user_id   BIGINT PRIMARY KEY,
+                              username  TEXT,
+                              first_name TEXT,
+                              last_name  TEXT
+                          )`);
+
+            return true;
+        },
+    },
 ];
 
 export async function applyMigrations(db: Database) {

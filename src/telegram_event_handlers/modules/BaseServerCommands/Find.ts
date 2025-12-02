@@ -18,7 +18,8 @@ export default class AbstractFind extends ServerCommand {
 
             let usersText = "";
             for (let i = 0; i < users.length; i++) {
-                usersText += `${i + 1}. tg://user?id=${users[i].id}\n`;
+                const mention = await self.module.bot.database.userInfo.getMention(users[i].id);
+                usersText += `${i + 1}. ${mention}\n`;
             }
             usersText = usersText.trim();
 
