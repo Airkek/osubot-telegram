@@ -259,7 +259,7 @@ export class Bot {
         }
     };
 
-    private handleCallbackQuery = async (context: TgContext): Promise<void> => {
+    private handleCallbackQuery = async (context): Promise<void> => {
         const ctx = this.buildContext(context);
         await ctx.ensureUserInfoUpdated();
         await this.database.statsModel.logMessage(ctx);
@@ -291,7 +291,7 @@ export class Bot {
         "osu!link": "s n",
     };
 
-    private handleMessage = async (context: TgContext): Promise<void> => {
+    private handleMessage = async (context): Promise<void> => {
         if (this.shouldSkipMessage(context)) {
             return;
         }
