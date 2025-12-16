@@ -6,6 +6,7 @@ import AbstractRecent from "../BaseServerCommands/Recent";
 import AbstractChat from "../BaseServerCommands/Chat";
 import AbstractFind from "../BaseServerCommands/Find";
 import AbstractNick from "../BaseServerCommands/Nick";
+import AbstractMode from "../BaseServerCommands/Mode";
 
 export default class Ripple extends ServerModule {
     constructor(bot: Bot) {
@@ -24,6 +25,7 @@ export default class Ripple extends ServerModule {
             new AbstractChat(this),
             new AbstractFind(this),
             new AbstractRecent(this),
+            new AbstractMode(this),
         ]);
     }
 }

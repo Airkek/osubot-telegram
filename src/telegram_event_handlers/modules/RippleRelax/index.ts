@@ -4,6 +4,7 @@ import AbstractUser from "../BaseServerCommands/User";
 import AbstractTop from "../BaseServerCommands/Top";
 import AbstractRecent from "../BaseServerCommands/Recent";
 import AbstractNick from "../BaseServerCommands/Nick";
+import AbstractMode from "../BaseServerCommands/Mode";
 
 export default class RippleRelax extends ServerModule {
     constructor(bot: Bot) {
@@ -20,6 +21,7 @@ export default class RippleRelax extends ServerModule {
             new AbstractTop(this, true),
             new AbstractRecent(this),
             new AbstractNick(this, bot.api.ripple, bot.database.servers.ripple),
+            new AbstractMode(this, bot.database.servers.ripple),
         ]);
     }
 }

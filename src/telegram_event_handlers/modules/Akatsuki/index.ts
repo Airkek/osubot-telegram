@@ -6,6 +6,7 @@ import AbstractChat from "../BaseServerCommands/Chat";
 import AbstractFind from "../BaseServerCommands/Find";
 import AbstractRecent from "../BaseServerCommands/Recent";
 import AbstractNick from "../BaseServerCommands/Nick";
+import AbstractMode from "../BaseServerCommands/Mode";
 
 export default class Akatsuki extends ServerModule {
     constructor(bot: Bot) {
@@ -24,6 +25,7 @@ export default class Akatsuki extends ServerModule {
             new AbstractChat(this),
             new AbstractFind(this),
             new AbstractRecent(this),
+            new AbstractMode(this),
         ]);
     }
 }

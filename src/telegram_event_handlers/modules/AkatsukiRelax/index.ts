@@ -4,6 +4,7 @@ import AbstractTop from "../BaseServerCommands/Top";
 import AbstractRecent from "../BaseServerCommands/Recent";
 import AbstractUser from "../BaseServerCommands/User";
 import AbstractNick from "../BaseServerCommands/Nick";
+import AbstractMode from "../BaseServerCommands/Mode";
 
 export default class AkatsukiRelax extends ServerModule {
     constructor(bot: Bot) {
@@ -20,6 +21,7 @@ export default class AkatsukiRelax extends ServerModule {
             new AbstractTop(this, true),
             new AbstractRecent(this),
             new AbstractNick(this, bot.api.akatsuki, bot.database.servers.akatsuki),
+            new AbstractMode(this, bot.database.servers.akatsuki),
         ]);
     }
 }
