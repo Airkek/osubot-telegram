@@ -121,9 +121,36 @@ export class ExperimentalRenderer implements IReplayRenderer {
         }
     }
 
+    private async getStatusWithRetry(renderId: number, attempts = 5): Promise<string> {
+        let wait = 500;
+        for (let i = 0; i < attempts; i++) {
+            try {
+                const { data } = await axios.get(`${this.base_url}/status/${renderId}`, { timeout: 30000 });
+                return data;
+            } catch (err) {
+                const code = err.code || (err.response && err.response.status);
+                if (i === attempts - 1) throw err;
+                // retry on connection errors / timeouts / 5xx
+                if (
+                    code === "ECONNRESET" ||
+                    code === "ECONNABORTED" ||
+                    code === "ETIMEDOUT" ||
+                    (err.response && err.response.status >= 500) ||
+                    err.message?.includes("socket hang up")
+                ) {
+                    await sleep(wait);
+                    wait *= 2;
+                    continue;
+                }
+                throw err;
+            }
+        }
+        throw new Error("Retries exhausted");
+    }
+
     private async waitForRenderCompletion(renderId: number): Promise<void> {
         while (true) {
-            const { data } = await axios.get(`${this.base_url}/status/${renderId}`);
+            const data = await this.getStatusWithRetry(renderId);
 
             const status = data.split("\n");
 
