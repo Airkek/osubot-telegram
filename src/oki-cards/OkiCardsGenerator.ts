@@ -182,6 +182,8 @@ export class OkiCardsGenerator {
                 break;
             case "x+":
             case "xh":
+            case "ssh":
+            case "ss+":
                 gradeIconAsset = "grade_ssh.png";
                 break;
 
