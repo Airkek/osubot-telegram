@@ -105,6 +105,12 @@ export default class UnifiedMessageContext implements ILocalisator {
             return undefined;
         }
 
+        // Ignore replies to channel messages (e.g., in comment threads)
+        // Channel messages have sender_chat instead of from
+        if (!reply.from) {
+            return undefined;
+        }
+
         return new ReplyToMessage(ctx);
     }
 
