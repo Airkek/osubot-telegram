@@ -10,7 +10,22 @@ export default class DropCommand extends Command {
                 return;
             }
 
-            const id = arg ? Number(arg) : ctx.replyMessage.senderId;
+            let id = arg ? Number(arg) : ctx.replyMessage.senderId;
+            if (arg.startsWith("@")) {
+                const nickname = args.nickname[0].slice(1);
+                const userInfo = await module.bot.database.userInfo.findByUsername(nickname);
+                if (!userInfo) {
+                    await ctx.reply(
+                        ctx.tr("unknown-username", {
+                            prefix: module.prefix[0],
+                        })
+                    );
+                    return;
+                }
+
+                id = userInfo.user_id;
+            }
+
             if (isNaN(id)) {
                 await ctx.send("Невалидный id");
                 return;
