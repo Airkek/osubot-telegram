@@ -40,18 +40,19 @@ function modeUrl(mode: number): string {
 const MAX_SCORES: number = 5;
 
 export default function (l: ILocalisator, response: OsuTrackResponse): string {
-    return `User ${response.username} (${modeStr(response.mode)}):
-Rank: ${formatChange(response.rank)} (${formatChangeFloat(response.pp)} pp) in ${response.playcount} plays
-View detailed data here: https://ameobea.me/osutrack/user/${encodeURI(response.username)}${modeUrl(response.mode)}
+    return `${l.tr("player-name", { player_name: response.username })} (${modeStr(response.mode)}):
+${l.tr("osutrack-rank-pp", {
+    rank: formatChange(response.rank),
+    pp: formatChangeFloat(response.pp),
+    playcount: response.playcount,
+})}
+${l.tr("osutrack-detailed-data-url", { url: `https://ameobea.me/osutrack/user/${encodeURI(response.username)}${modeUrl(response.mode)}` })}
 
-${
-    response.highscores.length == 0
-        ? ""
-        : `${response.highscores.length} new highscores:\n${response.highscores
-              .slice(0, MAX_SCORES)
-              .map((score) => `#${score.place + 1}. ${score.pp.toFixed(2)}pp https://osu.ppy.sh/b/${score.beatmapId}`)
-              .join(
-                  "\n"
-              )}${response.highscores.length > MAX_SCORES ? `\nand ${response.highscores.length - MAX_SCORES} scores more...` : ""}`
-}`.trim();
+${l.tr("osutrack-new-highscores", { count: response.highscores.length })}
+${response.highscores
+    .slice(0, MAX_SCORES)
+    .map((score) => `#${score.place + 1}. ${score.pp.toFixed(2)}pp https://osu.ppy.sh/b/${score.beatmapId}`)
+    .join(
+        "\n"
+    )}${response.highscores.length > MAX_SCORES ? `\n${l.tr("osutrack-and-scores-more", { count: response.highscores.length - MAX_SCORES })}` : ""}`.trim();
 }

@@ -69,3 +69,18 @@ best-players-score-on-this-beatmap = Player's best score on this beatmap
 chat-id-invalid = Invalid ID!
 give-chat-id = Please provide the chat ID!
 top-15-of-chat = Chat Top 15
+
+osutrack-detailed-data-url = View detailed data here: {$url}
+osutrack-new-highscores = { $count ->
+    [0] No new highscores
+    [one] {$count} new highscore
+    *[other] {$count} new highscores
+}
+osutrack-and-scores-more = and { $count ->
+    [one] {$count} score
+    *[other] {$count} scores
+} more...
+osutrack-rank-pp = Rank: {$rank} ({$pp} pp) in {$playcount ->
+    [one] {$playcount} play
+    *[other] {$playcount} plays
+}

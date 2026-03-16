@@ -11,9 +11,14 @@ export default class OsuTrackAPI {
         });
     }
 
-    async getChanges(nickname: string, mode: number): Promise<OsuTrackResponse> {
+    async getChanges(userId: number, mode: number): Promise<OsuTrackResponse> {
         try {
-            const { data: res } = await this.api.get(`/get_changes.php?${qs.stringify({ user: nickname, mode })}`);
+            const { data: raw } = await this.api.get(`/get_changes.php?${qs.stringify({ id: userId, mode })}`, {
+                responseType: "text",
+            });
+
+            const jsonStr = raw.slice(raw.indexOf("{"));
+            const res = JSON.parse(jsonStr);
             return {
                 username: res.username,
                 mode: res.mode,
@@ -25,6 +30,7 @@ export default class OsuTrackAPI {
                 highscores: res.newhs.map((s) => new TrackTopScore(s, res.mode)),
             };
         } catch (err) {
+            console.log(err);
             if (axios.isAxiosError(err) && err.response.status == 404) {
                 throw new Error("User not found");
             }

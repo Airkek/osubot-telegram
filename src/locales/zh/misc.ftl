@@ -68,3 +68,15 @@ best-players-score-on-this-beatmap = 玩家在此谱面的最佳成绩
 chat-id-invalid = 无效群组ID!
 give-chat-it = 请输入群组ID!
 top-15-of-chat = 群组TOP15排行榜
+
+osutrack-detailed-data-url = 查看详细数据：{$url}
+osutrack-new-highscores = { $count ->
+[0] 无新高分记录
+[one] {$count} 个新高分记录
+*[other] {$count} 个新高分记录
+}
+osutrack-and-scores-more = 以及另外 { $count ->
+[one] {$count} 个成绩
+*[other] {$count} 个成绩
+}...
+osutrack-rank-pp = 排名：{$rank}（{$pp} pp）｜游戏次数：{$playcount} 次
