@@ -1,5 +1,5 @@
 import { IPPCalculator as ICalc } from "../Calculator";
-import * as rosu from "@kotrikd/rosu-pp";
+import * as rosu from "rosu-pp-js";
 import Mods, { ModsBitwise } from "../Mods";
 import { APIScore, CalcArgs, HitCounts } from "../../../Types";
 import { OsrReplay } from "../../OsrReplay";
