@@ -71,7 +71,12 @@ export default class BanchoLink extends ServerCommand {
                     err.response.status >= 400 &&
                     err.response.status < 500
                 ) {
-                    await self.reply(self.ctx.tr("link-code-invalid"));
+                    await self.reply(
+                        self.ctx.tr("link-code-invalid", {
+                            prefix: self.module.prefix[0],
+                            url: linkPageUrl,
+                        })
+                    );
                 } else {
                     await self.reply(self.ctx.tr("link-service-unavailable"));
                 }
@@ -80,7 +85,12 @@ export default class BanchoLink extends ServerCommand {
 
             const userId = linkData?.user_id;
             if (!userId) {
-                await self.reply(self.ctx.tr("link-code-invalid"));
+                await self.reply(
+                    self.ctx.tr("link-code-invalid", {
+                        prefix: self.module.prefix[0],
+                        url: linkPageUrl,
+                    })
+                );
                 return;
             }
 

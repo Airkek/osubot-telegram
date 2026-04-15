@@ -59,7 +59,11 @@ link-code-not-specified-with-url =
     打开: {$url}
     然后发送: {$prefix} link <code>
 
-link-code-invalid = 绑定码无效或已过期!
+link-code-invalid =
+    绑定码无效或已过期!
+    打开: {$url}
+    然后发送: {$prefix} link <code>
+
 link-service-unavailable = 绑定服务暂时不可用，请稍后再试。
 link-restricted-warning = 注意：你的 osu! 账号已被限制，部分功能可能不可用。
 

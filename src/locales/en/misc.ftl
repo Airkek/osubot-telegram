@@ -60,7 +60,10 @@ link-code-not-specified-with-url =
     Open: {$url}
     Then send: {$prefix} link <code>
 
-link-code-invalid = Invalid or expired link code.
+link-code-invalid =
+    Invalid or expired link code.
+    Open: {$url}
+    Then send: {$prefix} link <code>
 link-service-unavailable = Link service is temporarily unavailable. Please try again later.
 link-restricted-warning = Warning: your osu! account is restricted. Some features may be unavailable.
 
