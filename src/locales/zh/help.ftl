@@ -25,6 +25,7 @@ osucommands-text =
 
     可用命令:
     • nick {"{"}用户名{"}"} - 设置osu!用户名
+    • link {"{"}code{"}"} - 绑定 Bancho 账号
     • mode {"{"}(osu|taiko|mania|fruits){"}"} - 设置默认游戏模式
     • user {"{"}用户名?{"}"} - 查看用户信息
     • recent {"{"}用户名?{"}"} - 查看最近游玩记录

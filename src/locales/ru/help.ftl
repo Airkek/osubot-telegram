@@ -26,6 +26,7 @@ osucommands-text =
 
     Команды:
     • nick {"{"}username{"}"} - Установить ник
+    • link {"{"}code{"}"} - Привязать аккаунт Bancho
     • mode {"{"}(osu|taiko|mania|fruits){"}"} - Установить режим игры по умолчанию
     • user {"{"}username?{"}"} - Информация о пользователе
     • recent {"{"}username?{"}"} - Последний плей пользователя

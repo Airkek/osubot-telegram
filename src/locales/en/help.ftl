@@ -25,6 +25,7 @@ osucommands-text =
 
     Commands:
     • nick {"{"}username{"}"} - Set your nickname.
+    • link {"{"}code{"}"} - Link your Bancho account.
     • mode {"{"}(osu|taiko|mania|fruits){"}"} - Set the default game mode.
     • user {"{"}username?{"}"} - Information about the user.
     • recent {"{"}username?{"}"} - User's last play.

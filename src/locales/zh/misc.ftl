@@ -54,6 +54,15 @@ sender-nickname-not-specified =
     未设置用户名!
     请使用 {$prefix} nick <用户名> 绑定
 
+link-code-not-specified-with-url =
+    请输入绑定码!
+    打开: {$url}
+    然后发送: {$prefix} link <code>
+
+link-code-invalid = 绑定码无效或已过期!
+link-service-unavailable = 绑定服务暂时不可用，请稍后再试。
+link-restricted-warning = 注意：你的 osu! 账号已被限制，部分功能可能不可用。
+
 unknown-username = 该用户不在机器人的识别范围内！
 
 specify-nickname = 请输入用户名!

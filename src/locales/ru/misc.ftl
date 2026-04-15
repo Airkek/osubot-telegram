@@ -55,6 +55,15 @@ sender-nickname-not-specified =
     Не указан ник!
     Привяжите через {$prefix} nick <ник>
 
+link-code-not-specified-with-url =
+    Укажите код привязки!
+    Откройте: {$url}
+    Затем отправьте: {$prefix} link <code>
+
+link-code-invalid = Неверный или просроченный код привязки.
+link-service-unavailable = Сервис привязки временно недоступен. Попробуйте позже.
+link-restricted-warning = Внимание: ваш аккаунт osu! ограничен. Некоторые функции могут быть недоступны.
+
 unknown-username = Этот пользователь неизвестен боту!
 
 specify-nickname = Укажите ник!

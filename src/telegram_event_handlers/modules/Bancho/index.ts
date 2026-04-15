@@ -1,6 +1,7 @@
 import { ServerModule } from "../Module";
 
 import { Bot } from "../../../Bot";
+import BanchoLink from "./Link";
 import BanchoTrack from "./Track";
 import AbstractUser from "../BaseServerCommands/User";
 import AbstractMode from "../BaseServerCommands/Mode";
@@ -8,7 +9,6 @@ import AbstractTop from "../BaseServerCommands/Top";
 import AbstractRecent from "../BaseServerCommands/Recent";
 import AbstractChat from "../BaseServerCommands/Chat";
 import AbstractFind from "../BaseServerCommands/Find";
-import AbstractNick from "../BaseServerCommands/Nick";
 import AbstractLeaderboard from "../BaseServerCommands/Leaderboard";
 import AbstractCompare from "../BaseServerCommands/Compare";
 
@@ -24,7 +24,7 @@ export default class Bancho extends ServerModule {
 
         this.registerCommand([
             new AbstractUser(this),
-            new AbstractNick(this),
+            new BanchoLink(this),
             new AbstractMode(this),
             new AbstractFind(this),
             new AbstractTop(this),

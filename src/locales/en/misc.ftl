@@ -55,6 +55,15 @@ sender-nickname-not-specified =
     No nickname specified!
     Set yours using: {$prefix} nick <username>
 
+link-code-not-specified-with-url =
+    Please provide a link code.
+    Open: {$url}
+    Then send: {$prefix} link <code>
+
+link-code-invalid = Invalid or expired link code.
+link-service-unavailable = Link service is temporarily unavailable. Please try again later.
+link-restricted-warning = Warning: your osu! account is restricted. Some features may be unavailable.
+
 unknown-username = This user is unknown to the bot!
 
 specify-nickname = Please, specify the nickname!

@@ -287,8 +287,8 @@ export class Bot {
         "osu!set": "osu s",
         "o!help": "osu help",
         "osu!help": "osu help",
-        "o!link": "s n",
-        "osu!link": "s n",
+        "o!link": "s link",
+        "osu!link": "s link",
     };
 
     private handleMessage = async (context): Promise<void> => {

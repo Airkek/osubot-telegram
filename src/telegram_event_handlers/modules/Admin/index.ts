@@ -3,7 +3,7 @@ import { Bot } from "../../../Bot";
 import ErrorCommand from "./Error";
 import IgnoreCommand from "./Ignore";
 import DropCommand from "./Drop";
-import ClearChatsCommand from "./ClearChats";
+import ClearCommand from "./Clear";
 import NotifyCommand from "./Notify";
 import ListFeature from "./ListFeature";
 import EnableFeature from "./EnableFeature";
@@ -19,7 +19,7 @@ export default class Admin extends Module {
             new ErrorCommand(this),
             new IgnoreCommand(this),
             new DropCommand(this),
-            new ClearChatsCommand(this),
+            new ClearCommand(this),
             new NotifyCommand(this),
             new ListFeature(this),
             new EnableFeature(this),
