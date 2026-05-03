@@ -1,4 +1,5 @@
 news-setting = News notifications
+enable-find-setting = Show me in find results
 auto-render = Automatic replay rendering
 background-video = Background video
 storyboard = Storyboard

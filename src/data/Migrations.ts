@@ -604,6 +604,14 @@ const migrations: IMigration[] = [
             return true;
         },
     },
+    {
+        version: 29,
+        name: "Add enable_find to settings",
+        process: async (db: Database) => {
+            await db.run(`ALTER TABLE settings ADD COLUMN enable_find BOOLEAN DEFAULT true`);
+            return true;
+        },
+    }
 ];
 
 export async function applyMigrations(db: Database) {

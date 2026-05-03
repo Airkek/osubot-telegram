@@ -10,7 +10,21 @@ export default class AbstractFind extends ServerCommand {
             }
 
             const u = await self.module.api.getUser(self.args.nickname.join(" "));
-            const users = await self.module.db.findByUserId(u.id);
+            const usersUnfiltered = await self.module.db.findByUserId(u.id);
+            const users: string[] = [];
+
+            if (usersUnfiltered) {
+                for (const user of usersUnfiltered) {
+                    const settings = await self.module.bot.database.userSettings.getUserSettings(user.id);
+                    if (!settings.enable_find) {
+                        continue;
+                    }
+
+                    const mention = await self.module.bot.database.userInfo.getMention(user.id);
+                    users.push(mention);
+                }
+            }
+
             if (!users || users.length == 0) {
                 await self.reply(self.ctx.tr("no-users-found-nickname-find"));
                 return;
@@ -18,8 +32,7 @@ export default class AbstractFind extends ServerCommand {
 
             let usersText = "";
             for (let i = 0; i < users.length; i++) {
-                const mention = await self.module.bot.database.userInfo.getMention(users[i].id);
-                usersText += `${i + 1}. ${mention}\n`;
+                usersText += `${i + 1}. ${users[i]}\n`;
             }
             usersText = usersText.trim();
 

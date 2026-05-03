@@ -24,7 +24,8 @@ type ToggleableSettingsKey =
     | "lang_chinese"
     | "lang_auto"
     | "output_oki_cards"
-    | "output_text";
+    | "output_text"
+    | "enable_find";
 
 type ChatSettingsPage = "home" | "language";
 type ToggleableChatSettingsKey =
@@ -97,6 +98,7 @@ function buildStartKeyboard(
 ): IKeyboard {
     const kb = [
         [buildPageButton(userId, "render", l.tr("render-page"))],
+        [toggleableButton(userId, "home", l.tr("enable-find-setting"), "enable_find", settings.enable_find)],
         [
             toggleableButton(
                 userId,
@@ -650,6 +652,7 @@ export default class SettingsCommand extends Command {
                         case "ordr_hit_counter":
                         case "ordr_strain_graph":
                         case "notifications_enabled":
+                        case "enable_find":
                         case "experimental_renderer": {
                             settings[key] = value;
                             allowUpdate = true;

@@ -1,4 +1,5 @@
 news-setting = Новостные рассылки
+enable-find-setting = Показывать меня в find
 auto-render = Автоматический рендер реплеев
 background-video = Фоновое видео
 storyboard = Сториборд

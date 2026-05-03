@@ -1,4 +1,5 @@
 news-setting = 新闻订阅
+enable-find-setting = 在 find 结果中显示我
 auto-render = 自动渲染回放
 background-video = 背景视频
 storyboard = 故事板
