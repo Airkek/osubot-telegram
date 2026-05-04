@@ -1,4 +1,4 @@
-name: Release: build & deploy
+name: "Release: build & deploy"
 
 on:
   workflow_dispatch:

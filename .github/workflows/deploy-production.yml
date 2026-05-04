@@ -1,4 +1,4 @@
-name: Deploy: production
+name: "Deploy: production"
 
 env:
   REGISTRY: ghcr.io
