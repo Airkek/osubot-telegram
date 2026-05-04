@@ -56,4 +56,3 @@ jobs:
             docker compose pull
             docker logout ${{ env.REGISTRY }}
             docker compose up -d --remove-orphans
-            docker system prune --all --force
