@@ -611,7 +611,7 @@ const migrations: IMigration[] = [
             await db.run(`ALTER TABLE settings ADD COLUMN enable_find BOOLEAN DEFAULT true`);
             return true;
         },
-    }
+    },
 ];
 
 export async function applyMigrations(db: Database) {
