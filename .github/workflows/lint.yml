@@ -1,28 +1,36 @@
-name: Lint
+name: CI
 
 on:
   push:
     branches: [master]
   pull_request:
-    types: [opened, synchronize]
+    branches: [master]
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  lint:
+  lint_build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Install node
         uses: actions/setup-node@v4
         with:
           node-version: 24
+          cache: npm
 
       - name: Install modules
         run: npm ci
 
       - name: Run ESLint
         run: npx eslint .
+
+      - name: Build
+        run: npm run build

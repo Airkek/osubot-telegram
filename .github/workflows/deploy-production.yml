@@ -1,10 +1,29 @@
-name: Deploy
+name: Deploy: production
 
 env:
   REGISTRY: ghcr.io
 
 on:
-  workflow_dispatch
+  workflow_dispatch:
+  workflow_call:
+    secrets:
+      SSH_HOST:
+        required: true
+      SSH_USER:
+        required: true
+      SSH_PRIVATE_KEY:
+        required: true
+      SSH_TARGET_PATH:
+        required: true
+      PAT:
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
 
 jobs:
   deploy:
@@ -13,10 +32,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
-      - name: Copying Docker Compose file by using scp
+      - name: Copy docker-compose.yml via scp
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.SSH_HOST }}
@@ -26,16 +43,17 @@ jobs:
           overwrite: true
           target: ${{ secrets.SSH_TARGET_PATH }}
 
-      - name: Pulling Docker image from ssh
+      - name: Pull and restart via ssh
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
+            set -e
             cd ${{ secrets.SSH_TARGET_PATH }}
-            echo ${{ secrets.PAT }} | docker login ${{ env.REGISTRY }} -u ${{github.actor}} --password-stdin
+            echo ${{ secrets.PAT }} | docker login ${{ env.REGISTRY }} -u ${{ github.repository_owner }} --password-stdin
             docker compose pull
             docker logout ${{ env.REGISTRY }}
-            docker compose up -d
+            docker compose up -d --remove-orphans
             docker system prune --all --force
