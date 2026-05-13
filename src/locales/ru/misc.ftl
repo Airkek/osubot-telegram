@@ -80,7 +80,7 @@ send-beatmap-first = Сначала отправьте карту!
 best-players-score-on-this-beatmap = Лучший скор игрока на этой карте
 
 chat-id-invalid = Некорректный ID!
-give-chat-it = Укажите ID беседы!
+give-chat-id = Укажите ID беседы!
 top-15-of-chat = Топ-15 беседы
 
 osutrack-detailed-data-url = Посмотреть подробные данные: {$url}

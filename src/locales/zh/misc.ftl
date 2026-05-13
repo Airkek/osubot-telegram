@@ -79,7 +79,7 @@ send-beatmap-first = 请先发送谱面!
 best-players-score-on-this-beatmap = 玩家在此谱面的最佳成绩
 
 chat-id-invalid = 无效群组ID!
-give-chat-it = 请输入群组ID!
+give-chat-id = 请输入群组ID!
 top-15-of-chat = 群组TOP15排行榜
 
 osutrack-detailed-data-url = 查看详细数据：{$url}
