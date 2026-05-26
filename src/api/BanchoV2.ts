@@ -514,7 +514,7 @@ class BanchoAPIV2 implements IAPI {
         let data: BeatmapExtended;
 
         if (typeof id === "string") {
-            data = await this.get("https://osu.ppy.sh/api/v2/beatmaps/lookup", {
+            data = await this.get("/beatmaps/lookup", {
                 checksum: id,
             });
         } else {
