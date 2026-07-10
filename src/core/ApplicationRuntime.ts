@@ -28,6 +28,7 @@ import { localizeError } from "../UserError";
 import { PACKAGE_VERSION } from "../version";
 import { clearInterval, setInterval } from "node:timers";
 import { Command } from "../event_handlers/Command";
+import { ExternalId, Platform } from "./Identity";
 
 export interface RuntimeConfig {
     banchoAppId: number;
@@ -35,8 +36,9 @@ export interface RuntimeConfig {
 }
 
 export interface RuntimePlatformServices {
+    readonly platform: Platform;
     createCoversProvider(mediaReferences: MediaReferenceCache): CoversProvider;
-    sendMessage(recipientId: number, text: string): Promise<void>;
+    sendMessage(recipientId: ExternalId, text: string): Promise<void>;
 }
 
 export type ModuleFactory = (runtime: BotRuntime) => Module;
@@ -50,7 +52,7 @@ export interface RuntimeDependencies {
     ignored: IgnoreList;
     track: OsuTrackAPI;
     replyUtils: ReplyUtils;
-    sendMessage(recipientId: number, text: string): Promise<void>;
+    sendMessage(recipientId: ExternalId, text: string): Promise<void>;
     moduleFactories?: ModuleFactory[];
     version?: string;
 }
@@ -159,7 +161,7 @@ export class ApplicationRuntime implements BotRuntime {
             ignored: new IgnoreList(storage.ignoredUsers),
             track: new OsuTrackAPI(),
             replyUtils: new ReplyUtils(cards, Templates, platform.createCoversProvider(storage.mediaReferences)),
-            sendMessage: platform.sendMessage,
+            sendMessage: (recipientId, text) => platform.sendMessage(recipientId, text),
         });
     }
 
@@ -191,6 +193,7 @@ export class ApplicationRuntime implements BotRuntime {
     }
 
     async handleMessage(ctx: IMessageContext): Promise<void> {
+        await this.prepareContext(ctx);
         if (this.ignored.isIgnored(ctx.senderId)) {
             return;
         }
@@ -214,12 +217,14 @@ export class ApplicationRuntime implements BotRuntime {
     }
 
     async handleCallbackQuery(ctx: IMessageContext): Promise<boolean> {
+        await this.prepareContext(ctx);
         await ctx.ensureUserInfoUpdated();
         await this.storage.telemetry.logMessage(ctx);
         return await this.processCommands(ctx);
     }
 
     async handleCommandAlias(ctx: IMessageContext, sourceCommand: string, alias: string): Promise<void> {
+        await this.prepareContext(ctx);
         await ctx.ensureUserInfoUpdated();
         ctx.applyTextOverrides({ [sourceCommand]: alias });
         await this.storage.telemetry.logMessage(ctx);
@@ -227,6 +232,7 @@ export class ApplicationRuntime implements BotRuntime {
     }
 
     async handleRateLimit(ctx: IMessageContext): Promise<void> {
+        await this.prepareContext(ctx);
         await ctx.ensureUserInfoUpdated();
         await ctx.activateLocalisator();
         await this.storage.telemetry.logMessage(ctx);
@@ -241,20 +247,28 @@ export class ApplicationRuntime implements BotRuntime {
         const hasPendingCallback = this.pendingCallbacks.has(this.createCallbackTicket(ctx));
         const isCommand = hasPendingCallback || this.modules.some((module) => !!module.checkContext(ctx));
         const ticket = isCommand ? "command" : `${Date.now()}:${Math.random()}:${this.totalMessages}`;
-        return `${ctx.senderId}:${ticket}`;
+        return `${ctx.platform}:${ctx.externalSenderId}:${ticket}`;
     }
 
-    async userJoined(userId: number, chatId: number): Promise<void> {
-        if (!(await this.storage.memberships.isUserInChat(userId, chatId))) {
-            await this.storage.memberships.userJoined(userId, chatId);
+    async userJoined(externalUserId: ExternalId, externalChatId: ExternalId): Promise<void> {
+        const [user, chat] = await Promise.all([
+            this.storage.identities.resolveUser(externalUserId),
+            this.storage.identities.resolveChat(externalChatId),
+        ]);
+        if (!(await this.storage.memberships.isUserInChat(user.accountId, chat.chatId))) {
+            await this.storage.memberships.userJoined(user.accountId, chat.chatId);
         }
     }
 
-    async userLeft(userId: number, chatId: number, isCurrentBot: boolean): Promise<void> {
+    async userLeft(externalUserId: ExternalId, externalChatId: ExternalId, isCurrentBot: boolean): Promise<void> {
+        const [user, chat] = await Promise.all([
+            this.storage.identities.resolveUser(externalUserId),
+            this.storage.identities.resolveChat(externalChatId),
+        ]);
         if (isCurrentBot) {
-            this.maps.removeChat(chatId);
+            this.maps.removeChat(chat.chatId);
         }
-        await this.storage.memberships.userLeft(userId, chatId);
+        await this.storage.memberships.userLeft(user.accountId, chat.chatId);
     }
 
     addCallback(ctx: IMessageContext, callback: PendingCallback): string {
@@ -267,8 +281,19 @@ export class ApplicationRuntime implements BotRuntime {
         this.pendingCallbacks.delete(ticket);
     }
 
-    async sendMessage(recipientId: number, text: string): Promise<void> {
+    async sendMessage(recipientId: ExternalId, text: string): Promise<void> {
         await this.sendPlatformMessage(recipientId, text);
+    }
+
+    private async prepareContext(ctx: IMessageContext): Promise<void> {
+        const [user, chat, replyUser] = await Promise.all([
+            this.storage.identities.resolveUser(ctx.externalSenderId),
+            this.storage.identities.resolveChat(ctx.externalChatId),
+            ctx.replyMessage
+                ? this.storage.identities.resolveUser(ctx.replyMessage.externalSenderId)
+                : Promise.resolve(undefined),
+        ]);
+        ctx.bindIdentity({ user, chat, replyUser });
     }
 
     private async processCallback(ctx: IMessageContext, ticket: string, callback: PendingCallback): Promise<void> {
@@ -337,7 +362,9 @@ export class ApplicationRuntime implements BotRuntime {
             }
 
             if (ctx.isInGroupChat) {
-                await this.userJoined(ctx.senderId, ctx.chatId);
+                if (!(await this.storage.memberships.isUserInChat(ctx.senderId, ctx.chatId))) {
+                    await this.storage.memberships.userJoined(ctx.senderId, ctx.chatId);
+                }
             }
 
             if (match.map) {
@@ -355,7 +382,7 @@ export class ApplicationRuntime implements BotRuntime {
     }
 
     private createCallbackTicket(ctx: IMessageContext): string {
-        return `${ctx.senderId}_${ctx.chatId}`;
+        return `${ctx.platform}:${ctx.externalSenderId}_${ctx.externalChatId}`;
     }
 
     private async logStatsInfo(): Promise<void> {

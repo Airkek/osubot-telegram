@@ -1,5 +1,4 @@
-import assert from "node:assert/strict";
-import test from "node:test";
+import { expect, test } from "@jest/globals";
 import { createTelegramWebhookIngress } from "../src/Telegram/WebhookIngress";
 import { WebhookUpdateDispatcher } from "../src/Telegram/UpdateDispatcher";
 
@@ -41,12 +40,12 @@ test("webhook ingress authenticates, validates and applies backpressure", () => 
         return { result, queued };
     };
 
-    assert.equal(invoke("good", { update_id: 1 }).result.status, 200);
-    assert.equal(invoke("bad", { update_id: 1 }).result.status, 401);
-    assert.equal(invoke("good", {}).result.status, 400);
+    expect(invoke("good", { update_id: 1 }).result.status).toBe(200);
+    expect(invoke("bad", { update_id: 1 }).result.status).toBe(401);
+    expect(invoke("good", {}).result.status).toBe(400);
     const full = invoke("good", { update_id: 2 }, false);
-    assert.equal(full.result.status, 503);
-    assert.equal(full.result.headers["Retry-After"], "1");
+    expect(full.result.status).toBe(503);
+    expect(full.result.headers["Retry-After"]).toBe("1");
 });
 
 test("dispatcher defers work, limits concurrency and drains on stop", async () => {
@@ -71,21 +70,21 @@ test("dispatcher defers work, limits concurrency and drains on stop", async () =
         3
     );
 
-    assert.equal(dispatcher.enqueue(1), true);
-    assert.equal(dispatcher.enqueue(2), true);
-    assert.equal(dispatcher.enqueue(3), true);
-    assert.equal(dispatcher.enqueue(4), false);
-    assert.deepEqual(started, []);
+    expect(dispatcher.enqueue(1)).toBe(true);
+    expect(dispatcher.enqueue(2)).toBe(true);
+    expect(dispatcher.enqueue(3)).toBe(true);
+    expect(dispatcher.enqueue(4)).toBe(false);
+    expect(started).toEqual([]);
 
     await nextTurn();
-    assert.deepEqual(started, [1, 2]);
-    assert.equal(maxActive, 2);
+    expect(started).toEqual([1, 2]);
+    expect(maxActive).toBe(2);
 
     releases.shift()();
     await nextTurn();
     await nextTurn();
-    assert.deepEqual(started, [1, 2, 3]);
-    assert.equal(maxActive, 2);
+    expect(started).toEqual([1, 2, 3]);
+    expect(maxActive).toBe(2);
 
     const stopped = dispatcher.stop();
     while (releases.length > 0) {

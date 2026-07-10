@@ -15,13 +15,14 @@ import {
     SendOptions,
     TextLinkEntity,
 } from "../core/MessageContext";
+import { MessageIdentity } from "../core/Identity";
 
 export type TgContext = FileFlavor<Context & I18nFlavor>;
 export type TgApi = FileApiFlavor<Api>;
 
 type TelegramContextStorage = Pick<
     ApplicationStorage,
-    "userDirectory" | "featureFlags" | "userSettings" | "chatSettings"
+    "identities" | "userDirectory" | "featureFlags" | "userSettings" | "chatSettings"
 >;
 
 const registry = new FinalizationRegistry(async (path: string) => {
@@ -37,8 +38,12 @@ const registry = new FinalizationRegistry(async (path: string) => {
 });
 
 export class TelegramMessageContext implements IMessageContext {
-    readonly chatId: number;
-    readonly senderId: number;
+    readonly platform = "telegram" as const;
+    readonly externalChatId: number;
+    readonly externalSenderId: number;
+    chatId: number;
+    senderId: number;
+    userId: number;
 
     readonly plainText?: string;
     readonly plainPayload?: string;
@@ -72,7 +77,7 @@ export class TelegramMessageContext implements IMessageContext {
 
     private readonly ownerId: number;
     get isFromOwner(): boolean {
-        return this.senderId == this.ownerId;
+        return this.externalSenderId == this.ownerId;
     }
 
     private graphicalModeOverride: "no" | "cards" | "plain" = "no";
@@ -94,9 +99,9 @@ export class TelegramMessageContext implements IMessageContext {
         }
 
         return {
-            text: reply.text,
-            senderId: reply.from.id,
-            chatId: reply.chat.id,
+            text: reply.text ?? reply.caption ?? "",
+            externalSenderId: reply.from.id,
+            externalChatId: reply.chat.id,
         };
     }
 
@@ -110,11 +115,22 @@ export class TelegramMessageContext implements IMessageContext {
         this.plainPayload = ctx.callbackQuery?.data;
         this.replyMessage = this.convertReplyMessage(ctx);
         this.isInGroupChat = ctx.chat.type == "supergroup" || ctx.chat.type == "group";
-        this.senderId = ctx.from.id;
-        this.chatId = ctx.chatId;
+        this.externalSenderId = ctx.from.id;
+        this.externalChatId = ctx.chatId;
         this.ownerId = ownerId;
 
         this.parsePayload();
+    }
+
+    bindIdentity(identity: MessageIdentity): void {
+        this.userId = identity.user.userId;
+        this.senderId = identity.user.accountId;
+        this.chatId = identity.chat.chatId;
+        if (this.replyMessage) {
+            this.replyMessage.chatId = identity.chat.chatId;
+            this.replyMessage.senderId = identity.replyUser?.accountId;
+            this.replyMessage.userId = identity.replyUser?.userId;
+        }
     }
 
     private overridenText: string = undefined;
@@ -212,7 +228,7 @@ export class TelegramMessageContext implements IMessageContext {
 
         if (this.tgCtx.from && !this.tgCtx.from.is_bot) {
             await this.storage.userDirectory.set({
-                user_id: this.tgCtx.from.id,
+                account_id: this.senderId,
                 display_username: this.tgCtx.from.username ?? null,
                 first_name: this.tgCtx.from.first_name ?? null,
                 last_name: this.tgCtx.from.last_name ?? null,
@@ -282,7 +298,7 @@ export class TelegramMessageContext implements IMessageContext {
 
     async userSettings(forceUpdate: boolean = false): Promise<UserSettings> {
         if (forceUpdate || !this.userSettingsCache) {
-            this.userSettingsCache = await this.storage.userSettings.getUserSettings(this.senderId);
+            this.userSettingsCache = await this.storage.userSettings.getUserSettings(this.userId, this.senderId);
         }
 
         return this.userSettingsCache;
@@ -301,7 +317,7 @@ export class TelegramMessageContext implements IMessageContext {
     }
 
     async updateUserSettings(settings: UserSettings) {
-        if (settings.user_id != this.senderId) {
+        if (settings.user_id != this.userId || settings.account_id != this.senderId) {
             return;
         }
         await this.storage.userSettings.updateSettings(settings);
@@ -450,9 +466,17 @@ export class TelegramMessageContext implements IMessageContext {
         return await this.tgCtx.answerCallbackQuery(text);
     }
 
-    async isUserAdmin(userId: number): Promise<boolean> {
+    async isUserAdmin(accountId: number): Promise<boolean> {
+        const externalUserId = await this.getExternalUserId(accountId);
+        if (externalUserId === undefined) {
+            return false;
+        }
+        return this.isExternalUserAdmin(externalUserId);
+    }
+
+    private async isExternalUserAdmin(userId: number): Promise<boolean> {
         try {
-            const res = await this.tgCtx.api.getChatMember(this.chatId, userId);
+            const res = await this.tgCtx.api.getChatMember(this.externalChatId, userId);
             return res.status == "creator" || res.status == "administrator";
         } catch (e) {
             if (e.message.includes("CHAT_ADMIN_REQUIRED")) {
@@ -464,14 +488,21 @@ export class TelegramMessageContext implements IMessageContext {
     }
 
     async isSenderAdmin(): Promise<boolean> {
-        return this.isUserAdmin(this.senderId);
+        return this.isExternalUserAdmin(this.externalSenderId);
     }
 
     async isBotAdmin(): Promise<boolean> {
-        return this.isUserAdmin(this.me.id);
+        return this.isExternalUserAdmin(this.me.id);
     }
 
-    async isUserInChat(userId: number, chatId?: number): Promise<boolean> {
+    async isUserInChat(accountId: number, chatId?: number): Promise<boolean> {
+        const [externalUserId, externalChatId] = await Promise.all([
+            this.getExternalUserId(accountId),
+            chatId === undefined ? Promise.resolve(this.externalChatId) : this.getExternalChatId(chatId),
+        ]);
+        if (externalUserId === undefined || externalChatId === undefined) {
+            return false;
+        }
         try {
             if (chatId) {
                 const isValid = await this.isChatValid(chatId);
@@ -480,7 +511,7 @@ export class TelegramMessageContext implements IMessageContext {
                 }
             }
 
-            const user = await this.tgCtx.api.getChatMember(chatId ?? this.chatId, userId);
+            const user = await this.tgCtx.api.getChatMember(externalChatId, externalUserId);
             return user && user.status != "kicked" && user.status != "left";
         } catch (e) {
             return !e.description?.includes("member not found");
@@ -488,8 +519,12 @@ export class TelegramMessageContext implements IMessageContext {
     }
 
     async isChatValid(chatId: number): Promise<boolean> {
+        const externalChatId = await this.getExternalChatId(chatId);
+        if (externalChatId === undefined) {
+            return false;
+        }
         try {
-            const chatInfo = await this.tgCtx.api.getChat(chatId);
+            const chatInfo = await this.tgCtx.api.getChat(externalChatId);
             return !!chatInfo;
         } catch (e) {
             return !e.description?.includes("chat not found");
@@ -497,16 +532,46 @@ export class TelegramMessageContext implements IMessageContext {
     }
 
     async isBotInChat(chatId: number): Promise<boolean> {
-        return this.isUserInChat(this.me.id, chatId);
+        const externalChatId = await this.getExternalChatId(chatId);
+        if (externalChatId === undefined || !(await this.isChatValid(chatId))) {
+            return false;
+        }
+        try {
+            const user = await this.tgCtx.api.getChatMember(externalChatId, this.me.id);
+            return user && user.status != "kicked" && user.status != "left";
+        } catch (e) {
+            return !e.description?.includes("member not found");
+        }
     }
 
-    async mentionUser(userId: number): Promise<string> {
-        const info = await this.storage.userDirectory.get(userId);
-        return info?.display_username ? `@${info.display_username}` : `tg://user?id=${userId}`;
+    async mentionUser(accountId: number): Promise<string> {
+        const info = await this.storage.userDirectory.get(accountId);
+        if (info?.display_username) {
+            return `@${info.display_username}`;
+        }
+        const externalUserId = await this.getExternalUserId(accountId);
+        return externalUserId === undefined ? String(accountId) : `tg://user?id=${externalUserId}`;
     }
 
     chatMembersCount(): Promise<number> {
-        return this.tgCtx.api.getChatMemberCount(this.chatId);
+        return this.tgCtx.api.getChatMemberCount(this.externalChatId);
+    }
+
+    private async getExternalUserId(accountId: number): Promise<number | undefined> {
+        const identity = await this.storage.identities.getUser(accountId);
+        if (!identity) {
+            return undefined;
+        }
+        const id = Number(identity.externalId);
+        return Number.isSafeInteger(id) ? id : undefined;
+    }
+
+    private async getExternalChatId(chatId: number): Promise<number | string | undefined> {
+        if (chatId === this.chatId) {
+            return this.externalChatId;
+        }
+        const identity = await this.storage.identities.getChat(chatId);
+        return identity?.externalId;
     }
 
     hasLinks(): boolean {

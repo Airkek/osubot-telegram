@@ -1,6 +1,6 @@
-import assert from "node:assert/strict";
-import test from "node:test";
+import { expect, test } from "@jest/globals";
 import { ApplicationRuntime, RuntimeDependencies } from "../src/core/ApplicationRuntime";
+import { MessageIdentity } from "../src/core/Identity";
 import { createTestStorage } from "./fakes/ApplicationStorageFake";
 
 global.logger = {
@@ -73,15 +73,20 @@ test("runtime initializes injected services and dispatches a matching command", 
 
     await runtime.initialize();
     await runtime.handleMessage({
+        platform: "telegram",
+        externalSenderId: 1,
+        externalChatId: 2,
         senderId: 1,
+        userId: 1,
         chatId: 2,
         isInGroupChat: false,
+        bindIdentity() {},
         ensureUserInfoUpdated: async () => calls.push("context"),
         checkFeature: async () => false,
     } as never);
 
-    assert.equal(factoryRuntime, runtime);
-    assert.deepEqual(calls, ["database", "ignored", "api", "context", "stats", "command"]);
+    expect(factoryRuntime).toBe(runtime);
+    expect(calls).toEqual(["database", "ignored", "api", "context", "stats", "command"]);
 });
 
 test("completed callbacks are removed from the shared runtime", async () => {
@@ -89,9 +94,14 @@ test("completed callbacks are removed from the shared runtime", async () => {
     await runtime.initialize();
     let callbackRuns = 0;
     const context = {
+        platform: "telegram",
+        externalSenderId: 1,
+        externalChatId: 2,
         senderId: 1,
+        userId: 1,
         chatId: 2,
         isInGroupChat: false,
+        bindIdentity() {},
         ensureUserInfoUpdated: async () => {},
         checkFeature: async () => false,
         activateLocalisator: async () => {},
@@ -106,5 +116,79 @@ test("completed callbacks are removed from the shared runtime", async () => {
     await runtime.handleMessage(context);
     await runtime.handleMessage(context);
 
-    assert.equal(callbackRuns, 1);
+    expect(callbackRuns).toBe(1);
+});
+
+test("runtime resolves and binds platform identities before dispatch", async () => {
+    const storage = createTestStorage();
+    storage.identities.resolveUser = async (externalId) => {
+        const reply = String(externalId) === "33";
+        return {
+            accountId: reply ? 103 : 101,
+            userId: reply ? 203 : 201,
+            platform: "telegram",
+            externalId: String(externalId),
+        };
+    };
+    storage.identities.resolveChat = async (externalId) => ({
+        chatId: 301,
+        platform: "telegram",
+        externalId: String(externalId),
+    });
+
+    const command = {
+        name: "identity",
+        process: async (ctx: {
+            senderId: number;
+            userId: number;
+            chatId: number;
+            replyMessage: { senderId: number; userId: number; chatId: number };
+        }) => {
+            expect(ctx.senderId).toBe(101);
+            expect(ctx.userId).toBe(201);
+            expect(ctx.chatId).toBe(301);
+            expect(ctx.replyMessage).toMatchObject({ senderId: 103, userId: 203, chatId: 301 });
+        },
+    };
+    const runtime = new ApplicationRuntime(
+        createDependencies({
+            storage,
+            moduleFactories: [
+                () =>
+                    ({
+                        name: "Identity",
+                        commands: [command],
+                        checkContext: () => ({ command }),
+                    }) as never,
+            ],
+        })
+    );
+    await runtime.initialize();
+
+    const context = {
+        platform: "telegram",
+        externalSenderId: 11,
+        externalChatId: 22,
+        senderId: 0,
+        userId: 0,
+        chatId: 0,
+        replyMessage: {
+            text: "reply",
+            externalSenderId: 33,
+            externalChatId: 22,
+        },
+        isInGroupChat: false,
+        bindIdentity(identity: MessageIdentity) {
+            this.senderId = identity.user.accountId;
+            this.userId = identity.user.userId;
+            this.chatId = identity.chat.chatId;
+            this.replyMessage.senderId = identity.replyUser.accountId;
+            this.replyMessage.userId = identity.replyUser.userId;
+            this.replyMessage.chatId = identity.chat.chatId;
+        },
+        ensureUserInfoUpdated: async () => {},
+        checkFeature: async () => false,
+    };
+
+    await runtime.handleMessage(context as never);
 });

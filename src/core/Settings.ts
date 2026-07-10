@@ -4,6 +4,7 @@ export type ContentOutput = "oki-cards" | "legacy-text";
 
 export interface UserSettings {
     user_id: number;
+    account_id: number;
     render_enabled: boolean;
     notifications_enabled: boolean;
     enable_find: boolean;

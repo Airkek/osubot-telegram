@@ -348,12 +348,10 @@ class TrackTopScore {
 
 interface IDatabaseUser {
     id: number;
+    account_id?: number;
     game_id: string;
     nickname: string;
     mode: number;
-    pp: number;
-    rank: number;
-    acc: number;
 }
 
 interface IDatabaseUserStats {

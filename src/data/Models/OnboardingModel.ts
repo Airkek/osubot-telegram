@@ -4,7 +4,7 @@ import { ONBOARDING_VERSION } from "../../core/ApplicationStorage";
 export { ONBOARDING_VERSION } from "../../core/ApplicationStorage";
 
 interface OnboardingScheme {
-    user_id: number;
+    platform_account_id: number;
     version: number;
 }
 
@@ -29,9 +29,10 @@ export class OnboardingModel {
             return this.cache.get(userId);
         }
 
-        const status = await this.db.get<OnboardingScheme>("SELECT * FROM onboarded_users WHERE user_id = $1", [
-            userId,
-        ]);
+        const status = await this.db.get<OnboardingScheme>(
+            "SELECT platform_account_id, version FROM onboarded_users WHERE platform_account_id = $1",
+            [userId]
+        );
 
         const version = status ? status.version : 0;
         this.cache.set(userId, version);
@@ -47,9 +48,9 @@ export class OnboardingModel {
 
     async userOnboarded(userId: number, version: number): Promise<void> {
         await this.db.run(
-            `INSERT INTO onboarded_users (user_id, version)
+            `INSERT INTO onboarded_users (platform_account_id, version)
              VALUES ($1, $2)
-             ON CONFLICT (user_id) DO UPDATE SET version = EXCLUDED.version`,
+             ON CONFLICT (platform_account_id) DO UPDATE SET version = EXCLUDED.version`,
             [userId, version]
         );
 

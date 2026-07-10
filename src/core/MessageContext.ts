@@ -2,11 +2,15 @@ import { ILocalisator } from "../ILocalisator";
 import { ControllableFeature } from "./ApplicationStorage";
 import { ChatSettings, UserSettings } from "./Settings";
 import { IKeyboard } from "../Util";
+import { ExternalId, MessageIdentity, Platform } from "./Identity";
 
 export interface ReplyToMessage {
-    readonly text: string;
-    readonly senderId: number;
-    readonly chatId: number;
+    text: string;
+    externalSenderId: ExternalId;
+    externalChatId: ExternalId;
+    senderId?: number;
+    userId?: number;
+    chatId?: number;
 }
 
 export interface TextLinkEntity {
@@ -40,6 +44,10 @@ export class MessageNotModifiedError extends Error {
 }
 
 export interface IMessageContext extends ILocalisator {
+    readonly platform: Platform;
+    readonly externalSenderId: ExternalId;
+    readonly externalChatId: ExternalId;
+    readonly userId: number;
     readonly chatId: number;
     readonly senderId: number;
     readonly plainText?: string;
@@ -50,6 +58,7 @@ export interface IMessageContext extends ILocalisator {
     readonly text?: string;
     readonly messagePayload?: string;
 
+    bindIdentity(identity: MessageIdentity): void;
     applyTextOverrides(aliases: Record<string, string>): void;
     ensureUserInfoUpdated(): Promise<void>;
     activateLocalisator(): Promise<void>;
@@ -66,13 +75,13 @@ export interface IMessageContext extends ILocalisator {
     edit(text: string, options?: SendOptions): Promise<void>;
     editMarkup(keyboard: IKeyboard): Promise<unknown>;
     answer(text: string): Promise<true | void>;
-    isUserAdmin(userId: number): Promise<boolean>;
+    isUserAdmin(accountId: number): Promise<boolean>;
     isSenderAdmin(): Promise<boolean>;
     isBotAdmin(): Promise<boolean>;
-    isUserInChat(userId: number, chatId?: number): Promise<boolean>;
+    isUserInChat(accountId: number, chatId?: number): Promise<boolean>;
     isChatValid(chatId: number): Promise<boolean>;
     isBotInChat(chatId: number): Promise<boolean>;
-    mentionUser(userId: number): Promise<string>;
+    mentionUser(accountId: number): Promise<string>;
     chatMembersCount(): Promise<number>;
     hasLinks(): boolean;
     getLinks(): TextLinkEntity[];

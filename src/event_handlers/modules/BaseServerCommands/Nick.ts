@@ -28,7 +28,7 @@ export default class AbstractNick extends ServerCommand {
                 throw error;
             }
 
-            await (masterDb ?? self.module.db).setNickname(self.ctx.senderId, user.id, user.nickname, user.mode);
+            await (masterDb ?? self.module.db).setNickname(self.ctx.userId, user.id, user.nickname, user.mode);
             await self.reply(`${self.ctx.tr("nickname-set")}: ${user.nickname}`);
         });
     }

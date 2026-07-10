@@ -197,7 +197,7 @@ export default class OnboardingCommand extends Command {
             }
 
             const userId = Number(payload.shift());
-            if (userId != ctx.senderId) {
+            if (userId != ctx.senderId && String(userId) != String(ctx.externalSenderId)) {
                 return;
             }
 

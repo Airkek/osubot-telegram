@@ -5,7 +5,7 @@ export { UserSettings } from "../../../core/Settings";
 
 export class UserSettingsModel {
     private db: SqlExecutor;
-    private readonly cache: Map<number, { val: UserSettings | null; expiresAt: number }> = new Map();
+    private readonly cache: Map<string, { val: UserSettings | null; expiresAt: number }> = new Map();
     private readonly ttl: number; // milliseconds
     private readonly limit: number;
 
@@ -25,33 +25,90 @@ export class UserSettingsModel {
         }
     }
 
-    private setCache(userId: number, val: UserSettings | null) {
+    private cacheKey(userId: number, accountId: number): string {
+        return `${userId}:${accountId}`;
+    }
+
+    private setCache(userId: number, accountId: number, val: UserSettings | null) {
         const expiresAt = Date.now() + this.ttl;
-        this.cache.set(userId, { val, expiresAt });
+        this.cache.set(this.cacheKey(userId, accountId), { val, expiresAt });
         this.pruneIfNeeded();
     }
 
-    private getCache(userId: number): UserSettings | null {
-        const entry = this.cache.get(userId);
+    private getCache(userId: number, accountId: number): UserSettings | null {
+        const key = this.cacheKey(userId, accountId);
+        const entry = this.cache.get(key);
         if (!entry) return null;
         if (entry.expiresAt < Date.now()) {
-            this.cache.delete(userId);
+            this.cache.delete(key);
             return null;
         }
         return entry.val;
     }
 
-    async getUserSettings(userId: number): Promise<UserSettings | null> {
-        const cached = this.getCache(userId);
+    private invalidateUser(userId: number): void {
+        const prefix = `${userId}:`;
+        for (const key of this.cache.keys()) {
+            if (key.startsWith(prefix)) {
+                this.cache.delete(key);
+            }
+        }
+    }
+
+    private loadSettings(userId: number, accountId: number): Promise<UserSettings | null> {
+        return this.db.get<UserSettings>(
+            `SELECT settings.app_user_id AS user_id,
+                    $2::BIGINT AS account_id,
+                    settings.render_enabled,
+                    COALESCE(account_settings.notifications_enabled, true) AS notifications_enabled,
+                    settings.enable_find,
+                    COALESCE(account_settings.language_override, 'do_not_override') AS language_override,
+                    settings.content_output,
+                    settings.ordr_skin,
+                    settings.ordr_video,
+                    settings.ordr_storyboard,
+                    settings.ordr_bgdim,
+                    settings.ordr_pp_counter,
+                    settings.ordr_ur_counter,
+                    settings.ordr_hit_counter,
+                    settings.ordr_strain_graph,
+                    settings.ordr_is_skin_custom,
+                    settings.ordr_master_volume,
+                    settings.ordr_music_volume,
+                    settings.ordr_effects_volume,
+                    settings.experimental_renderer
+             FROM settings
+             JOIN platform_accounts AS account
+               ON account.id = $2
+              AND account.user_id = settings.app_user_id
+             LEFT JOIN platform_account_settings AS account_settings
+               ON account_settings.platform_account_id = $2
+             WHERE settings.app_user_id = $1`,
+            [userId, accountId]
+        );
+    }
+
+    async getUserSettings(userId: number, accountId: number): Promise<UserSettings | null> {
+        const cached = this.getCache(userId, accountId);
         if (cached !== null) return cached;
 
-        const res = await this.db.get<UserSettings>("SELECT * FROM settings WHERE user_id = $1", [userId]);
+        let res = await this.loadSettings(userId, accountId);
         if (!res) {
-            await this.db.run("INSERT INTO settings (user_id) VALUES ($1) ON CONFLICT (user_id) DO NOTHING", [userId]);
-            return await this.getUserSettings(userId);
+            await this.db.run("INSERT INTO settings (app_user_id) VALUES ($1) ON CONFLICT (app_user_id) DO NOTHING", [
+                userId,
+            ]);
+            res = await this.loadSettings(userId, accountId);
+            if (!res) {
+                return null;
+            }
         }
-        this.setCache(userId, res);
-        return res;
+        const settings = {
+            ...res,
+            user_id: Number(res.user_id),
+            account_id: Number(res.account_id),
+        };
+        this.setCache(userId, accountId, settings);
+        return settings;
     }
 
     async updateSettings(settings: UserSettings): Promise<void> {
@@ -70,12 +127,10 @@ export class UserSettingsModel {
                  ordr_master_volume    = $11,
                  ordr_music_volume     = $12,
                  ordr_effects_volume   = $13,
-                 notifications_enabled = $14,
-                 experimental_renderer = $15,
-                 language_override     = $16,
-                 content_output        = $17,
-                 enable_find          = $18
-             WHERE user_id = $19`,
+                 experimental_renderer = $14,
+                 content_output        = $15,
+                 enable_find           = $16
+             WHERE app_user_id = $17`,
             [
                 settings.render_enabled,
                 settings.ordr_skin,
@@ -90,14 +145,22 @@ export class UserSettingsModel {
                 settings.ordr_master_volume,
                 settings.ordr_music_volume,
                 settings.ordr_effects_volume,
-                settings.notifications_enabled,
                 settings.experimental_renderer,
-                settings.language_override,
                 settings.content_output,
                 settings.enable_find,
                 settings.user_id,
             ]
         );
-        this.setCache(settings.user_id, settings);
+        await this.db.run(
+            `INSERT INTO platform_account_settings
+                 (platform_account_id, notifications_enabled, language_override)
+             VALUES ($1, $2, $3)
+             ON CONFLICT (platform_account_id) DO UPDATE
+             SET notifications_enabled = EXCLUDED.notifications_enabled,
+                 language_override = EXCLUDED.language_override`,
+            [settings.account_id, settings.notifications_enabled, settings.language_override]
+        );
+        this.invalidateUser(settings.user_id);
+        this.setCache(settings.user_id, settings.account_id, settings);
     }
 }

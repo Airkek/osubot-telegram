@@ -21,7 +21,11 @@ export default class AbstractLeaderboard extends ServerCommand {
             const users: IDatabaseUser[] = [];
             for (let i = 0; i < profiles.length; i++) {
                 const profile = profiles[i];
-                const user = await self.module.db.getUser(profile);
+                const identity = await self.module.bot.storage.identities.getUser(profile);
+                if (!identity) {
+                    continue;
+                }
+                const user = await self.module.db.getUser(identity.userId);
                 if (user && !users.some((u) => u.game_id == user.game_id)) {
                     users.push(user);
                 }

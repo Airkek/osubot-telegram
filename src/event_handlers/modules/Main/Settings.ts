@@ -239,13 +239,21 @@ function buildChatSettingsKeyboard(settings: ChatSettings, l: ILocalisator): IKe
 
 function buildUserLanguagePage(settings: UserSettings, l: ILocalisator): IKeyboard {
     const page: SettingsPage = "language";
-    return buildLeveledPageKeyboard(settings.user_id, "home", l, [
-        [toggleableButton(settings.user_id, page, "🇷🇺 Русский", "lang_russian", settings.language_override == "ru")],
-        [toggleableButton(settings.user_id, page, "🇺🇸 English", "lang_english", settings.language_override == "en")],
-        [toggleableButton(settings.user_id, page, "🇨🇳 简体中文", "lang_chinese", settings.language_override == "zh")],
+    return buildLeveledPageKeyboard(settings.account_id, "home", l, [
+        [toggleableButton(settings.account_id, page, "🇷🇺 Русский", "lang_russian", settings.language_override == "ru")],
+        [toggleableButton(settings.account_id, page, "🇺🇸 English", "lang_english", settings.language_override == "en")],
         [
             toggleableButton(
-                settings.user_id,
+                settings.account_id,
+                page,
+                "🇨🇳 简体中文",
+                "lang_chinese",
+                settings.language_override == "zh"
+            ),
+        ],
+        [
+            toggleableButton(
+                settings.account_id,
                 page,
                 "🌐 Auto",
                 "lang_auto",
@@ -257,10 +265,10 @@ function buildUserLanguagePage(settings: UserSettings, l: ILocalisator): IKeyboa
 
 function buildOutputTypePage(settings: UserSettings, l: ILocalisator): IKeyboard {
     const page: SettingsPage = "output_type";
-    return buildLeveledPageKeyboard(settings.user_id, "home", l, [
+    return buildLeveledPageKeyboard(settings.account_id, "home", l, [
         [
             toggleableButton(
-                settings.user_id,
+                settings.account_id,
                 page,
                 l.tr("output-style-oki-cards"),
                 "output_oki_cards",
@@ -269,7 +277,7 @@ function buildOutputTypePage(settings: UserSettings, l: ILocalisator): IKeyboard
         ],
         [
             toggleableButton(
-                settings.user_id,
+                settings.account_id,
                 page,
                 l.tr("output-style-text"),
                 "output_text",
@@ -342,16 +350,22 @@ async function buildRenderPage(settings: UserSettings, l: ILocalisator): Promise
         skinName = skinName.slice(0, 51) + "…";
     }
 
-    return buildLeveledPageKeyboard(settings.user_id, "home", l, [
-        [toggleableButton(settings.user_id, page, l.tr("auto-render"), "render_enabled", settings.render_enabled)],
+    return buildLeveledPageKeyboard(settings.account_id, "home", l, [
+        [toggleableButton(settings.account_id, page, l.tr("auto-render"), "render_enabled", settings.render_enabled)],
         [
-            toggleableButton(settings.user_id, page, l.tr("background-video"), "ordr_video", settings.ordr_video),
-            toggleableButton(settings.user_id, page, l.tr("storyboard"), "ordr_storyboard", settings.ordr_storyboard),
+            toggleableButton(settings.account_id, page, l.tr("background-video"), "ordr_video", settings.ordr_video),
+            toggleableButton(
+                settings.account_id,
+                page,
+                l.tr("storyboard"),
+                "ordr_storyboard",
+                settings.ordr_storyboard
+            ),
         ],
-        [buildPageButton(settings.user_id, "skin_sel", l.tr("skin-button", { skin: skinName }))],
+        [buildPageButton(settings.account_id, "skin_sel", l.tr("skin-button", { skin: skinName }))],
         [
             genericSetButton(
-                settings.user_id,
+                settings.account_id,
                 page,
                 l.tr("master-volume"),
                 "ordr_master_volume",
@@ -360,14 +374,14 @@ async function buildRenderPage(settings: UserSettings, l: ILocalisator): Promise
         ],
         [
             genericSetButton(
-                settings.user_id,
+                settings.account_id,
                 page,
                 l.tr("music-volume"),
                 "ordr_music_volume",
                 settings.ordr_music_volume.toString() + "%"
             ),
             genericSetButton(
-                settings.user_id,
+                settings.account_id,
                 page,
                 l.tr("effects-volume"),
                 "ordr_effects_volume",
@@ -376,7 +390,7 @@ async function buildRenderPage(settings: UserSettings, l: ILocalisator): Promise
         ],
         [
             genericSetButton(
-                settings.user_id,
+                settings.account_id,
                 page,
                 l.tr("background-dim"),
                 "ordr_bgdim",
@@ -388,14 +402,14 @@ async function buildRenderPage(settings: UserSettings, l: ILocalisator): Promise
             : [
                   [
                       toggleableButton(
-                          settings.user_id,
+                          settings.account_id,
                           page,
                           l.tr("pp-counter"),
                           "ordr_pp_counter",
                           settings.ordr_pp_counter
                       ),
                       toggleableButton(
-                          settings.user_id,
+                          settings.account_id,
                           page,
                           l.tr("ur-counter"),
                           "ordr_ur_counter",
@@ -404,14 +418,14 @@ async function buildRenderPage(settings: UserSettings, l: ILocalisator): Promise
                   ],
                   [
                       toggleableButton(
-                          settings.user_id,
+                          settings.account_id,
                           page,
                           l.tr("hit-counter"),
                           "ordr_hit_counter",
                           settings.ordr_hit_counter
                       ),
                       toggleableButton(
-                          settings.user_id,
+                          settings.account_id,
                           page,
                           l.tr("difficulty-graph"),
                           "ordr_strain_graph",
@@ -421,7 +435,7 @@ async function buildRenderPage(settings: UserSettings, l: ILocalisator): Promise
               ]),
         [
             toggleableButton(
-                settings.user_id,
+                settings.account_id,
                 page,
                 l.tr("prefer-experimental-renderer"),
                 "experimental_renderer",
@@ -447,7 +461,7 @@ async function buildSkinSelector(settings: UserSettings, pageNum: number, l: ILo
         return [
             {
                 text: `${isSelected ? "✅ " : ""}${val.name}`,
-                command: buildSetEvent(settings.user_id, page, "ordr_skin", `set:${val.id}:${pageNum}`),
+                command: buildSetEvent(settings.account_id, page, "ordr_skin", `set:${val.id}:${pageNum}`),
             },
         ];
     });
@@ -455,12 +469,12 @@ async function buildSkinSelector(settings: UserSettings, pageNum: number, l: ILo
     buttons.push([
         {
             text: "✍️ " + l.tr("enter-custom-skin-id"),
-            command: buildSetEvent(settings.user_id, "render", "ordr_skin", "request"),
+            command: buildSetEvent(settings.account_id, "render", "ordr_skin", "request"),
         },
     ]);
-    buttons.push(buildPaginationControl(settings.user_id, page, pageNum, maxPage));
+    buttons.push(buildPaginationControl(settings.account_id, page, pageNum, maxPage));
 
-    return buildLeveledPageKeyboard(settings.user_id, "render", l, buttons);
+    return buildLeveledPageKeyboard(settings.account_id, "render", l, buttons);
 }
 
 export default class SettingsCommand extends Command {
@@ -500,12 +514,12 @@ export default class SettingsCommand extends Command {
                     await ctx.answer(ctx.tr("chat-settings-admin-warning"));
                     return;
                 }
-                if (eventParams[0] != ctx.chatId.toString()) {
+                if (eventParams[0] != ctx.chatId.toString() && eventParams[0] != String(ctx.externalChatId)) {
                     await ctx.answer(ctx.tr("chat-settings-other-chat-warning"));
                     return;
                 }
             } else {
-                if (eventParams[0] != ctx.senderId.toString()) {
+                if (eventParams[0] != ctx.senderId.toString() && eventParams[0] != String(ctx.externalSenderId)) {
                     await ctx.answer(ctx.tr("user-settings-other-user-warning"));
                     return;
                 }
@@ -605,7 +619,7 @@ export default class SettingsCommand extends Command {
                 switch (page) {
                     case "home": {
                         const cardsEnabled = await customCtx.checkFeature("oki-cards");
-                        answer = buildStartKeyboard(settings.user_id, settings, cardsEnabled, customCtx);
+                        answer = buildStartKeyboard(settings.account_id, settings, cardsEnabled, customCtx);
                         break;
                     }
                     case "render": {
@@ -723,7 +737,7 @@ export default class SettingsCommand extends Command {
                             });
 
                             await ctx.edit(msg, {
-                                keyboard: buildCancelKeyboard(settings.user_id, "skin_sel", ticket, ctx),
+                                keyboard: buildCancelKeyboard(settings.account_id, "skin_sel", ticket, ctx),
                             });
                             break;
                         }
@@ -789,7 +803,7 @@ export default class SettingsCommand extends Command {
                                 });
 
                                 await ctx.edit(msg, {
-                                    keyboard: buildCancelKeyboard(settings.user_id, "skin_sel", ticket, ctx),
+                                    keyboard: buildCancelKeyboard(settings.account_id, "skin_sel", ticket, ctx),
                                 });
                             }
                             break;
@@ -864,7 +878,7 @@ export default class SettingsCommand extends Command {
                                 return true;
                             });
                             await ctx.edit(msg, {
-                                keyboard: buildCancelKeyboard(settings.user_id, "render", ticket, ctx),
+                                keyboard: buildCancelKeyboard(settings.account_id, "render", ticket, ctx),
                             });
                             break;
                         }

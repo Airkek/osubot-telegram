@@ -9,6 +9,7 @@
 .env
 /grafana-storage
 docker-compose.override.yml
+/dump_*.sql.gz
 
 /src/version.ts
 

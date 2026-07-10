@@ -54,11 +54,11 @@ const createServerCommandRunner = (
         const context = new CommandContext(self, ctx, args);
 
         context.user = {
-            dbUser: await self.module.db.getUser(context.ctx.senderId),
+            dbUser: await self.module.db.getUser(context.ctx.userId),
         };
         if (needUserParse) {
             if (context.ctx.replyMessage) {
-                context.user.dbUser = await self.module.db.getUser(context.ctx.replyMessage.senderId);
+                context.user.dbUser = await self.module.db.getUser(context.ctx.replyMessage.userId);
 
                 if (!context.user.dbUser && !args.nickname[0]) {
                     await context.reply(
@@ -90,7 +90,8 @@ const createServerCommandRunner = (
                         return;
                     }
 
-                    context.user.dbUser = await self.module.db.getUser(userInfo.user_id);
+                    const identity = await context.module.bot.storage.identities.getUser(userInfo.account_id);
+                    context.user.dbUser = identity ? await self.module.db.getUser(identity.userId) : null;
                     if (!context.user.dbUser) {
                         await context.reply(
                             ctx.tr("user-nickname-not-specified", {

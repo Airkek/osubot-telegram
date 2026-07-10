@@ -10,7 +10,8 @@ export default class DropCommand extends Command {
                 return;
             }
 
-            let id = arg ? Number(arg) : ctx.replyMessage.senderId;
+            let accountId = ctx.replyMessage?.senderId;
+            let userId = ctx.replyMessage?.userId;
             if (arg?.startsWith("@")) {
                 const nickname = args.nickname[0].slice(1);
                 const userInfo = await module.bot.storage.userDirectory.findByUsername(nickname);
@@ -23,17 +24,27 @@ export default class DropCommand extends Command {
                     return;
                 }
 
-                id = userInfo.user_id;
+                accountId = userInfo.account_id;
+                userId = (await module.bot.storage.identities.getUser(accountId))?.userId;
+            } else if (arg !== undefined) {
+                const externalId = Number(arg);
+                if (!Number.isSafeInteger(externalId)) {
+                    await ctx.send(ctx.tr("admin-invalid-user-id"));
+                    return;
+                }
+                const identity = await module.bot.storage.identities.findUser(externalId);
+                accountId = identity?.accountId;
+                userId = identity?.userId;
             }
 
-            if (isNaN(id)) {
+            if (accountId === undefined || userId === undefined) {
                 await ctx.send(ctx.tr("admin-invalid-user-id"));
                 return;
             }
 
-            await self.module.bot.storage.userRemoval.dropUser(id);
+            await self.module.bot.storage.userRemoval.dropUser(userId);
 
-            const mention = await ctx.mentionUser(id);
+            const mention = await ctx.mentionUser(accountId);
             await ctx.send(ctx.tr("admin-drop-success", { user: mention }));
         });
 

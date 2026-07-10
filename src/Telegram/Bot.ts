@@ -9,30 +9,25 @@ import { I18n } from "@grammyjs/i18n";
 import express, { Express, Request, Response } from "express";
 import { randomBytes } from "node:crypto";
 import path from "node:path";
-import { ApplicationRuntime } from "../core/ApplicationRuntime";
+import { ApplicationRuntime, RuntimePlatformServices } from "../core/ApplicationRuntime";
 import { TelegramMessageContext, TgApi, TgContext } from "./MessageContext";
 import { TelegramCoversProvider } from "./CoversProvider";
 import { WebhookUpdateDispatcher } from "./UpdateDispatcher";
 import { createTelegramWebhookIngress } from "./WebhookIngress";
-import PostgresStorage from "../data/PostgresStorage";
+import { MediaReferenceCache } from "../core/ApplicationStorage";
+import { ExternalId } from "../core/Identity";
 
 const WEBHOOK_UPDATE_CONCURRENCY = 40;
 const WEBHOOK_UPDATE_QUEUE_CAPACITY = 1000;
 
 export interface TelegramBotConfig {
-    tg: {
-        token: string;
-        owner: number;
-    };
-    tokens: {
-        bancho_v2_app_id: number;
-        bancho_v2_secret: string;
-    };
+    token: string;
+    owner: number;
 }
 
-export class TelegramBotAdapter {
+export class TelegramBotAdapter implements RuntimePlatformServices {
+    readonly platform = "telegram" as const;
     readonly tg: TelegramBot<TgContext, TgApi>;
-    readonly runtime: ApplicationRuntime;
     readonly useLocalApi = process.env.TELEGRAM_USE_LOCAL_API === "true";
 
     private readonly useWebhooks = process.env.USE_WEBHOOKS === "true";
@@ -41,10 +36,11 @@ export class TelegramBotAdapter {
     private runner?: RunnerHandle;
     private expressApp?: Express;
     private me?: UserFromGetMe;
+    private runtime: ApplicationRuntime;
     private transportConfigured = false;
 
     constructor(private readonly config: TelegramBotConfig) {
-        global.logger.info("Set owner id: ", config.tg.owner);
+        global.logger.info("Set owner id: ", config.owner);
 
         if (this.useWebhooks) {
             const configuredSecret = process.env.WEBHOOK_SECRET_TOKEN;
@@ -58,28 +54,21 @@ export class TelegramBotAdapter {
         }
 
         const apiRoot = this.useLocalApi ? process.env.TELEGRAM_LOCAL_API_HOST : undefined;
-        this.tg = new TelegramBot<TgContext, TgApi>(config.tg.token, {
+        this.tg = new TelegramBot<TgContext, TgApi>(config.token, {
             client: { apiRoot },
         });
-        const storage = PostgresStorage.fromEnvironment();
-        this.runtime = ApplicationRuntime.create(
-            {
-                banchoAppId: config.tokens.bancho_v2_app_id,
-                banchoClientSecret: config.tokens.bancho_v2_secret,
-            },
-            storage,
-            {
-                createCoversProvider: (mediaReferences) =>
-                    new TelegramCoversProvider(mediaReferences, this.tg, config.tg.owner),
-                sendMessage: async (recipientId, text) => {
-                    await this.tg.api.sendMessage(recipientId, text);
-                },
-            }
-        );
     }
 
-    async start(): Promise<void> {
-        await this.runtime.initialize();
+    createCoversProvider(mediaReferences: MediaReferenceCache): TelegramCoversProvider {
+        return new TelegramCoversProvider(mediaReferences, this.tg, this.config.owner);
+    }
+
+    async sendMessage(recipientId: ExternalId, text: string): Promise<void> {
+        await this.tg.api.sendMessage(recipientId, text);
+    }
+
+    async start(runtime: ApplicationRuntime): Promise<UserFromGetMe> {
+        this.runtime = runtime;
         this.configureTransport();
 
         await this.tg.init();
@@ -91,11 +80,11 @@ export class TelegramBotAdapter {
             await this.startPolling();
         }
 
-        await this.runtime.markStarted(this.me);
         this.initHealthCheck();
         this.listenExpressAppIfNeeded();
 
         global.logger.info(`Bot started as @${this.me.username} (${this.me.first_name})`);
+        return this.me;
     }
 
     async stop(): Promise<void> {
@@ -105,7 +94,6 @@ export class TelegramBotAdapter {
         } else {
             await this.runner?.stop();
         }
-        await this.runtime.stop();
         global.logger.info("Bot stopped");
     }
 
@@ -121,7 +109,7 @@ export class TelegramBotAdapter {
     }
 
     private buildContext(ctx: TgContext): TelegramMessageContext {
-        return new TelegramMessageContext(ctx, this.config.tg.owner, this.me, this.useLocalApi, this.runtime.storage);
+        return new TelegramMessageContext(ctx, this.config.owner, this.me, this.useLocalApi, this.runtime.storage);
     }
 
     private setupBotMiddleware(): void {

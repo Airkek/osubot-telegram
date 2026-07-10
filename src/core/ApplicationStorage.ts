@@ -1,6 +1,7 @@
 import type { OsuBeatmap } from "../beatmaps/osu/OsuBeatmap";
 import type { APIUser, IDatabaseUser, IDatabaseUserStats } from "../Types";
 import type { ChatSettings, UserSettings } from "./Settings";
+import type { ExternalId, IdentityRepository, Platform } from "./Identity";
 
 export type ControllableFeature = "oki-cards" | "plaintext-overrides" | "force-onboarding" | "admin-all-features";
 export const ONBOARDING_VERSION = 1;
@@ -8,12 +9,12 @@ export const ONBOARDING_VERSION = 1;
 export type GameServerName = "bancho" | "gatari" | "ripple" | "akatsuki" | "beatleader" | "scoresaber";
 
 export interface GameUserRepository {
-    getUser(id: number): Promise<IDatabaseUser | null>;
+    getUser(userId: number): Promise<IDatabaseUser | null>;
     findByUserId(id: number | string): Promise<IDatabaseUser[]>;
-    setNickname(id: number, gameUserId: number | string, nickname: string, mode?: number): Promise<void>;
-    setMode(id: number, mode: number): Promise<boolean>;
+    setNickname(userId: number, gameUserId: number | string, nickname: string, mode?: number): Promise<void>;
+    setMode(userId: number, mode: number): Promise<boolean>;
     updateInfo(user: APIUser, mode: number): Promise<void>;
-    getUserStats(id: number, mode: number): Promise<IDatabaseUserStats | null>;
+    getUserStats(userId: number, mode: number): Promise<IDatabaseUserStats | null>;
 }
 
 export interface FeatureStatus {
@@ -37,7 +38,7 @@ export interface BeatmapMetadata {
 }
 
 export interface UserInfo {
-    user_id: number;
+    account_id: number;
     display_username?: string | null;
     first_name?: string | null;
     last_name?: string | null;
@@ -54,13 +55,15 @@ export interface StoredError {
 }
 
 export interface ErrorContext {
+    platform: Platform;
     senderId: number;
     plainPayload?: string;
     plainText?: string;
-    replyMessage?: { senderId: number };
+    replyMessage?: { senderId?: number };
 }
 
 export interface EventContext {
+    platform: Platform;
     senderId: number;
     chatId: number;
     plainPayload?: string;
@@ -73,7 +76,7 @@ export interface CommandEvent {
 }
 
 export interface BotIdentity {
-    id: number;
+    id: ExternalId;
     username?: string;
     first_name: string;
     last_name?: string;
@@ -81,8 +84,8 @@ export interface BotIdentity {
 
 export interface IgnoredUsersRepository {
     getIgnoredUsers(): Promise<number[]>;
-    ignoreUser(userId: number): Promise<void>;
-    unignoreUser(userId: number): Promise<void>;
+    ignoreUser(accountId: number): Promise<void>;
+    unignoreUser(accountId: number): Promise<void>;
 }
 
 export interface UserRemovalRepository {
@@ -96,17 +99,17 @@ export interface ErrorStore {
 }
 
 export interface ChatMembershipRepository {
-    userJoined(userId: number, chatId: number): Promise<void>;
-    userLeft(userId: number, chatId: number): Promise<void>;
+    userJoined(accountId: number, chatId: number): Promise<void>;
+    userLeft(accountId: number, chatId: number): Promise<void>;
     getChatUsers(chatId: number): Promise<number[]>;
     removeChat(chatId: number): Promise<void>;
     getChats(): Promise<number[]>;
     getChatCount(): Promise<number>;
-    isUserInChat(userId: number, chatId: number): Promise<boolean>;
+    isUserInChat(accountId: number, chatId: number): Promise<boolean>;
 }
 
 export interface UserSettingsRepository {
-    getUserSettings(userId: number): Promise<UserSettings | null>;
+    getUserSettings(userId: number, accountId: number): Promise<UserSettings | null>;
     updateSettings(settings: UserSettings): Promise<void>;
 }
 
@@ -118,8 +121,8 @@ export interface ChatSettingsRepository {
 export interface NotificationAudience {
     getChatCountForNotifications(): Promise<number>;
     getUserCountForNotifications(): Promise<number>;
-    getChatsForNotifications(): Promise<number[]>;
-    getUsersForNotifications(): Promise<number[]>;
+    getChatsForNotifications(): Promise<ExternalId[]>;
+    getUsersForNotifications(): Promise<ExternalId[]>;
 }
 
 export interface FeatureFlags {
@@ -131,9 +134,9 @@ export interface FeatureFlags {
 }
 
 export interface OnboardingRepository {
-    getUserOnboardingVersion(userId: number): Promise<number>;
-    isUserNeedOnboarding(userId: number): Promise<boolean>;
-    userOnboarded(userId: number, version: number): Promise<void>;
+    getUserOnboardingVersion(accountId: number): Promise<number>;
+    isUserNeedOnboarding(accountId: number): Promise<boolean>;
+    userOnboarded(accountId: number, version: number): Promise<void>;
     clearCache(): void;
 }
 
@@ -144,7 +147,7 @@ export interface BeatmapCacheRepository {
 }
 
 export interface UserDirectory {
-    get(userId: number): Promise<ExtendedUserInfo | null>;
+    get(accountId: number): Promise<ExtendedUserInfo | null>;
     findByUsername(username: string): Promise<ExtendedUserInfo | null>;
     set(info: UserInfo): Promise<void>;
 }
@@ -183,6 +186,8 @@ export interface MaintenanceRepository {
 }
 
 export interface ApplicationStorage {
+    readonly platform: Platform;
+    readonly identities: IdentityRepository;
     readonly gameServers: Record<GameServerName, GameUserRepository>;
     readonly errors: ErrorStore;
     readonly memberships: ChatMembershipRepository;

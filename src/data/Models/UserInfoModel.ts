@@ -1,4 +1,5 @@
 import { ExtendedUserInfo, UserInfo } from "../../core/ApplicationStorage";
+import { Platform } from "../../core/Identity";
 import { SqlExecutor } from "../SqlExecutor";
 
 export { ExtendedUserInfo as IExtendedUserInfo, UserInfo as IUserInfo } from "../../core/ApplicationStorage";
@@ -9,7 +10,12 @@ export class UserInfoModel {
     private readonly ttl: number; // milliseconds
     private readonly limit: number;
 
-    constructor(db: SqlExecutor, ttlMinutes: number = 15, limit: number = 5000) {
+    constructor(
+        db: SqlExecutor,
+        private readonly platform: Platform,
+        ttlMinutes: number = 15,
+        limit: number = 5000
+    ) {
         this.db = db;
         this.ttl = ttlMinutes * 60 * 1000;
         this.limit = limit;
@@ -46,20 +52,36 @@ export class UserInfoModel {
         if (cached !== null) return cached;
 
         const row = await this.db.get<ExtendedUserInfo>(
-            "SELECT user_id, username, display_username, first_name, last_name FROM user_info WHERE user_id = $1",
-            [userId]
+            `SELECT info.platform_account_id AS account_id,
+                    info.username,
+                    info.display_username,
+                    info.first_name,
+                    info.last_name
+             FROM user_info AS info
+             JOIN platform_accounts AS account ON account.id = info.platform_account_id
+             WHERE info.platform_account_id = $1 AND account.platform = $2`,
+            [userId, this.platform]
         );
-        this.setCache(userId, row);
-        return row;
+        const info = row ? this.mapInfo(row) : null;
+        this.setCache(userId, info);
+        return info;
     }
 
     async findByUsername(username: string): Promise<ExtendedUserInfo | null> {
         if (!username) return null;
         const row = await this.db.get<ExtendedUserInfo>(
-            "SELECT user_id, username, display_username, first_name, last_name FROM user_info WHERE username = $1 LIMIT 1",
-            [username.toLowerCase()]
+            `SELECT info.platform_account_id AS account_id,
+                    info.username,
+                    info.display_username,
+                    info.first_name,
+                    info.last_name
+             FROM user_info AS info
+             JOIN platform_accounts AS account ON account.id = info.platform_account_id
+             WHERE info.username = $1 AND account.platform = $2
+             LIMIT 1`,
+            [username.toLowerCase(), this.platform]
         );
-        return row ?? null;
+        return row ? this.mapInfo(row) : null;
     }
 
     async set(info: UserInfo): Promise<void> {
@@ -69,32 +91,45 @@ export class UserInfoModel {
 
         // If username provided, ensure it's not attached to another user
         if (usernameLower) {
-            const existing = await this.db.get<{ user_id: number }>(
-                "SELECT user_id FROM user_info WHERE username = $1 LIMIT 1",
-                [usernameLower]
+            const existing = await this.db.get<{ account_id: number }>(
+                `SELECT info.platform_account_id AS account_id
+                 FROM user_info AS info
+                 JOIN platform_accounts AS account ON account.id = info.platform_account_id
+                 WHERE info.username = $1 AND account.platform = $2
+                 LIMIT 1`,
+                [usernameLower, this.platform]
             );
-            if (existing && Number(existing.user_id) !== Number(info.user_id)) {
-                await this.db.run("UPDATE user_info SET username = NULL, display_username = NULL WHERE user_id = $1", [
-                    existing.user_id,
-                ]);
-                this.cache.delete(Number(existing.user_id));
+            if (existing && Number(existing.account_id) !== Number(info.account_id)) {
+                await this.db.run(
+                    "UPDATE user_info SET username = NULL, display_username = NULL WHERE platform_account_id = $1",
+                    [existing.account_id]
+                );
+                this.cache.delete(Number(existing.account_id));
             }
         }
 
         await this.db.run(
-            `INSERT INTO user_info (user_id, username, display_username, first_name, last_name)
+            `INSERT INTO user_info (platform_account_id, username, display_username, first_name, last_name)
              VALUES ($1, $2, $3, $4, $5)
-             ON CONFLICT (user_id) DO UPDATE SET username = EXCLUDED.username, display_username = EXCLUDED.display_username, first_name = EXCLUDED.first_name, last_name = EXCLUDED.last_name`,
-            [info.user_id, usernameLower, displayUsername, info.first_name ?? null, info.last_name ?? null]
+             ON CONFLICT (platform_account_id) DO UPDATE
+             SET username = EXCLUDED.username,
+                 display_username = EXCLUDED.display_username,
+                 first_name = EXCLUDED.first_name,
+                 last_name = EXCLUDED.last_name`,
+            [info.account_id, usernameLower, displayUsername, info.first_name ?? null, info.last_name ?? null]
         );
 
-        this.setCache(Number(info.user_id), {
-            user_id: Number(info.user_id),
+        this.setCache(Number(info.account_id), {
+            account_id: Number(info.account_id),
             username: usernameLower,
             display_username: displayUsername,
             first_name: info.first_name ?? null,
             last_name: info.last_name ?? null,
         });
+    }
+
+    private mapInfo(info: ExtendedUserInfo): ExtendedUserInfo {
+        return { ...info, account_id: Number(info.account_id) };
     }
 }
 

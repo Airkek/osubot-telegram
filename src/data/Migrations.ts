@@ -628,6 +628,242 @@ const migrations: IMigration[] = [
             return true;
         },
     },
+    {
+        version: 31,
+        name: "Expand schema with platform-neutral identities",
+        process: async (db) => {
+            await db.run(`CREATE TABLE app_users
+                          (
+                              id         BIGSERIAL PRIMARY KEY,
+                              created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+                          )`);
+            await db.run(`CREATE TABLE platform_accounts
+                          (
+                              id          BIGSERIAL PRIMARY KEY,
+                              user_id     BIGINT      NOT NULL REFERENCES app_users (id) ON DELETE CASCADE,
+                              platform    TEXT        NOT NULL,
+                              external_id TEXT        NOT NULL,
+                              created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                              UNIQUE (platform, external_id),
+                              UNIQUE (user_id, platform)
+                          )`);
+            await db.run(`CREATE TABLE platform_chats
+                          (
+                              id          BIGSERIAL PRIMARY KEY,
+                              platform    TEXT        NOT NULL,
+                              external_id TEXT        NOT NULL,
+                              created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                              UNIQUE (platform, external_id)
+                          )`);
+            await db.run(`CREATE TABLE platform_account_settings
+                          (
+                              platform_account_id BIGINT PRIMARY KEY
+                                  REFERENCES platform_accounts (id) ON DELETE CASCADE,
+                              notifications_enabled BOOLEAN NOT NULL DEFAULT true,
+                              language_override TEXT NOT NULL DEFAULT 'do_not_override'
+                          )`);
+
+            await db.run("ALTER TABLE users ADD COLUMN app_user_id BIGINT");
+            await db.run("ALTER TABLE settings ADD COLUMN app_user_id BIGINT");
+            await db.run("ALTER TABLE users_to_chat ADD COLUMN platform_account_id BIGINT");
+            await db.run("ALTER TABLE users_to_chat ADD COLUMN platform_chat_id BIGINT");
+            await db.run("ALTER TABLE ignored_users ADD COLUMN platform_account_id BIGINT");
+            await db.run("ALTER TABLE onboarded_users ADD COLUMN platform_account_id BIGINT");
+            await db.run("ALTER TABLE user_info ADD COLUMN platform_account_id BIGINT");
+            await db.run("ALTER TABLE chat_settings ADD COLUMN platform_chat_id BIGINT");
+
+            await db.run("ALTER TABLE settings ALTER COLUMN user_id DROP NOT NULL");
+            await db.run("ALTER TABLE chat_settings ALTER COLUMN chat_id DROP NOT NULL");
+            await db.run("ALTER TABLE user_info DROP CONSTRAINT user_info_pkey");
+            await db.run("ALTER TABLE user_info ALTER COLUMN user_id DROP NOT NULL");
+            await db.run(`CREATE UNIQUE INDEX user_info_legacy_user_id_unique
+                          ON user_info (user_id) WHERE user_id IS NOT NULL`);
+
+            return true;
+        },
+    },
+    {
+        version: 32,
+        name: "Backfill Telegram identities",
+        process: async (db) => {
+            await db.run(`CREATE TEMP TABLE identity_user_backfill ON COMMIT DROP AS
+                          SELECT external_id,
+                                 nextval(pg_get_serial_sequence('app_users', 'id'))::BIGINT AS app_user_id,
+                                 nextval(pg_get_serial_sequence('platform_accounts', 'id'))::BIGINT AS account_id
+                          FROM (SELECT id::TEXT AS external_id FROM users
+                                UNION
+                                SELECT user_id::TEXT FROM settings
+                                UNION
+                                SELECT user_id::TEXT FROM users_to_chat
+                                UNION
+                                SELECT id::TEXT FROM ignored_users
+                                UNION
+                                SELECT user_id::TEXT FROM onboarded_users
+                                UNION
+                                SELECT user_id::TEXT FROM user_info) AS external_users
+                          WHERE external_id IS NOT NULL`);
+            await db.run("ALTER TABLE identity_user_backfill ADD PRIMARY KEY (external_id)");
+            await db.run(`INSERT INTO app_users (id)
+                          SELECT app_user_id FROM identity_user_backfill`);
+            await db.run(`INSERT INTO platform_accounts (id, user_id, platform, external_id)
+                          SELECT account_id, app_user_id, 'telegram', external_id
+                          FROM identity_user_backfill`);
+
+            await db.run(`INSERT INTO platform_chats (platform, external_id)
+                          SELECT 'telegram', external_id
+                          FROM (SELECT chat_id::TEXT AS external_id FROM users_to_chat
+                                UNION
+                                SELECT chat_id::TEXT FROM chat_settings) AS external_chats
+                          WHERE external_id IS NOT NULL
+                          ON CONFLICT (platform, external_id) DO NOTHING`);
+
+            await db.run(`UPDATE users AS target
+                          SET app_user_id = identity.app_user_id
+                          FROM identity_user_backfill AS identity
+                          WHERE target.id::TEXT = identity.external_id`);
+            await db.run(`UPDATE settings AS target
+                          SET app_user_id = identity.app_user_id
+                          FROM identity_user_backfill AS identity
+                          WHERE target.user_id::TEXT = identity.external_id`);
+            await db.run(`UPDATE users_to_chat AS target
+                          SET platform_account_id = identity.account_id
+                          FROM identity_user_backfill AS identity
+                          WHERE target.user_id::TEXT = identity.external_id`);
+            await db.run(`UPDATE ignored_users AS target
+                          SET platform_account_id = identity.account_id
+                          FROM identity_user_backfill AS identity
+                          WHERE target.id::TEXT = identity.external_id`);
+            await db.run(`UPDATE onboarded_users AS target
+                          SET platform_account_id = identity.account_id
+                          FROM identity_user_backfill AS identity
+                          WHERE target.user_id::TEXT = identity.external_id`);
+            await db.run(`UPDATE user_info AS target
+                          SET platform_account_id = identity.account_id
+                          FROM identity_user_backfill AS identity
+                          WHERE target.user_id::TEXT = identity.external_id`);
+            await db.run(`UPDATE users_to_chat AS target
+                          SET platform_chat_id = identity.id
+                          FROM platform_chats AS identity
+                          WHERE identity.platform = 'telegram'
+                            AND target.chat_id::TEXT = identity.external_id`);
+            await db.run(`UPDATE chat_settings AS target
+                          SET platform_chat_id = identity.id
+                          FROM platform_chats AS identity
+                          WHERE identity.platform = 'telegram'
+                            AND target.chat_id::TEXT = identity.external_id`);
+
+            await db.run(`INSERT INTO platform_account_settings
+                              (platform_account_id, notifications_enabled, language_override)
+                          SELECT account.id,
+                                 COALESCE(settings.notifications_enabled, true),
+                                 COALESCE(settings.language_override, 'do_not_override')
+                          FROM settings
+                          JOIN platform_accounts AS account
+                            ON account.user_id = settings.app_user_id
+                           AND account.platform = 'telegram'
+                          ON CONFLICT (platform_account_id) DO NOTHING`);
+
+            return true;
+        },
+    },
+    {
+        version: 33,
+        name: "Constrain platform-neutral identities",
+        process: async (db) => {
+            await db.run(`DELETE FROM users AS duplicate
+                          USING users AS keep
+                          WHERE duplicate.ctid < keep.ctid
+                            AND duplicate.app_user_id = keep.app_user_id
+                            AND duplicate.server = keep.server`);
+            await db.run(`DELETE FROM stats AS duplicate
+                          USING stats AS keep
+                          WHERE duplicate.ctid < keep.ctid
+                            AND duplicate.id = keep.id
+                            AND duplicate.mode = keep.mode
+                            AND duplicate.server = keep.server`);
+            await db.run(`DELETE FROM ignored_users AS duplicate
+                          USING ignored_users AS keep
+                          WHERE duplicate.ctid < keep.ctid
+                            AND duplicate.platform_account_id = keep.platform_account_id`);
+
+            await db.run(`ALTER TABLE users
+                          ADD CONSTRAINT users_app_user_fk
+                          FOREIGN KEY (app_user_id) REFERENCES app_users (id) ON DELETE CASCADE`);
+            await db.run(`ALTER TABLE settings
+                          ADD CONSTRAINT settings_app_user_fk
+                          FOREIGN KEY (app_user_id) REFERENCES app_users (id) ON DELETE CASCADE`);
+            await db.run(`ALTER TABLE users_to_chat
+                          ADD CONSTRAINT users_to_chat_platform_account_fk
+                          FOREIGN KEY (platform_account_id) REFERENCES platform_accounts (id) ON DELETE CASCADE`);
+            await db.run(`ALTER TABLE users_to_chat
+                          ADD CONSTRAINT users_to_chat_platform_chat_fk
+                          FOREIGN KEY (platform_chat_id) REFERENCES platform_chats (id) ON DELETE CASCADE`);
+            await db.run(`ALTER TABLE ignored_users
+                          ADD CONSTRAINT ignored_users_platform_account_fk
+                          FOREIGN KEY (platform_account_id) REFERENCES platform_accounts (id) ON DELETE CASCADE`);
+            await db.run(`ALTER TABLE onboarded_users
+                          ADD CONSTRAINT onboarded_users_platform_account_fk
+                          FOREIGN KEY (platform_account_id) REFERENCES platform_accounts (id) ON DELETE CASCADE`);
+            await db.run(`ALTER TABLE user_info
+                          ADD CONSTRAINT user_info_platform_account_fk
+                          FOREIGN KEY (platform_account_id) REFERENCES platform_accounts (id) ON DELETE CASCADE`);
+            await db.run(`ALTER TABLE chat_settings
+                          ADD CONSTRAINT chat_settings_platform_chat_fk
+                          FOREIGN KEY (platform_chat_id) REFERENCES platform_chats (id) ON DELETE CASCADE`);
+
+            await db.run(`CREATE UNIQUE INDEX users_app_user_server_unique
+                          ON users (app_user_id, server)`);
+            await db.run(`CREATE UNIQUE INDEX settings_app_user_unique
+                          ON settings (app_user_id)`);
+            await db.run(`CREATE UNIQUE INDEX stats_game_user_mode_unique
+                          ON stats (id, server, mode)`);
+            await db.run(`CREATE UNIQUE INDEX users_to_chat_identity_unique
+                          ON users_to_chat (platform_account_id, platform_chat_id)`);
+            await db.run(`CREATE UNIQUE INDEX ignored_users_platform_account_unique
+                          ON ignored_users (platform_account_id)`);
+            await db.run(`CREATE UNIQUE INDEX onboarded_users_platform_account_unique
+                          ON onboarded_users (platform_account_id)`);
+            await db.run(`CREATE UNIQUE INDEX user_info_platform_account_unique
+                          ON user_info (platform_account_id)`);
+            await db.run(`CREATE UNIQUE INDEX chat_settings_platform_chat_unique
+                          ON chat_settings (platform_chat_id)`);
+
+            return true;
+        },
+    },
+    {
+        version: 34,
+        name: "Scope transport-specific data by platform",
+        process: async (db) => {
+            await db.run("ALTER TABLE covers ADD COLUMN platform TEXT DEFAULT 'telegram'");
+            await db.run("ALTER TABLE photos ADD COLUMN platform TEXT DEFAULT 'telegram'");
+
+            for (const table of ["bot_events", "bot_events_render", "bot_events_commands"]) {
+                await db.run(`ALTER TABLE ${table} ADD COLUMN platform TEXT DEFAULT 'telegram'`);
+                await db.run(`ALTER TABLE ${table} ADD COLUMN platform_account_id BIGINT`);
+                await db.run(`ALTER TABLE ${table} ADD COLUMN platform_chat_id BIGINT`);
+            }
+            await db.run("ALTER TABLE bot_events_metrics ADD COLUMN platform TEXT DEFAULT 'telegram'");
+            await db.run("ALTER TABLE bot_events_startup ADD COLUMN platform TEXT DEFAULT 'telegram'");
+
+            await db.run(`DELETE FROM covers AS duplicate
+                          USING covers AS keep
+                          WHERE duplicate.ctid < keep.ctid
+                            AND duplicate.id = keep.id
+                            AND duplicate.platform = keep.platform`);
+            await db.run(`DELETE FROM photos AS duplicate
+                          USING photos AS keep
+                          WHERE duplicate.ctid < keep.ctid
+                            AND duplicate.url = keep.url
+                            AND duplicate.platform = keep.platform`);
+            await db.run(`CREATE UNIQUE INDEX covers_platform_id_unique
+                          ON covers (platform, id)`);
+            await db.run(`CREATE UNIQUE INDEX photos_platform_url_unique
+                          ON photos (platform, url)`);
+
+            return true;
+        },
+    },
 ];
 
 export async function applyMigrations(db: SqlDatabase) {

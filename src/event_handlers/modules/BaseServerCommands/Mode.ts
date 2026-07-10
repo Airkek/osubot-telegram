@@ -43,7 +43,7 @@ export default class AbstractMode extends ServerCommand {
                 await self.reply(self.ctx.tr("mode-set-invalid") + "\n1 - Taiko\n2 - Fruits\n3 - Mania");
                 return;
             }
-            await (masterDb ?? self.module.db).setMode(self.ctx.senderId, m);
+            await (masterDb ?? self.module.db).setMode(self.ctx.userId, m);
             await self.reply(self.ctx.tr("game-mode-set"));
         });
     }

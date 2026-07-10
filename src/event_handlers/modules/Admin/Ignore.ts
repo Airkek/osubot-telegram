@@ -10,7 +10,7 @@ export default class IgnoreCommand extends Command {
                 return;
             }
 
-            let id = arg ? Number(arg) : ctx.replyMessage.senderId;
+            let accountId = ctx.replyMessage?.senderId;
             if (arg?.startsWith("@")) {
                 const nickname = args.nickname[0].slice(1);
                 const userInfo = await module.bot.storage.userDirectory.findByUsername(nickname);
@@ -23,16 +23,23 @@ export default class IgnoreCommand extends Command {
                     return;
                 }
 
-                id = userInfo.user_id;
+                accountId = userInfo.account_id;
+            } else if (arg !== undefined) {
+                const externalId = Number(arg);
+                if (!Number.isSafeInteger(externalId)) {
+                    await ctx.send(ctx.tr("admin-invalid-user-id"));
+                    return;
+                }
+                accountId = (await module.bot.storage.identities.resolveUser(externalId)).accountId;
             }
 
-            if (isNaN(id)) {
+            if (accountId === undefined) {
                 await ctx.send(ctx.tr("admin-invalid-user-id"));
                 return;
             }
 
-            const ignored = await self.module.bot.ignored.switch(id);
-            const mention = await ctx.mentionUser(id);
+            const ignored = await self.module.bot.ignored.switch(accountId);
+            const mention = await ctx.mentionUser(accountId);
             await ctx.send(ctx.tr(ignored ? "admin-ignore-added" : "admin-ignore-removed", { user: mention }));
         });
 

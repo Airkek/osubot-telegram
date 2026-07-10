@@ -5,13 +5,16 @@ import { ServerCommand } from "../../ServerCommand";
 export default class AbstractChat extends ServerCommand {
     constructor(module: ServerModule) {
         super(["chat", "срфе"], module, async (self) => {
-            let id = self.ctx.chatId;
+            let chatId = self.ctx.chatId;
+            let displayChatId = self.ctx.externalChatId;
             if (self.args.nickname[0]) {
-                id = parseInt(self.args.nickname[0]);
-                if (isNaN(id)) {
+                const chat = await self.module.bot.storage.identities.findChat(self.args.nickname[0]);
+                if (!chat) {
                     await self.reply(self.ctx.tr("chat-id-invalid"));
                     return;
                 }
+                chatId = chat.chatId;
+                displayChatId = chat.externalId;
             } else if (!self.ctx.isInGroupChat) {
                 await self.reply(self.ctx.tr("give-chat-id"));
                 return;
@@ -19,10 +22,14 @@ export default class AbstractChat extends ServerCommand {
 
             const mode = self.args.mode === null ? self.user.dbUser?.mode || 0 : self.args.mode;
 
-            const members = await self.module.bot.storage.memberships.getChatUsers(id);
+            const members = await self.module.bot.storage.memberships.getChatUsers(chatId);
             let users = [];
             for (let i = 0; i < members.length; i++) {
-                const u = await self.module.db.getUserStats(members[i], mode);
+                const identity = await self.module.bot.storage.identities.getUser(members[i]);
+                if (!identity) {
+                    continue;
+                }
+                const u = await self.module.db.getUserStats(identity.userId, mode);
                 if (u && !users.some((uu) => uu.id == u.id)) {
                     users.push(u);
                 }
@@ -46,7 +53,7 @@ export default class AbstractChat extends ServerCommand {
                 modeStr = "Mania";
             }
 
-            let text = `${self.ctx.tr("top-15-of-chat")} (ID ${id}) [${modeStr}]:\n${users
+            let text = `${self.ctx.tr("top-15-of-chat")} (ID ${displayChatId}) [${modeStr}]:\n${users
                 .splice(0, 15)
                 .map(
                     (user, i) =>

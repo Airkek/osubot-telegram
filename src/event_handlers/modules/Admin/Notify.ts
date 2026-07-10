@@ -54,7 +54,10 @@ export default class NotifyCommand extends Command {
                             e.message.includes("bot was kicked from the") ||
                             e.message.includes("the group chat was deleted")
                         ) {
-                            await this.module.bot.storage.memberships.removeChat(chatId);
+                            const chat = await this.module.bot.storage.identities.findChat(chatId);
+                            if (chat) {
+                                await this.module.bot.storage.memberships.removeChat(chat.chatId);
+                            }
                             dirtyChats++;
                         } else {
                             global.logger.error(e);

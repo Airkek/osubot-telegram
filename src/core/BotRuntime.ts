@@ -8,6 +8,7 @@ import type { Module } from "../event_handlers/modules/Module";
 import type { ITemplates } from "../event_handlers/templates";
 import type { ReplyUtils } from "../event_handlers/utils/ReplyUtils";
 import type { IMessageContext } from "./MessageContext";
+import type { ExternalId } from "./Identity";
 
 export type PendingCallback = (ctx: IMessageContext) => Promise<boolean>;
 
@@ -26,5 +27,5 @@ export interface BotRuntime {
 
     addCallback(ctx: IMessageContext, callback: PendingCallback): string;
     removeCallback(ticket: string): void;
-    sendMessage(recipientId: number, text: string): Promise<void>;
+    sendMessage(recipientId: ExternalId, text: string): Promise<void>;
 }

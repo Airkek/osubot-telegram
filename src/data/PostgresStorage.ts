@@ -1,5 +1,4 @@
 import { Pool } from "pg";
-import { APIUser, IDatabaseUser, IDatabaseUserStats } from "../Types";
 import { createHash } from "node:crypto";
 import { applyMigrations } from "./Migrations";
 import { FeatureControlModel } from "./Models/FeatureControlModel";
@@ -22,113 +21,43 @@ import { SqlConnection, SqlExecutor } from "./SqlExecutor";
 import { PostgresConnection } from "./PostgresConnection";
 import { MediaReferenceModel } from "./Models/MediaReferenceModel";
 import { MaintenanceModel } from "./Models/MaintenanceModel";
-
-// TODO: move all classes to src/data/Models/Settings
-class PostgresGameUserRepository implements GameUserRepository {
-    serverName: string;
-    db: SqlExecutor;
-
-    constructor(serverName: string, db: SqlExecutor) {
-        this.serverName = serverName;
-        this.db = db;
-    }
-
-    async getUser(id: number): Promise<IDatabaseUser | null> {
-        return await this.db.get<IDatabaseUser>("SELECT * FROM users WHERE id = $1 AND server = $2", [
-            id,
-            this.serverName,
-        ]);
-    }
-
-    async findByUserId(id: number | string): Promise<IDatabaseUser[]> {
-        return await this.db.all<IDatabaseUser>("SELECT * FROM users WHERE game_id = $1 AND server = $2", [
-            id,
-            this.serverName,
-        ]);
-    }
-
-    async setNickname(id: number, game_id: number | string, nickname: string, mode: number = 0): Promise<void> {
-        const user: IDatabaseUser = await this.getUser(id);
-        if (!user) {
-            await this.db.run("INSERT INTO users (id, game_id, nickname, mode, server) VALUES ($1, $2, $3, $4, $5)", [
-                id,
-                game_id,
-                nickname,
-                mode,
-                this.serverName,
-            ]);
-        } else {
-            await this.db.run("UPDATE users SET nickname = $1, game_id = $2, mode = $3 WHERE id = $4 AND server = $5", [
-                nickname,
-                game_id,
-                mode,
-                id,
-                this.serverName,
-            ]);
-        }
-    }
-
-    async setMode(id: number, mode: number): Promise<boolean> {
-        const user: IDatabaseUser = await this.getUser(id);
-        if (!user) {
-            return false;
-        }
-        await this.db.run("UPDATE users SET mode = $1 WHERE id = $2 AND server = $3", [mode, id, this.serverName]);
-        return true;
-    }
-
-    async updateInfo(user: APIUser, mode: number): Promise<void> {
-        const dbUser = await this.db.get<IDatabaseUserStats>(
-            "SELECT * FROM stats WHERE id = $1 AND mode = $2 AND server = $3 LIMIT 1",
-            [user.id, mode, this.serverName]
-        );
-        if (!dbUser) {
-            await this.db.run(
-                "INSERT INTO stats (id, nickname, pp, rank, acc, mode, server) VALUES ($1, $2, $3, $4, $5, $6, $7)",
-                [user.id, user.nickname, user.pp, user.rank.total, user.accuracy, mode, this.serverName]
-            );
-        } else {
-            await this.db.run(
-                "UPDATE stats SET nickname = $1, pp = $2, rank = $3, acc = $4 WHERE id = $5 AND mode = $6 AND server = $7",
-                [user.nickname, user.pp, user.rank.total, user.accuracy, user.id, mode, this.serverName]
-            );
-        }
-    }
-
-    async getUserStats(id: number, mode: number): Promise<IDatabaseUserStats | null> {
-        const u = await this.getUser(id);
-        if (!u) {
-            return null;
-        }
-        return await this.db.get<IDatabaseUserStats>(
-            "SELECT * FROM stats WHERE id = $1 AND mode = $2 AND server = $3",
-            [u.game_id, mode, this.serverName]
-        );
-    }
-}
+import { Platform } from "../core/Identity";
+import { PostgresIdentityRepository } from "./Repositories/PostgresIdentityRepository";
+import { PostgresGameUserRepository } from "./Repositories/PostgresGameUserRepository";
 
 interface IgnoredUsers {
-    id: number;
+    platform_account_id: number;
 }
 
 class PostgresIgnoredUsersRepository {
-    db: SqlExecutor;
-
-    constructor(db: SqlExecutor) {
-        this.db = db;
-    }
+    constructor(
+        private readonly db: SqlExecutor,
+        private readonly platform: Platform
+    ) {}
 
     async getIgnoredUsers(): Promise<number[]> {
-        const users = await this.db.all<IgnoredUsers>("SELECT id FROM ignored_users");
-        return users.map((u) => Number(u.id));
+        const users = await this.db.all<IgnoredUsers>(
+            `SELECT ignored.platform_account_id
+             FROM ignored_users AS ignored
+             JOIN platform_accounts AS account
+               ON account.id = ignored.platform_account_id
+              AND account.platform = $1`,
+            [this.platform]
+        );
+        return users.map((user) => Number(user.platform_account_id));
     }
 
-    async unignoreUser(userId: number): Promise<void> {
-        await this.db.run("DELETE FROM ignored_users WHERE id = $1", [userId]);
+    async unignoreUser(accountId: number): Promise<void> {
+        await this.db.run("DELETE FROM ignored_users WHERE platform_account_id = $1", [accountId]);
     }
 
-    async ignoreUser(userId: number): Promise<void> {
-        await this.db.run("INSERT INTO ignored_users (id) VALUES ($1)", [userId]);
+    async ignoreUser(accountId: number): Promise<void> {
+        await this.db.run(
+            `INSERT INTO ignored_users (platform_account_id)
+             VALUES ($1)
+             ON CONFLICT (platform_account_id) DO NOTHING`,
+            [accountId]
+        );
     }
 }
 
@@ -140,7 +69,7 @@ class PostgresUserRemovalRepository {
     }
 
     async dropUser(userId: number): Promise<void> {
-        await this.db.run("DELETE FROM users WHERE id = $1", [userId]);
+        await this.db.run("DELETE FROM users WHERE app_user_id = $1", [userId]);
     }
 }
 
@@ -152,7 +81,7 @@ class PostgresErrorStore {
     }
 
     async addError(ctx: ErrorContext, error: unknown): Promise<string> {
-        let info = `Sent by: ${ctx.senderId}; Text: ${ctx.plainPayload ?? ctx.plainText}`;
+        let info = `Platform: ${ctx.platform}; Sent by account: ${ctx.senderId}; Text: ${ctx.plainPayload ?? ctx.plainText}`;
         if (ctx.replyMessage) {
             info += `; Replied to: ${ctx.replyMessage.senderId}`;
         }
@@ -180,6 +109,7 @@ class PostgresErrorStore {
 }
 
 export default class PostgresStorage implements ApplicationStorage {
+    readonly identities: PostgresIdentityRepository;
     readonly gameServers: Record<GameServerName, GameUserRepository>;
     readonly errors: PostgresErrorStore;
     readonly memberships: ChatMembersModel;
@@ -196,33 +126,37 @@ export default class PostgresStorage implements ApplicationStorage {
     readonly mediaReferences: MediaReferenceModel;
     readonly maintenance: MaintenanceModel;
 
-    constructor(private readonly db: SqlConnection) {
+    constructor(
+        private readonly db: SqlConnection,
+        readonly platform: Platform
+    ) {
+        this.identities = new PostgresIdentityRepository(db, platform);
         this.gameServers = {
-            bancho: new PostgresGameUserRepository("bancho", db),
-            gatari: new PostgresGameUserRepository("gatari", db),
-            ripple: new PostgresGameUserRepository("ripple", db),
-            akatsuki: new PostgresGameUserRepository("akatsuki", db),
-            beatleader: new PostgresGameUserRepository("beatleader", db),
-            scoresaber: new PostgresGameUserRepository("scoresaber", db),
+            bancho: new PostgresGameUserRepository("bancho", db, platform),
+            gatari: new PostgresGameUserRepository("gatari", db, platform),
+            ripple: new PostgresGameUserRepository("ripple", db, platform),
+            akatsuki: new PostgresGameUserRepository("akatsuki", db, platform),
+            beatleader: new PostgresGameUserRepository("beatleader", db, platform),
+            scoresaber: new PostgresGameUserRepository("scoresaber", db, platform),
         };
 
         this.errors = new PostgresErrorStore(db);
-        this.memberships = new ChatMembersModel(db);
-        this.ignoredUsers = new PostgresIgnoredUsersRepository(db);
+        this.memberships = new ChatMembersModel(db, platform);
+        this.ignoredUsers = new PostgresIgnoredUsersRepository(db, platform);
         this.userRemoval = new PostgresUserRemovalRepository(db);
         this.beatmaps = new OsuBeatmapCacheModel(db);
         this.userSettings = new UserSettingsModel(db);
         this.chatSettings = new ChatSettingsModel(db);
-        this.notificationAudience = new NotificationsModel(db);
+        this.notificationAudience = new NotificationsModel(db, platform);
         this.featureFlags = new FeatureControlModel(db);
-        this.telemetry = new StatisticsModel(db);
+        this.telemetry = new StatisticsModel(db, platform);
         this.onboarding = new OnboardingModel(db);
-        this.userDirectory = new UserInfoModel(db);
-        this.mediaReferences = new MediaReferenceModel(db);
-        this.maintenance = new MaintenanceModel(db);
+        this.userDirectory = new UserInfoModel(db, platform);
+        this.mediaReferences = new MediaReferenceModel(db, platform);
+        this.maintenance = new MaintenanceModel(db, platform);
     }
 
-    static fromEnvironment(): PostgresStorage {
+    static fromEnvironment(platform: Platform): PostgresStorage {
         const pool = new Pool({
             user: process.env.DB_USERNAME,
             host: process.env.DB_HOST,
@@ -230,7 +164,7 @@ export default class PostgresStorage implements ApplicationStorage {
             password: process.env.DB_PASSWORD,
             port: Number(process.env.DB_PORT),
         });
-        return new PostgresStorage(new PostgresConnection(pool));
+        return new PostgresStorage(new PostgresConnection(pool), platform);
     }
 
     async initialize(): Promise<void> {

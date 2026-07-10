@@ -14,6 +14,7 @@ import {
     UserDirectory,
     UserRemovalRepository,
 } from "../../src/core/ApplicationStorage";
+import { IdentityRepository, normalizeExternalId } from "../../src/core/Identity";
 function createGameServer(): GameUserRepository {
     return {
         getUser: async () => null,
@@ -114,8 +115,46 @@ const maintenance = (): MaintenanceRepository => ({
     clear: async () => 0,
 });
 
+const identities = (): IdentityRepository => ({
+    platform: "telegram",
+    findUser: async (externalId) => ({
+        accountId: Number(externalId),
+        userId: Number(externalId),
+        platform: "telegram",
+        externalId: normalizeExternalId(externalId),
+    }),
+    resolveUser: async (externalId) => ({
+        accountId: Number(externalId),
+        userId: Number(externalId),
+        platform: "telegram",
+        externalId: normalizeExternalId(externalId),
+    }),
+    getUser: async (accountId) => ({
+        accountId,
+        userId: accountId,
+        platform: "telegram",
+        externalId: String(accountId),
+    }),
+    findChat: async (externalId) => ({
+        chatId: Number(externalId),
+        platform: "telegram",
+        externalId: normalizeExternalId(externalId),
+    }),
+    resolveChat: async (externalId) => ({
+        chatId: Number(externalId),
+        platform: "telegram",
+        externalId: normalizeExternalId(externalId),
+    }),
+    getChat: async (chatId) => ({ chatId, platform: "telegram", externalId: String(chatId) }),
+    getUserAccounts: async (userId) => [
+        { accountId: userId, userId, platform: "telegram", externalId: String(userId) },
+    ],
+});
+
 export function createTestStorage(overrides: Partial<ApplicationStorage> = {}): ApplicationStorage {
     return {
+        platform: "telegram",
+        identities: identities(),
         gameServers: gameServers(),
         errors: errors(),
         memberships: memberships(),
