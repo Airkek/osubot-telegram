@@ -31,7 +31,7 @@ interface CustomSkinInfo {
     downloadLink?: string;
 }
 
-const PageSize = 6;
+const PageSize = 5;
 export class OrdrSkinsProvider {
     private readonly cached: { [page: number]: OrdrSkinMetadata[] } = {};
     private cachedMaxPage: number;

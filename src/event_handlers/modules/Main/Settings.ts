@@ -7,7 +7,7 @@ import { ILocalisator } from "../../../ILocalisator";
 import { ChatSettings, UserSettings } from "../../../core/Settings";
 
 type SettingsPageWithPageControl = "skin_sel";
-type SettingsPage = "home" | "render" | "language" | "output_type" | SettingsPageWithPageControl;
+type SettingsPage = "home" | "render" | "render_advanced" | "language" | "output_type" | SettingsPageWithPageControl;
 type ToggleableSettingsKey =
     | "render_enabled"
     | "ordr_video"
@@ -353,7 +353,6 @@ async function buildRenderPage(settings: UserSettings, l: ILocalisator): Promise
         skinName = skinName.slice(0, 51) + "…";
     }
 
-    const backButton = buildPageButton(settings.account_id, "home", l.tr("previous-page-button"));
     const rows: IKeyboardRow[] = [
         [
             toggleableButton(settings.account_id, page, l.tr("auto-render"), "render_enabled", settings.render_enabled),
@@ -399,6 +398,30 @@ async function buildRenderPage(settings: UserSettings, l: ILocalisator): Promise
                 settings.ordr_effects_volume.toString() + "%"
             ),
         ],
+    ];
+    if (settings.experimental_renderer) {
+        rows.push([
+            genericSetButton(
+                settings.account_id,
+                page,
+                l.tr("background-dim"),
+                "ordr_bgdim",
+                settings.ordr_bgdim.toString() + "%"
+            ),
+            buildPageButton(settings.account_id, "home", l.tr("previous-page-button")),
+        ]);
+    } else {
+        rows.push([
+            buildPageButton(settings.account_id, "render_advanced", l.tr("render-advanced-page")),
+            buildPageButton(settings.account_id, "home", l.tr("previous-page-button")),
+        ]);
+    }
+    return makeKeyboard(rows);
+}
+
+function buildAdvancedRenderPage(settings: UserSettings, l: ILocalisator): IKeyboard {
+    const page: SettingsPage = "render_advanced";
+    return buildLeveledPageKeyboard(settings.account_id, "render", l, [
         [
             genericSetButton(
                 settings.account_id,
@@ -407,28 +430,24 @@ async function buildRenderPage(settings: UserSettings, l: ILocalisator): Promise
                 "ordr_bgdim",
                 settings.ordr_bgdim.toString() + "%"
             ),
-            ...(!settings.experimental_renderer
-                ? [
-                      toggleableButton(
-                          settings.account_id,
-                          page,
-                          l.tr("pp-counter"),
-                          "ordr_pp_counter",
-                          settings.ordr_pp_counter
-                      ),
-                      toggleableButton(
-                          settings.account_id,
-                          page,
-                          l.tr("ur-counter"),
-                          "ordr_ur_counter",
-                          settings.ordr_ur_counter
-                      ),
-                  ]
-                : [backButton]),
         ],
-    ];
-    if (!settings.experimental_renderer) {
-        rows.push([
+        [
+            toggleableButton(
+                settings.account_id,
+                page,
+                l.tr("pp-counter"),
+                "ordr_pp_counter",
+                settings.ordr_pp_counter
+            ),
+            toggleableButton(
+                settings.account_id,
+                page,
+                l.tr("ur-counter"),
+                "ordr_ur_counter",
+                settings.ordr_ur_counter
+            ),
+        ],
+        [
             toggleableButton(
                 settings.account_id,
                 page,
@@ -443,10 +462,8 @@ async function buildRenderPage(settings: UserSettings, l: ILocalisator): Promise
                 "ordr_strain_graph",
                 settings.ordr_strain_graph
             ),
-            backButton,
-        ]);
-    }
-    return makeKeyboard(rows);
+        ],
+    ]);
 }
 
 const skinsProvider = new OrdrSkinsProvider();
@@ -627,6 +644,10 @@ export default class SettingsCommand extends Command {
                     }
                     case "render": {
                         answer = await buildRenderPage(settings, customCtx);
+                        break;
+                    }
+                    case "render_advanced": {
+                        answer = buildAdvancedRenderPage(settings, customCtx);
                         break;
                     }
                     case "language": {
@@ -881,7 +902,7 @@ export default class SettingsCommand extends Command {
                                 return true;
                             });
                             await ctx.edit(msg, {
-                                keyboard: buildCancelKeyboard(settings.account_id, "render", ticket, ctx),
+                                keyboard: buildCancelKeyboard(settings.account_id, page, ticket, ctx),
                             });
                             break;
                         }

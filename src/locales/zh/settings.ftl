@@ -16,6 +16,7 @@ prefer-experimental-renderer = 优先使用实验性渲染器
 enter-custom-skin-id = 输入自定义皮肤ID
 
 render-page = 🎥回放渲染
+render-advanced-page = ⚙️ 高级渲染设置
 
 chat-settings-admin-warning = 只有管理员可以编辑聊天设置！
 chat-settings-other-chat-warning = 这是其他聊天的设置！

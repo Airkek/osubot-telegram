@@ -18,7 +18,7 @@ import { BaseMessageContext, MessageContextStorage } from "../core/BaseMessageCo
 import { FluentLocalizer } from "../core/FluentLocalizer";
 import { MessageNotModifiedError, ReplyToMessage, SendOptions, TextLinkEntity } from "../core/MessageContext";
 import { Language } from "../core/Settings";
-import { IKeyboard } from "../Util";
+import { IKeyboard, validateKeyboard } from "../Util";
 import { uploadMessagePhoto, uploadPrivateVideo } from "./Upload";
 
 const VK_CHAT_PEER_OFFSET = 2_000_000_000;
@@ -455,6 +455,7 @@ export class VKMessageContext extends BaseMessageContext {
         if (!rows?.length) {
             return undefined;
         }
+        validateKeyboard(rows);
         const keyboard = Keyboard.builder().inline();
         for (const row of rows) {
             for (const button of row) {

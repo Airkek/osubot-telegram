@@ -6,7 +6,7 @@ import { BaseMessageContext, MessageContextStorage } from "../core/BaseMessageCo
 import { FluentLocalizer } from "../core/FluentLocalizer";
 import { MessageNotModifiedError, ReplyToMessage, SendOptions, TextLinkEntity } from "../core/MessageContext";
 import { Language } from "../core/Settings";
-import { IKeyboard } from "../Util";
+import { IKeyboard, validateKeyboard } from "../Util";
 
 export type TgContext = FileFlavor<Context>;
 export type TgApi = FileApiFlavor<Api>;
@@ -318,6 +318,7 @@ export class TelegramMessageContext extends BaseMessageContext {
         if (!rows?.length) {
             return undefined;
         }
+        validateKeyboard(rows);
         const buttonRows = await Promise.all(
             rows.map(
                 async (row) =>

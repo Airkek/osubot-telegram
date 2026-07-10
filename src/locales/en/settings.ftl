@@ -16,6 +16,7 @@ prefer-experimental-renderer = Prefer experimental renderer
 enter-custom-skin-id = Enter custom skin ID
 
 render-page = 🎥Replay rendering
+render-advanced-page = ⚙️ Advanced render settings
 
 chat-settings-admin-warning = Only the chat admin can edit chat settings!
 chat-settings-other-chat-warning = These are another chat's settings!

@@ -16,6 +16,7 @@ prefer-experimental-renderer = Предпочитать эксперимента
 enter-custom-skin-id = Указать id кастомного скина
 
 render-page = 🎥Рендер реплеев
+render-advanced-page = ⚙️ Дополнительные настройки рендера
 
 chat-settings-admin-warning = Настройки чата может редактировать только его администратор!
 chat-settings-other-chat-warning = Это настройки другого чата!
