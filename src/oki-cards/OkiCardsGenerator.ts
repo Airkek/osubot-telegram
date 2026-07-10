@@ -120,72 +120,87 @@ export class OkiCardsGenerator {
     }
 
     private async getFlagAssetData(countryCode: string): Promise<Buffer> {
-        const flag = await this.getAssetDataByPath(this.getFlagAssetPath(countryCode));
+        const flag = await this.getSvgAssetByPath(this.getFlagAssetPath(countryCode), 36, 36);
         return flag || this.getAssetDataByPath(this.getAssetPath(path.join("flags", "XX.png")));
     }
 
-    private async getModeAssetData(mode: number): Promise<Buffer> {
-        let modIconAsset: string = undefined;
+    private async getModeAssetData(mode: number, colour: string, width: number, height: number): Promise<Buffer> {
+        let modeIconAsset: string = undefined;
         switch (mode) {
             case 0:
-                modIconAsset = "osu.png";
+                modeIconAsset = "mode_osu";
                 break;
             case 1:
-                modIconAsset = "taiko.png";
+                modeIconAsset = "mode_taiko";
                 break;
             case 2:
-                modIconAsset = "fruits.png";
+                modeIconAsset = "mode_fruits";
                 break;
             case 3:
-                modIconAsset = "mania.png";
+                modeIconAsset = "mode_mania";
                 break;
 
             default:
                 return undefined;
         }
 
-        return this.getAssetData(modIconAsset);
+        const icon = await this.getSvgAsset(modeIconAsset, width, height);
+        return icon ? Buffer.from(icon.toString("utf8").replaceAll("#FFFFFF", colour)) : undefined;
     }
 
     private async getGradeAssetData(grade: string): Promise<Buffer> {
         let gradeIconAsset: string = undefined;
         switch (grade?.toLowerCase()) {
             case "a":
-                gradeIconAsset = "grade_a.png";
+                gradeIconAsset = "grade_a";
                 break;
             case "b":
-                gradeIconAsset = "grade_b.png";
+                gradeIconAsset = "grade_b";
                 break;
             case "c":
-                gradeIconAsset = "grade_c.png";
+                gradeIconAsset = "grade_c";
                 break;
             case "d":
-                gradeIconAsset = "grade_d.png";
+                gradeIconAsset = "grade_d";
+                break;
+            case "f":
+                gradeIconAsset = "grade_f";
                 break;
             case "s":
-                gradeIconAsset = "grade_s.png";
+                gradeIconAsset = "grade_s";
                 break;
             case "s+":
             case "sh":
-                gradeIconAsset = "grade_sh.png";
+                gradeIconAsset = "grade_sh";
                 break;
             case "x":
             case "ss":
-                gradeIconAsset = "grade_ss.png";
+                gradeIconAsset = "grade_ss";
                 break;
             case "x+":
             case "xh":
             case "ssh":
             case "ss+":
-                gradeIconAsset = "grade_ssh.png";
+                gradeIconAsset = "grade_ssh";
                 break;
 
             default:
-                // TODO: F
                 return undefined;
         }
 
-        return this.getAssetData(gradeIconAsset);
+        return this.getSvgAsset(gradeIconAsset, 320, 160);
+    }
+
+    private async getUserLevelAssetData(level: number, width: number, height: number): Promise<Buffer> {
+        const icon = await this.getSvgAsset("user_level", width, height);
+        if (!icon) {
+            return undefined;
+        }
+
+        const [topColour, bottomColour] = OkiColors.getUserLevelColours(level);
+        return Buffer.from(
+            icon.toString("utf8").replace("#LEVEL_TOP#", topColour).replace("#LEVEL_BOTTOM#", bottomColour)
+        );
     }
 
     private extractModSvgColors(input: string | Buffer): { background: string; foreground: string } {
@@ -357,12 +372,16 @@ export class OkiCardsGenerator {
 
             const svgTagRegex = /<svg\s*([^>]*)>/;
 
-            svgFile = svgFile.replace(svgTagRegex, (match, attributes) => {
-                const newAttributes = attributes
+            svgFile = svgFile.replace(svgTagRegex, (_match, attributes: string) => {
+                let newAttributes = attributes
                     .replace(/\s*(width|height)\s*=\s*(['"]).*?\2\s*/gi, " ")
                     .replace(/\s*(width|height)\s*=\s*[^'"\s]+\s*/gi, " ")
                     .replace(/\s+/g, " ")
                     .trim();
+
+                if (!/\bpreserveAspectRatio\s*=/i.test(newAttributes)) {
+                    newAttributes = `preserveAspectRatio="xMidYMid meet" ${newAttributes}`.trim();
+                }
 
                 return `<svg width="${width}" height="${height}" ${newAttributes}>`;
             });
@@ -693,18 +712,19 @@ export class OkiCardsGenerator {
         let diffPosX = compact ? starsPosX : titleArtisPosX + artistTextWidth + 24;
         const diffPosY = compact ? statsPosTextY : artistPosY;
         if (beatmap instanceof OsuBeatmap && beatmap.mode >= 0 && beatmap.mode <= 3) {
-            const modeNames = ["osu", "taiko", "fruits", "mania"];
             const stars = beatmap.stats.stars;
-            let diffName = "extra";
-            if (stars < 2.0) diffName = "easy";
-            else if (stars < 2.7) diffName = "normal";
-            else if (stars < 4.0) diffName = "hard";
-            else if (stars < 5.3) diffName = "insane";
-            else if (stars < 6.5) diffName = "expert";
-
-            const diffIconAsset = await this.getAssetData(`${diffName}_${modeNames[beatmap.mode]}.png`);
+            const difficultyColour = OkiColors.getDifficultyIconColour(stars);
+            const diffIconAsset = await this.getModeAssetData(beatmap.mode, "#FFFFFF", 32, 32);
             if (diffIconAsset) {
                 const diffIcon = await Canvas.loadImage(diffIconAsset);
+                const diffIconCenterX = diffPosX + 16;
+                const diffIconCenterY = diffPosY - 10;
+                ctx.save();
+                ctx.beginPath();
+                ctx.fillStyle = difficultyColour;
+                ctx.arc(diffIconCenterX, diffIconCenterY, 14, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
                 ctx.drawImage(diffIcon, diffPosX, diffPosY - 26, 32, 32);
             }
 
@@ -1186,6 +1206,7 @@ export class OkiCardsGenerator {
         } else {
             mainColor = "#000000";
         }
+        const profileAccentColor = OkiColors.toReadableContrastColors(colors).foreground;
 
         ctx.beginPath();
         ctx.fillStyle = colors.background;
@@ -1234,14 +1255,17 @@ export class OkiCardsGenerator {
         ctx.drawImage(userPicture, x, y, userPicture.width * scale, userPicture.height * scale);
         ctx.restore();
 
-        ctx.beginPath();
-        ctx.ellipse(268 + 30, 277 + 30, 40, 40, 0, 0, Math.PI * 2);
-        ctx.fill();
-
-        const modeIconAsset = await this.getModeAssetData(user.mode);
+        const modeIconSize = 72;
+        const modeIconAsset = await this.getModeAssetData(user.mode, "#FFFFFF", modeIconSize, modeIconSize);
         if (modeIconAsset) {
             const modeIcon = await Canvas.loadImage(modeIconAsset);
-            ctx.drawImage(modeIcon, 252, 261, 86, 86);
+            ctx.save();
+            ctx.beginPath();
+            ctx.fillStyle = OkiColors.getWhiteIconBackgroundColour(colors.background);
+            ctx.arc(298, 307, (modeIconSize * 14) / 32, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+            ctx.drawImage(modeIcon, 298 - modeIconSize / 2, 307 - modeIconSize / 2, modeIconSize, modeIconSize);
         }
 
         if (user.is_supporter) {
@@ -1296,22 +1320,47 @@ export class OkiCardsGenerator {
         ctx.font = "57px VarelaRound, NotoSansSC";
         ctx.fillText("#" + OkiFormat.number(user.rank.country || 0), 347, 259 + 57);
 
-        const hexagon = await Canvas.loadImage(await this.getAssetData("hexagon.png"));
-        ctx.drawImage(hexagon, 342, 332, 72, 77);
+        const level = Math.floor(user.level | 0);
+        const levelIconWidth = 72;
+        const levelIconHeight = 77;
+        const levelIconX = 342;
+        const levelIconY = 332;
+        const levelIconAsset = await this.getUserLevelAssetData(level, levelIconWidth, levelIconHeight);
+        if (levelIconAsset) {
+            const levelIcon = await Canvas.loadImage(levelIconAsset);
+            ctx.drawImage(levelIcon, levelIconX, levelIconY, levelIconWidth, levelIconHeight);
+        }
 
-        const levelText = Math.floor(user.level | 0).toString();
+        const levelText = level.toString();
         ctx.textAlign = "center";
-        ctx.font = "33px VarelaRound, NotoSansSC";
-        ctx.fillText(levelText, 378, 332 + 50);
+        ctx.font = "30px VarelaRound, NotoSansSC";
+        ctx.fillText(levelText, levelIconX + levelIconWidth / 2, levelIconY + 50);
 
-        OkiFormat.rect(ctx, 441, 364, 504, 12, 7);
-        ctx.fillStyle = "#FFCC22";
-        OkiFormat.rect(ctx, 441, 364, 504 * ((user.levelProgress || 0) / 100), 12, 7);
-        ctx.textAlign = "left";
+        const levelBarX = 441;
+        const levelBarY = 363;
+        const levelBarWidth = 504;
+        const levelBarHeight = 14;
+        const levelProgress = Math.min(Math.max(user.levelProgress || 0, 0), 100);
+        const levelProgressWidth = levelBarWidth * (levelProgress / 100);
+        ctx.fillStyle = profileAccentColor + "31";
+        OkiFormat.rect(ctx, levelBarX, levelBarY, levelBarWidth, levelBarHeight, levelBarHeight / 2);
+        if (levelProgressWidth > 0) {
+            const levelProgressGradient = ctx.createLinearGradient(
+                levelBarX,
+                levelBarY,
+                levelBarX + levelProgressWidth,
+                levelBarY
+            );
+            levelProgressGradient.addColorStop(0, profileAccentColor);
+            levelProgressGradient.addColorStop(1, mainColor);
+            ctx.fillStyle = levelProgressGradient;
+            OkiFormat.rect(ctx, levelBarX, levelBarY, levelProgressWidth, levelBarHeight, levelBarHeight / 2);
+        }
 
         ctx.fillStyle = mainColor;
         ctx.font = "21px VarelaRound, NotoSansSC";
-        ctx.fillText(Math.floor(user.levelProgress || 0) + "%", 960, 359 + 21);
+        ctx.textAlign = "left";
+        ctx.fillText(Math.floor(levelProgress) + "%", 960, 380);
 
         this.drawRows(ctx, 480, canvas.width / 2, mainColor, 32, 40, 24, 12, 10, 48, 28, 16, [
             [

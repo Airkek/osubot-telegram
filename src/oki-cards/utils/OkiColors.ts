@@ -15,6 +15,96 @@ export interface IColors {
     background: HexColor;
 }
 
+// Keep in sync with osu!web's public difficulty colour spectrum.
+// https://github.com/ppy/osu-web/blob/5b148b8d65b39b693617e8f72bdfdd0cb101e486/resources/js/utils/beatmap-helper.ts
+const difficultyColourStops: ReadonlyArray<readonly [number, HexColor]> = [
+    [0.1, "#4290FB"],
+    [1.25, "#4FC0FF"],
+    [2, "#4FFFD5"],
+    [2.5, "#7CFF4F"],
+    [3.3, "#F6F05C"],
+    [4.2, "#FF8068"],
+    [4.9, "#FF4E6F"],
+    [5.8, "#C645B8"],
+    [6.7, "#6563DE"],
+    [7.7, "#18158E"],
+    [9, "#000000"],
+];
+
+// Keep in sync with osu!web's user level tiers.
+// https://github.com/ppy/osu-web/blob/5b148b8d65b39b693617e8f72bdfdd0cb101e486/resources/js/components/user-level.tsx
+// https://github.com/ppy/osu-web/blob/5b148b8d65b39b693617e8f72bdfdd0cb101e486/resources/css/layout.less
+export function getUserLevelColours(level: number): readonly [HexColor, HexColor] {
+    if (level >= 110) {
+        return ["#FFE600", "#ED82FF"];
+    }
+    if (level >= 105) {
+        return ["#97DCFF", "#ED82FF"];
+    }
+    if (level >= 100) {
+        return ["#D9F8D3", "#A0CF96"];
+    }
+    if (level >= 80) {
+        return ["#A8F0EF", "#52E0DF"];
+    }
+    if (level >= 60) {
+        return ["#F0E4A8", "#E0C952"];
+    }
+    if (level >= 40) {
+        return ["#E0E0EB", "#A3A3C2"];
+    }
+    if (level >= 20) {
+        return ["#B88F7A", "#855C47"];
+    }
+    return ["#BAB3AB", "#BAB3AB"];
+}
+
+export function getDifficultyColour(starRating: number): HexColor {
+    if (starRating < difficultyColourStops[0][0]) {
+        return "#AAAAAA";
+    }
+    if (starRating >= difficultyColourStops[difficultyColourStops.length - 1][0]) {
+        return difficultyColourStops[difficultyColourStops.length - 1][1];
+    }
+
+    const upperIndex = difficultyColourStops.findIndex(([rating]) => rating >= starRating);
+    const [upperRating, upperColour] = difficultyColourStops[upperIndex];
+    if (upperRating === starRating) {
+        return upperColour;
+    }
+
+    const [lowerRating, lowerColour] = difficultyColourStops[upperIndex - 1];
+    const progress = (starRating - lowerRating) / (upperRating - lowerRating);
+    const gamma = 2.2;
+    const lowerRgb = toRGB(lowerColour);
+    const upperRgb = toRGB(upperColour);
+    const interpolated = lowerRgb.map((channel, index) =>
+        Math.round((channel ** gamma * (1 - progress) + upperRgb[index] ** gamma * progress) ** (1 / gamma))
+    );
+    return toHex(interpolated).toUpperCase();
+}
+
+export function getDifficultyIconColour(starRating: number): HexColor {
+    return getWhiteIconBackgroundColour(getDifficultyColour(starRating));
+}
+
+export function getWhiteIconBackgroundColour(sourceColour: HexColor): HexColor {
+    const colour = toRGB(sourceColour);
+    const white = [255, 255, 255];
+    if (getContrastRatio(white, colour).ratio >= 2) {
+        return toHex(colour).toUpperCase();
+    }
+
+    for (let factor = 0.99; factor >= 0; factor -= 0.01) {
+        const darkened = colour.map((channel) => Math.round(channel * factor));
+        if (getContrastRatio(white, darkened).ratio >= 2) {
+            return toHex(darkened).toUpperCase();
+        }
+    }
+
+    return "#000000";
+}
+
 export function getColorBlack(colorHex: HexColor): boolean {
     const color = toRGB(colorHex);
     const red = color[0];

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 50">
+  <defs>
+    <linearGradient id="level-tier" x1="25" y1="0" x2="25" y2="50" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#LEVEL_TOP#"/>
+      <stop offset="1" stop-color="#LEVEL_BOTTOM#"/>
+    </linearGradient>
+  </defs>
+  <path fill="url(#level-tier)" fill-rule="evenodd" d="m25 2.7a9.3 9.3 0 0 1 4.7 1.2L41 10.4a9.3 9.3 0 0 1 4.6 8.1v13a9.3 9.3 0 0 1-4.6 8.1l-11.3 6.5a9.3 9.3 0 0 1-9.3 0L9.1 39.6a9.3 9.3 0 0 1-4.7-8.1v-13a9.3 9.3 0 0 1 4.7-8.1l11.3-6.5A9.3 9.3 0 0 1 25 2.7M25 0a11.9 11.9 0 0 0-6 1.6L7.7 8.1a12 12 0 0 0-6 10.4v13a12 12 0 0 0 6 10.4L19 48.4a12 12 0 0 0 12 0l11.3-6.5a12 12 0 0 0 6-10.4v-13a12 12 0 0 0-6-10.4L31 1.6A11.9 11.9 0 0 0 25 0Z"/>
+</svg>
