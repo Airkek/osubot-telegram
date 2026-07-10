@@ -1,4 +1,4 @@
-name: "Lint"
+name: "Build and run tests"
 
 on:
     push:
@@ -10,11 +10,11 @@ permissions:
     contents: read
 
 concurrency:
-    group: lint-${{ github.ref }}
+    group: build-tests-${{ github.ref }}
     cancel-in-progress: true
 
 jobs:
-    lint:
+    build_and_test:
         runs-on: ubuntu-latest
         steps:
             - name: Checkout code
@@ -29,5 +29,8 @@ jobs:
             - name: Install modules
               run: npm ci
 
-            - name: Run ESLint
-              run: npx eslint .
+            - name: Build
+              run: npm run build
+
+            - name: Run unit tests
+              run: npm run test:run

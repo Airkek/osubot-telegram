@@ -12,6 +12,4 @@ docker-compose.override.yml
 
 /src/version.ts
 
-**/*test.ts
-
 **/.DS_Store

@@ -1,8 +1,24 @@
 import Database from "../Database";
-import { Command } from "../../telegram_event_handlers/Command";
-import UnifiedMessageContext from "../../TelegramSupport";
-import { UserFromGetMe } from "@grammyjs/types";
 import fs from "fs/promises";
+
+interface EventContext {
+    senderId: number;
+    chatId: number;
+    plainPayload?: string;
+    plainText?: string;
+}
+
+interface CommandEvent {
+    name: string;
+    module: { name: string };
+}
+
+interface BotIdentity {
+    id: number;
+    username?: string;
+    first_name: string;
+    last_name?: string;
+}
 
 type RenderEvents = "render_start" | "render_success" | "render_failed";
 type Metrics = "user_count" | "chat_count" | "cached_beatmap_files_count" | "cached_beatmap_metadata_count";
@@ -73,28 +89,23 @@ export class StatisticsModel {
         );
     }
 
-    public async logRenderStart(ctx: UnifiedMessageContext, mode: number, isExperimental: boolean) {
+    public async logRenderStart(ctx: EventContext, mode: number, isExperimental: boolean) {
         return await this.logRenderEvent("render_start", ctx, mode, isExperimental);
     }
 
-    public async logRenderSuccess(ctx: UnifiedMessageContext, mode: number, isExperimental: boolean) {
+    public async logRenderSuccess(ctx: EventContext, mode: number, isExperimental: boolean) {
         return await this.logRenderEvent("render_success", ctx, mode, isExperimental);
     }
 
-    public async logRenderFailed(
-        ctx: UnifiedMessageContext,
-        mode: number,
-        errorMessage: string,
-        isExperimental: boolean
-    ) {
+    public async logRenderFailed(ctx: EventContext, mode: number, errorMessage: string, isExperimental: boolean) {
         return await this.logRenderEvent("render_failed", ctx, mode, isExperimental, errorMessage);
     }
 
-    public async logMessage(ctx: UnifiedMessageContext) {
+    public async logMessage(ctx: EventContext) {
         return await this.logRawEvent("new_message", ctx.senderId, ctx.chatId);
     }
 
-    public async logCommand(command: Command, ctx: UnifiedMessageContext) {
+    public async logCommand(command: CommandEvent, ctx: EventContext) {
         await this.db.run(
             `INSERT INTO bot_events_commands (user_id, chat_id, module, command, text, is_payload)
              VALUES ($1, $2, $3, $4, $5, $6)`,
@@ -109,7 +120,7 @@ export class StatisticsModel {
         );
     }
 
-    public async logStartup(me: UserFromGetMe) {
+    public async logStartup(me: BotIdentity) {
         await this.db.run(
             `INSERT INTO bot_events_startup (bot_id, username, first_name, last_name)
              VALUES ($1, $2, $3, $4)`,
@@ -119,7 +130,7 @@ export class StatisticsModel {
 
     private async logRenderEvent(
         type: RenderEvents,
-        ctx: UnifiedMessageContext,
+        ctx: EventContext,
         mode: number,
         isExperimental: boolean,
         message?: string

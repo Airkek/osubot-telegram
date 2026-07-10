@@ -1,0 +1,30 @@
+import type { APICollection } from "../api/APICollection";
+import type { OsuBeatmapProvider } from "../beatmaps/osu/OsuBeatmapProvider";
+import type Database from "../data/Database";
+import type IgnoreList from "../Ignore";
+import type Maps from "../Maps";
+import type OsuTrackAPI from "../osu_specific/OsuTrackAPI";
+import type { Module } from "../event_handlers/modules/Module";
+import type { ITemplates } from "../event_handlers/templates";
+import type { ReplyUtils } from "../event_handlers/utils/ReplyUtils";
+import type { IMessageContext } from "./MessageContext";
+
+export type PendingCallback = (ctx: IMessageContext) => Promise<boolean>;
+
+export interface BotRuntime {
+    readonly database: Database;
+    readonly api: APICollection;
+    readonly osuBeatmapProvider: OsuBeatmapProvider;
+    readonly templates: ITemplates;
+    readonly maps: Maps;
+    readonly ignored: IgnoreList;
+    readonly track: OsuTrackAPI;
+    readonly replyUtils: ReplyUtils;
+    readonly version: string;
+    readonly startTime: number;
+    readonly modules: Module[];
+
+    addCallback(ctx: IMessageContext, callback: PendingCallback): string;
+    removeCallback(ticket: string): void;
+    sendMessage(recipientId: number, text: string): Promise<void>;
+}

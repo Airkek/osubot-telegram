@@ -1,9 +1,9 @@
 import { Logger, ILogObj } from "tslog";
-import { Bot, IBotConfig } from "./src/Bot";
+import { TelegramBotAdapter, TelegramBotConfig } from "./src/Telegram/Bot";
 import dotenv from "dotenv";
 dotenv.config();
 
-const config: IBotConfig = {
+const config: TelegramBotConfig = {
     tg: {
         token: process.env.TELEGRAM_TOKEN,
         owner: Number(process.env.TELEGRAM_OWNER_ID),
@@ -22,11 +22,32 @@ declare global {
 
 global.logger = new Logger<ILogObj>();
 
+let bot: TelegramBotAdapter;
+let stopping = false;
+
 async function main(): Promise<void> {
     global.logger.info("Starting...");
-    const bot = new Bot(config);
+    bot = new TelegramBotAdapter(config);
     await bot.start();
 }
+
+async function shutdown(signal: NodeJS.Signals): Promise<void> {
+    if (stopping) {
+        return;
+    }
+    stopping = true;
+    global.logger.info(`Received ${signal}, stopping...`);
+    try {
+        await bot?.stop();
+        process.exit(0);
+    } catch (error) {
+        global.logger.fatal("Failed to stop bot", error);
+        process.exit(1);
+    }
+}
+
+process.once("SIGINT", () => void shutdown("SIGINT"));
+process.once("SIGTERM", () => void shutdown("SIGTERM"));
 
 void main().catch((error) => {
     global.logger.fatal("Failed to start bot", error);

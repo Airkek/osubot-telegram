@@ -1,7 +1,5 @@
-import { Bot as TG } from "grammy";
 import { Pool, QueryResult } from "pg";
 import { APIUser, IDatabaseServer, IDatabaseUser, IDatabaseUserStats } from "../Types";
-import UnifiedMessageContext from "../TelegramSupport";
 import { createHash } from "node:crypto";
 import { applyMigrations } from "./Migrations";
 import { FeatureControlModel } from "./Models/FeatureControlModel";
@@ -10,7 +8,6 @@ import { ChatSettingsModel } from "./Models/Settings/ChatSettingsModel";
 import { UserSettingsModel } from "./Models/Settings/UserSettingsModel";
 import { OsuBeatmapCacheModel } from "./Models/OsuBeatmapCacheModel";
 import { StatisticsModel } from "./Models/StatisticsModel";
-import { CoversModel } from "./Models/CoversModel";
 import { ChatMembersModel } from "./Models/ChatMembersModel";
 import { OnboardingModel } from "./Models/OnboardingModel";
 import UserInfoModel from "./Models/UserInfoModel";
@@ -149,7 +146,15 @@ class DatabaseErrors {
         this.db = db;
     }
 
-    async addError(ctx: UnifiedMessageContext, error: unknown): Promise<string> {
+    async addError(
+        ctx: {
+            senderId: number;
+            plainPayload?: string;
+            plainText?: string;
+            replyMessage?: { senderId: number };
+        },
+        error: unknown
+    ): Promise<string> {
         let info = `Sent by: ${ctx.senderId}; Text: ${ctx.plainPayload ?? ctx.plainText}`;
         if (ctx.replyMessage) {
             info += `; Replied to: ${ctx.replyMessage.senderId}`;
@@ -189,7 +194,6 @@ interface IServersList {
 export default class Database {
     // TODO: move out of there
     readonly servers: IServersList;
-    readonly covers: CoversModel;
     readonly errors: DatabaseErrors;
     readonly chats: ChatMembersModel;
     readonly ignore: DatabaseIgnore;
@@ -204,13 +208,7 @@ export default class Database {
     readonly userInfo: UserInfoModel;
 
     private readonly db: Pool;
-    private readonly tg: TG;
-    private readonly owner: number;
-
-    constructor(tg: TG, owner: number) {
-        this.tg = tg;
-        this.owner = owner;
-
+    constructor() {
         this.servers = {
             bancho: new DatabaseServer("bancho", this),
             gatari: new DatabaseServer("gatari", this),
@@ -220,7 +218,6 @@ export default class Database {
             scoresaber: new DatabaseServer("scoresaber", this),
         };
 
-        this.covers = new CoversModel(this, this.tg, this.owner);
         this.errors = new DatabaseErrors(this);
         this.chats = new ChatMembersModel(this);
         this.ignore = new DatabaseIgnore(this);

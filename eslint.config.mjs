@@ -11,4 +11,21 @@ export default [
     { languageOptions: { globals: globals.browser } },
     pluginJs.configs.recommended,
     ...tseslint.configs.recommended,
+    {
+        files: ["src/**/*.ts"],
+        ignores: ["src/Telegram/**/*.ts"],
+        rules: {
+            "no-restricted-imports": [
+                "error",
+                {
+                    patterns: [
+                        {
+                            group: ["grammy", "grammy/*", "@grammyjs/*", "**/Telegram/**"],
+                            message: "Telegram transport dependencies belong in src/Telegram only.",
+                        },
+                    ],
+                },
+            ],
+        },
+    },
 ];
