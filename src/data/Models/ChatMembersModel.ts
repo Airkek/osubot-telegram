@@ -17,7 +17,10 @@ export class ChatMembersModel {
     }
 
     async userJoined(userId: number, chatId: number): Promise<void> {
-        await this.db.run("INSERT INTO users_to_chat (user_id, chat_id) VALUES ($1, $2)", [userId, chatId]);
+        await this.db.run(
+            "INSERT INTO users_to_chat (user_id, chat_id) VALUES ($1, $2) ON CONFLICT (user_id, chat_id) DO NOTHING",
+            [userId, chatId]
+        );
     }
 
     async userLeft(userId: number, chatId: number): Promise<void> {

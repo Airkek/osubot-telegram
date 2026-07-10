@@ -5,6 +5,7 @@ onboarding-text-step-output-style = В каком виде ты предпочи
 onboarding-text-step-automatic-render = Хочешь ли ты рендерить отправленные тобой реплеи?
 onboarding-text-step-experimental-renderer = Хочешь ли ты использовать экспериментальный рендерер для osu! standard? (использует osu!lazer, может содержать ошибки)
 onboarding-text-step-final = Стартовая настройка завершена.
+unknown-step-error = Этот шаг знакомства больше недоступен. Пожалуйста, начните настройку заново.
 
 previous-step-button-text = Вернуться назад
 

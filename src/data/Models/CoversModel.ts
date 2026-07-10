@@ -1,6 +1,7 @@
 import { Bot as TG } from "grammy/out/bot";
 import { InputFile } from "grammy";
 import Database from "../Database";
+import { downloadRemoteImage } from "../../RemoteImage";
 
 interface Cover {
     id: number;
@@ -25,7 +26,8 @@ export class CoversModel {
 
     async addCover(id: number): Promise<string> {
         try {
-            const file = new InputFile(new URL(`https://assets.ppy.sh/beatmaps/${id}/covers/cover@2x.jpg`));
+            const image = await downloadRemoteImage(`https://assets.ppy.sh/beatmaps/${id}/covers/cover@2x.jpg`);
+            const file = new InputFile(image, "cover.jpg");
             const send = await this.tg.api.sendPhoto(this.owner, file);
             const photo = send.photo[0].file_id;
 
@@ -47,7 +49,8 @@ export class CoversModel {
 
     async addPhotoDoc(photoUrl: string): Promise<string> {
         try {
-            const file = new InputFile(new URL(photoUrl));
+            const image = await downloadRemoteImage(photoUrl);
+            const file = new InputFile(image, "cover");
             const send = await this.tg.api.sendPhoto(this.owner, file);
             const photo = send.photo[0].file_id;
 

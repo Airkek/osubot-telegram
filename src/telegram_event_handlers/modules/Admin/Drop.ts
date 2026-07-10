@@ -11,7 +11,7 @@ export default class DropCommand extends Command {
             }
 
             let id = arg ? Number(arg) : ctx.replyMessage.senderId;
-            if (arg.startsWith("@")) {
+            if (arg?.startsWith("@")) {
                 const nickname = args.nickname[0].slice(1);
                 const userInfo = await module.bot.database.userInfo.findByUsername(nickname);
                 if (!userInfo) {

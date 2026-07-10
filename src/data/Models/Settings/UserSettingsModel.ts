@@ -73,7 +73,7 @@ export class UserSettingsModel {
 
         const res = await this.db.get<UserSettings>("SELECT * FROM settings WHERE user_id = $1", [userId]);
         if (!res) {
-            await this.db.run("INSERT INTO settings (user_id) VALUES ($1)", [userId]);
+            await this.db.run("INSERT INTO settings (user_id) VALUES ($1) ON CONFLICT (user_id) DO NOTHING", [userId]);
             return await this.getUserSettings(userId);
         }
         this.setCache(userId, res);

@@ -18,9 +18,12 @@ export default class AbstractNick extends ServerCommand {
             let user: APIUser;
             try {
                 user = await (masterApi ?? self.module.api).getUser(self.args.nickname.join(" "));
-            } catch {
-                await self.reply(self.ctx.tr("user-not-found"));
-                return;
+            } catch (error) {
+                if (error instanceof Error && error.message === "User not found") {
+                    await self.reply(self.ctx.tr("user-not-found"));
+                    return;
+                }
+                throw error;
             }
 
             await (masterDb ?? self.module.db).setNickname(self.ctx.senderId, user.id, user.nickname, user.mode);

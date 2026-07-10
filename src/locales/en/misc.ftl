@@ -26,7 +26,9 @@ search-not-specified = Please specify a search query
 search-not-found = No ranked beatmaps found
 search-result-header = Search results:
 
-use-id-command-instead-of-nick = Для этого лидерборда недоступна установка никнейма!\nУстановите свой id, используя {$prefix} id <id>
+use-id-command-instead-of-nick =
+    This leaderboard does not support setting a nickname!
+    Set your ID using {$prefix} id <id>
 
 not-found-scores-with-mod-combo = No top scores found with this mod combination!
 near-pp-score = Player's closest score to {$pp}pp

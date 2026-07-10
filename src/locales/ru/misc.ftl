@@ -26,6 +26,10 @@ search-not-specified = Укажите запрос для поиска
 search-not-found = Не найдено ни одной ранкнутой карты
 search-result-header = Результат поиска:
 
+use-id-command-instead-of-nick =
+    Для этого лидерборда недоступна установка никнейма!
+    Установите свой id, используя {$prefix} id <id>
+
 not-found-scores-with-mod-combo = Не найдено топ скоров с указанной комбинацией модов!
 near-pp-score = Ближайший к {$pp}pp скор игрока
 top-n-score = Топ #{$place} скор игрока

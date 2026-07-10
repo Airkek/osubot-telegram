@@ -5,6 +5,7 @@ onboarding-text-step-output-style = How would you prefer to receive responses fr
 onboarding-text-step-automatic-render = Do you want to automatically render replays you send?
 onboarding-text-step-experimental-renderer = Do you want to use the experimental osu! standard renderer? (uses osu!lazer, may contain bugs)
 onboarding-text-step-final = Initial setup completed.
+unknown-step-error = This onboarding step is no longer available. Please restart onboarding.
 
 previous-step-button-text = Back
 

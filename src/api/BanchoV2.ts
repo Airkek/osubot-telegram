@@ -201,6 +201,9 @@ class V2Beatmap implements APIBeatmap {
     coverUrl: string;
 
     constructor(beatmap: BeatmapExtended) {
+        if (!beatmap?.beatmapset || !beatmap.beatmapset.covers) {
+            throw new Error("Invalid beatmap response from osu! API");
+        }
         this.artist = beatmap.beatmapset.artist;
         this.id = {
             set: beatmap.beatmapset_id,
@@ -260,6 +263,9 @@ class V2Score implements APIScore {
     player_id: number;
     has_replay: boolean;
     constructor(data: Score, forceLazerScore = false) {
+        if (!data?.beatmap || !data.statistics || !Array.isArray(data.mods)) {
+            throw new Error("Invalid score response from osu! API");
+        }
         this.api_score_id = data.id;
         this.beatmapId = data.beatmap.id;
         this.score = forceLazerScore || !data.legacy_total_score ? data.total_score : data.legacy_total_score;
@@ -293,6 +299,8 @@ class V2Score implements APIScore {
     }
 }
 
+class NoScoresError extends Error {}
+
 class V2User implements APIUser {
     id: number;
     nickname: string;
@@ -312,6 +320,9 @@ class V2User implements APIUser {
     total_score?: number;
 
     constructor(data: User, mode?: number) {
+        if (!data?.statistics?.level) {
+            throw new Error("Invalid user response from osu! API");
+        }
         this.id = data.id;
         this.nickname = data.username;
         this.playcount = data.statistics.play_count;
@@ -391,22 +402,30 @@ class BanchoAPIV2 implements IAPI {
         this.logged = 0;
     }
 
-    async login() {
-        const { data } = await axios.default.post("https://osu.ppy.sh/oauth/token", {
-            grant_type: "client_credentials",
-            client_id: this.app_id,
-            client_secret: this.client_secret,
-            scope: "identify public",
-        });
-        if (!data.access_token) {
+    async login(): Promise<void> {
+        try {
+            const { data } = await axios.default.post(
+                "https://osu.ppy.sh/oauth/token",
+                {
+                    grant_type: "client_credentials",
+                    client_id: this.app_id,
+                    client_secret: this.client_secret,
+                    scope: "public",
+                },
+                { timeout: 15000 }
+            );
+            if (typeof data?.access_token !== "string" || !data.access_token) {
+                throw new Error("osu! OAuth response does not contain an access token");
+            }
+            this.token = data.access_token;
+            this.logged = 1;
+        } catch (error) {
             this.logged = -1;
-            return;
+            throw error;
         }
-        this.token = data.access_token;
-        this.logged = 1;
     }
 
-    private async getArrayBuffer(method: string, query?) {
+    private async getArrayBuffer(method: string, query?, retryAuthentication = true) {
         try {
             const { data } = await this.api.get(`${method}${query ? `?${qs.stringify(query)}` : ""}`, {
                 headers: {
@@ -417,15 +436,18 @@ class BanchoAPIV2 implements IAPI {
             });
             return data;
         } catch (e) {
-            if (e.response?.status == 401) {
+            if (axios.isAxiosError(e) && e.response?.status === 401 && retryAuthentication) {
                 await this.refresh();
-                return this.getArrayBuffer(method, query);
+                return this.getArrayBuffer(method, query, false);
             }
-            return undefined;
+            if (axios.isAxiosError(e) && e.response?.status === 404) {
+                return undefined;
+            }
+            throw e;
         }
     }
 
-    private async get(method: string, query?) {
+    private async get(method: string, query?, retryAuthentication = true) {
         try {
             const { data } = await this.api.get(`${method}${query ? `?${qs.stringify(query)}` : ""}`, {
                 headers: {
@@ -435,15 +457,18 @@ class BanchoAPIV2 implements IAPI {
             });
             return data;
         } catch (e) {
-            if (e.response?.status == 401) {
+            if (axios.isAxiosError(e) && e.response?.status === 401 && retryAuthentication) {
                 await this.refresh();
-                return this.get(method, query);
+                return this.get(method, query, false);
             }
-            return undefined;
+            if (axios.isAxiosError(e) && e.response?.status === 404) {
+                return undefined;
+            }
+            throw e;
         }
     }
 
-    private async post(method: string, query?) {
+    private async post(method: string, query?, retryAuthentication = true) {
         try {
             const { data } = await this.api.post(`${method}`, query, {
                 headers: {
@@ -453,11 +478,14 @@ class BanchoAPIV2 implements IAPI {
             });
             return data;
         } catch (e) {
-            if (e.response?.status == 401) {
+            if (axios.isAxiosError(e) && e.response?.status === 401 && retryAuthentication) {
                 await this.refresh();
-                return this.post(method, query);
+                return this.post(method, query, false);
             }
-            return undefined;
+            if (axios.isAxiosError(e) && e.response?.status === 404) {
+                return undefined;
+            }
+            throw e;
         }
     }
 
@@ -469,27 +497,30 @@ class BanchoAPIV2 implements IAPI {
     }
 
     async getUser(nickname: string, mode?: number): Promise<APIUser> {
-        const data = await this.get(
-            `/users/${nickname.replace(" ", "_")}/${mode !== undefined ? getRuleset(mode) : ""}`,
-            {
-                key: "username",
-            }
-        );
+        const user = encodeURIComponent(`@${nickname}`);
+        const ruleset = mode !== undefined ? `/${getRuleset(mode)}` : "";
+        const data = await this.get(`/users/${user}${ruleset}`);
 
         if (data === undefined) {
             throw new Error("User not found");
+        }
+        if (!data?.statistics) {
+            throw new Error("User statistics are unavailable for this mode");
         }
 
         return new V2User(data, mode);
     }
 
     async getUserById(id: number | string, mode?: number): Promise<APIUser> {
-        const data = await this.get(`/users/${id}/${mode !== undefined ? getRuleset(mode) : ""}`, {
-            key: "id",
-        });
+        const user = encodeURIComponent(String(id));
+        const ruleset = mode !== undefined ? `/${getRuleset(mode)}` : "";
+        const data = await this.get(`/users/${user}${ruleset}`);
 
         if (data === undefined) {
             throw new Error("User not found");
+        }
+        if (!data?.statistics) {
+            throw new Error("User statistics are unavailable for this mode");
         }
 
         return new V2User(data, mode);
@@ -524,6 +555,9 @@ class BanchoAPIV2 implements IAPI {
         if (data === undefined) {
             throw new Error("Beatmap not found");
         }
+        if (!data?.beatmapset) {
+            throw new Error("Invalid beatmap response from osu! API");
+        }
 
         return new V2Beatmap(data);
     }
@@ -539,47 +573,27 @@ class BanchoAPIV2 implements IAPI {
             await map.applyMods(new Mods(mods));
         }
         const scores: LeaderboardScore[] = [];
-        try {
-            const lim = Math.ceil(users.length / 5);
-            for (let i = 0; i < lim; i++) {
-                try {
-                    const usrs = users.splice(0, 5);
-                    const usPromise = usrs.map((u) => this.getScoreByUid(u.game_id, beatmapId, mode, mods, true));
-                    const s: APIScore[] = await Promise.all(usPromise.map((p) => p.catch((e) => e)));
-                    for (let j = s.length - 1; j >= 0; j--) {
-                        const ok = typeof s[j] !== "string" && !(s[j] instanceof Error);
-                        if (!ok) {
-                            s.splice(j, 1);
-                            usrs.splice(j, 1);
-                        }
-                    }
-                    scores.push(
-                        ...s.map((score, j) => {
-                            return {
-                                user: usrs[j],
-                                score,
-                            };
-                        })
-                    );
-                } catch {
-                    // Ignore "No scores"
+        const pendingUsers = [...users];
+        const lim = Math.ceil(pendingUsers.length / 5);
+        for (let i = 0; i < lim; i++) {
+            const batch = pendingUsers.slice(i * 5, i * 5 + 5);
+            const results = await Promise.allSettled(
+                batch.map((user) => this.getScoreByUid(user.game_id, beatmapId, mode, mods, true))
+            );
+            for (let j = 0; j < results.length; j++) {
+                const result = results[j];
+                if (result.status === "fulfilled") {
+                    scores.push({ user: batch[j], score: result.value });
+                } else if (!(result.reason instanceof NoScoresError)) {
+                    throw result.reason;
                 }
             }
-
-            return {
-                map,
-                scores: scores.sort((a, b) => {
-                    if (a.score.score > b.score.score) {
-                        return -1;
-                    } else if (a.score.score < b.score.score) {
-                        return 1;
-                    }
-                    return 0;
-                }),
-            };
-        } catch (e) {
-            throw e || new Error("Unknown error");
         }
+
+        return {
+            map,
+            scores: scores.sort((a, b) => b.score.score - a.score.score),
+        };
     }
 
     async getBeatmapsets(args: V2BeatmapsetsArguments): Promise<V2Beatmapset[]> {
@@ -587,6 +601,12 @@ class BanchoAPIV2 implements IAPI {
             q: args.query || null,
             s: args.status || "ranked",
         });
+        if (!Array.isArray(data?.beatmapsets)) {
+            throw new Error("Invalid beatmap search response from osu! API");
+        }
+        if (data.beatmapsets.some((set) => !Array.isArray(set?.beatmaps))) {
+            throw new Error("Invalid beatmap search response from osu! API");
+        }
         return data.beatmapsets.map((set) => ({
             id: set.id,
             title: set.title,
@@ -610,6 +630,9 @@ class BanchoAPIV2 implements IAPI {
             limit,
         });
 
+        if (!Array.isArray(data)) {
+            throw new Error("Invalid recent scores response from osu! API");
+        }
         if (data[0]) {
             const score = data[0];
 
@@ -652,6 +675,9 @@ class BanchoAPIV2 implements IAPI {
             limit,
         });
 
+        if (!Array.isArray(data)) {
+            throw new Error("Invalid top scores response from osu! API");
+        }
         if (data[0]) {
             return data.map((s, index) => {
                 const score = new V2Score(s);
@@ -670,13 +696,20 @@ class BanchoAPIV2 implements IAPI {
         mods?: number,
         forceLazerScore = false
     ): Promise<APIScore> {
-        const data: BeatmapUserScore = await this.get(`/beatmaps/${beatmapId}/scores/users/${uid}`, {
+        const query: Record<string, string | string[]> = {
             mode: getRuleset(mode),
-            mods: "", // TODO
-        });
+        };
+        if (mods !== undefined && mods !== null) {
+            query["mods[]"] = new Mods(mods).toAcronymList(true).filter((mod) => mod !== "CL");
+        }
+
+        const data: BeatmapUserScore = await this.get(`/beatmaps/${beatmapId}/scores/users/${uid}`, query);
 
         if (!data) {
-            throw new Error("No scores found");
+            throw new NoScoresError("No scores found");
+        }
+        if (!data.score) {
+            throw new Error("Invalid user score response from osu! API");
         }
 
         return new V2Score(data.score, forceLazerScore);
@@ -689,6 +722,9 @@ class BanchoAPIV2 implements IAPI {
 
     async downloadReplay(scoreId: number | string): Promise<Buffer> {
         const data = await this.getArrayBuffer(`/scores/${scoreId}/download`);
+        if (!data) {
+            throw new Error("Replay is not available");
+        }
         const buffer = Buffer.from(data, "binary");
 
         return buffer;

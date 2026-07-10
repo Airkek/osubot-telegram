@@ -15,19 +15,19 @@ export default class IgnoreList {
         this.inited = true;
     }
 
-    switch(id: number): boolean {
+    async switch(id: number): Promise<boolean> {
         if (!this.inited) {
             return false;
         }
 
         if (this.isIgnored(id)) {
+            await this.db.ignore.unignoreUser(id);
             this.list.delete(id);
-            this.db.ignore.unignoreUser(id);
             return false;
         }
 
+        await this.db.ignore.ignoreUser(id);
         this.list.add(id);
-        this.db.ignore.ignoreUser(id);
 
         return true;
     }

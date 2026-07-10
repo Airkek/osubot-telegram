@@ -1,5 +1,4 @@
 import sharp from "sharp";
-import { Vibrant } from "node-vibrant/node";
 
 interface IColorContrast {
     colors: [RgbColor, RgbColor];
@@ -40,14 +39,39 @@ function toRGB(hex: HexColor): RgbColor {
 }
 
 export async function getColors(image: Buffer): Promise<IColors> {
-    const { dominant } = await sharp(image).stats();
+    const source = sharp(image, { limitInputPixels: 16_000_000 });
+    const { dominant } = await source.clone().stats();
     const { r, g, b } = dominant;
     const dominantHex = toHex([r, g, b]);
     try {
-        const palette = await Vibrant.from(image).maxColorCount(64).getPalette();
-        const vibrantColor = palette.Vibrant.hex;
+        const { data, info } = await source
+            .clone()
+            .resize(64, 64, { fit: "inside", withoutEnlargement: true })
+            .ensureAlpha()
+            .raw()
+            .toBuffer({ resolveWithObject: true });
+
+        let vibrantColor: RgbColor = [r, g, b];
+        let bestScore = -1;
+        for (let offset = 0; offset < data.length; offset += info.channels) {
+            if (data[offset + 3] < 128) {
+                continue;
+            }
+
+            const pixel: RgbColor = [data[offset], data[offset + 1], data[offset + 2]];
+            const max = Math.max(...pixel);
+            const min = Math.min(...pixel);
+            const saturation = max === 0 ? 0 : (max - min) / max;
+            const lightness = (max + min) / 510;
+            const score = saturation * (1 - Math.abs(lightness - 0.5));
+            if (score > bestScore) {
+                bestScore = score;
+                vibrantColor = pixel;
+            }
+        }
+
         return {
-            foreground: vibrantColor,
+            foreground: toHex(vibrantColor),
             background: dominantHex,
         };
     } catch {

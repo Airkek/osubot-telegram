@@ -45,12 +45,12 @@ export class OnboardingModel {
     }
 
     async userOnboarded(userId: number, version: number): Promise<void> {
-        const oldVer = await this.getUserOnboardingVersion(userId);
-        if (oldVer != 0) {
-            await this.db.run("UPDATE onboarded_users SET version = $2 WHERE user_id = $1", [userId, version]);
-        } else {
-            await this.db.run("INSERT INTO onboarded_users (user_id, version) VALUES ($1, $2)", [userId, version]);
-        }
+        await this.db.run(
+            `INSERT INTO onboarded_users (user_id, version)
+             VALUES ($1, $2)
+             ON CONFLICT (user_id) DO UPDATE SET version = EXCLUDED.version`,
+            [userId, version]
+        );
 
         this.cache.delete(userId);
         this.lastUpdated.delete(userId);

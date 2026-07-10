@@ -4,7 +4,7 @@ import { BeatmapStatus } from "../Types";
 export interface IMigration {
     version: number;
     name: string;
-    process: (db: Database) => Promise<boolean>;
+    process: (db: Pick<Database, "get" | "all" | "run">) => Promise<boolean>;
 }
 
 const migrations: IMigration[] = [
@@ -612,6 +612,22 @@ const migrations: IMigration[] = [
             return true;
         },
     },
+    {
+        version: 30,
+        name: "Deduplicate and constrain chat memberships",
+        process: async (db) => {
+            await db.run(`DELETE FROM users_to_chat AS duplicate
+                          USING users_to_chat AS keep
+                          WHERE duplicate.ctid < keep.ctid
+                            AND duplicate.user_id = keep.user_id
+                            AND duplicate.chat_id = keep.chat_id`);
+            await db.run(
+                `CREATE UNIQUE INDEX IF NOT EXISTS users_to_chat_user_chat_unique
+                 ON users_to_chat (user_id, chat_id)`
+            );
+            return true;
+        },
+    },
 ];
 
 export async function applyMigrations(db: Database) {
@@ -629,17 +645,17 @@ export async function applyMigrations(db: Database) {
 
         global.logger.info(`Processing migration #${migration.version}: ${migration.name}`);
 
-        let res = false;
         try {
-            res = await migration.process(db);
+            await db.transaction(async (tx) => {
+                const res = await migration.process(tx);
+                if (!res) {
+                    throw new Error(`Migration #${migration.version} returned failure`);
+                }
+                await tx.run("INSERT INTO migrations (version) VALUES ($1)", [migration.version]);
+            });
+            global.logger.info("Success");
         } catch (e) {
             global.logger.error(e);
-        }
-
-        if (res) {
-            global.logger.info("Success");
-            await db.run("INSERT INTO migrations (version) VALUES ($1)", [migration.version]);
-        } else {
             global.logger.fatal("Failed. Aborting");
             process.abort();
         }

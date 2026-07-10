@@ -293,7 +293,8 @@ export default class OnboardingCommand extends Command {
     ) {
         const info = stepFlow[step];
         if (!info) {
-            await ctx.reply("unknown-step-error");
+            await ctx.reply(ctx.tr("unknown-step-error"));
+            return;
         }
 
         return await this.replyWithStep(info.next, ctx, l, onboardingModel);
@@ -307,7 +308,8 @@ export default class OnboardingCommand extends Command {
     ) {
         const info = stepFlow[step];
         if (!info) {
-            await ctx.reply("unknown-step-error");
+            await ctx.reply(ctx.tr("unknown-step-error"));
+            return;
         }
 
         const stepData = info.build(ctx.senderId, l);

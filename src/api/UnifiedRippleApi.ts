@@ -1,7 +1,7 @@
 import IAPI from "./base";
 import * as axios from "axios";
 import qs from "querystring";
-import { APIUser, HitCounts, APIScore } from "../Types";
+import { APIUser, APIUserGradeCounts, HitCounts, APIScore } from "../Types";
 import Mods from "../osu_specific/pp/Mods";
 import Util from "../Util";
 
@@ -18,26 +18,43 @@ class RippleUser implements APIUser {
     country: string;
     accuracy: number;
     level: number;
+    levelProgress: number;
+    grades?: APIUserGradeCounts;
 
     mode: number;
     total_score: number;
     profileAvatarUrl: string;
     constructor(data, index: number | string, modeNumber: number, avatarBase: string) {
         const mode = ["std", "taiko", "ctb", "mania"][modeNumber];
+        const stats = data?.stats?.[index]?.[mode];
+        const level = Number(stats?.level);
+        if (!data?.id || !mode || !stats || !Number.isFinite(level)) {
+            throw new Error("Invalid user response from game API");
+        }
         this.mode = modeNumber;
         this.id = data.id;
         this.nickname = data.username;
-        this.playcount = data.stats[index][mode].playcount;
-        this.playtime = data.stats[index][mode].playtime;
-        this.pp = data.stats[index][mode].pp;
+        this.playcount = stats.playcount;
+        this.playtime = stats.playtime ?? stats.play_time;
+        this.pp = stats.pp;
         this.rank = {
-            total: data.stats[index][mode].global_leaderboard_rank,
-            country: data.stats[index][mode].country_leaderboard_rank,
+            total: stats.global_leaderboard_rank,
+            country: stats.country_leaderboard_rank,
         };
         this.country = data.country;
-        this.accuracy = data.stats[index][mode].accuracy;
-        this.level = data.stats[index][mode].level;
-        this.total_score = data.stats[index][mode].total_score;
+        this.accuracy = stats.accuracy;
+        this.level = Math.floor(level);
+        this.levelProgress = (level - this.level) * 100;
+        if (stats.grades) {
+            this.grades = {
+                a: stats.grades.a_count,
+                s: stats.grades.s_count,
+                ss: stats.grades.x_count,
+                sh: stats.grades.sh_count,
+                ssh: stats.grades.xh_count,
+            };
+        }
+        this.total_score = stats.total_score;
         this.profileAvatarUrl = `${avatarBase}/${data.id}`;
     }
 }
@@ -53,6 +70,9 @@ class RippleScore implements APIScore {
     mode: number;
     date: Date;
     constructor(data, mode: number) {
+        if (!data?.beatmap || typeof data.rank !== "string") {
+            throw new Error("Invalid top score response from game API");
+        }
         this.beatmapId = data.beatmap.beatmap_id;
         this.score = data.score;
         this.combo = data.max_combo;
@@ -88,6 +108,9 @@ class RippleRecentScore implements APIScore {
     rank: string;
     mode: number;
     constructor(data, mode: number) {
+        if (!data?.beatmap || typeof data.rank !== "string") {
+            throw new Error("Invalid recent score response from game API");
+        }
         this.beatmapId = data.beatmap.beatmap_id;
         this.score = data.score;
         this.combo = data.max_combo;
@@ -114,12 +137,7 @@ class RippleRecentScore implements APIScore {
 
 export default class UnifiedRippleAPI implements IAPI {
     protected readonly v1_api: axios.AxiosInstance;
-    protected readonly peppy_api: axios.AxiosInstance;
     constructor() {
-        this.peppy_api = axios.default.create({
-            baseURL: this.baseUrl + "/api",
-            timeout: 15000,
-        });
         this.v1_api = axios.default.create({
             baseURL: this.baseUrl + "/api/v1",
             timeout: 15000,
@@ -150,31 +168,36 @@ export default class UnifiedRippleAPI implements IAPI {
         try {
             const { data } = await this.v1_api.get(`/users/full?${qs.stringify({ name: nickname, relax: -1 })}`);
             return new RippleUser(data, this.statsIndex, mode, this.avatarBase);
-        } catch (e) {
-            throw e || new Error("User not found");
+        } catch (error) {
+            if (axios.isAxiosError(error) && error.response?.status === 404) {
+                throw new Error("User not found");
+            }
+            throw error;
         }
     }
 
-    async getUserById(id: number, mode?: number): Promise<APIUser> {
+    async getUserById(id: number, mode: number = 0): Promise<APIUser> {
         try {
             const { data } = await this.v1_api.get(`/users/full?${qs.stringify({ id, relax: -1 })}`);
             return new RippleUser(data, this.statsIndex, mode, this.avatarBase);
-        } catch (e) {
-            throw e || new Error("User not found");
+        } catch (error) {
+            if (axios.isAxiosError(error) && error.response?.status === 404) {
+                throw new Error("User not found");
+            }
+            throw error;
         }
     }
 
-    private async getUserTopInternal(req, mode: number): Promise<APIScore[]> {
-        try {
-            req[this.rxKey] = this.rxValue;
-            const { data } = await this.v1_api.get(`/users/scores/best?${qs.stringify(req)}`);
-            if (data.code != 200 || !data.scores) {
-                throw new Error(data.message || "Unknown error");
-            }
-            return data.scores.map((score) => new RippleScore(score, mode));
-        } catch (e) {
-            throw e || new Error("No scores");
+    private async getUserTopInternal(req: Record<string, string | number>, mode: number): Promise<APIScore[]> {
+        req[this.rxKey] = this.rxValue;
+        const { data } = await this.v1_api.get(`/users/scores/best?${qs.stringify(req)}`);
+        if (data?.code !== 200) {
+            throw new Error(data?.message || "Unknown API error");
         }
+        if (!Array.isArray(data.scores) || data.scores.length === 0) {
+            throw new Error("No scores");
+        }
+        return data.scores.map((score) => new RippleScore(score, mode));
     }
 
     async getUserTop(nickname: string, mode: number = 0, limit: number = 3): Promise<APIScore[]> {
@@ -185,17 +208,16 @@ export default class UnifiedRippleAPI implements IAPI {
         return await this.getUserTopInternal({ id, mode, l: limit }, mode);
     }
 
-    private async getUserRecentInternal(req, mode: number): Promise<APIScore> {
+    private async getUserRecentInternal(req: Record<string, string | number>, mode: number): Promise<APIScore> {
         req[this.rxKey] = this.rxValue;
-        try {
-            const { data } = await this.v1_api.get(`/users/scores/recent?${qs.stringify(req)}`);
-            if (data.code != 200 || !data.scores) {
-                throw new Error(data.message || "Unknown error");
-            }
-            return new RippleRecentScore(data.scores[0], mode);
-        } catch (e) {
-            throw e || new Error("No scores");
+        const { data } = await this.v1_api.get(`/users/scores/recent?${qs.stringify(req)}`);
+        if (data?.code !== 200) {
+            throw new Error(data?.message || "Unknown API error");
         }
+        if (!Array.isArray(data.scores) || !data.scores[0]) {
+            throw new Error("No scores");
+        }
+        return new RippleRecentScore(data.scores[0], mode);
     }
 
     async getUserRecent(nickname: string, mode: number = 0, limit: number = 1): Promise<APIScore> {

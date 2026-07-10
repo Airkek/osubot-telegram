@@ -36,9 +36,12 @@ export default class BanchoLink extends ServerCommand {
                 let user: APIUser;
                 try {
                     user = await api.getUser(self.args.nickname.join(" "));
-                } catch {
-                    await self.reply(self.ctx.tr("user-not-found"));
-                    return;
+                } catch (error) {
+                    if (error instanceof Error && error.message === "User not found") {
+                        await self.reply(self.ctx.tr("user-not-found"));
+                        return;
+                    }
+                    throw error;
                 }
 
                 await self.module.db.setNickname(self.ctx.senderId, user.id, user.nickname, user.mode);
@@ -62,15 +65,11 @@ export default class BanchoLink extends ServerCommand {
                     params: {
                         code: self.args.full[0],
                     },
+                    timeout: 15000,
                 });
                 linkData = response.data;
             } catch (err) {
-                if (
-                    axios.isAxiosError(err) &&
-                    err.response &&
-                    err.response.status >= 400 &&
-                    err.response.status < 500
-                ) {
+                if (axios.isAxiosError(err) && err.response && [400, 404, 410, 422].includes(err.response.status)) {
                     await self.reply(
                         self.ctx.tr("link-code-invalid", {
                             prefix: self.module.prefix[0],
@@ -84,7 +83,7 @@ export default class BanchoLink extends ServerCommand {
             }
 
             const userId = linkData?.user_id;
-            if (!userId) {
+            if ((typeof userId !== "number" && typeof userId !== "string") || !String(userId).trim()) {
                 await self.reply(
                     self.ctx.tr("link-code-invalid", {
                         prefix: self.module.prefix[0],
@@ -97,8 +96,12 @@ export default class BanchoLink extends ServerCommand {
             let user: APIUser;
             try {
                 user = await self.module.api.getUserById(userId);
-            } catch {
-                await self.reply(self.ctx.tr("user-not-found"));
+            } catch (error) {
+                const responseKey =
+                    error instanceof Error && error.message === "User not found"
+                        ? "user-not-found"
+                        : "link-service-unavailable";
+                await self.reply(self.ctx.tr(responseKey));
                 return;
             }
 

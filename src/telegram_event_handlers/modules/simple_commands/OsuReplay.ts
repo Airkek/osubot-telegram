@@ -266,7 +266,7 @@ export class OsuReplay extends Command {
                     settings.ordr_skin = "whitecatCK1.0";
                     settings.ordr_is_skin_custom = false;
                     await ctx.updateUserSettings(settings);
-                    await ctx.reply("renderer-unknown-skin-restored-default");
+                    await ctx.reply(ctx.tr("renderer-unknown-skin-restored-default"));
                 } else {
                     await ctx.reply(
                         ctx.tr("render-error-text", {

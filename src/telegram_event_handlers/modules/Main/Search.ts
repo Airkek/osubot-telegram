@@ -16,6 +16,7 @@ export default class SearchCommand extends Command {
 
             if (!data.length) {
                 await ctx.reply(ctx.tr("search-not-found"));
+                return;
             }
 
             await ctx.reply(

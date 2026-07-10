@@ -10,6 +10,7 @@ export default class AbstractNick extends ServerCommand {
                         prefix: module.prefix[0],
                     })
                 );
+                return;
             }
 
             try {
@@ -20,8 +21,12 @@ export default class AbstractNick extends ServerCommand {
                 }
 
                 await self.reply(`${self.ctx.tr("user-id-set")}: ${user.id} (${user.nickname})`);
-            } catch {
-                await self.reply(self.ctx.tr("user-not-found"));
+            } catch (error) {
+                if (error instanceof Error && error.message === "User not found") {
+                    await self.reply(self.ctx.tr("user-not-found"));
+                    return;
+                }
+                throw error;
             }
         });
     }

@@ -1,9 +1,12 @@
 ﻿/* eslint-disable */
 const http = require("http");
 
+const configuredPort = Number(process.env.PORT);
+const port = Number.isInteger(configuredPort) && configuredPort > 0 && configuredPort <= 65535 ? configuredPort : 3000;
+
 const options = {
     host: "localhost",
-    port: Number(process.env.PORT) ?? 3000,
+    port,
     path: "/health",
     timeout: 10000,
 };

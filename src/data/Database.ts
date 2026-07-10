@@ -50,9 +50,10 @@ class DatabaseServer implements IDatabaseServer {
                 this.serverName,
             ]);
         } else {
-            await this.db.run("UPDATE users SET nickname = $1, game_id = $2 WHERE id = $3 AND server = $4", [
+            await this.db.run("UPDATE users SET nickname = $1, game_id = $2, mode = $3 WHERE id = $4 AND server = $5", [
                 nickname,
                 game_id,
+                mode,
                 id,
                 this.serverName,
             ]);
@@ -285,6 +286,35 @@ export default class Database {
                 }
             });
         });
+    }
+
+    async transaction<T>(callback: (tx: Pick<Database, "get" | "all" | "run">) => Promise<T>): Promise<T> {
+        const client = await this.db.connect();
+        const tx = {
+            get: async <R>(stmt: string, opts: unknown[] = []): Promise<R> => {
+                const res = await client.query(stmt, opts);
+                return (res.rows[0] as R) || null;
+            },
+            all: async <R>(stmt: string, opts: unknown[] = []): Promise<R[]> => {
+                const res = await client.query(stmt, opts);
+                return res.rows as R[];
+            },
+            run: async (stmt: string, opts: unknown[] = []): Promise<QueryResult<unknown>> => {
+                return await client.query(stmt, opts);
+            },
+        } as Pick<Database, "get" | "all" | "run">;
+
+        try {
+            await client.query("BEGIN");
+            const result = await callback(tx);
+            await client.query("COMMIT");
+            return result;
+        } catch (error) {
+            await client.query("ROLLBACK");
+            throw error;
+        } finally {
+            client.release();
+        }
     }
 
     async init() {

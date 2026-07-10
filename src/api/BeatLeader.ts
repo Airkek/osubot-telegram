@@ -83,6 +83,9 @@ class BeatSaberUser implements APIUser {
     accuracy: number;
     mode: number = -1;
     constructor(data: BLUserResponse) {
+        if (!data?.id || !data.scoreStats) {
+            throw new Error("Invalid player response from BeatLeader API");
+        }
         this.id = data.id;
         this.nickname = data.name;
         this.playcount = data.scoreStats.totalPlayCount;
@@ -114,11 +117,21 @@ class BeatLeaderScoreMap implements APIBeatmap {
     mapUrl: string;
 
     constructor(data: BLScoreData) {
+        if (!data?.leaderboard?.song || !data.leaderboard.difficulty) {
+            throw new Error("Invalid score response from BeatLeader API");
+        }
+        const rawSongId = data.leaderboard.song.id;
+        const songId =
+            typeof rawSongId === "string" && /^[0-9a-z]+$/i.test(rawSongId) ? Number.parseInt(rawSongId, 36) : NaN;
+        const difficultyId = Number(data.leaderboard.difficulty.id);
+        if (!Number.isSafeInteger(songId) || songId <= 0 || !Number.isSafeInteger(difficultyId) || difficultyId <= 0) {
+            throw new Error("Invalid map ID in BeatLeader response");
+        }
         this.artist = data.leaderboard.song.author;
         this.id = {
-            set: ~~data.leaderboard.song.id,
-            map: data.leaderboard.difficulty.id,
-            hash: `bl_${data.leaderboard.song.id}_${data.leaderboard.difficulty.id}`,
+            set: songId,
+            map: difficultyId,
+            hash: `bl_${rawSongId}_${difficultyId}`,
         };
         this.bpm = data.leaderboard.song.bpm;
         this.creator = {
@@ -215,7 +228,14 @@ class BeatSaberScore implements APIScore {
     acc: number;
 
     constructor(data: BLScoreData) {
-        this.beatmapId = ~~data.leaderboard.song.id;
+        if (!data?.leaderboard?.song || !data.leaderboard.difficulty) {
+            throw new Error("Invalid score response from BeatLeader API");
+        }
+        const difficultyId = Number(data.leaderboard.difficulty.id);
+        if (!Number.isSafeInteger(difficultyId) || difficultyId <= 0) {
+            throw new Error("Invalid difficulty ID in BeatLeader response");
+        }
+        this.beatmapId = difficultyId;
         this.score = data.modifiedScore;
         this.combo = data.maxCombo;
         this.counts = new BSHitCounts({
@@ -244,14 +264,21 @@ export default class BeatLeaderAPI implements IAPI {
     api: axios.AxiosInstance;
     constructor() {
         this.api = axios.default.create({
-            baseURL: "https://api.beatleader.xyz",
+            baseURL: "https://api.beatleader.com",
             timeout: 15000,
         });
     }
 
     async getUserById(id: string): Promise<APIUser> {
-        const { data } = await this.api.get(`/player/${id}?stats=true&keepOriginalId=false`);
-        return new BeatSaberUser(data);
+        try {
+            const { data } = await this.api.get(`/player/${id}?stats=true&keepOriginalId=false`);
+            return new BeatSaberUser(data);
+        } catch (error) {
+            if (axios.isAxiosError(error) && error.response?.status === 404) {
+                throw new Error("User not found");
+            }
+            throw error;
+        }
     }
 
     async getUserRecentById(id: string, mode?: number, limit: number = 1): Promise<APIScore> {
@@ -260,7 +287,7 @@ export default class BeatLeaderAPI implements IAPI {
                 `/player/${id}/scores?${qs.stringify({ sortBy: "date", order: "desc", page: 1, count: limit })}`
             )
         ).data;
-        if (data && data.data && data.data[0]) {
+        if (Array.isArray(data?.data) && data.data[0]) {
             return new BeatSaberScore(data.data[0]);
         }
 
@@ -273,7 +300,7 @@ export default class BeatLeaderAPI implements IAPI {
                 `/player/${id}/scores?${qs.stringify({ sortBy: "pp", order: "desc", page: 1, count: limit })}`
             )
         ).data;
-        if (data && data.data && data.data.length > 0) {
+        if (Array.isArray(data?.data) && data.data.length > 0) {
             return data.data.map((scoreData: BLScoreData) => new BeatSaberScore(scoreData));
         }
 

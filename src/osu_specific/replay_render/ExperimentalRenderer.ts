@@ -121,11 +121,17 @@ export class ExperimentalRenderer implements IReplayRenderer {
         }
     }
 
-    private async getStatusWithRetry(renderId: number, attempts = 5): Promise<string> {
+    private async getStatusWithRetry(renderId: number, deadline: number, attempts = 5): Promise<string> {
         let wait = 500;
         for (let i = 0; i < attempts; i++) {
+            const remaining = deadline - Date.now();
+            if (remaining <= 0) {
+                throw new Error("Render timed out");
+            }
             try {
-                const { data } = await axios.get(`${this.base_url}/status/${renderId}`, { timeout: 30000 });
+                const { data } = await axios.get(`${this.base_url}/status/${renderId}`, {
+                    timeout: Math.min(30000, remaining),
+                });
                 return data;
             } catch (err) {
                 const code = err.code || (err.response && err.response.status);
@@ -138,7 +144,11 @@ export class ExperimentalRenderer implements IReplayRenderer {
                     (err.response && err.response.status >= 500) ||
                     err.message?.includes("socket hang up")
                 ) {
-                    await sleep(wait);
+                    const retryRemaining = deadline - Date.now();
+                    if (retryRemaining <= 0) {
+                        throw new Error("Render timed out");
+                    }
+                    await sleep(Math.min(wait, retryRemaining));
                     wait *= 2;
                     continue;
                 }
@@ -148,14 +158,15 @@ export class ExperimentalRenderer implements IReplayRenderer {
         throw new Error("Retries exhausted");
     }
 
-    private async waitForRenderCompletion(renderId: number): Promise<void> {
-        while (true) {
-            const data = await this.getStatusWithRetry(renderId);
+    private async waitForRenderCompletion(renderId: number, timeoutMs = 10 * 60 * 1000): Promise<void> {
+        const deadline = Date.now() + timeoutMs;
+        while (Date.now() < deadline) {
+            const data = await this.getStatusWithRetry(renderId, deadline);
 
             const status = data.split("\n");
 
             if (status[0] == "render") {
-                await sleep(500);
+                await sleep(Math.min(500, Math.max(0, deadline - Date.now())));
                 continue;
             }
 
@@ -168,5 +179,7 @@ export class ExperimentalRenderer implements IReplayRenderer {
 
             throw `Unknown error: ${data}`;
         }
+
+        throw new Error(`Render timed out after ${timeoutMs}ms`);
     }
 }

@@ -357,19 +357,17 @@ export default class UnifiedMessageContext implements ILocalisator {
             }
 
             if (options?.video) {
-                const video = InputMediaBuilder.video(new InputFile(new URL(options.video.url)), {
+                return await this.tgCtx.replyWithVideo(new InputFile(new URL(options.video.url)), {
                     width: options.video.width,
                     height: options.video.height,
                     duration: options.video.duration,
                     supports_streaming: true,
                     caption: text,
-                });
-                const sent = await this.tgCtx.replyWithMediaGroup([video], {
                     reply_parameters: {
                         message_id: replyTo,
                     },
+                    reply_markup: keyboard,
                 });
-                return sent[0];
             }
 
             return await this.tgCtx.reply(text, {

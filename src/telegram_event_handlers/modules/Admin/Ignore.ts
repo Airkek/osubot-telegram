@@ -11,7 +11,7 @@ export default class IgnoreCommand extends Command {
             }
 
             let id = arg ? Number(arg) : ctx.replyMessage.senderId;
-            if (arg.startsWith("@")) {
+            if (arg?.startsWith("@")) {
                 const nickname = args.nickname[0].slice(1);
                 const userInfo = await module.bot.database.userInfo.findByUsername(nickname);
                 if (!userInfo) {
@@ -31,7 +31,7 @@ export default class IgnoreCommand extends Command {
                 return;
             }
 
-            const ignored = self.module.bot.ignored.switch(id);
+            const ignored = await self.module.bot.ignored.switch(id);
             const mention = await self.module.bot.database.userInfo.getMention(id);
 
             await ctx.send(`${mention} ${ignored ? "добавлен в игнор-лист" : "убран из игнор-листа"}!`);

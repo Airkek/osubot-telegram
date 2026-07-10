@@ -26,6 +26,10 @@ search-not-specified = 请输入搜索内容
 search-not-found = 未找到任何已排名谱面
 search-result-header = 搜索结果:
 
+use-id-command-instead-of-nick =
+    此排行榜不支持设置用户名!
+    请使用 {$prefix} id <id> 设置用户 ID
+
 not-found-scores-with-mod-combo = 未找到使用指定Mod组合的成绩!
 near-pp-score = 玩家最接近 {$pp}pp 的成绩
 top-n-score = 玩家第 #{$place} 名的成绩

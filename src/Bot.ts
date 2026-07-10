@@ -37,6 +37,7 @@ import { PACKAGE_VERSION } from "./version";
 import path from "path";
 import { ReplyUtils } from "./telegram_event_handlers/utils/ReplyUtils";
 import { Command } from "./telegram_event_handlers/Command";
+import { randomBytes, timingSafeEqual } from "node:crypto";
 
 export interface IBotConfig {
     tg: {
@@ -80,6 +81,7 @@ export class Bot {
     public readonly useLocalApi = process.env.TELEGRAM_USE_LOCAL_API === "true";
 
     private readonly useWebhooks = process.env.USE_WEBHOOKS === "true";
+    private readonly webhookSecret: string;
 
     private handle: RunnerHandle;
     private expressApp: express;
@@ -89,6 +91,17 @@ export class Bot {
     constructor(config: IBotConfig) {
         this.config = config;
         global.logger.info("Set owner id: ", config.tg.owner);
+
+        if (this.useWebhooks) {
+            const configuredSecret = process.env.WEBHOOK_SECRET_TOKEN;
+            if (configuredSecret && !/^[A-Za-z0-9_-]{32,256}$/.test(configuredSecret)) {
+                throw new Error("WEBHOOK_SECRET_TOKEN must contain 32-256 characters from A-Z, a-z, 0-9, _ and -");
+            }
+            this.webhookSecret = configuredSecret || randomBytes(32).toString("base64url");
+            if (!configuredSecret) {
+                global.logger.warn("WEBHOOK_SECRET_TOKEN is not set; generated an ephemeral webhook secret");
+            }
+        }
 
         const apiRoot = this.useLocalApi ? process.env.TELEGRAM_LOCAL_API_HOST : undefined;
         this.tg = new TelegramBot<TgContext, TgApi>(config.tg.token, {
@@ -174,7 +187,6 @@ export class Bot {
                     await this.database.statsModel.logMessage(ctx);
                     if (ctx.messagePayload) {
                         await ctx.answer(ctx.tr("too-fast-notification"));
-                        await tgCtx.answerCallbackQuery();
                     } else {
                         await ctx.reply(ctx.tr("too-fast-commands-text"));
                     }
@@ -247,6 +259,9 @@ export class Bot {
         const {
             new_chat_member: { user },
         } = ctx.chatMember;
+        if (user.id === this.me?.id) {
+            this.maps.removeChat(ctx.chat.id);
+        }
         await this.database.chats.userLeft(user.id, ctx.chat.id);
     };
 
@@ -375,7 +390,7 @@ export class Bot {
             }
 
             if (await this.processOnboardings(ctx)) {
-                return;
+                return true;
             }
 
             if (ctx.isInGroupChat) {
@@ -447,9 +462,27 @@ export class Bot {
     private initPrometheusMetrics() {
         this.ensureExpressAppCreated();
 
+        const metricsToken = process.env.METRICS_TOKEN;
+        if (!metricsToken) {
+            global.logger.warn("METRICS_TOKEN is not set; the /metrics endpoint is disabled");
+            return;
+        }
+        if (metricsToken.length < 32) {
+            throw new Error("METRICS_TOKEN must be at least 32 characters long");
+        }
+
         promClient.collectDefaultMetrics();
 
         this.expressApp.get("/metrics", async (req: Request, res: Response) => {
+            const authorization = req.get("authorization") || "";
+            const expected = `Bearer ${metricsToken}`;
+            const suppliedBuffer = Buffer.from(authorization);
+            const expectedBuffer = Buffer.from(expected);
+            if (suppliedBuffer.length !== expectedBuffer.length || !timingSafeEqual(suppliedBuffer, expectedBuffer)) {
+                res.setHeader("WWW-Authenticate", "Bearer");
+                return res.status(401).send("Unauthorized");
+            }
+
             try {
                 res.setHeader("Content-Type", promClient.register.contentType);
                 const metrics = await promClient.register.metrics();
@@ -473,8 +506,9 @@ export class Bot {
         }
 
         const port = Number(process.env.APP_PORT);
-        this.expressApp.listen(port, () => {
-            global.logger.info(`Listening on ${port}`);
+        const host = process.env.APP_HOST || (this.useWebhooks ? "0.0.0.0" : "127.0.0.1");
+        this.expressApp.listen(port, host, () => {
+            global.logger.info(`Listening on ${host}:${port}`);
         });
     }
 
@@ -489,12 +523,13 @@ export class Bot {
 
         if (this.useWebhooks) {
             this.ensureExpressAppCreated();
-            this.expressApp.use(webhookCallback(this.tg, "express"));
-
             const endpoint = process.env.WEBHOOK_ENDPOINT;
+            const webhookPath = new URL(endpoint).pathname || "/";
+            this.expressApp.post(webhookPath, webhookCallback(this.tg, "express", { secretToken: this.webhookSecret }));
             await this.tg.api.setWebhook(endpoint, {
                 drop_pending_updates: process.env.IGNORE_OLD_UPDATES === "true",
                 allowed_updates: ["chat_member", "callback_query", "message"],
+                secret_token: this.webhookSecret,
             });
         } else {
             await this.tg.api.deleteWebhook({
@@ -534,7 +569,9 @@ export class Bot {
         await this.logStatsInfo();
         this.statsInterval = setInterval(
             () => {
-                this.logStatsInfo();
+                void this.logStatsInfo().catch((error) => {
+                    global.logger.error("Failed to log periodic stats", error);
+                });
             },
             15 * 60 * 1000
         );
@@ -563,7 +600,7 @@ export class Bot {
     }
 
     public removeCallback(ticket: string) {
-        this.pendingCallbacks[ticket] = undefined;
+        delete this.pendingCallbacks[ticket];
     }
 
     private createCallbackTicket(ctx: UnifiedMessageContext): string {

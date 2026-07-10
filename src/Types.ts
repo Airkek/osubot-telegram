@@ -145,7 +145,13 @@ class HitCounts implements IHitCounts {
             case 1:
                 return this.hitData[300] + this.hitData[100] + this.hitData[50] + this.hitData.miss;
             case 2:
-                return 0;
+                return (
+                    this.hitData[300] +
+                    this.hitData[100] +
+                    this.hitData[50] +
+                    this.hitData.miss +
+                    (this.hitData.katu ?? 0)
+                );
             case 3:
                 return (
                     this.hitData.geki +

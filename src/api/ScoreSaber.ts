@@ -77,6 +77,9 @@ class ScoreSaberUser implements APIUser {
     accuracy: number;
     mode: number = -1;
     constructor(data: SSUserResponse) {
+        if (!data?.id || !data.scoreStats) {
+            throw new Error("Invalid player response from ScoreSaber API");
+        }
         this.id = data.id;
         this.nickname = data.name;
         this.playcount = data.scoreStats.totalPlayCount;
@@ -131,11 +134,18 @@ class ScoreSaberScoreMap implements APIBeatmap {
     mapUrl: string;
 
     constructor(data: SSScoreData) {
+        if (!data?.score || !data.leaderboard?.difficulty) {
+            throw new Error("Invalid score response from ScoreSaber API");
+        }
+        const leaderboardId = Number(data.leaderboard.id);
+        if (!Number.isSafeInteger(leaderboardId) || leaderboardId <= 0) {
+            throw new Error("Invalid leaderboard ID in ScoreSaber response");
+        }
         this.artist = data.leaderboard.songAuthorName;
         this.id = {
             set: 0,
-            map: 0,
-            hash: "ss_0_0",
+            map: leaderboardId,
+            hash: `ss_${leaderboardId}`,
         };
         this.bpm = NaN;
         this.creator = {
@@ -218,7 +228,14 @@ class BeatSaberScore implements APIScore {
     acc: number;
 
     constructor(data: SSScoreData) {
-        this.beatmapId = 0;
+        if (!data?.score || !data.leaderboard?.difficulty || !(data.leaderboard.maxScore > 0)) {
+            throw new Error("Invalid score response from ScoreSaber API");
+        }
+        const leaderboardId = Number(data.leaderboard.id);
+        if (!Number.isSafeInteger(leaderboardId) || leaderboardId <= 0) {
+            throw new Error("Invalid leaderboard ID in ScoreSaber response");
+        }
+        this.beatmapId = leaderboardId;
         this.score = data.score.modifiedScore;
         this.combo = data.score.maxCombo;
         this.counts = new BSHitCounts({
@@ -228,7 +245,7 @@ class BeatSaberScore implements APIScore {
         this.mods = new Mods(""); // TODO: Implement mods
         this.acc = data.score.baseScore / data.leaderboard.maxScore;
         this.pp = data.score.pp;
-        this.fcPp = data.score.pp;
+        this.fcPp = data.score.fullCombo ? data.score.pp : undefined;
         this.rank = data.score.fullCombo ? "FC" : "Pass";
         this.date = new Date(data.score.timeSet);
         this.mode = 0;
@@ -250,8 +267,15 @@ export default class ScoreSaberAPI implements IAPI {
     }
 
     async getUserById(id: string): Promise<APIUser> {
-        const { data } = await this.api.get(`/player/${id}/full`);
-        return new ScoreSaberUser(data);
+        try {
+            const { data } = await this.api.get(`/player/${id}/full`);
+            return new ScoreSaberUser(data);
+        } catch (error) {
+            if (axios.isAxiosError(error) && error.response?.status === 404) {
+                throw new Error("User not found");
+            }
+            throw error;
+        }
     }
 
     async getUserRecentById(id: string, mode?: number, limit: number = 1): Promise<APIScore> {
@@ -260,7 +284,7 @@ export default class ScoreSaberAPI implements IAPI {
                 `/player/${id}/scores?${qs.stringify({ sort: "recent", page: 1, limit, withMetadata: true })}`
             )
         ).data;
-        if (data && data.playerScores && data.playerScores[0]) {
+        if (Array.isArray(data?.playerScores) && data.playerScores[0]) {
             return new BeatSaberScore(data.playerScores[0]);
         }
 
@@ -273,7 +297,7 @@ export default class ScoreSaberAPI implements IAPI {
                 `/player/${id}/scores?${qs.stringify({ sort: "top", page: 1, limit, withMetadata: true })}`
             )
         ).data;
-        if (data && data.playerScores && data.playerScores.length > 0) {
+        if (Array.isArray(data?.playerScores) && data.playerScores.length > 0) {
             return data.playerScores.map((scoreData: SSScoreData) => new BeatSaberScore(scoreData));
         }
 

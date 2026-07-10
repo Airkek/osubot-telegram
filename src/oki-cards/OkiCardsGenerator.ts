@@ -1,7 +1,6 @@
 import path from "path";
 import fs from "fs/promises";
 import fsSync from "fs";
-import axios from "axios";
 import Canvas, { GlobalFonts, SKRSContext2D } from "@napi-rs/canvas";
 import { APIScore, APIUser, PPArgs } from "../Types";
 import * as OkiColors from "./utils/OkiColors";
@@ -14,6 +13,7 @@ import { OsuBeatmap } from "../beatmaps/osu/OsuBeatmap";
 import Mods from "../osu_specific/pp/Mods";
 import { BeatLeaderBeatmap } from "../beatmaps/beatsaber/BeatLeaderBeatmap";
 import { ScoreSaberBeatmap } from "../beatmaps/beatsaber/ScoreSaberBeatmap";
+import { downloadRemoteImage } from "../RemoteImage";
 
 type CountryCodes = {
     [key: string]: string;
@@ -375,11 +375,7 @@ export class OkiCardsGenerator {
 
     private async loadImageFromUrl(url: string): Promise<Buffer> {
         try {
-            const res = await axios.get(url, {
-                responseType: "arraybuffer",
-                timeout: 15000,
-            });
-            return res.data;
+            return await downloadRemoteImage(url);
         } catch {
             return undefined;
         }
@@ -659,23 +655,25 @@ export class OkiCardsGenerator {
                         starsMaxWidth += starWidth;
                     }
                     const lastStarSize = starsVal - Math.floor(starsVal);
-                    const minSize = 0.5;
-                    const multiplier = 1 - minSize + minSize * lastStarSize;
-                    starsMaxWidth += starWidth * multiplier;
+                    if (lastStarSize > 0) {
+                        const minSize = 0.5;
+                        const multiplier = minSize + (1 - minSize) * lastStarSize;
+                        starsMaxWidth += starWidth * multiplier;
 
-                    const miniStarW = 28 * multiplier;
-                    const miniStarH = 27 * multiplier;
+                        const miniStarW = 28 * multiplier;
+                        const miniStarH = 27 * multiplier;
 
-                    const miniStarAsset = await this.getColoredSvgAsset("star", mainColor, miniStarW, miniStarH);
-                    if (miniStarAsset) {
-                        const miniStar = await Canvas.loadImage(miniStarAsset);
-                        ctx.drawImage(
-                            miniStar,
-                            starsPosX + starWidth * i + (28 - 28 * multiplier) / 2,
-                            starsPosY + (27 - 27 * multiplier) / 2,
-                            miniStarW,
-                            miniStarH
-                        );
+                        const miniStarAsset = await this.getColoredSvgAsset("star", mainColor, miniStarW, miniStarH);
+                        if (miniStarAsset) {
+                            const miniStar = await Canvas.loadImage(miniStarAsset);
+                            ctx.drawImage(
+                                miniStar,
+                                starsPosX + starWidth * i + (28 - 28 * multiplier) / 2,
+                                starsPosY + (27 - 27 * multiplier) / 2,
+                                miniStarW,
+                                miniStarH
+                            );
+                        }
                     }
                 }
             }
@@ -1263,7 +1261,11 @@ export class OkiCardsGenerator {
         const flagAsset = await this.getFlagAssetData(user.country);
         if (flagAsset) {
             const flag = await Canvas.loadImage(flagAsset);
-            ctx.drawImage(flag, 350, 130, 60, 40);
+            if (flag.width === 36 && flag.height === 36) {
+                ctx.drawImage(flag, 0, 5, 36, 26, 350, 130, 60, 40);
+            } else {
+                ctx.drawImage(flag, 350, 130, 60, 40);
+            }
             ctx.fillText(country, 420, 127 + 40);
         }
 
@@ -1321,10 +1323,14 @@ export class OkiCardsGenerator {
                     text: l.tr("player-accuracy"),
                     value: user.accuracy.toFixed(2) + "%",
                 },
-                {
-                    text: l.tr("player-playtime"),
-                    value: Util.minutesToPlaytimeString(user.playtime),
-                },
+                ...(user.playtime !== undefined
+                    ? [
+                          {
+                              text: l.tr("player-playtime"),
+                              value: Util.minutesToPlaytimeString(user.playtime),
+                          },
+                      ]
+                    : []),
                 {
                     text: l.tr("player-playcount"),
                     value: user.playcount.toLocaleString(),
