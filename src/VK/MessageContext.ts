@@ -23,6 +23,7 @@ import { uploadMessagePhoto, uploadPrivateVideo } from "./Upload";
 
 const VK_CHAT_PEER_OFFSET = 2_000_000_000;
 const MAX_REPLAY_FILE_SIZE = 5 * 1024 * 1024;
+const START_COMMAND = "osu onboarding";
 
 type IncomingVKContext = VKIOMessageContext | MessageEventContext;
 
@@ -47,19 +48,35 @@ function isMessageContext(context: IncomingVKContext): context is VKIOMessageCon
     return context.type === "message";
 }
 
+function normalizeStartCommand(command: string): string {
+    const normalized = command.trim().toLowerCase();
+    return normalized === "start" || normalized === "/start" ? START_COMMAND : command;
+}
+
 function payloadCommand(payload: unknown): string | undefined {
     if (typeof payload === "string") {
         try {
             return payloadCommand(JSON.parse(payload));
         } catch {
-            return payload;
+            return normalizeStartCommand(payload);
         }
     }
     if (payload && typeof payload === "object" && "command" in payload) {
         const command = (payload as { command?: unknown }).command;
-        return typeof command === "string" ? command : undefined;
+        if (typeof command !== "string") {
+            return undefined;
+        }
+        return normalizeStartCommand(command);
     }
     return undefined;
+}
+
+function messageText(context: VKIOMessageContext | undefined): string | undefined {
+    const text = context?.text;
+    if (!text || context.peerId !== context.senderId) {
+        return text;
+    }
+    return text.trim().toLowerCase() === "начать" ? START_COMMAND : text;
 }
 
 function replyMessage(context: VKIOMessageContext | undefined): ReplyToMessage | undefined {
@@ -123,7 +140,7 @@ export class VKMessageContext extends BaseMessageContext {
                 externalSenderId,
                 externalChatId,
                 ownerId,
-                plainText: message?.text,
+                plainText: messageText(message),
                 plainPayload: payloadCommand(message?.messagePayload ?? event?.eventPayload),
                 replyMessage: replyMessage(message),
                 isInGroupChat: externalChatId >= VK_CHAT_PEER_OFFSET,

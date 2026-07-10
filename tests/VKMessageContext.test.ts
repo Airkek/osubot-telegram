@@ -44,6 +44,47 @@ test("VK callback payload uses the shared command and graphical-mode envelope", 
     expect(payload.command).toBe("^g1^len^s u");
 });
 
+test.each(["start", "/start"])("VK start payload '%s' opens the shared onboarding", (command) => {
+    const context = new VKMessageContext(
+        {
+            type: "message",
+            id: 1,
+            senderId: 10,
+            peerId: 10,
+            text: "Начать",
+            messagePayload: { command },
+        } as never,
+        {} as never,
+        30,
+        40,
+        createTestStorage({ platform: "vk" }),
+        new FluentLocalizer(path.join("./src", "locales"))
+    );
+
+    expect(context.messagePayload).toBe("osu onboarding");
+});
+
+test("VK start button text opens onboarding when the client omits its payload", () => {
+    const createContext = (peerId: number) =>
+        new VKMessageContext(
+            {
+                type: "message",
+                id: 1,
+                senderId: 10,
+                peerId,
+                text: "Начать",
+            } as never,
+            {} as never,
+            30,
+            40,
+            createTestStorage({ platform: "vk" }),
+            new FluentLocalizer(path.join("./src", "locales"))
+        );
+
+    expect(createContext(10).text).toBe("osu onboarding");
+    expect(createContext(2_000_000_001).text).toBe("Начать");
+});
+
 test("VK treats the first forwarded message as a reply fallback", () => {
     const storage = createTestStorage({ platform: "vk" });
     const createContext = (reply: unknown, forwards: unknown[]) =>
