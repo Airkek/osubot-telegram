@@ -1,6 +1,6 @@
 import { Command } from "../../Command";
 import { Module } from "../Module";
-import { IKBButton, IKeyboard } from "../../../Util";
+import { IKBButton, IKeyboard, makeKeyboard } from "../../../Util";
 import { ILocalisator } from "../../../ILocalisator";
 import { IMessageContext } from "../../../core/MessageContext";
 import { ONBOARDING_VERSION, OnboardingRepository } from "../../../core/ApplicationStorage";
@@ -76,7 +76,7 @@ function buildFlowButtons(userId: number, currentStep: OnboardingSteps, l: ILoca
     if (!info) {
         return [];
     }
-    return [...(info.previous ? [[previousStepButton(userId, info.previous, l)]] : [])];
+    return info.previous ? [[previousStepButton(userId, info.previous, l)]] : [];
 }
 
 type LangParams = "ru" | "en" | "zh" | "auto";
@@ -313,7 +313,7 @@ export default class OnboardingCommand extends Command {
         }
 
         const stepData = info.build(ctx.senderId, l);
-        const realKeyboard = [...stepData.buttons, ...buildFlowButtons(ctx.senderId, stepData.step, l)];
+        const realKeyboard = makeKeyboard([...stepData.buttons, ...buildFlowButtons(ctx.senderId, stepData.step, l)]);
         if (ctx.messagePayload) {
             await ctx.edit(stepData.text, {
                 keyboard: realKeyboard,

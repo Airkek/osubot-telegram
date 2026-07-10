@@ -7,7 +7,7 @@ import { ILocalisator } from "../../ILocalisator";
 import { ITemplates } from "../templates";
 import BanchoPP from "../../osu_specific/pp/bancho";
 import Util from "../../Util";
-import { CoversProvider } from "../../core/CoversProvider";
+import { MediaAttachmentProvider } from "../../core/MediaAttachmentProvider";
 
 export interface ReplyData {
     text: string;
@@ -17,11 +17,11 @@ export interface ReplyData {
 export class ReplyUtils {
     private readonly cards: OkiCardsGenerator;
     private readonly templates: ITemplates;
-    private readonly coversModel: CoversProvider;
-    constructor(cardsGenerator: OkiCardsGenerator, templates: ITemplates, coversModel: CoversProvider) {
+    private readonly mediaAttachments: MediaAttachmentProvider;
+    constructor(cardsGenerator: OkiCardsGenerator, templates: ITemplates, mediaAttachments: MediaAttachmentProvider) {
         this.cards = cardsGenerator;
         this.templates = templates;
-        this.coversModel = coversModel;
+        this.mediaAttachments = mediaAttachments;
     }
 
     async scoreData(
@@ -45,12 +45,7 @@ export class ReplyUtils {
             templateAddition = "\n\n" + l.tr("card-gen-failed");
         }
         const calculator = new Calculator(beatmap, score.mods);
-        let cover: string;
-        if (beatmap.coverUrl) {
-            cover = await this.coversModel.getPhotoDoc(beatmap.coverUrl);
-        } else {
-            cover = await this.coversModel.getCover(beatmap.setId);
-        }
+        const cover = await this.getBeatmapCover(beatmap);
         const message = (await this.templates.ScoreFull(l, score, beatmap, calculator, serverBase)) + templateAddition;
 
         return {
@@ -133,12 +128,7 @@ export class ReplyUtils {
             templateAddition = "\n\n" + l.tr("card-gen-failed");
         }
 
-        let cover: string;
-        if (beatmap.coverUrl) {
-            cover = await this.coversModel.getPhotoDoc(beatmap.coverUrl);
-        } else {
-            cover = await this.coversModel.getCover(beatmap.setId);
-        }
+        const cover = await this.getBeatmapCover(beatmap);
 
         const message = await this.templates.PP(l, beatmap, args);
 
@@ -164,12 +154,7 @@ export class ReplyUtils {
             templateAddition = "\n\n" + l.tr("card-gen-failed");
         }
 
-        let cover: string;
-        if (beatmap.coverUrl) {
-            cover = await this.coversModel.getPhotoDoc(beatmap.coverUrl);
-        } else {
-            cover = await this.coversModel.getCover(beatmap.setId);
-        }
+        const cover = await this.getBeatmapCover(beatmap);
 
         const message = await this.templates.Beatmap(l, beatmap);
 
@@ -177,5 +162,9 @@ export class ReplyUtils {
             text: message + templateAddition,
             photo: cover,
         };
+    }
+
+    private async getBeatmapCover(beatmap: IBeatmap): Promise<string | undefined> {
+        return beatmap.coverUrl ? await this.mediaAttachments.getPhotoDoc(beatmap.coverUrl) : undefined;
     }
 }

@@ -2,7 +2,7 @@ import { Command } from "../../Command";
 import { IMessageContext } from "../../../core/MessageContext";
 import { SimpleCommandsModule } from "./index";
 import { getScoreIdFromText } from "../../../osu_specific/regexes/ScoreRegexp";
-import { IKeyboard } from "../../../Util";
+import { IKeyboardRow, makeKeyboard } from "../../../Util";
 
 export class BanchoScore extends Command {
     constructor(module: SimpleCommandsModule) {
@@ -14,7 +14,7 @@ export class BanchoScore extends Command {
             const user = await module.bot.api.bancho.getUserById(score.player_id);
             module.bot.maps.setMap(ctx.chatId, map);
 
-            const buttons: IKeyboard = [];
+            const buttons: IKeyboardRow[] = [];
             if (score.has_replay && score.api_score_id) {
                 const settingsAllowed = process.env.RENDER_REPLAYS === "true";
                 if (settingsAllowed) {
@@ -32,7 +32,7 @@ export class BanchoScore extends Command {
 
             const replyData = await this.module.bot.replyUtils.scoreData(ctx, ctx, score, map, "https://osu.ppy.sh");
             await ctx.reply(message + "\n\n" + replyData.text, {
-                keyboard: buttons,
+                keyboard: makeKeyboard(buttons),
                 photo: replyData.photo,
             });
 

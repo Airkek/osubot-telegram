@@ -25,6 +25,7 @@ export interface VideoMeta {
     width: number;
     height: number;
     duration: number;
+    title?: string;
 }
 
 export type MediaFile = string | Buffer;

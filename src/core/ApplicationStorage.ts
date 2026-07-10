@@ -171,11 +171,25 @@ export interface TelemetrySink {
 }
 
 export interface MediaReferenceCache {
-    getCover(beatmapSetId: number): Promise<string | null>;
-    storeCover(beatmapSetId: number, attachment: string): Promise<void>;
     getPhoto(url: string): Promise<string | null>;
     storePhoto(url: string, attachment: string): Promise<void>;
-    removeEmpty(): Promise<void>;
+}
+
+export interface IdentityLinkToken {
+    code: string;
+    expiresAt: Date;
+}
+
+export type IdentityLinkResult =
+    | { status: "linked"; userId: number; platforms: Platform[] }
+    | { status: "already-linked"; userId: number; platforms: Platform[] }
+    | { status: "invalid-token" }
+    | { status: "same-account" }
+    | { status: "platform-conflict"; platforms: Platform[] };
+
+export interface IdentityLinkRepository {
+    createToken(accountId: number): Promise<IdentityLinkToken>;
+    consumeToken(accountId: number, code: string): Promise<IdentityLinkResult>;
 }
 
 export type MaintenanceTarget = "beatmapMetadata" | "covers" | "photos" | "gameLinks" | "gameStats";
@@ -202,8 +216,21 @@ export interface ApplicationStorage {
     readonly onboarding: OnboardingRepository;
     readonly userDirectory: UserDirectory;
     readonly mediaReferences: MediaReferenceCache;
+    readonly identityLinks: IdentityLinkRepository;
     readonly maintenance: MaintenanceRepository;
 
     initialize(): Promise<void>;
     close(): Promise<void>;
+}
+
+export interface PlatformStorageHost extends ApplicationStorage {
+    readonly platforms: readonly Platform[];
+    readonly currentPlatform: Platform;
+
+    forPlatform(platform: Platform): ApplicationStorage;
+    runWithPlatform<T>(platform: Platform, callback: () => Promise<T>): Promise<T>;
+}
+
+export function isPlatformStorageHost(storage: ApplicationStorage): storage is PlatformStorageHost {
+    return "forPlatform" in storage && "runWithPlatform" in storage;
 }

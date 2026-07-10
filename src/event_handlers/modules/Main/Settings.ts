@@ -1,6 +1,6 @@
 import { Command } from "../../Command";
 import { Module } from "../Module";
-import { IKBButton, IKeyboard } from "../../../Util";
+import { IKBButton, IKeyboard, IKeyboardRow, makeKeyboard } from "../../../Util";
 import { IMessageContext } from "../../../core/MessageContext";
 import { OrdrSkinsProvider } from "../../../osu_specific/replay_render/OrdrSkinsProvider";
 import { ILocalisator } from "../../../ILocalisator";
@@ -95,7 +95,7 @@ function buildStartKeyboard(
     showOutputType: boolean,
     l: ILocalisator
 ): IKeyboard {
-    const kb = [
+    const rows: IKeyboardRow[] = [
         [buildPageButton(userId, "render", l.tr("render-page"))],
         [toggleableButton(userId, "home", l.tr("enable-find-setting"), "enable_find", settings.enable_find)],
         [
@@ -109,11 +109,11 @@ function buildStartKeyboard(
         ],
     ];
     if (showOutputType) {
-        kb.push([buildPageButton(userId, "output_type", l.tr("output-style-page"))]);
+        rows.push([buildPageButton(userId, "output_type", l.tr("output-style-page"))]);
     }
-    kb.push([buildPageButton(userId, "language", "🌐Language/Язык")]);
+    rows.push([buildPageButton(userId, "language", "🌐Language/Язык")]);
 
-    return kb;
+    return makeKeyboard(rows);
 }
 
 function buildCancelKeyboard(userId: number, page: SettingsPage, ticket: string, l: ILocalisator): IKeyboard {
@@ -127,9 +127,13 @@ function buildCancelKeyboard(userId: number, page: SettingsPage, ticket: string,
     ];
 }
 
-function buildLeveledPageKeyboard(userId: number, previousPage: SettingsPage, l: ILocalisator, rows: IKeyboard) {
-    rows.push([buildPageButton(userId, previousPage, l.tr("previous-page-button"))]);
-    return rows;
+function buildLeveledPageKeyboard(
+    userId: number,
+    previousPage: SettingsPage,
+    l: ILocalisator,
+    rows: readonly IKeyboardRow[]
+): IKeyboard {
+    return makeKeyboard([...rows, [buildPageButton(userId, previousPage, l.tr("previous-page-button"))]]);
 }
 
 function buildChatPageButton(chatId: number, page: ChatSettingsPage, text: string, pageNum?: number): IKBButton {
@@ -143,10 +147,9 @@ function buildChatLeveledPageKeyboard(
     chatId: number,
     previousPage: ChatSettingsPage,
     l: ILocalisator,
-    rows: IKeyboard
-) {
-    rows.push([buildChatPageButton(chatId, previousPage, l.tr("previous-page-button"))]);
-    return rows;
+    rows: readonly IKeyboardRow[]
+): IKeyboard {
+    return makeKeyboard([...rows, [buildChatPageButton(chatId, previousPage, l.tr("previous-page-button"))]]);
 }
 
 function buildPaginationControl(
@@ -350,8 +353,18 @@ async function buildRenderPage(settings: UserSettings, l: ILocalisator): Promise
         skinName = skinName.slice(0, 51) + "…";
     }
 
-    return buildLeveledPageKeyboard(settings.account_id, "home", l, [
-        [toggleableButton(settings.account_id, page, l.tr("auto-render"), "render_enabled", settings.render_enabled)],
+    const backButton = buildPageButton(settings.account_id, "home", l.tr("previous-page-button"));
+    const rows: IKeyboardRow[] = [
+        [
+            toggleableButton(settings.account_id, page, l.tr("auto-render"), "render_enabled", settings.render_enabled),
+            toggleableButton(
+                settings.account_id,
+                page,
+                l.tr("prefer-experimental-renderer"),
+                "experimental_renderer",
+                settings.experimental_renderer
+            ),
+        ],
         [
             toggleableButton(settings.account_id, page, l.tr("background-video"), "ordr_video", settings.ordr_video),
             toggleableButton(
@@ -371,8 +384,6 @@ async function buildRenderPage(settings: UserSettings, l: ILocalisator): Promise
                 "ordr_master_volume",
                 settings.ordr_master_volume.toString() + "%"
             ),
-        ],
-        [
             genericSetButton(
                 settings.account_id,
                 page,
@@ -396,11 +407,8 @@ async function buildRenderPage(settings: UserSettings, l: ILocalisator): Promise
                 "ordr_bgdim",
                 settings.ordr_bgdim.toString() + "%"
             ),
-        ],
-        ...(settings.experimental_renderer
-            ? []
-            : [
-                  [
+            ...(!settings.experimental_renderer
+                ? [
                       toggleableButton(
                           settings.account_id,
                           page,
@@ -415,34 +423,30 @@ async function buildRenderPage(settings: UserSettings, l: ILocalisator): Promise
                           "ordr_ur_counter",
                           settings.ordr_ur_counter
                       ),
-                  ],
-                  [
-                      toggleableButton(
-                          settings.account_id,
-                          page,
-                          l.tr("hit-counter"),
-                          "ordr_hit_counter",
-                          settings.ordr_hit_counter
-                      ),
-                      toggleableButton(
-                          settings.account_id,
-                          page,
-                          l.tr("difficulty-graph"),
-                          "ordr_strain_graph",
-                          settings.ordr_strain_graph
-                      ),
-                  ],
-              ]),
-        [
+                  ]
+                : [backButton]),
+        ],
+    ];
+    if (!settings.experimental_renderer) {
+        rows.push([
             toggleableButton(
                 settings.account_id,
                 page,
-                l.tr("prefer-experimental-renderer"),
-                "experimental_renderer",
-                settings.experimental_renderer
+                l.tr("hit-counter"),
+                "ordr_hit_counter",
+                settings.ordr_hit_counter
             ),
-        ],
-    ]);
+            toggleableButton(
+                settings.account_id,
+                page,
+                l.tr("difficulty-graph"),
+                "ordr_strain_graph",
+                settings.ordr_strain_graph
+            ),
+            backButton,
+        ]);
+    }
+    return makeKeyboard(rows);
 }
 
 const skinsProvider = new OrdrSkinsProvider();
@@ -450,31 +454,30 @@ const skinsProvider = new OrdrSkinsProvider();
 async function buildSkinSelector(settings: UserSettings, pageNum: number, l: ILocalisator): Promise<IKeyboard> {
     const page: SettingsPage = "skin_sel";
 
-    let buttons: IKeyboard = [];
-    let maxPage = undefined as number;
+    const rows: IKeyboardRow[] = [];
     const res = await skinsProvider.getPage(pageNum);
-    maxPage = res.maxPage;
-    buttons = res.skins.map((val) => {
+    const skinButtons = res.skins.map((val) => {
         const isSelected =
             !settings.ordr_is_skin_custom &&
             (val.id.toString() == settings.ordr_skin || val.safe_name == settings.ordr_skin);
-        return [
-            {
-                text: `${isSelected ? "✅ " : ""}${val.name}`,
-                command: buildSetEvent(settings.account_id, page, "ordr_skin", `set:${val.id}:${pageNum}`),
-            },
-        ];
+        return {
+            text: `${isSelected ? "✅ " : ""}${val.name}`,
+            command: buildSetEvent(settings.account_id, page, "ordr_skin", `set:${val.id}:${pageNum}`),
+        };
     });
+    for (let index = 0; index < skinButtons.length; index += 2) {
+        rows.push(skinButtons.slice(index, index + 2));
+    }
 
-    buttons.push([
+    rows.push([
         {
             text: "✍️ " + l.tr("enter-custom-skin-id"),
             command: buildSetEvent(settings.account_id, "render", "ordr_skin", "request"),
         },
     ]);
-    buttons.push(buildPaginationControl(settings.account_id, page, pageNum, maxPage));
+    rows.push(buildPaginationControl(settings.account_id, page, pageNum, res.maxPage));
 
-    return buildLeveledPageKeyboard(settings.account_id, "render", l, buttons);
+    return buildLeveledPageKeyboard(settings.account_id, "render", l, rows);
 }
 
 export default class SettingsCommand extends Command {

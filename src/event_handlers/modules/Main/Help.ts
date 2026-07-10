@@ -1,6 +1,6 @@
 import { Command } from "../../Command";
 import { Module, ServerModule } from "../Module";
-import { IKeyboard } from "../../../Util";
+import { IKeyboard, IKeyboardRow, makeKeyboard } from "../../../Util";
 import { ILocalisator } from "../../../ILocalisator";
 
 interface IHelpPage {
@@ -136,6 +136,8 @@ const getHelpKeyForCommand = (moduleName: string, commandName: string): string |
                 return "help-cmd-main-onboarding";
             case "topcmds":
                 return "help-cmd-main-topcmds";
+            case "account":
+                return "help-cmd-account";
         }
     }
 
@@ -176,19 +178,16 @@ const getHelpKeyForCommand = (moduleName: string, commandName: string): string |
 };
 
 const buildHomePage = (l: ILocalisator & { isFromOwner?: boolean }): IHelpPage => {
-    const keyboard: IKeyboard = [
-        [button(l.tr("help-start-button"), "start")],
-        [button(l.tr("help-syntax-button"), "syntax")],
-        [button(l.tr("help-osu-servers-button"), "osu_servers")],
-        [button(l.tr("help-vr-servers-button"), "vr_servers")],
-        [button(l.tr("help-main-button"), "main")],
-        [button(l.tr("help-simple-button"), "simple")],
-        [button(l.tr("help-settings-button"), "settings")],
-    ];
-
+    const settingsRow = [button(l.tr("help-settings-button"), "settings")];
     if (l.isFromOwner) {
-        keyboard.push([button(l.tr("help-admin-button"), "admin")]);
+        settingsRow.push(button(l.tr("help-admin-button"), "admin"));
     }
+    const keyboard: IKeyboard = [
+        [button(l.tr("help-start-button"), "start"), button(l.tr("help-syntax-button"), "syntax")],
+        [button(l.tr("help-osu-servers-button"), "osu_servers"), button(l.tr("help-vr-servers-button"), "vr_servers")],
+        [button(l.tr("help-main-button"), "main"), button(l.tr("help-simple-button"), "simple")],
+        settingsRow,
+    ];
 
     return {
         text: l.tr("help-home-text"),
@@ -214,13 +213,18 @@ const buildServerListPage = (l: ILocalisator, modules: Module[], slugs: string[]
 
     const text = `${l.tr(titleKey)}\n\n${lines.join("\n")}`;
 
-    const keyboard: IKeyboard = servers.map((m) => {
-        const slug = slugify(m.name);
-        const label = `${m.name} (${m.prefix[0]})`;
-        return [button(label, `srv_${slug}`)];
-    });
-    keyboard.push([button(l.tr("previous-page-button"), "home")]);
-    keyboard.push([button(l.tr("home-page-button"), "home")]);
+    const rows: IKeyboardRow[] = [];
+    for (let index = 0; index < servers.length; index += 2) {
+        rows.push(
+            servers.slice(index, index + 2).map((server) => {
+                const slug = slugify(server.name);
+                const label = `${server.name} (${server.prefix[0]})`;
+                return button(label, `srv_${slug}`);
+            })
+        );
+    }
+    rows.push([button(l.tr("previous-page-button"), "home"), button(l.tr("home-page-button"), "home")]);
+    const keyboard = makeKeyboard(rows);
 
     return { text, keyboard };
 };
@@ -320,7 +324,7 @@ const buildModuleCommandsPage = (l: ILocalisator, module: Module, titleKey: stri
     const knownOrder =
         module.name === "Admin"
             ? ["e", "ignore", "drop", "notify", "listfeature", "enablefeature", "disablefeature", "clear"]
-            : ["help", "onboarding", "settings", "status", "search", "clear", "topcmds"];
+            : ["help", "onboarding", "account", "settings", "status", "search", "clear", "topcmds"];
 
     const byName = new Map(module.commands.map((c) => [c.name, c] as const));
     const blocks: string[] = [];

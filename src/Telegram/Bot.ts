@@ -5,17 +5,17 @@ import { run, RunnerHandle } from "@grammyjs/runner";
 import { Update, UserFromGetMe } from "@grammyjs/types";
 import { hydrateFiles } from "@grammyjs/files";
 import { limit } from "@grammyjs/ratelimiter";
-import { I18n } from "@grammyjs/i18n";
-import express, { Express, Request, Response } from "express";
+import { Express } from "express";
 import { randomBytes } from "node:crypto";
-import path from "node:path";
-import { ApplicationRuntime, RuntimePlatformServices } from "../core/ApplicationRuntime";
+import { ApplicationRuntime } from "../core/ApplicationRuntime";
 import { TelegramMessageContext, TgApi, TgContext } from "./MessageContext";
-import { TelegramCoversProvider } from "./CoversProvider";
-import { WebhookUpdateDispatcher } from "./UpdateDispatcher";
+import { TelegramMediaAttachmentProvider } from "./MediaAttachmentProvider";
+import { UpdateDispatcher } from "../core/UpdateDispatcher";
 import { createTelegramWebhookIngress } from "./WebhookIngress";
 import { MediaReferenceCache } from "../core/ApplicationStorage";
 import { ExternalId } from "../core/Identity";
+import { PlatformAdapter } from "../core/PlatformAdapter";
+import { FluentLocalizer } from "../core/FluentLocalizer";
 
 const WEBHOOK_UPDATE_CONCURRENCY = 40;
 const WEBHOOK_UPDATE_QUEUE_CAPACITY = 1000;
@@ -25,22 +25,25 @@ export interface TelegramBotConfig {
     owner: number;
 }
 
-export class TelegramBotAdapter implements RuntimePlatformServices {
+export class TelegramBotAdapter implements PlatformAdapter {
     readonly platform = "telegram" as const;
     readonly tg: TelegramBot<TgContext, TgApi>;
     readonly useLocalApi = process.env.TELEGRAM_USE_LOCAL_API === "true";
 
     private readonly useWebhooks = process.env.USE_WEBHOOKS === "true";
     private readonly webhookSecret?: string;
-    private webhookDispatcher?: WebhookUpdateDispatcher<Update>;
+    private webhookDispatcher?: UpdateDispatcher<Update>;
     private runner?: RunnerHandle;
-    private expressApp?: Express;
     private me?: UserFromGetMe;
     private runtime: ApplicationRuntime;
     private transportConfigured = false;
 
-    constructor(private readonly config: TelegramBotConfig) {
-        global.logger.info("Set owner id: ", config.owner);
+    constructor(
+        private readonly config: TelegramBotConfig,
+        private readonly httpApp: Express,
+        private readonly localizer: FluentLocalizer
+    ) {
+        global.logger.info("Set Telegram owner id: ", config.owner);
 
         if (this.useWebhooks) {
             const configuredSecret = process.env.TELEGRAM_WEBHOOK_TOKEN;
@@ -59,12 +62,16 @@ export class TelegramBotAdapter implements RuntimePlatformServices {
         });
     }
 
-    createCoversProvider(mediaReferences: MediaReferenceCache): TelegramCoversProvider {
-        return new TelegramCoversProvider(mediaReferences, this.tg, this.config.owner);
+    createMediaAttachmentProvider(mediaReferences: MediaReferenceCache): TelegramMediaAttachmentProvider {
+        return new TelegramMediaAttachmentProvider(mediaReferences, this.tg, this.config.owner);
     }
 
     async sendMessage(recipientId: ExternalId, text: string): Promise<void> {
         await this.tg.api.sendMessage(recipientId, text);
+    }
+
+    getPublicLink(identity: UserFromGetMe): string {
+        return `https://t.me/${identity.username}`;
     }
 
     async start(runtime: ApplicationRuntime): Promise<UserFromGetMe> {
@@ -80,10 +87,7 @@ export class TelegramBotAdapter implements RuntimePlatformServices {
             await this.startPolling();
         }
 
-        this.initHealthCheck();
-        this.listenExpressAppIfNeeded();
-
-        global.logger.info(`Bot started as @${this.me.username} (${this.me.first_name})`);
+        global.logger.info(`Telegram Bot started as @${this.me.username} (${this.me.first_name})`);
         return this.me;
     }
 
@@ -109,24 +113,17 @@ export class TelegramBotAdapter implements RuntimePlatformServices {
     }
 
     private buildContext(ctx: TgContext): TelegramMessageContext {
-        return new TelegramMessageContext(ctx, this.config.owner, this.me, this.useLocalApi, this.runtime.storage);
+        return new TelegramMessageContext(
+            ctx,
+            this.config.owner,
+            this.me,
+            this.useLocalApi,
+            this.runtime.storage,
+            this.localizer
+        );
     }
 
     private setupBotMiddleware(): void {
-        const i18n = new I18n<TgContext>({
-            defaultLocale: "en",
-            useSession: false,
-            directory: path.join("./src", "locales"),
-            globalTranslationContext(ctx) {
-                return {
-                    first_name: ctx.from?.first_name ?? "",
-                    last_name: ctx.from?.last_name ?? "",
-                    user_mention: ctx.from.username ? `@${ctx.from.username}` : (ctx.from?.last_name ?? ""),
-                };
-            },
-        });
-
-        this.tg.use(i18n);
         this.tg.use(
             limit({
                 timeFrame: 5000,
@@ -159,21 +156,22 @@ export class TelegramBotAdapter implements RuntimePlatformServices {
     private setupEventHandlers(): void {
         const groups = this.tg.chatType(["group", "supergroup"]);
         groups.filter(chatMemberFilter("out", "in"), async (ctx) => {
-            await this.runtime.userJoined(ctx.chatMember.new_chat_member.user.id, ctx.chat.id);
+            await this.runtime.userJoined(this.platform, ctx.chatMember.new_chat_member.user.id, ctx.chat.id);
         });
         groups.filter(chatMemberFilter("in", "out"), async (ctx) => {
             const user = ctx.chatMember.new_chat_member.user;
-            await this.runtime.userLeft(user.id, ctx.chat.id, user.id === this.me?.id);
+            await this.runtime.userLeft(this.platform, user.id, ctx.chat.id, user.id === this.me?.id);
         });
         groups.on("message:new_chat_members", async (ctx) => {
             for (const user of ctx.message.new_chat_members) {
-                await this.runtime.userJoined(user.id, ctx.chat.id);
+                await this.runtime.userJoined(this.platform, user.id, ctx.chat.id);
             }
         });
 
         this.tg.on("callback_query:data", async (ctx) => {
-            if (await this.runtime.handleCallbackQuery(this.buildContext(ctx))) {
-                await ctx.answerCallbackQuery();
+            const context = this.buildContext(ctx);
+            if (await this.runtime.handleCallbackQuery(context)) {
+                await context.acknowledge();
             }
         });
         this.tg.on("message", async (ctx) => {
@@ -193,10 +191,9 @@ export class TelegramBotAdapter implements RuntimePlatformServices {
     }
 
     private async startWebhook(): Promise<void> {
-        this.ensureExpressAppCreated();
         const endpoint = process.env.WEBHOOK_ENDPOINT;
         const webhookPath = new URL(endpoint).pathname || "/";
-        this.webhookDispatcher = new WebhookUpdateDispatcher<Update>(
+        this.webhookDispatcher = new UpdateDispatcher<Update>(
             async (update) => {
                 await this.tg.handleUpdate(update);
             },
@@ -210,7 +207,7 @@ export class TelegramBotAdapter implements RuntimePlatformServices {
             WEBHOOK_UPDATE_CONCURRENCY,
             WEBHOOK_UPDATE_QUEUE_CAPACITY
         );
-        this.expressApp.post(
+        this.httpApp.post(
             webhookPath,
             createTelegramWebhookIngress(this.webhookSecret, (update) => this.webhookDispatcher.enqueue(update))
         );
@@ -232,36 +229,6 @@ export class TelegramBotAdapter implements RuntimePlatformServices {
                     allowed_updates: ["chat_member", "callback_query", "message"],
                 },
             },
-        });
-    }
-
-    private initHealthCheck(): void {
-        this.ensureExpressAppCreated();
-        this.expressApp.get("/health", (_req: Request, res: Response) => {
-            return res.status(200).json({
-                status: "UP",
-                timestamp: new Date().toISOString(),
-                uptime: process.uptime(),
-                message: "Service is running",
-            });
-        });
-    }
-
-    private ensureExpressAppCreated(): void {
-        if (!this.expressApp) {
-            this.expressApp = express();
-            this.expressApp.use(express.json());
-        }
-    }
-
-    private listenExpressAppIfNeeded(): void {
-        if (!this.expressApp) {
-            return;
-        }
-        const port = Number(process.env.APP_PORT);
-        const host = process.env.APP_HOST || "0.0.0.0";
-        this.expressApp.listen(port, host, () => {
-            global.logger.info(`Listening on ${host}:${port}`);
         });
     }
 }

@@ -3,7 +3,7 @@ import { ScoreDecoder } from "osu-parsers";
 import { Command } from "../../Command";
 import { SimpleCommandsModule } from "./index";
 import { IMessageContext, MediaFile } from "../../../core/MessageContext";
-import Util, { IKeyboard } from "../../../Util";
+import Util, { IKeyboard, makeKeyboard } from "../../../Util";
 import { IReplayRenderer, RenderSettings } from "../../../osu_specific/replay_render/IReplayRenderer";
 import { IssouBestRenderer } from "../../../osu_specific/replay_render/IssouBestRenderer";
 import { OsrReplay } from "../../../osu_specific/OsrReplay";
@@ -56,24 +56,26 @@ export class OsuReplay extends Command {
             const beatmap = await module.bot.osuBeatmapProvider.getBeatmapByHash(replay.beatmapHash, replay.mode);
             await beatmap.applyMods(replay.mods);
 
-            const keyboard = [
-                ["B", "s"],
-                ["G", "g"],
-                ["R", "r"],
-            ].map((group) => [
-                {
-                    text: `[${group[0]}] ${ctx.tr("my-score-on-map-button")}`,
-                    command: `${group[1]} c ${Util.getModeArg(replay.mode)}`,
-                },
-                ...(ctx.isInGroupChat
-                    ? [
-                          {
-                              text: `[${group[0]}] ${ctx.tr("chat-map-leaderboard-button")}`,
-                              command: `${group[1]} lb ${Util.getModeArg(replay.mode)}`,
-                          },
-                      ]
-                    : []),
-            ]);
+            const keyboard = makeKeyboard(
+                [
+                    ["B", "s"],
+                    ["G", "g"],
+                    ["R", "r"],
+                ].map((group) => [
+                    {
+                        text: `[${group[0]}] ${ctx.tr("my-score-on-map-button")}`,
+                        command: `${group[1]} c ${Util.getModeArg(replay.mode)}`,
+                    },
+                    ...(ctx.isInGroupChat
+                        ? [
+                              {
+                                  text: `[${group[0]}] ${ctx.tr("chat-map-leaderboard-button")}`,
+                                  command: `${group[1]} lb ${Util.getModeArg(replay.mode)}`,
+                              },
+                          ]
+                        : []),
+                ])
+            );
 
             const settings = await ctx.userSettings();
             let settingsAllowed = settings.render_enabled || !!ctx.messagePayload;

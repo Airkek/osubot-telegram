@@ -1,5 +1,5 @@
 import { ServerModule } from "../Module";
-import { IKeyboard } from "../../../Util";
+import { IKeyboardRow, makeKeyboard } from "../../../Util";
 import { ServerCommand } from "../../ServerCommand";
 import { APIScore } from "../../../Types";
 import { IBeatmap } from "../../../beatmaps/BeatmapTypes";
@@ -31,7 +31,7 @@ export default class AbstractRecent extends ServerCommand {
                     await map.applyMods(recent.mods);
                 }
 
-                const keyboard: IKeyboard = [];
+                const keyboard: IKeyboardRow[] = [];
                 if (self.module.api.getScore !== undefined) {
                     const firstButton = {
                         text: `[${self.module.prefix[0].toUpperCase()}] ${self.ctx.tr("my-score-on-map-button")}`,
@@ -68,7 +68,7 @@ export default class AbstractRecent extends ServerCommand {
                     self.module.link
                 );
                 await self.reply(replyData.text, {
-                    keyboard,
+                    keyboard: makeKeyboard(keyboard),
                     photo: replyData.photo,
                 });
 

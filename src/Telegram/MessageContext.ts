@@ -1,231 +1,87 @@
 import { Api, Context, GrammyError, InlineKeyboard, InputFile, InputMediaBuilder } from "grammy";
 import { UserFromGetMe } from "@grammyjs/types";
 import { FileApiFlavor, FileFlavor } from "@grammyjs/files";
-import { I18nFlavor } from "@grammyjs/i18n";
-import fs from "fs/promises";
-import { TranslateFunction, TranslationVariables } from "../ILocalisator";
-import { ApplicationStorage, ControllableFeature } from "../core/ApplicationStorage";
-import { ChatSettings, Language, UserSettings } from "../core/Settings";
+import { TranslateFunction } from "../ILocalisator";
+import { BaseMessageContext, MessageContextStorage } from "../core/BaseMessageContext";
+import { FluentLocalizer } from "../core/FluentLocalizer";
+import { MessageNotModifiedError, ReplyToMessage, SendOptions, TextLinkEntity } from "../core/MessageContext";
+import { Language } from "../core/Settings";
 import { IKeyboard } from "../Util";
-import Util from "../Util";
-import {
-    IMessageContext,
-    MessageNotModifiedError,
-    ReplyToMessage,
-    SendOptions,
-    TextLinkEntity,
-} from "../core/MessageContext";
-import { MessageIdentity } from "../core/Identity";
 
-export type TgContext = FileFlavor<Context & I18nFlavor>;
+export type TgContext = FileFlavor<Context>;
 export type TgApi = FileApiFlavor<Api>;
 
-type TelegramContextStorage = Pick<
-    ApplicationStorage,
-    "identities" | "userDirectory" | "featureFlags" | "userSettings" | "chatSettings"
->;
-
-const registry = new FinalizationRegistry(async (path: string) => {
-    if (!(await Util.fileExists(path))) {
-        return;
-    }
-    global.logger.warn(`Removing file ${path} after destructing object`);
-    try {
-        await fs.rm(path);
-    } catch {
-        global.logger.fatal(`Failed to remove file: ${path}`);
-    }
-});
-
-export class TelegramMessageContext implements IMessageContext {
-    readonly platform = "telegram" as const;
-    readonly externalChatId: number;
-    readonly externalSenderId: number;
-    chatId: number;
-    senderId: number;
-    userId: number;
-
-    readonly plainText?: string;
-    readonly plainPayload?: string;
-
-    readonly replyMessage?: ReplyToMessage;
-
-    readonly isInGroupChat: boolean;
-
-    private readonly tgCtx: TgContext;
-    private readonly me: UserFromGetMe;
-    private readonly localServer: boolean;
-    private readonly storage: TelegramContextStorage;
-
-    private tmpFile?: string;
-    private registryToken?: object;
-
-    private userSettingsCache: UserSettings;
-    private chatSettingsCache: ChatSettings;
-
-    private isLocalisatorActivated: boolean = false;
-    private language: Language = undefined;
-    internalTranslate: TranslateFunction = undefined;
-
-    tr(key: string, vars?: TranslationVariables) {
-        if (this.isLocalisatorActivated) {
-            return this.internalTranslate(key, vars);
-        }
-
-        return `Error: Translation context is not activated. Please, report this to developer. Translation key: '${key}'.`;
+function replyMessage(ctx: TgContext): ReplyToMessage | undefined {
+    if (!ctx.message?.reply_to_message) {
+        return undefined;
     }
 
-    private readonly ownerId: number;
-    get isFromOwner(): boolean {
-        return this.externalSenderId == this.ownerId;
+    const reply = ctx.message.reply_to_message;
+    if (reply.forum_topic_created || reply.forum_topic_closed || reply.forum_topic_reopened) {
+        return undefined;
+    }
+    if (reply.sender_chat || !reply.from) {
+        return undefined;
     }
 
-    private graphicalModeOverride: "no" | "cards" | "plain" = "no";
+    return {
+        text: reply.text ?? reply.caption ?? "",
+        externalSenderId: reply.from.id,
+        externalChatId: reply.chat.id,
+    };
+}
 
-    private convertReplyMessage(ctx: TgContext): ReplyToMessage {
-        if (!ctx.message?.reply_to_message) {
-            return undefined;
-        }
-
-        const reply = ctx.message.reply_to_message;
-        if (reply.forum_topic_created || reply.forum_topic_closed || reply.forum_topic_reopened) {
-            return undefined;
-        }
-
-        // Ignore replies to channel messages (e.g., in comment threads)
-        // Channel messages have sender_chat instead of from
-        if (reply.sender_chat || !reply.from) {
-            return undefined;
-        }
-
-        return {
-            text: reply.text ?? reply.caption ?? "",
-            externalSenderId: reply.from.id,
-            externalChatId: reply.chat.id,
-        };
+function telegramLanguage(languageCode?: string): Language {
+    const normalized = languageCode?.toLowerCase() ?? "";
+    if (normalized.startsWith("ru")) {
+        return "ru";
     }
-
-    constructor(ctx: TgContext, ownerId: number, me: UserFromGetMe, isLocal: boolean, storage: TelegramContextStorage) {
-        this.tgCtx = ctx;
-        this.me = me;
-        this.localServer = isLocal;
-        this.storage = storage;
-
-        this.plainText = ctx.message?.text ?? ctx.message?.caption;
-        this.plainPayload = ctx.callbackQuery?.data;
-        this.replyMessage = this.convertReplyMessage(ctx);
-        this.isInGroupChat = ctx.chat.type == "supergroup" || ctx.chat.type == "group";
-        this.externalSenderId = ctx.from.id;
-        this.externalChatId = ctx.chatId;
-        this.ownerId = ownerId;
-
-        this.parsePayload();
+    if (normalized.startsWith("zh")) {
+        return "zh";
     }
+    return "en";
+}
 
-    bindIdentity(identity: MessageIdentity): void {
-        this.userId = identity.user.userId;
-        this.senderId = identity.user.accountId;
-        this.chatId = identity.chat.chatId;
-        if (this.replyMessage) {
-            this.replyMessage.chatId = identity.chat.chatId;
-            this.replyMessage.senderId = identity.replyUser?.accountId;
-            this.replyMessage.userId = identity.replyUser?.userId;
-        }
-    }
+export class TelegramMessageContext extends BaseMessageContext {
+    private userInfoUpdated = false;
+    private callbackAnswered = false;
 
-    private overridenText: string = undefined;
-    get text(): string {
-        return this.overridenText ?? this.plainText;
-    }
-
-    private overridenPayload: string = undefined;
-    get messagePayload(): string {
-        return this.overridenPayload ?? this.plainPayload;
-    }
-
-    applyTextOverrides(aliases: Record<string, string>) {
-        const text = this.text;
-        if (!text) {
-            return;
-        }
-        const lowerText = text.toLowerCase();
-        for (const [alias, command] of Object.entries(aliases)) {
-            const lowerOverride = alias.toLowerCase();
-
-            if (lowerText.startsWith(lowerOverride)) {
-                if (text.length === alias.length || /^\s$/.test(text.charAt(alias.length))) {
-                    this.overridenText = (command + " " + text.slice(alias.length).trim()).trim();
-                    return;
-                }
-            }
-        }
-    }
-
-    private parsePayload() {
-        if (!this.plainPayload?.startsWith("^")) {
-            return;
-        }
-
-        const payloadSplit = this.plainPayload.slice(1).split("^");
-        if (payloadSplit.length < 2) {
-            this.overridenPayload = payloadSplit[0];
-            return;
-        }
-
-        //g1^payload payload payload (this payload too!! ->> ^ <<- payload!!!)
-        const payload = [];
-        let argsEnded = false;
-        for (const string of payloadSplit) {
-            if (!argsEnded) {
-                if (string.startsWith("g") && string.length == 2) {
-                    const mode = Number(string.slice(1));
-                    if (mode == 1) {
-                        this.graphicalModeOverride = "plain";
-                    } else if (mode == 2) {
-                        this.graphicalModeOverride = "cards";
-                    }
-                } else {
-                    argsEnded = true;
-                }
-            }
-
-            if (argsEnded) {
-                payload.push(string);
-            }
-        }
-
-        this.overridenPayload = payload.join("^");
-    }
-
-    private async prepareButtonPayloadPrefix(): Promise<string> {
-        const ctxData = [];
-        if (await this.preferCardsOutput()) {
-            ctxData.push("g2");
-        } else {
-            ctxData.push("g1");
-        }
-
-        return "^" + ctxData.join("^") + "^";
-    }
-
-    private async createKeyboard(rows: IKeyboard): Promise<InlineKeyboard> {
-        if (!rows || rows.length == 0) {
-            return undefined;
-        }
-
-        const payloadPrefix = await this.prepareButtonPayloadPrefix();
-        const buttonRows = rows.map((row) =>
-            row.map((button) => InlineKeyboard.text(button.text, payloadPrefix + button.command))
+    constructor(
+        private readonly tgCtx: TgContext,
+        ownerId: number,
+        private readonly me: UserFromGetMe,
+        private readonly localServer: boolean,
+        storage: MessageContextStorage,
+        private readonly localizer: FluentLocalizer
+    ) {
+        super(
+            {
+                platform: "telegram",
+                externalChatId: tgCtx.chatId,
+                externalSenderId: tgCtx.from.id,
+                ownerId,
+                plainText: tgCtx.message?.text ?? tgCtx.message?.caption,
+                plainPayload: tgCtx.callbackQuery?.data,
+                replyMessage: replyMessage(tgCtx),
+                isInGroupChat: tgCtx.chat.type === "supergroup" || tgCtx.chat.type === "group",
+                defaultLanguage: telegramLanguage(tgCtx.from.language_code),
+            },
+            storage
         );
-        return InlineKeyboard.from(buttonRows);
     }
 
-    private userInfoUpdated: boolean = false;
-    async ensureUserInfoUpdated() {
+    protected async createTranslate(language?: Language): Promise<TranslateFunction> {
+        return this.localizer.translator(language, {
+            first_name: this.tgCtx.from?.first_name ?? "",
+            last_name: this.tgCtx.from?.last_name ?? "",
+            user_mention: this.telegramMention(),
+        });
+    }
+
+    async ensureUserInfoUpdated(): Promise<void> {
         if (this.userInfoUpdated) {
             return;
         }
-
         if (this.tgCtx.from && !this.tgCtx.from.is_bot) {
             await this.storage.userDirectory.set({
                 account_id: this.senderId,
@@ -234,109 +90,11 @@ export class TelegramMessageContext implements IMessageContext {
                 last_name: this.tgCtx.from.last_name ?? null,
             });
         }
-
         this.userInfoUpdated = true;
     }
 
-    async activateLocalisator() {
-        if (this.isLocalisatorActivated) {
-            return;
-        }
-
-        if (this.isInGroupChat) {
-            const chatSettings = await this.chatSettings();
-            if (chatSettings.language_override != "do_not_override") {
-                this.language = chatSettings.language_override;
-            }
-        }
-
-        if (!this.language) {
-            const userSettings = await this.userSettings();
-            if (userSettings.language_override != "do_not_override") {
-                this.language = userSettings.language_override;
-            }
-        }
-
-        if (this.language) {
-            this.tgCtx.i18n.useLocale(this.language);
-        }
-
-        this.internalTranslate = this.tgCtx.translate;
-        this.isLocalisatorActivated = true;
-    }
-
-    async reactivateLocalisator() {
-        this.isLocalisatorActivated = false;
-        this.language = undefined;
-        await this.activateLocalisator();
-    }
-
-    public async checkFeature(feature: ControllableFeature) {
-        if (this.isFromOwner) {
-            const allFeatures = await this.storage.featureFlags.isFeatureEnabled("admin-all-features");
-            if (allFeatures) {
-                return true;
-            }
-        }
-
-        return await this.storage.featureFlags.isFeatureEnabled(feature);
-    }
-
-    async preferCardsOutput(): Promise<boolean> {
-        const cardsEnabled = await this.checkFeature("oki-cards");
-        if (!cardsEnabled) {
-            return false;
-        }
-
-        if (this.graphicalModeOverride != "no") {
-            return this.graphicalModeOverride == "cards";
-        }
-
-        const settings = await this.userSettings();
-        return settings.content_output == "oki-cards";
-    }
-
-    async userSettings(forceUpdate: boolean = false): Promise<UserSettings> {
-        if (forceUpdate || !this.userSettingsCache) {
-            this.userSettingsCache = await this.storage.userSettings.getUserSettings(this.userId, this.senderId);
-        }
-
-        return this.userSettingsCache;
-    }
-
-    async chatSettings(forceUpdate: boolean = false): Promise<ChatSettings> {
-        if (!this.isInGroupChat) {
-            return undefined;
-        }
-
-        if (forceUpdate || !this.chatSettingsCache) {
-            this.chatSettingsCache = await this.storage.chatSettings.getChatSettings(this.chatId);
-        }
-
-        return this.chatSettingsCache;
-    }
-
-    async updateUserSettings(settings: UserSettings) {
-        if (settings.user_id != this.userId || settings.account_id != this.senderId) {
-            return;
-        }
-        await this.storage.userSettings.updateSettings(settings);
-        this.userSettingsCache = settings;
-    }
-
-    async updateChatSettings(settings: ChatSettings) {
-        if (!this.isInGroupChat || settings.chat_id != this.chatId) {
-            return;
-        }
-        await this.storage.chatSettings.updateSettings(settings);
-        this.chatSettingsCache = settings;
-    }
-
-    async reply(text: string, options?: SendOptions) {
-        const callbackReplyTo = this.tgCtx.callbackQuery?.from.username
-            ? `@${this.tgCtx.callbackQuery.from.username}`
-            : this.tgCtx.callbackQuery?.from.first_name;
-
+    async reply(text: string, options?: SendOptions): Promise<unknown> {
+        const callbackReplyTo = this.telegramMention();
         const isMessage = this.tgCtx.message !== undefined;
         return await this.send(
             isMessage ? text : `${callbackReplyTo},\n${text}`,
@@ -345,19 +103,16 @@ export class TelegramMessageContext implements IMessageContext {
         );
     }
 
-    async send(text: string, options?: SendOptions, replyTo?: number) {
+    async send(text: string, options?: SendOptions, replyTo?: number): Promise<unknown> {
         const keyboard = await this.createKeyboard(options?.keyboard);
         if (options?.photo) {
             const photo = Buffer.isBuffer(options.photo) ? new InputFile(options.photo) : options.photo;
             return await this.tgCtx.replyWithPhoto(photo, {
                 caption: text,
-                reply_parameters: {
-                    message_id: replyTo,
-                },
+                reply_parameters: { message_id: replyTo },
                 reply_markup: keyboard,
             });
         }
-
         if (options?.video) {
             return await this.tgCtx.replyWithVideo(new InputFile(new URL(options.video.url)), {
                 width: options.video.width,
@@ -365,33 +120,25 @@ export class TelegramMessageContext implements IMessageContext {
                 duration: options.video.duration,
                 supports_streaming: true,
                 caption: text,
-                reply_parameters: {
-                    message_id: replyTo,
-                },
+                reply_parameters: { message_id: replyTo },
                 reply_markup: keyboard,
             });
         }
-
         return await this.tgCtx.reply(text, {
-            link_preview_options: {
-                is_disabled: options?.dont_parse_links !== false,
-            },
-            reply_parameters: {
-                message_id: replyTo,
-            },
+            link_preview_options: { is_disabled: options?.dont_parse_links !== false },
+            reply_parameters: { message_id: replyTo },
             reply_markup: keyboard,
         });
     }
 
-    async remove() {
+    async remove(): Promise<void> {
         if (!this.messagePayload) {
-            return undefined;
+            return;
         }
         try {
             await this.tgCtx.deleteMessage();
-        } catch (e) {
-            global.logger.error(e);
-            return undefined;
+        } catch (error) {
+            global.logger.error("Failed to remove Telegram message", error);
         }
     }
 
@@ -406,11 +153,8 @@ export class TelegramMessageContext implements IMessageContext {
             if (hasMedia) {
                 if (options?.photo) {
                     const photo = Buffer.isBuffer(options.photo) ? new InputFile(options.photo) : options.photo;
-                    await this.tgCtx.editMessageMedia(InputMediaBuilder.photo(photo), {
-                        reply_markup: keyboard,
-                    });
+                    await this.tgCtx.editMessageMedia(InputMediaBuilder.photo(photo), { reply_markup: keyboard });
                 } else if (options?.video) {
-                    // TODO: support both
                     const video = InputMediaBuilder.video(new InputFile(new URL(options.video.url)), {
                         width: options.video.width,
                         height: options.video.height,
@@ -418,25 +162,16 @@ export class TelegramMessageContext implements IMessageContext {
                         supports_streaming: true,
                         caption: text,
                     });
-                    await this.tgCtx.editMessageMedia(video, {
-                        reply_markup: keyboard,
-                    });
+                    await this.tgCtx.editMessageMedia(video, { reply_markup: keyboard });
                 }
-                await this.tgCtx.editMessageCaption({
-                    reply_markup: keyboard,
-                    caption: text,
-                });
-            } else if (text != this.text) {
+                await this.tgCtx.editMessageCaption({ reply_markup: keyboard, caption: text });
+            } else if (text !== this.text) {
                 await this.tgCtx.editMessageText(text, {
-                    link_preview_options: {
-                        is_disabled: options?.dont_parse_links !== false,
-                    },
+                    link_preview_options: { is_disabled: options?.dont_parse_links !== false },
                     reply_markup: keyboard,
                 });
             } else if (options?.keyboard) {
-                await this.tgCtx.editMessageReplyMarkup({
-                    reply_markup: keyboard,
-                });
+                await this.tgCtx.editMessageReplyMarkup({ reply_markup: keyboard });
             }
         } catch (error) {
             if (error instanceof GrammyError && error.message.includes("message is not modified")) {
@@ -446,53 +181,45 @@ export class TelegramMessageContext implements IMessageContext {
         }
     }
 
-    async editMarkup(keyboard: IKeyboard) {
+    async editMarkup(keyboard: IKeyboard): Promise<unknown> {
         if (!this.messagePayload) {
             return undefined;
         }
-        const kb = await this.createKeyboard(keyboard);
-        if (!kb) {
+        const markup = await this.createKeyboard(keyboard);
+        if (!markup) {
             return undefined;
         }
-        return await this.tgCtx.editMessageReplyMarkup({
-            reply_markup: kb,
-        });
+        return await this.tgCtx.editMessageReplyMarkup({ reply_markup: markup });
     }
 
-    async answer(text: string): Promise<true> {
+    async answer(text: string): Promise<true | void> {
         if (!this.messagePayload) {
+            return undefined;
+        }
+        const result = await this.tgCtx.answerCallbackQuery(text);
+        this.callbackAnswered = true;
+        return result;
+    }
+
+    async acknowledge(): Promise<void> {
+        if (!this.messagePayload || this.callbackAnswered) {
             return;
         }
-        return await this.tgCtx.answerCallbackQuery(text);
+        await this.tgCtx.answerCallbackQuery();
+        this.callbackAnswered = true;
     }
 
     async isUserAdmin(accountId: number): Promise<boolean> {
         const externalUserId = await this.getExternalUserId(accountId);
-        if (externalUserId === undefined) {
-            return false;
-        }
-        return this.isExternalUserAdmin(externalUserId);
-    }
-
-    private async isExternalUserAdmin(userId: number): Promise<boolean> {
-        try {
-            const res = await this.tgCtx.api.getChatMember(this.externalChatId, userId);
-            return res.status == "creator" || res.status == "administrator";
-        } catch (e) {
-            if (e.message.includes("CHAT_ADMIN_REQUIRED")) {
-                return false;
-            }
-
-            throw e;
-        }
+        return externalUserId === undefined ? false : await this.isExternalUserAdmin(externalUserId);
     }
 
     async isSenderAdmin(): Promise<boolean> {
-        return this.isExternalUserAdmin(this.externalSenderId);
+        return await this.isExternalUserAdmin(Number(this.externalSenderId));
     }
 
     async isBotAdmin(): Promise<boolean> {
-        return this.isExternalUserAdmin(this.me.id);
+        return await this.isExternalUserAdmin(this.me.id);
     }
 
     async isUserInChat(accountId: number, chatId?: number): Promise<boolean> {
@@ -504,17 +231,14 @@ export class TelegramMessageContext implements IMessageContext {
             return false;
         }
         try {
-            if (chatId) {
-                const isValid = await this.isChatValid(chatId);
-                if (!isValid) {
-                    return false;
-                }
+            if (chatId !== undefined && !(await this.isChatValid(chatId))) {
+                return false;
             }
-
             const user = await this.tgCtx.api.getChatMember(externalChatId, externalUserId);
-            return user && user.status != "kicked" && user.status != "left";
-        } catch (e) {
-            return !e.description?.includes("member not found");
+            return user.status !== "kicked" && user.status !== "left";
+        } catch (error) {
+            const description = error instanceof GrammyError ? error.description : "";
+            return !description.includes("member not found");
         }
     }
 
@@ -524,10 +248,10 @@ export class TelegramMessageContext implements IMessageContext {
             return false;
         }
         try {
-            const chatInfo = await this.tgCtx.api.getChat(externalChatId);
-            return !!chatInfo;
-        } catch (e) {
-            return !e.description?.includes("chat not found");
+            return Boolean(await this.tgCtx.api.getChat(externalChatId));
+        } catch (error) {
+            const description = error instanceof GrammyError ? error.description : "";
+            return !description.includes("chat not found");
         }
     }
 
@@ -538,9 +262,10 @@ export class TelegramMessageContext implements IMessageContext {
         }
         try {
             const user = await this.tgCtx.api.getChatMember(externalChatId, this.me.id);
-            return user && user.status != "kicked" && user.status != "left";
-        } catch (e) {
-            return !e.description?.includes("member not found");
+            return user.status !== "kicked" && user.status !== "left";
+        } catch (error) {
+            const description = error instanceof GrammyError ? error.description : "";
+            return !description.includes("member not found");
         }
     }
 
@@ -553,37 +278,22 @@ export class TelegramMessageContext implements IMessageContext {
         return externalUserId === undefined ? String(accountId) : `tg://user?id=${externalUserId}`;
     }
 
-    chatMembersCount(): Promise<number> {
-        return this.tgCtx.api.getChatMemberCount(this.externalChatId);
-    }
-
-    private async getExternalUserId(accountId: number): Promise<number | undefined> {
-        const identity = await this.storage.identities.getUser(accountId);
-        if (!identity) {
-            return undefined;
-        }
-        const id = Number(identity.externalId);
-        return Number.isSafeInteger(id) ? id : undefined;
-    }
-
-    private async getExternalChatId(chatId: number): Promise<number | string | undefined> {
-        if (chatId === this.chatId) {
-            return this.externalChatId;
-        }
-        const identity = await this.storage.identities.getChat(chatId);
-        return identity?.externalId;
+    async chatMembersCount(): Promise<number> {
+        return await this.tgCtx.api.getChatMemberCount(this.externalChatId);
     }
 
     hasLinks(): boolean {
-        return this.tgCtx.message?.entities?.some((entity) => entity.type === "text_link");
+        return this.tgCtx.message?.entities?.some((entity) => entity.type === "text_link") ?? false;
     }
 
     getLinks(): TextLinkEntity[] {
-        return this.tgCtx.message?.entities?.filter((entity) => entity.type === "text_link") as TextLinkEntity[];
+        return (
+            (this.tgCtx.message?.entities?.filter((entity) => entity.type === "text_link") as TextLinkEntity[]) ?? []
+        );
     }
 
     hasFile(): boolean {
-        return !!this.tgCtx.message?.document;
+        return Boolean(this.tgCtx.message?.document);
     }
 
     getFileName(): string {
@@ -594,41 +304,49 @@ export class TelegramMessageContext implements IMessageContext {
         return this.tgCtx.message?.document?.file_size ?? Number.MAX_VALUE;
     }
 
-    registerTempFile(filePath: string) {
-        if (!this.registryToken) {
-            this.registryToken = {};
-        }
-        registry.register(this.registryToken, filePath);
-    }
-
     async downloadFile(): Promise<string> {
         if (this.tmpFile) {
             return this.tmpFile;
         }
-
         const file = await this.tgCtx.getFile();
-
         this.tmpFile = this.localServer ? file.getUrl() : await file.download();
-
         this.registerTempFile(this.tmpFile);
         return this.tmpFile;
     }
 
-    async removeFile(): Promise<void> {
-        if (!this.tmpFile) {
-            return;
+    private async createKeyboard(rows?: IKeyboard): Promise<InlineKeyboard | undefined> {
+        if (!rows?.length) {
+            return undefined;
         }
+        const buttonRows = await Promise.all(
+            rows.map(
+                async (row) =>
+                    await Promise.all(
+                        row.map(async (button) =>
+                            InlineKeyboard.text(button.text, await this.prepareButtonPayload(button.command))
+                        )
+                    )
+            )
+        );
+        return InlineKeyboard.from(buttonRows);
+    }
+
+    private async isExternalUserAdmin(userId: number): Promise<boolean> {
         try {
-            if (await Util.fileExists(this.tmpFile)) {
-                await fs.rm(this.tmpFile);
+            const result = await this.tgCtx.api.getChatMember(this.externalChatId, userId);
+            return result.status === "creator" || result.status === "administrator";
+        } catch (error) {
+            if (error instanceof GrammyError && error.message.includes("CHAT_ADMIN_REQUIRED")) {
+                return false;
             }
-            if (this.registryToken) {
-                registry.unregister(this.registryToken);
-                this.registryToken = undefined;
-            }
-            this.tmpFile = undefined;
-        } catch {
-            global.logger.fatal(`Failed to remove file: ${this.tmpFile}`);
+            throw error;
         }
+    }
+
+    private telegramMention(): string {
+        if (this.tgCtx.from?.username) {
+            return `@${this.tgCtx.from.username}`;
+        }
+        return this.tgCtx.from?.first_name ?? "";
     }
 }

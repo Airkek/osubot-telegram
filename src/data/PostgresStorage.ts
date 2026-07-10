@@ -24,25 +24,19 @@ import { MaintenanceModel } from "./Models/MaintenanceModel";
 import { Platform } from "../core/Identity";
 import { PostgresIdentityRepository } from "./Repositories/PostgresIdentityRepository";
 import { PostgresGameUserRepository } from "./Repositories/PostgresGameUserRepository";
+import { PostgresIdentityLinkRepository } from "./Repositories/PostgresIdentityLinkRepository";
 
 interface IgnoredUsers {
     platform_account_id: number;
 }
 
 class PostgresIgnoredUsersRepository {
-    constructor(
-        private readonly db: SqlExecutor,
-        private readonly platform: Platform
-    ) {}
+    constructor(private readonly db: SqlExecutor) {}
 
     async getIgnoredUsers(): Promise<number[]> {
         const users = await this.db.all<IgnoredUsers>(
             `SELECT ignored.platform_account_id
-             FROM ignored_users AS ignored
-             JOIN platform_accounts AS account
-               ON account.id = ignored.platform_account_id
-              AND account.platform = $1`,
-            [this.platform]
+             FROM ignored_users AS ignored`
         );
         return users.map((user) => Number(user.platform_account_id));
     }
@@ -124,11 +118,13 @@ export default class PostgresStorage implements ApplicationStorage {
     readonly onboarding: OnboardingModel;
     readonly userDirectory: UserInfoModel;
     readonly mediaReferences: MediaReferenceModel;
+    readonly identityLinks: PostgresIdentityLinkRepository;
     readonly maintenance: MaintenanceModel;
 
     constructor(
         private readonly db: SqlConnection,
-        readonly platform: Platform
+        readonly platform: Platform,
+        private readonly ownsConnection: boolean = true
     ) {
         this.identities = new PostgresIdentityRepository(db, platform);
         this.gameServers = {
@@ -142,7 +138,7 @@ export default class PostgresStorage implements ApplicationStorage {
 
         this.errors = new PostgresErrorStore(db);
         this.memberships = new ChatMembersModel(db, platform);
-        this.ignoredUsers = new PostgresIgnoredUsersRepository(db, platform);
+        this.ignoredUsers = new PostgresIgnoredUsersRepository(db);
         this.userRemoval = new PostgresUserRemovalRepository(db);
         this.beatmaps = new OsuBeatmapCacheModel(db);
         this.userSettings = new UserSettingsModel(db);
@@ -153,10 +149,18 @@ export default class PostgresStorage implements ApplicationStorage {
         this.onboarding = new OnboardingModel(db);
         this.userDirectory = new UserInfoModel(db, platform);
         this.mediaReferences = new MediaReferenceModel(db, platform);
+        this.identityLinks = new PostgresIdentityLinkRepository(db);
         this.maintenance = new MaintenanceModel(db, platform);
     }
 
     static fromEnvironment(platform: Platform): PostgresStorage {
+        return PostgresStorage.fromEnvironmentForPlatforms([platform])[0];
+    }
+
+    static fromEnvironmentForPlatforms(platforms: Platform[]): PostgresStorage[] {
+        if (platforms.length === 0) {
+            throw new Error("At least one PostgreSQL platform storage is required");
+        }
         const pool = new Pool({
             user: process.env.DB_USERNAME,
             host: process.env.DB_HOST,
@@ -164,7 +168,8 @@ export default class PostgresStorage implements ApplicationStorage {
             password: process.env.DB_PASSWORD,
             port: Number(process.env.DB_PORT),
         });
-        return new PostgresStorage(new PostgresConnection(pool), platform);
+        const connection = new PostgresConnection(pool);
+        return platforms.map((platform, index) => new PostgresStorage(connection, platform, index === 0));
     }
 
     async initialize(): Promise<void> {
@@ -176,6 +181,8 @@ export default class PostgresStorage implements ApplicationStorage {
     }
 
     async close(): Promise<void> {
-        await this.db.close();
+        if (this.ownsConnection) {
+            await this.db.close();
+        }
     }
 }

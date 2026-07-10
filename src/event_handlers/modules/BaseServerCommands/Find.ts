@@ -1,5 +1,6 @@
 import { ServerModule } from "../Module";
 import { ServerCommand } from "../../ServerCommand";
+import { IKeyboard } from "../../../Util";
 
 export default class AbstractFind extends ServerCommand {
     constructor(module: ServerModule) {
@@ -42,7 +43,7 @@ export default class AbstractFind extends ServerCommand {
             }
             usersText = usersText.trim();
 
-            const keyboard = [
+            const keyboard: IKeyboard = [
                 [
                     {
                         text: self.ctx.tr("check-profile-button"),

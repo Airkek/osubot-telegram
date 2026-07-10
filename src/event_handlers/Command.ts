@@ -70,7 +70,8 @@ export class Command {
         }
 
         await this.module.bot.storage.telemetry.logCommand(this, ctx);
-        global.logger.trace(`[${this.module.name}::${this.name}] command processing took ${timer.ms}`);
+        const platform = ctx.platform === "vk" ? "VK" : "Telegram";
+        global.logger.trace(`[${platform}][${this.module.name}::${this.name}] command processing took ${timer.ms}`);
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars

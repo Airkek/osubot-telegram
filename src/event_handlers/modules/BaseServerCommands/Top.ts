@@ -1,5 +1,5 @@
 import { ServerModule } from "../Module";
-import { IKeyboard } from "../../../Util";
+import { IKBButton, IKeyboard, IKeyboardRow, makeKeyboard } from "../../../Util";
 import Mods from "../../../osu_specific/pp/Mods";
 import { ServerCommand, CommandContext } from "../../ServerCommand";
 import { Mode, APIUser, APIScore } from "../../../Types";
@@ -219,7 +219,7 @@ export default class AbstractTop extends ServerCommand {
             return undefined;
         }
 
-        const buttons = [
+        const buttons: IKBButton[][] = [
             [
                 {
                     text: `[${context.module.prefix[0].toUpperCase()}] ${context.ctx.tr("my-score-on-map-button")}`,
@@ -247,7 +247,7 @@ export default class AbstractTop extends ServerCommand {
             }
         }
 
-        return buttons;
+        return makeKeyboard(buttons);
     }
 
     private createPageKeyboard(
@@ -256,7 +256,7 @@ export default class AbstractTop extends ServerCommand {
         currentPage: number,
         user: APIUser,
         mode: number
-    ) {
+    ): IKeyboard {
         const prefix = context.module.prefix[0];
         const modeArg = this.modeArg(mode);
 
@@ -278,7 +278,7 @@ export default class AbstractTop extends ServerCommand {
             command: `${prefix} t ${nickname} ^p${nextPage} ${modeArg}`,
         };
 
-        const buttons = [buttonPrev, buttonPage, buttonNext];
+        const buttons: IKeyboardRow = [buttonPrev, buttonPage, buttonNext];
 
         return [buttons];
     }

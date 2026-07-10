@@ -3,7 +3,7 @@ import { setImmediate } from "node:timers";
 type TaskHandler<T> = (task: T) => Promise<void>;
 type ErrorHandler<T> = (error: unknown, task: T) => void | Promise<void>;
 
-export class WebhookUpdateDispatcher<T> {
+export class UpdateDispatcher<T> {
     private readonly queue: T[] = [];
     private activeTasks = 0;
     private drainScheduled = false;
@@ -18,10 +18,10 @@ export class WebhookUpdateDispatcher<T> {
         private readonly capacity: number
     ) {
         if (!Number.isInteger(concurrency) || concurrency < 1) {
-            throw new Error("Webhook update concurrency must be a positive integer");
+            throw new Error("Update concurrency must be a positive integer");
         }
         if (!Number.isInteger(capacity) || capacity < concurrency) {
-            throw new Error("Webhook update queue capacity must be an integer no smaller than concurrency");
+            throw new Error("Update queue capacity must be an integer no smaller than concurrency");
         }
     }
 
@@ -80,7 +80,7 @@ export class WebhookUpdateDispatcher<T> {
             try {
                 await this.handleError(error, task);
             } catch (handlerError) {
-                global.logger.error("Webhook update error handler failed", handlerError, error);
+                global.logger.error("Update error handler failed", handlerError, error);
             }
         } finally {
             this.activeTasks--;

@@ -33,7 +33,7 @@ help-start-text =
     1) Отправьте ссылку на beatmap/beatmapset — бот запомнит последнюю карту для compare/leaderboard/map.
     2) При желании дайте боту права администратора — так команды “chat/leaderboard” смогут точнее учитывать участников.
 
-    Полезные шорткаты Telegram (Bancho):
+    Полезные шорткаты (Bancho):
     /user, /recent, /top_scores, /chat_leaderboard, /help, /settings
 
 help-syntax-text =
@@ -310,3 +310,7 @@ help-notes-beatleader =
 
 help-notes-scoresaber =
     • Для ScoreSaber используйте id (числовой ID профиля). Никнейм не настраивается.
+
+help-cmd-account =
+    • account [код]
+      Создать одноразовый код или привязать текущую платформу к существующему аккаунту бота.

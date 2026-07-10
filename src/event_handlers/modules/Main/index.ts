@@ -7,6 +7,7 @@ import SearchCommand from "./Search";
 import ClearCommand from "./Clear";
 import SettingsCommand from "./Settings";
 import OnboardingCommand from "./Onboarding";
+import AccountCommand from "./Account";
 
 export default class Main extends Module {
     constructor(bot: BotRuntime) {
@@ -22,6 +23,7 @@ export default class Main extends Module {
             new ClearCommand(this),
             new SettingsCommand(this),
             new OnboardingCommand(this),
+            new AccountCommand(this),
         ]);
     }
 }

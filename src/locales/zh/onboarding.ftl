@@ -1,10 +1,12 @@
 onboarding-text-greeting = 你好！在开始前，我们先确认一些细节。
 
-onboarding-text-step-language = 请选择与机器人交流的语言（自动模式将尝试使用Telegram界面语言）
+onboarding-text-step-language = 请选择与机器人交流的语言（自动模式会在可用时使用平台界面语言）
 onboarding-text-step-output-style = 你希望以什么形式接收机器人的回复？
 onboarding-text-step-automatic-render = 是否要自动渲染你发送的回放文件？
 onboarding-text-step-experimental-renderer = 是否要使用 osu! 标准模式的实验性渲染器？（使用 osu!lazer，可能存在错误）
-onboarding-text-step-final = 初始设置已完成。
+onboarding-text-step-final =
+    初始设置已完成。
+    如果你在多个平台使用机器人，请在私聊中使用 osu account 将它们绑定到同一个账号。
 unknown-step-error = 此引导步骤已不可用，请重新开始引导。
 
 previous-step-button-text = 上一步

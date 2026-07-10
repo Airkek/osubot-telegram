@@ -1,6 +1,7 @@
 import { ServerModule } from "../Module";
 import Util from "../../../Util";
 import { ServerCommand } from "../../ServerCommand";
+import { IKeyboard } from "../../../Util";
 
 export default class AbstractUser extends ServerCommand {
     ignoreDbUpdate: boolean;
@@ -18,7 +19,7 @@ export default class AbstractUser extends ServerCommand {
                 if (!this.ignoreDbUpdate) {
                     await self.module.db.updateInfo(user, mode);
                 }
-                const keyboard = [
+                const keyboard: IKeyboard = [
                     self.module.api.getUserTopById
                         ? [
                               {

@@ -192,3 +192,71 @@ test("runtime resolves and binds platform identities before dispatch", async () 
 
     await runtime.handleMessage(context as never);
 });
+
+async function dispatchVKCommandWithForcedOnboarding(commandName: string): Promise<string[]> {
+    const calls: string[] = [];
+    const requestedCommand = {
+        name: commandName,
+        process: async () => calls.push(commandName),
+    };
+    const onboardingCommand = {
+        name: "onboarding",
+        process: async () => calls.push("onboarding"),
+    };
+    const storage = createTestStorage({
+        platform: "vk",
+        onboarding: {
+            getUserOnboardingVersion: async () => 0,
+            isUserNeedOnboarding: async () => true,
+            userOnboarded: async () => {},
+            clearCache: () => {},
+        },
+    });
+    const runtime = new ApplicationRuntime(
+        createDependencies({
+            storage,
+            moduleFactories: [
+                () =>
+                    ({
+                        name: "Requested",
+                        commands: [requestedCommand],
+                        checkContext: () => ({ command: requestedCommand }),
+                    }) as never,
+                () =>
+                    ({
+                        name: "Main",
+                        commands: [onboardingCommand],
+                        checkContext: () => null,
+                    }) as never,
+            ],
+        })
+    );
+    await runtime.initialize();
+
+    await runtime.handleMessage({
+        platform: "vk",
+        externalSenderId: 217888904,
+        externalChatId: 217888904,
+        senderId: 0,
+        userId: 0,
+        chatId: 0,
+        isInGroupChat: false,
+        bindIdentity(identity: MessageIdentity) {
+            this.senderId = identity.user.accountId;
+            this.userId = identity.user.userId;
+            this.chatId = identity.chat.chatId;
+        },
+        ensureUserInfoUpdated: async () => {},
+        checkFeature: async (feature: string) => feature === "force-onboarding",
+    } as never);
+
+    return calls;
+}
+
+test("runtime forces onboarding before a regular VK command", async () => {
+    await expect(dispatchVKCommandWithForcedOnboarding("settings")).resolves.toEqual(["onboarding"]);
+});
+
+test("account linking can be the first VK command before onboarding", async () => {
+    await expect(dispatchVKCommandWithForcedOnboarding("account")).resolves.toEqual(["account"]);
+});

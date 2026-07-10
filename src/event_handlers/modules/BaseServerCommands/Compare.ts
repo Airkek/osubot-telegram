@@ -2,7 +2,7 @@ import { ServerModule } from "../Module";
 import Mods from "../../../osu_specific/pp/Mods";
 import { ServerCommand } from "../../ServerCommand";
 import { IBeatmap } from "../../../beatmaps/BeatmapTypes";
-import { IKeyboard } from "../../../Util";
+import { IKeyboardRow, makeKeyboard } from "../../../Util";
 
 export default class AbstractCompare extends ServerCommand {
     constructor(module: ServerModule) {
@@ -35,7 +35,7 @@ export default class AbstractCompare extends ServerCommand {
                     await map.applyMods(score.mods);
                 }
 
-                const buttons: IKeyboard = [];
+                const buttons: IKeyboardRow[] = [];
                 if (score.has_replay && score.api_score_id) {
                     const settingsAllowed = process.env.RENDER_REPLAYS === "true";
                     if (settingsAllowed) {
@@ -56,7 +56,7 @@ export default class AbstractCompare extends ServerCommand {
                     self.module.link
                 );
                 await self.reply(message + "\n\n" + replyData.text, {
-                    keyboard: buttons,
+                    keyboard: makeKeyboard(buttons),
                     photo: replyData.photo,
                 });
 

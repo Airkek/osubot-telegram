@@ -1,6 +1,6 @@
 import { expect, test } from "@jest/globals";
 import { createTelegramWebhookIngress } from "../src/Telegram/WebhookIngress";
-import { WebhookUpdateDispatcher } from "../src/Telegram/UpdateDispatcher";
+import { UpdateDispatcher } from "../src/core/UpdateDispatcher";
 
 global.logger = {
     error() {},
@@ -53,7 +53,7 @@ test("dispatcher defers work, limits concurrency and drains on stop", async () =
     let maxActive = 0;
     const started: number[] = [];
     const releases: Array<() => void> = [];
-    const dispatcher = new WebhookUpdateDispatcher<number>(
+    const dispatcher = new UpdateDispatcher<number>(
         async (task) => {
             started.push(task);
             active++;

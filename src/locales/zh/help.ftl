@@ -33,7 +33,7 @@ help-start-text =
     1) 发送 beatmap/beatmapset 链接 — compare/leaderboard/map 会使用本群“最后谱面”。
     2) 可选：把机器人设为管理员，提高 chat/leaderboard 的准确性。
 
-    Bancho 常用 Telegram 快捷命令：
+    Bancho 常用快捷命令：
     /user, /recent, /top_scores, /chat_leaderboard, /help, /settings
 
 help-syntax-text =
@@ -271,3 +271,7 @@ help-notes-beatleader =
 
 help-notes-scoresaber =
     • ScoreSaber：请使用 id（数字 ID）。
+
+help-cmd-account =
+    • account [绑定码]
+      生成一次性绑定码，或将当前平台连接到已有机器人账号。

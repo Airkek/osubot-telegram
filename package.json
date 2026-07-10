@@ -1,61 +1,62 @@
 {
-  "name": "osubot-telegram",
-  "version": "4.0.0",
-  "description": "",
-  "main": "index.ts",
-  "scripts": {
-    "test": "npm run build && npm run test:run",
-    "test:run": "jest --runInBand",
-    "start": "node ./build",
-    "preinstall": "node -p \"'export const PACKAGE_VERSION = ' + JSON.stringify(require('./package.json').version) + ';'\" > src/version.ts",
-    "build": "npx tsc",
-    "update": "git pull && npm ci && npm run build"
-  },
-  "author": "keijia",
-  "license": "GPL-3.0-only",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/Airkek/osubot-telegram"
-  },
-  "bugs": {
-    "url": "https://github.com/Airkek/osubot-telegram/issues"
-  },
-  "homepage": "https://github.com/Airkek/osubot-telegram#readme",
-  "dependencies": {
-    "@grammyjs/auto-retry": "^2.0.2",
-    "@grammyjs/chat-members": "^1.2.0",
-    "@grammyjs/files": "^1.1.1",
-    "@grammyjs/i18n": "^1.1.2",
-    "@grammyjs/ratelimiter": "^1.2.1",
-    "@grammyjs/runner": "^2.0.3",
-    "@napi-rs/canvas": "^0.1.77",
-    "rosu-pp-js": "^4.0.1",
-    "axios": "^1.18.1",
-    "dotenv": "^17.2.1",
-    "express": "^5.2.1",
-    "globals": "^16.3.0",
-    "grammy": "^1.38.1",
-    "osu-classes": "^3.2.0-beta.0",
-    "osu-parsers": "^4.2.0-beta.0",
-    "pg": "^8.16.3",
-    "querystring": "^0.2.1",
-    "sharp": "^0.34.3",
-    "socket.io-client": "^4.8.3",
-    "tslog": "^4.9.3"
-  },
-  "devDependencies": {
-    "@eslint/js": "^9.34.0",
-    "@grammyjs/types": "^3.22.1",
-    "@jest/globals": "^30.4.1",
-    "@types/node": "^24.3.0",
-    "@types/pg": "^8.15.5",
-    "eslint": "^9.34.0",
-    "eslint-config-prettier": "^10.1.8",
-    "eslint-plugin-prettier": "^5.5.4",
-    "jest": "^30.4.2",
-    "prettier": "3.6.2",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.9.2",
-    "typescript-eslint": "^8.41.0"
-  }
+    "name": "osubot-telegram",
+    "version": "4.0.0",
+    "description": "",
+    "main": "index.ts",
+    "scripts": {
+        "test": "npm run build && npm run test:run",
+        "test:run": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --runInBand",
+        "start": "node ./build",
+        "preinstall": "node -p \"'export const PACKAGE_VERSION = ' + JSON.stringify(require('./package.json').version) + ';'\" > src/version.ts",
+        "build": "npx tsc",
+        "update": "git pull && npm ci && npm run build"
+    },
+    "author": "keijia",
+    "license": "GPL-3.0-only",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/Airkek/osubot-telegram"
+    },
+    "bugs": {
+        "url": "https://github.com/Airkek/osubot-telegram/issues"
+    },
+    "homepage": "https://github.com/Airkek/osubot-telegram#readme",
+    "dependencies": {
+        "@fluent/bundle": "^0.17.1",
+        "@grammyjs/auto-retry": "^2.0.2",
+        "@grammyjs/chat-members": "^1.2.0",
+        "@grammyjs/files": "^1.1.1",
+        "@grammyjs/ratelimiter": "^1.2.1",
+        "@grammyjs/runner": "^2.0.3",
+        "@napi-rs/canvas": "^0.1.77",
+        "axios": "^1.18.1",
+        "dotenv": "^17.2.1",
+        "express": "^5.2.1",
+        "globals": "^16.3.0",
+        "grammy": "^1.38.1",
+        "osu-classes": "^3.2.0-beta.0",
+        "osu-parsers": "^4.2.0-beta.0",
+        "pg": "^8.16.3",
+        "querystring": "^0.2.1",
+        "rosu-pp-js": "^4.0.1",
+        "sharp": "^0.34.3",
+        "socket.io-client": "^4.8.3",
+        "tslog": "^4.9.3",
+        "vk-io": "^4.10.1"
+    },
+    "devDependencies": {
+        "@eslint/js": "^9.34.0",
+        "@grammyjs/types": "^3.22.1",
+        "@jest/globals": "^30.4.1",
+        "@types/node": "^24.3.0",
+        "@types/pg": "^8.15.5",
+        "eslint": "^9.34.0",
+        "eslint-config-prettier": "^10.1.8",
+        "eslint-plugin-prettier": "^5.5.4",
+        "jest": "^30.4.2",
+        "prettier": "3.6.2",
+        "ts-node": "^10.9.2",
+        "typescript": "^5.9.2",
+        "typescript-eslint": "^8.41.0"
+    }
 }

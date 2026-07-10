@@ -864,6 +864,23 @@ const migrations: IMigration[] = [
             return true;
         },
     },
+    {
+        version: 35,
+        name: "Add one-time identity link tokens",
+        process: async (db) => {
+            await db.run(`CREATE TABLE identity_link_tokens
+                          (
+                              token_hash        TEXT PRIMARY KEY,
+                              source_account_id BIGINT      NOT NULL
+                                  REFERENCES platform_accounts (id) ON DELETE CASCADE,
+                              expires_at        TIMESTAMPTZ NOT NULL,
+                              created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
+                          )`);
+            await db.run(`CREATE INDEX identity_link_tokens_expiry_idx
+                          ON identity_link_tokens (expires_at)`);
+            return true;
+        },
+    },
 ];
 
 export async function applyMigrations(db: SqlDatabase) {

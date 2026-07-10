@@ -1,6 +1,6 @@
 import { Command, ICommandArgs } from "../../Command";
 import { IMessageContext } from "../../../core/MessageContext";
-import { IKeyboard } from "../../../Util";
+import { IKeyboard, IKeyboardRow, makeKeyboard } from "../../../Util";
 import { Module } from "../Module";
 import { GameServerName, MaintenanceTarget } from "../../../core/ApplicationStorage";
 
@@ -198,7 +198,7 @@ export default class ClearCommand extends Command {
     }
 
     private buildServerSelectionKeyboard(ctx: IMessageContext, target: "nick" | "stats"): IKeyboard {
-        const keyboard: IKeyboard = [];
+        const keyboard: IKeyboardRow[] = [];
 
         for (let i = 0; i < SERVER_OPTIONS.length; i += 2) {
             const row = SERVER_OPTIONS.slice(i, i + 2).map((server) => ({
@@ -211,7 +211,7 @@ export default class ClearCommand extends Command {
         keyboard.push([{ text: ctx.tr("admin-clear-button-all-servers"), command: `admin clear ${target} all` }]);
         keyboard.push([{ text: ctx.tr("admin-clear-button-back"), command: "admin clear" }]);
 
-        return keyboard;
+        return makeKeyboard(keyboard);
     }
 
     private buildConfirmKeyboard(ctx: IMessageContext, target: ClearTarget, scope?: ClearServer): IKeyboard {

@@ -9,7 +9,8 @@ export type UserErrorKey =
     | "no-top-scores"
     | "replay-not-available"
     | "user-not-found"
-    | "user-statistics-unavailable";
+    | "user-statistics-unavailable"
+    | "video-send-failed";
 
 export class UserError extends Error {
     constructor(

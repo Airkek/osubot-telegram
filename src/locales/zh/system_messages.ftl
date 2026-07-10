@@ -16,3 +16,4 @@ invalid-game-mode = 不支持此游戏模式。
 leaderboard-not-supported = 此服务器不支持谱面排行榜。
 replay-not-available = 回放不可用。
 user-statistics-unavailable = 此游戏模式下无法获取玩家统计数据。
+video-send-failed = 视频已生成，但 VK 无法发送。请联系机器人管理员。

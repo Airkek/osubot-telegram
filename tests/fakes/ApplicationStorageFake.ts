@@ -103,11 +103,8 @@ const telemetry = (): TelemetrySink => ({
 });
 
 const mediaReferences = (): MediaReferenceCache => ({
-    getCover: async () => null,
-    storeCover: async () => {},
     getPhoto: async () => null,
     storePhoto: async () => {},
-    removeEmpty: async () => {},
 });
 
 const maintenance = (): MaintenanceRepository => ({
@@ -179,6 +176,10 @@ export function createTestStorage(overrides: Partial<ApplicationStorage> = {}): 
         onboarding: onboarding(),
         userDirectory: userDirectory(),
         mediaReferences: mediaReferences(),
+        identityLinks: {
+            createToken: async () => ({ code: "ABCDE-FGHJK", expiresAt: new Date() }),
+            consumeToken: async () => ({ status: "invalid-token" }),
+        },
         maintenance: maintenance(),
         initialize: async () => {},
         close: async () => {},

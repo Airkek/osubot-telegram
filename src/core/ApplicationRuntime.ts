@@ -1,9 +1,15 @@
 import { APICollection } from "../api/APICollection";
 import BanchoAPIV2 from "../api/BanchoV2";
 import { OsuBeatmapProvider } from "../beatmaps/osu/OsuBeatmapProvider";
-import { BotRuntime, PendingCallback } from "./BotRuntime";
-import { CoversProvider } from "./CoversProvider";
-import { ApplicationStorage, BotIdentity, MediaReferenceCache } from "./ApplicationStorage";
+import { BotRuntime, PendingCallback, PlatformBotLink } from "./BotRuntime";
+import { MediaAttachmentProvider } from "./MediaAttachmentProvider";
+import {
+    ApplicationStorage,
+    BotIdentity,
+    isPlatformStorageHost,
+    MediaReferenceCache,
+    PlatformStorageHost,
+} from "./ApplicationStorage";
 import Admin from "../event_handlers/modules/Admin";
 import Akatsuki from "../event_handlers/modules/Akatsuki";
 import AkatsukiAutoPilot from "../event_handlers/modules/AkatsukiAutoPilot";
@@ -37,7 +43,7 @@ export interface RuntimeConfig {
 
 export interface RuntimePlatformServices {
     readonly platform: Platform;
-    createCoversProvider(mediaReferences: MediaReferenceCache): CoversProvider;
+    createMediaAttachmentProvider(mediaReferences: MediaReferenceCache): MediaAttachmentProvider;
     sendMessage(recipientId: ExternalId, text: string): Promise<void>;
 }
 
@@ -83,6 +89,7 @@ export class ApplicationRuntime implements BotRuntime {
     readonly replyUtils: ReplyUtils;
     readonly version: string;
     readonly modules: Module[] = [];
+    readonly platformBotLinks: PlatformBotLink[] = [];
     startTime = 0;
 
     readonly commandAliases: Record<string, string> = {
@@ -145,9 +152,43 @@ export class ApplicationRuntime implements BotRuntime {
 
     static create(
         config: RuntimeConfig,
-        storage: ApplicationStorage,
-        platform: RuntimePlatformServices
+        storage: PlatformStorageHost,
+        platforms: RuntimePlatformServices[]
     ): ApplicationRuntime {
+        if (platforms.length === 0) {
+            throw new Error("At least one platform adapter is required");
+        }
+        const platformServices = new Map<Platform, RuntimePlatformServices>();
+        const mediaProviders = new Map<Platform, MediaAttachmentProvider>();
+        for (const platform of platforms) {
+            if (platformServices.has(platform.platform)) {
+                throw new Error(`Duplicate platform adapter '${platform.platform}'`);
+            }
+            platformServices.set(platform.platform, platform);
+            mediaProviders.set(
+                platform.platform,
+                platform.createMediaAttachmentProvider(storage.forPlatform(platform.platform).mediaReferences)
+            );
+        }
+
+        const currentPlatform = (): RuntimePlatformServices => {
+            const platform = platformServices.get(storage.currentPlatform);
+            if (!platform) {
+                throw new Error(`Platform adapter '${storage.currentPlatform}' is not configured`);
+            }
+            return platform;
+        };
+        const currentMediaProvider = (): MediaAttachmentProvider => {
+            const provider = mediaProviders.get(storage.currentPlatform);
+            if (!provider) {
+                throw new Error(`Media attachment provider '${storage.currentPlatform}' is not configured`);
+            }
+            return provider;
+        };
+        const mediaProvider: MediaAttachmentProvider = {
+            addPhotoDoc: (url) => currentMediaProvider().addPhotoDoc(url),
+            getPhotoDoc: (url) => currentMediaProvider().getPhotoDoc(url),
+        };
         const banchoApi = new BanchoAPIV2(config.banchoAppId, config.banchoClientSecret);
         const osuBeatmapProvider = new OsuBeatmapProvider(banchoApi, storage.beatmaps);
         const cards = new OkiCardsGenerator();
@@ -160,8 +201,8 @@ export class ApplicationRuntime implements BotRuntime {
             maps: new Maps(),
             ignored: new IgnoreList(storage.ignoredUsers),
             track: new OsuTrackAPI(),
-            replyUtils: new ReplyUtils(cards, Templates, platform.createCoversProvider(storage.mediaReferences)),
-            sendMessage: (recipientId, text) => platform.sendMessage(recipientId, text),
+            replyUtils: new ReplyUtils(cards, Templates, mediaProvider),
+            sendMessage: (recipientId, text) => currentPlatform().sendMessage(recipientId, text),
         });
     }
 
@@ -177,10 +218,21 @@ export class ApplicationRuntime implements BotRuntime {
         this.modules.push(...this.moduleFactories.map((factory) => factory(this)));
     }
 
-    async markStarted(identity: BotIdentity): Promise<void> {
-        this.startTime = Date.now();
-        await this.storage.telemetry.logStartup(identity);
-        await this.startStatsLogger();
+    async markStarted(platform: Platform, identity: BotIdentity, publicLink: string): Promise<void> {
+        const existingLink = this.platformBotLinks.findIndex((entry) => entry.platform === platform);
+        const link = { platform, url: publicLink };
+        if (existingLink === -1) {
+            this.platformBotLinks.push(link);
+        } else {
+            this.platformBotLinks[existingLink] = link;
+        }
+        await this.runWithPlatform(platform, async () => {
+            await this.storage.telemetry.logStartup(identity);
+        });
+        if (this.startTime === 0) {
+            this.startTime = Date.now();
+            await this.startStatsLogger();
+        }
     }
 
     async stop(): Promise<void> {
@@ -193,6 +245,10 @@ export class ApplicationRuntime implements BotRuntime {
     }
 
     async handleMessage(ctx: IMessageContext): Promise<void> {
+        await this.runWithPlatform(ctx.platform, () => this.handleMessageInPlatform(ctx));
+    }
+
+    private async handleMessageInPlatform(ctx: IMessageContext): Promise<void> {
         await this.prepareContext(ctx);
         if (this.ignored.isIgnored(ctx.senderId)) {
             return;
@@ -217,6 +273,10 @@ export class ApplicationRuntime implements BotRuntime {
     }
 
     async handleCallbackQuery(ctx: IMessageContext): Promise<boolean> {
+        return await this.runWithPlatform(ctx.platform, () => this.handleCallbackQueryInPlatform(ctx));
+    }
+
+    private async handleCallbackQueryInPlatform(ctx: IMessageContext): Promise<boolean> {
         await this.prepareContext(ctx);
         await ctx.ensureUserInfoUpdated();
         await this.storage.telemetry.logMessage(ctx);
@@ -224,6 +284,14 @@ export class ApplicationRuntime implements BotRuntime {
     }
 
     async handleCommandAlias(ctx: IMessageContext, sourceCommand: string, alias: string): Promise<void> {
+        await this.runWithPlatform(ctx.platform, () => this.handleCommandAliasInPlatform(ctx, sourceCommand, alias));
+    }
+
+    private async handleCommandAliasInPlatform(
+        ctx: IMessageContext,
+        sourceCommand: string,
+        alias: string
+    ): Promise<void> {
         await this.prepareContext(ctx);
         await ctx.ensureUserInfoUpdated();
         ctx.applyTextOverrides({ [sourceCommand]: alias });
@@ -232,6 +300,10 @@ export class ApplicationRuntime implements BotRuntime {
     }
 
     async handleRateLimit(ctx: IMessageContext): Promise<void> {
+        await this.runWithPlatform(ctx.platform, () => this.handleRateLimitInPlatform(ctx));
+    }
+
+    private async handleRateLimitInPlatform(ctx: IMessageContext): Promise<void> {
         await this.prepareContext(ctx);
         await ctx.ensureUserInfoUpdated();
         await ctx.activateLocalisator();
@@ -250,7 +322,11 @@ export class ApplicationRuntime implements BotRuntime {
         return `${ctx.platform}:${ctx.externalSenderId}:${ticket}`;
     }
 
-    async userJoined(externalUserId: ExternalId, externalChatId: ExternalId): Promise<void> {
+    async userJoined(platform: Platform, externalUserId: ExternalId, externalChatId: ExternalId): Promise<void> {
+        await this.runWithPlatform(platform, () => this.userJoinedInPlatform(externalUserId, externalChatId));
+    }
+
+    private async userJoinedInPlatform(externalUserId: ExternalId, externalChatId: ExternalId): Promise<void> {
         const [user, chat] = await Promise.all([
             this.storage.identities.resolveUser(externalUserId),
             this.storage.identities.resolveChat(externalChatId),
@@ -260,14 +336,28 @@ export class ApplicationRuntime implements BotRuntime {
         }
     }
 
-    async userLeft(externalUserId: ExternalId, externalChatId: ExternalId, isCurrentBot: boolean): Promise<void> {
-        const [user, chat] = await Promise.all([
-            this.storage.identities.resolveUser(externalUserId),
-            this.storage.identities.resolveChat(externalChatId),
-        ]);
+    async userLeft(
+        platform: Platform,
+        externalUserId: ExternalId,
+        externalChatId: ExternalId,
+        isCurrentBot: boolean
+    ): Promise<void> {
+        await this.runWithPlatform(platform, () =>
+            this.userLeftInPlatform(externalUserId, externalChatId, isCurrentBot)
+        );
+    }
+
+    private async userLeftInPlatform(
+        externalUserId: ExternalId,
+        externalChatId: ExternalId,
+        isCurrentBot: boolean
+    ): Promise<void> {
+        const chat = await this.storage.identities.resolveChat(externalChatId);
         if (isCurrentBot) {
             this.maps.removeChat(chat.chatId);
+            return;
         }
+        const user = await this.storage.identities.resolveUser(externalUserId);
         await this.storage.memberships.userLeft(user.accountId, chat.chatId);
     }
 
@@ -357,7 +447,7 @@ export class ApplicationRuntime implements BotRuntime {
                 continue;
             }
 
-            if (await this.processOnboardings(ctx)) {
+            if (match.command.name !== "account" && (await this.processOnboardings(ctx))) {
                 return true;
             }
 
@@ -387,11 +477,26 @@ export class ApplicationRuntime implements BotRuntime {
 
     private async logStatsInfo(): Promise<void> {
         global.logger.info("Logging stats");
-        await this.storage.telemetry.logUserCount();
-        await this.storage.telemetry.logChatCount();
-        await this.storage.telemetry.logBeatmapMetadataCacheCount();
-        await this.storage.telemetry.logBeatmapFilesCount();
+        const platforms = isPlatformStorageHost(this.storage) ? this.storage.platforms : [this.storage.platform];
+        for (const platform of platforms) {
+            await this.runWithPlatform(platform, async () => {
+                await this.storage.telemetry.logUserCount();
+                await this.storage.telemetry.logChatCount();
+                await this.storage.telemetry.logBeatmapMetadataCacheCount();
+                await this.storage.telemetry.logBeatmapFilesCount();
+            });
+        }
         global.logger.info("Stats logged");
+    }
+
+    private async runWithPlatform<T>(platform: Platform, callback: () => Promise<T>): Promise<T> {
+        if (isPlatformStorageHost(this.storage)) {
+            return await this.storage.runWithPlatform(platform, callback);
+        }
+        if (this.storage.platform !== platform) {
+            throw new Error(`Storage platform '${this.storage.platform}' cannot handle '${platform}' context`);
+        }
+        return await callback();
     }
 
     private async startStatsLogger(): Promise<void> {

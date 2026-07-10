@@ -13,15 +13,23 @@ export default [
     ...tseslint.configs.recommended,
     {
         files: ["src/**/*.ts"],
-        ignores: ["src/Telegram/**/*.ts"],
+        ignores: ["src/Telegram/**/*.ts", "src/VK/**/*.ts"],
         rules: {
             "no-restricted-imports": [
                 "error",
                 {
                     patterns: [
                         {
-                            group: ["grammy", "grammy/*", "@grammyjs/*", "**/Telegram/**"],
-                            message: "Telegram transport dependencies belong in src/Telegram only.",
+                            group: [
+                                "grammy",
+                                "grammy/*",
+                                "@grammyjs/*",
+                                "vk-io",
+                                "vk-io/*",
+                                "**/Telegram/**",
+                                "**/VK/**",
+                            ],
+                            message: "Platform transport dependencies belong in their platform adapter only.",
                         },
                     ],
                 },

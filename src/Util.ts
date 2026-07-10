@@ -8,7 +8,27 @@ export interface IKBButton {
     command: string;
 }
 
-export type IKeyboard = IKBButton[][];
+export type IKeyboardRow = readonly IKBButton[];
+
+// VK inline keyboards are limited to six rows. Keep the shared UI contract at
+// the lowest common denominator so a keyboard is portable between platforms.
+export type IKeyboard = readonly [
+    IKeyboardRow?,
+    IKeyboardRow?,
+    IKeyboardRow?,
+    IKeyboardRow?,
+    IKeyboardRow?,
+    IKeyboardRow?,
+];
+
+export const MAX_KEYBOARD_ROWS = 6;
+
+export function makeKeyboard(rows: readonly IKeyboardRow[]): IKeyboard {
+    if (rows.length > MAX_KEYBOARD_ROWS) {
+        throw new RangeError(`Keyboard cannot contain more than ${MAX_KEYBOARD_ROWS} rows`);
+    }
+    return rows as IKeyboard;
+}
 
 export default {
     async fileExists(filename: string): Promise<boolean> {
