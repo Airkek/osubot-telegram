@@ -1,0 +1,30 @@
+osu file format v14
+
+[General]
+AudioFilename: audio.mp3
+Mode: 3
+
+[Metadata]
+Title:Official mania calculator fixture
+Artist:osubot tests
+Creator:osubot
+Version:4K Test
+BeatmapID:0
+BeatmapSetID:-1
+
+[Difficulty]
+HPDrainRate:5
+CircleSize:4
+OverallDifficulty:8
+ApproachRate:5
+SliderMultiplier:1.4
+SliderTickRate:1
+
+[TimingPoints]
+0,500,4,2,1,50,1,0
+
+[HitObjects]
+64,192,1000,1,0,0:0:0:0:
+192,192,1250,1,0,0:0:0:0:
+320,192,1500,128,0,1750:0:0:0:0:
+448,192,1750,1,0,0:0:0:0:

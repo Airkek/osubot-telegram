@@ -27,3 +27,16 @@ internal static class RulesetHelper
         }.ToMod(ruleset))
         .ToArray();
 }
+
+internal sealed class BuiltInRulesetStore : RulesetStore
+{
+    private readonly RulesetInfo[] rulesets =
+    [
+        new OsuRuleset().RulesetInfo,
+        new TaikoRuleset().RulesetInfo,
+        new CatchRuleset().RulesetInfo,
+        new ManiaRuleset().RulesetInfo
+    ];
+
+    public override IEnumerable<RulesetInfo> AvailableRulesets => rulesets;
+}

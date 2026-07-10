@@ -14,6 +14,7 @@ global.logger = {
 } as typeof global.logger;
 
 const beatmapPath = path.resolve("tests", "fixtures", "official-calculator.osu");
+const maniaBeatmapPath = path.resolve("tests", "fixtures", "official-calculator-mania.osu");
 const replayPath = path.resolve("tests", "fixtures", "official-lazer-replay.osr");
 const mods = [
     { acronym: "HD", settings: { only_fade_approach_circles: true } },
@@ -62,6 +63,18 @@ test("official osu! worker calculates lazer difficulty and performance with mod 
     expect(performance.pp).toBeCloseTo(36.5921848438038, 10);
     expect(performance.fc_pp).toBeCloseTo(performance.pp, 12);
     expect(performance.ss_pp).toBeCloseTo(performance.pp, 12);
+});
+
+test("official osu! worker preserves the native mania ruleset", async () => {
+    const difficulty = await client.request<OfficialBeatmapAttributes>({
+        operation: "beatmap",
+        beatmap_path: maniaBeatmapPath,
+        mode: 3,
+        mods: [],
+    });
+
+    expect(difficulty.native_mode).toBe(3);
+    expect(difficulty.hit_object_count).toBe(4);
 });
 
 test("official osu! replay decoder preserves all lazer mods and settings", async () => {

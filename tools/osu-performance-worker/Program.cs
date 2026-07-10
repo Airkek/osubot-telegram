@@ -14,6 +14,8 @@ internal static class Program
         CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
         CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.InvariantCulture;
         Logger.Enabled = false;
+        using var rulesetStore = new BuiltInRulesetStore();
+        Decoder.RegisterDependencies(rulesetStore);
         LegacyDifficultyCalculatorBeatmapDecoder.Register();
 
         int concurrency = Math.Max(1, Environment.ProcessorCount);
