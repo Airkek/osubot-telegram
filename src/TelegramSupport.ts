@@ -344,45 +344,40 @@ export default class UnifiedMessageContext implements ILocalisator {
     }
 
     async send(text: string, options?: SendOptions, replyTo?: number) {
-        try {
-            const keyboard = await this.createKeyboard(options?.keyboard);
-            if (options?.photo) {
-                return await this.tgCtx.replyWithPhoto(options.photo, {
-                    caption: text,
-                    reply_parameters: {
-                        message_id: replyTo,
-                    },
-                    reply_markup: keyboard,
-                });
-            }
-
-            if (options?.video) {
-                return await this.tgCtx.replyWithVideo(new InputFile(new URL(options.video.url)), {
-                    width: options.video.width,
-                    height: options.video.height,
-                    duration: options.video.duration,
-                    supports_streaming: true,
-                    caption: text,
-                    reply_parameters: {
-                        message_id: replyTo,
-                    },
-                    reply_markup: keyboard,
-                });
-            }
-
-            return await this.tgCtx.reply(text, {
-                link_preview_options: {
-                    is_disabled: options?.dont_parse_links !== false,
-                },
+        const keyboard = await this.createKeyboard(options?.keyboard);
+        if (options?.photo) {
+            return await this.tgCtx.replyWithPhoto(options.photo, {
+                caption: text,
                 reply_parameters: {
                     message_id: replyTo,
                 },
                 reply_markup: keyboard,
             });
-        } catch (e) {
-            global.logger.error(e);
-            return undefined;
         }
+
+        if (options?.video) {
+            return await this.tgCtx.replyWithVideo(new InputFile(new URL(options.video.url)), {
+                width: options.video.width,
+                height: options.video.height,
+                duration: options.video.duration,
+                supports_streaming: true,
+                caption: text,
+                reply_parameters: {
+                    message_id: replyTo,
+                },
+                reply_markup: keyboard,
+            });
+        }
+
+        return await this.tgCtx.reply(text, {
+            link_preview_options: {
+                is_disabled: options?.dont_parse_links !== false,
+            },
+            reply_parameters: {
+                message_id: replyTo,
+            },
+            reply_markup: keyboard,
+        });
     }
 
     async remove() {

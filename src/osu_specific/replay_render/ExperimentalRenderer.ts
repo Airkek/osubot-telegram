@@ -171,13 +171,13 @@ export class ExperimentalRenderer implements IReplayRenderer {
             }
 
             if (status[0] == "fail") {
-                throw status[1];
+                throw new Error(status[1]);
             }
             if (status[0] == "done") {
                 return;
             }
 
-            throw `Unknown error: ${data}`;
+            throw new Error(`Unknown error: ${data}`);
         }
 
         throw new Error(`Render timed out after ${timeoutMs}ms`);

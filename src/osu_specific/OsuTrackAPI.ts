@@ -1,6 +1,7 @@
 import * as axios from "axios";
 import { OsuTrackResponse, TrackTopScore } from "../Types";
 import qs from "querystring";
+import { UserError } from "../UserError";
 
 export default class OsuTrackAPI {
     api: axios.AxiosInstance;
@@ -44,7 +45,7 @@ export default class OsuTrackAPI {
             };
         } catch (err) {
             if (axios.isAxiosError(err) && err.response?.status == 404) {
-                throw new Error("User not found");
+                throw new UserError("user-not-found", "User not found");
             }
             throw err;
         }

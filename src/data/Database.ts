@@ -155,13 +155,7 @@ class DatabaseErrors {
             info += `; Replied to: ${ctx.replyMessage.senderId}`;
         }
 
-        let errorText: string;
-
-        if (error instanceof Error) {
-            errorText = error.stack;
-        } else if (error instanceof String) {
-            errorText = String(error);
-        }
+        const errorText = error instanceof Error ? error.stack || error.message : String(error);
 
         const hash = createHash("sha3-256")
             .update(info + errorText)

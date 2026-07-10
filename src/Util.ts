@@ -1,12 +1,6 @@
 import { CalcArgs, HitCounts, PPArgs } from "./Types";
 import { IBeatmap } from "./beatmaps/BeatmapTypes";
-import { ILocalisator } from "./ILocalisator";
 import fs from "fs/promises";
-
-interface Err {
-    e: string;
-    t: string;
-}
 
 // TODO: move out of utils
 export interface IKBButton {
@@ -15,33 +9,6 @@ export interface IKBButton {
 }
 
 export type IKeyboard = IKBButton[][];
-
-const errors: Err[] = [
-    {
-        e: "User not found",
-        t: "user-not-found",
-    },
-    {
-        e: "No top scores",
-        t: "no-top-scores",
-    },
-    {
-        e: "No recent scores",
-        t: "no-recent-scores",
-    },
-    {
-        e: "No scores",
-        t: "no-scores-found",
-    },
-    {
-        e: "No scores found",
-        t: "no-scores-found",
-    },
-    {
-        e: "Beatmap not found",
-        t: "beatmap-not-found",
-    },
-];
 
 export default {
     async fileExists(filename: string): Promise<boolean> {
@@ -137,10 +104,6 @@ export default {
     },
     createPPArgs(args: PPArgs, mode: number): CalcArgs {
         return new CalcArgs(args, mode);
-    },
-    error(e: string, l: ILocalisator): string {
-        const f = errors.find((er) => er.e == e);
-        return f ? l.tr(f.t) : l.tr("unknown-error");
     },
     getModeArg(mode: number) {
         return ["-std", "-taiko", "-ctb", "-mania"][mode];

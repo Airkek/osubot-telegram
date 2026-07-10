@@ -2,6 +2,7 @@ import axios from "axios";
 import { ServerCommand } from "../../ServerCommand";
 import { ServerModule } from "../Module";
 import { APIUser } from "../../../Types";
+import { isUserError } from "../../../UserError";
 
 const buildVerifyUrl = (baseUrl: string): string => {
     const trimmed = baseUrl.replace(/\/+$/, "");
@@ -37,7 +38,7 @@ export default class BanchoLink extends ServerCommand {
                 try {
                     user = await api.getUser(self.args.nickname.join(" "));
                 } catch (error) {
-                    if (error instanceof Error && error.message === "User not found") {
+                    if (isUserError(error, "user-not-found")) {
                         await self.reply(self.ctx.tr("user-not-found"));
                         return;
                     }
@@ -97,10 +98,9 @@ export default class BanchoLink extends ServerCommand {
             try {
                 user = await self.module.api.getUserById(userId);
             } catch (error) {
-                const responseKey =
-                    error instanceof Error && error.message === "User not found"
-                        ? "user-not-found"
-                        : "link-service-unavailable";
+                const responseKey = isUserError(error, "user-not-found")
+                    ? "user-not-found"
+                    : "link-service-unavailable";
                 await self.reply(self.ctx.tr(responseKey));
                 return;
             }

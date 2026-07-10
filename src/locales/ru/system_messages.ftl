@@ -12,3 +12,7 @@ no-recent-scores = Нет последних скоров!
 no-scores-found = Не найдено скоров!
 beatmap-not-found = Невозможно получить данные о карте!
 card-gen-failed = Не удалось создать карточку. Используется текстовый ответ.
+invalid-game-mode = Этот режим игры не поддерживается.
+leaderboard-not-supported = Этот сервер не поддерживает лидерборды на картах.
+replay-not-available = Реплей недоступен.
+user-statistics-unavailable = Статистика игрока недоступна для этого режима игры.

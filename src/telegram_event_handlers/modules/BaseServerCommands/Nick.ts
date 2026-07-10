@@ -2,6 +2,7 @@ import { ServerModule } from "../Module";
 import { ServerCommand } from "../../ServerCommand";
 import { APIUser, IDatabaseServer } from "../../../Types";
 import IAPI from "../../../api/base";
+import { isUserError } from "../../../UserError";
 
 export default class AbstractNick extends ServerCommand {
     constructor(module: ServerModule, masterApi?: IAPI, masterDb?: IDatabaseServer) {
@@ -19,7 +20,7 @@ export default class AbstractNick extends ServerCommand {
             try {
                 user = await (masterApi ?? self.module.api).getUser(self.args.nickname.join(" "));
             } catch (error) {
-                if (error instanceof Error && error.message === "User not found") {
+                if (isUserError(error, "user-not-found")) {
                     await self.reply(self.ctx.tr("user-not-found"));
                     return;
                 }

@@ -1,6 +1,7 @@
 import { Module } from "./modules/Module";
 import Util from "../Util";
 import UnifiedMessageContext from "../TelegramSupport";
+import { localizeError } from "../UserError";
 
 export interface ICommandArgs {
     full: string[];
@@ -53,16 +54,19 @@ export class Command {
             }
             await this.function(ctx, this, this.parseArgs(this.getSplittedText(text)));
         } catch (e: unknown) {
-            const err = await this.module.bot.database.errors.addError(ctx, e);
-
-            let errorText: string;
-            if (e instanceof Error) {
-                errorText = e.message;
-            } else if (e instanceof String) {
-                errorText = String(e);
+            let errorId: string;
+            try {
+                errorId = await this.module.bot.database.errors.addError(ctx, e);
+            } catch (recordError) {
+                global.logger.error("Failed to record command error", recordError, e);
             }
 
-            await ctx.reply(`${Util.error(errorText, ctx)} (${err})`);
+            try {
+                const errorReference = errorId ? ` (${errorId})` : "";
+                await ctx.reply(`${localizeError(e, ctx)}${errorReference}`);
+            } catch (replyError) {
+                global.logger.error("Failed to send command error response", replyError);
+            }
         }
 
         await this.module.bot.database.statsModel.logCommand(this, ctx);

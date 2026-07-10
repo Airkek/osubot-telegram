@@ -22,7 +22,13 @@ declare global {
 
 global.logger = new Logger<ILogObj>();
 
-global.logger.info("Starting...");
-const bot: Bot = new Bot(config);
+async function main(): Promise<void> {
+    global.logger.info("Starting...");
+    const bot = new Bot(config);
+    await bot.start();
+}
 
-bot.start();
+void main().catch((error) => {
+    global.logger.fatal("Failed to start bot", error);
+    process.exit(1);
+});

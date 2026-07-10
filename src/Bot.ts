@@ -24,12 +24,12 @@ import Ripple from "./telegram_event_handlers/modules/Ripple";
 import BeatLeader from "./telegram_event_handlers/modules/BeatLeader";
 import ScoreSaber from "./telegram_event_handlers/modules/ScoreSaber";
 import OsuTrackAPI from "./osu_specific/OsuTrackAPI";
+import { localizeError } from "./UserError";
 import IgnoreList from "./Ignore";
 import UnifiedMessageContext, { TgApi, TgContext } from "./TelegramSupport";
 import { OsuBeatmapProvider } from "./beatmaps/osu/OsuBeatmapProvider";
 import BanchoAPIV2 from "./api/BanchoV2";
 import { SimpleCommandsModule } from "./telegram_event_handlers/modules/simple_commands";
-import Util from "./Util";
 import { OkiCardsGenerator } from "./oki-cards/OkiCardsGenerator";
 import RippleRelax from "./telegram_event_handlers/modules/RippleRelax";
 import { setInterval, clearInterval } from "node:timers";
@@ -63,8 +63,6 @@ export class Bot {
     public readonly maps: Maps;
     public readonly ignored: IgnoreList;
     public readonly track: OsuTrackAPI;
-
-    public readonly banchoApi: BanchoAPIV2; // TODO: make private
 
     public readonly okiChanCards: OkiCardsGenerator = new OkiCardsGenerator();
 
@@ -112,10 +110,10 @@ export class Bot {
         this.database = new Database(this.tg, config.tg.owner);
         this.ignored = new IgnoreList(this.database);
 
-        this.banchoApi = new BanchoAPIV2(this);
-        this.osuBeatmapProvider = new OsuBeatmapProvider(this.banchoApi, this.database.osuBeatmapMeta);
+        const banchoApi = new BanchoAPIV2(config.tokens.bancho_v2_app_id, config.tokens.bancho_v2_secret);
+        this.osuBeatmapProvider = new OsuBeatmapProvider(banchoApi, this.database.osuBeatmapMeta);
 
-        this.api = new APICollection(this.banchoApi, this.osuBeatmapProvider);
+        this.api = new APICollection(banchoApi);
         this.maps = new Maps();
         this.track = new OsuTrackAPI();
 
@@ -330,16 +328,19 @@ export class Bot {
                 res = await cb(ctx);
             } catch (e: unknown) {
                 res = true;
-                const err = await this.database.errors.addError(ctx, e);
-
-                let errorText: string;
-                if (e instanceof Error) {
-                    errorText = e.message;
-                } else if (e instanceof String) {
-                    errorText = String(e);
+                let errorId: string;
+                try {
+                    errorId = await this.database.errors.addError(ctx, e);
+                } catch (recordError) {
+                    global.logger.error("Failed to record callback error", recordError, e);
                 }
 
-                await ctx.reply(`${Util.error(errorText, ctx)} (${err})`);
+                try {
+                    const errorReference = errorId ? ` (${errorId})` : "";
+                    await ctx.reply(`${localizeError(e, ctx)}${errorReference}`);
+                } catch (replyError) {
+                    global.logger.error("Failed to send callback error response", replyError);
+                }
             } finally {
                 if (res) {
                     this.removeCallback(ticket);
@@ -488,7 +489,8 @@ export class Bot {
                 const metrics = await promClient.register.metrics();
                 res.status(200).send(metrics);
             } catch (err) {
-                res.status(500).send(err instanceof Error ? err.message : String(err));
+                global.logger.error("Failed to collect Prometheus metrics", err);
+                res.status(500).send("Internal Server Error");
             }
         });
     }
@@ -516,7 +518,7 @@ export class Bot {
         if (this._initializationPromise) {
             await this._initializationPromise;
         }
-        await this.banchoApi.login();
+        await this.api.bancho.login();
         this.startTime = Date.now();
 
         this.me = await this.tg.api.getMe();

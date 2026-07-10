@@ -1,5 +1,3 @@
-import IAPI from "./base";
-
 import GatariAPI from "./Gatari";
 import RippleAPI from "./Ripple";
 import AkatsukiAPI from "./Akatsuki";
@@ -8,22 +6,21 @@ import AkatsukiAutopilotAPI from "./AkatsukiAutopilot";
 import BanchoAPIV2 from "./BanchoV2";
 import BeatLeaderAPI from "./BeatLeader";
 import ScoreSaberAPI from "./ScoreSaber";
-import { IBeatmapProvider } from "../beatmaps/IBeatmapProvider";
 import RippleRelaxAPI from "./RippleRelax";
 
 class APICollection {
-    bancho: IAPI;
-    gatari: IAPI;
-    ripple: IAPI;
-    rippleRx: IAPI;
-    akatsuki: IAPI;
-    akatsukiRx: IAPI;
-    akatsukiAp: IAPI;
-    beatleader: IAPI;
-    scoresaber: IAPI;
-    constructor(bancho: BanchoAPIV2, osuBeatmapProvider: IBeatmapProvider) {
+    readonly bancho: BanchoAPIV2;
+    readonly gatari: GatariAPI;
+    readonly ripple: RippleAPI;
+    readonly rippleRx: RippleRelaxAPI;
+    readonly akatsuki: AkatsukiAPI;
+    readonly akatsukiRx: AkatsukiRelaxAPI;
+    readonly akatsukiAp: AkatsukiAutopilotAPI;
+    readonly beatleader: BeatLeaderAPI;
+    readonly scoresaber: ScoreSaberAPI;
+    constructor(bancho: BanchoAPIV2) {
         this.bancho = bancho;
-        this.gatari = new GatariAPI(osuBeatmapProvider);
+        this.gatari = new GatariAPI();
         this.ripple = new RippleAPI();
         this.rippleRx = new RippleRelaxAPI();
         this.akatsuki = new AkatsukiAPI();

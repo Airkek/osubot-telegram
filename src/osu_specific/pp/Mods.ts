@@ -227,6 +227,11 @@ export default class Mods {
             if (AcrToNum[mod.acronym]) {
                 flags |= AcrToNum[mod.acronym];
             }
+            if (mod.acronym === "NC") {
+                flags |= ModsBitwise.DoubleTime;
+            } else if (mod.acronym === "PF") {
+                flags |= ModsBitwise.SuddenDeath;
+            }
 
             const idx = speedChanging.indexOf(mod.acronym);
             if (idx != -1) {
@@ -256,6 +261,11 @@ export default class Mods {
             const currAcr = buf.toUpperCase().slice(-2);
             if (ModsAcronyms[currAcr]) {
                 m |= AcrToNum[currAcr];
+                if (currAcr === "NC") {
+                    m |= ModsBitwise.DoubleTime;
+                } else if (currAcr === "PF") {
+                    m |= ModsBitwise.SuddenDeath;
+                }
                 buf = "";
             } else if (currAcr == "CL") {
                 this.lazer = false;
@@ -281,10 +291,10 @@ export default class Mods {
         }
         let tempMods = this.sum();
         if (this.sum() & ModsBitwise.Nightcore) {
-            tempMods -= ModsBitwise.DoubleTime;
+            tempMods &= ~ModsBitwise.DoubleTime;
         }
         if (this.sum() & ModsBitwise.Perfect) {
-            tempMods -= ModsBitwise.SuddenDeath;
+            tempMods &= ~ModsBitwise.SuddenDeath;
         }
         const p = this.parse(tempMods);
         const str: ExtendedMod[] = p.map((mod) => {

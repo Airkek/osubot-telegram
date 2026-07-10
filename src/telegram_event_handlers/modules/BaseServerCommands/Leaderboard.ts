@@ -2,6 +2,7 @@ import { ServerModule } from "../Module";
 import { IDatabaseUser } from "../../../Types";
 import Mods from "../../../osu_specific/pp/Mods";
 import { ServerCommand } from "../../ServerCommand";
+import { getLeaderboard } from "../../../Leaderboard";
 
 export default class AbstractLeaderboard extends ServerCommand {
     constructor(module: ServerModule) {
@@ -25,7 +26,9 @@ export default class AbstractLeaderboard extends ServerCommand {
                     users.push(user);
                 }
             }
-            const leaderboard = await self.module.api.getLeaderboard(
+            const leaderboard = await getLeaderboard(
+                self.module.api,
+                self.module.beatmapProvider,
                 chat.map.id,
                 users,
                 chat.map.mode,

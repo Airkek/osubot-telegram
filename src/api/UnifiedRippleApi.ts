@@ -1,6 +1,7 @@
 import IAPI from "./base";
 import * as axios from "axios";
 import qs from "querystring";
+import { UserError } from "../UserError";
 import { APIUser, APIUserGradeCounts, HitCounts, APIScore } from "../Types";
 import Mods from "../osu_specific/pp/Mods";
 import Util from "../Util";
@@ -170,7 +171,7 @@ export default class UnifiedRippleAPI implements IAPI {
             return new RippleUser(data, this.statsIndex, mode, this.avatarBase);
         } catch (error) {
             if (axios.isAxiosError(error) && error.response?.status === 404) {
-                throw new Error("User not found");
+                throw new UserError("user-not-found", "User not found");
             }
             throw error;
         }
@@ -182,7 +183,7 @@ export default class UnifiedRippleAPI implements IAPI {
             return new RippleUser(data, this.statsIndex, mode, this.avatarBase);
         } catch (error) {
             if (axios.isAxiosError(error) && error.response?.status === 404) {
-                throw new Error("User not found");
+                throw new UserError("user-not-found", "User not found");
             }
             throw error;
         }
@@ -195,7 +196,7 @@ export default class UnifiedRippleAPI implements IAPI {
             throw new Error(data?.message || "Unknown API error");
         }
         if (!Array.isArray(data.scores) || data.scores.length === 0) {
-            throw new Error("No scores");
+            throw new UserError("no-top-scores", "No scores");
         }
         return data.scores.map((score) => new RippleScore(score, mode));
     }
@@ -215,7 +216,7 @@ export default class UnifiedRippleAPI implements IAPI {
             throw new Error(data?.message || "Unknown API error");
         }
         if (!Array.isArray(data.scores) || !data.scores[0]) {
-            throw new Error("No scores");
+            throw new UserError("no-recent-scores", "No scores");
         }
         return new RippleRecentScore(data.scores[0], mode);
     }

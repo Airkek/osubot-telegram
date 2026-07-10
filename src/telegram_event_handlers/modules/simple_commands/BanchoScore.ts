@@ -8,10 +8,10 @@ export class BanchoScore extends Command {
     constructor(module: SimpleCommandsModule) {
         super(["bancho_score_link"], module, async (ctx: UnifiedMessageContext) => {
             const scoreId = getScoreIdFromText(ctx.text) || this.getScoreIdFromAttachments(ctx);
-            const score = await module.bot.banchoApi.getScoreByScoreId(scoreId);
+            const score = await module.bot.api.bancho.getScoreByScoreId(scoreId);
             const map = await module.bot.osuBeatmapProvider.getBeatmapById(score.beatmapId, score.mode);
             await map.applyMods(score.mods);
-            const user = await module.bot.banchoApi.getUserById(score.player_id);
+            const user = await module.bot.api.bancho.getUserById(score.player_id);
             module.bot.maps.setMap(ctx.chatId, map);
 
             const buttons: IKeyboard = [];

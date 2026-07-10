@@ -9,17 +9,14 @@ import {
     APIBeatmap,
     APIUser,
     APIUserGradeCounts,
-    IDatabaseUser,
-    LeaderboardResponse,
     IBeatmapObjects,
     IBeatmapStars,
     BeatmapStatus,
-    LeaderboardScore,
     IBeatmapStats,
 } from "../Types";
 import Mods from "../osu_specific/pp/Mods";
-import IAPI from "./base";
-import { Bot } from "../Bot";
+import IAPI, { NoScoreError, ScoreRequestOptions } from "./base";
+import { UserError } from "../UserError";
 
 type Ruleset = "osu" | "mania" | "taiko" | "fruits";
 
@@ -246,6 +243,10 @@ interface BeatmapUserScore {
     score: Score;
 }
 
+interface BeatmapUserScores {
+    scores: Score[];
+}
+
 class V2Score implements APIScore {
     api_score_id: number;
     beatmapId: number;
@@ -298,8 +299,6 @@ class V2Score implements APIScore {
         return this.v2_acc;
     }
 }
-
-class NoScoresError extends Error {}
 
 class V2User implements APIUser {
     id: number;
@@ -384,20 +383,19 @@ const getRulesetId = (ruleset: Ruleset | string): number => {
 };
 
 class BanchoAPIV2 implements IAPI {
+    readonly supportsScoreMods = true;
     api: axios.AxiosInstance;
     logged: number;
     token?: string;
     app_id: number;
     client_secret: string;
-    bot: Bot; // TODO: remove
-    constructor(bot: Bot) {
+    constructor(appId: number, clientSecret: string) {
         this.api = axios.default.create({
             baseURL: "https://osu.ppy.sh/api/v2",
             timeout: 15000,
         });
-        this.bot = bot;
-        this.app_id = this.bot.config.tokens.bancho_v2_app_id;
-        this.client_secret = this.bot.config.tokens.bancho_v2_secret;
+        this.app_id = appId;
+        this.client_secret = clientSecret;
 
         this.logged = 0;
     }
@@ -502,10 +500,10 @@ class BanchoAPIV2 implements IAPI {
         const data = await this.get(`/users/${user}${ruleset}`);
 
         if (data === undefined) {
-            throw new Error("User not found");
+            throw new UserError("user-not-found", "User not found");
         }
         if (!data?.statistics) {
-            throw new Error("User statistics are unavailable for this mode");
+            throw new UserError("user-statistics-unavailable", "User statistics are unavailable for this mode");
         }
 
         return new V2User(data, mode);
@@ -517,10 +515,10 @@ class BanchoAPIV2 implements IAPI {
         const data = await this.get(`/users/${user}${ruleset}`);
 
         if (data === undefined) {
-            throw new Error("User not found");
+            throw new UserError("user-not-found", "User not found");
         }
         if (!data?.statistics) {
-            throw new Error("User statistics are unavailable for this mode");
+            throw new UserError("user-statistics-unavailable", "User statistics are unavailable for this mode");
         }
 
         return new V2User(data, mode);
@@ -553,47 +551,13 @@ class BanchoAPIV2 implements IAPI {
         }
 
         if (data === undefined) {
-            throw new Error("Beatmap not found");
+            throw new UserError("beatmap-not-found", "Beatmap not found");
         }
         if (!data?.beatmapset) {
             throw new Error("Invalid beatmap response from osu! API");
         }
 
         return new V2Beatmap(data);
-    }
-
-    async getLeaderboard(
-        beatmapId: number,
-        users: IDatabaseUser[],
-        mode?: number,
-        mods?: number
-    ): Promise<LeaderboardResponse> {
-        const map = await this.bot.osuBeatmapProvider.getBeatmapById(beatmapId);
-        if (mods) {
-            await map.applyMods(new Mods(mods));
-        }
-        const scores: LeaderboardScore[] = [];
-        const pendingUsers = [...users];
-        const lim = Math.ceil(pendingUsers.length / 5);
-        for (let i = 0; i < lim; i++) {
-            const batch = pendingUsers.slice(i * 5, i * 5 + 5);
-            const results = await Promise.allSettled(
-                batch.map((user) => this.getScoreByUid(user.game_id, beatmapId, mode, mods, true))
-            );
-            for (let j = 0; j < results.length; j++) {
-                const result = results[j];
-                if (result.status === "fulfilled") {
-                    scores.push({ user: batch[j], score: result.value });
-                } else if (!(result.reason instanceof NoScoresError)) {
-                    throw result.reason;
-                }
-            }
-        }
-
-        return {
-            map,
-            scores: scores.sort((a, b) => b.score.score - a.score.score),
-        };
     }
 
     async getBeatmapsets(args: V2BeatmapsetsArguments): Promise<V2Beatmapset[]> {
@@ -666,7 +630,7 @@ class BanchoAPIV2 implements IAPI {
 
             return result;
         }
-        throw new Error("No recent scores");
+        throw new UserError("no-recent-scores", "No recent scores");
     }
 
     async getUserTopById(uid: number | string, mode: number = 0, limit: number = 3): Promise<APIScore[]> {
@@ -686,7 +650,7 @@ class BanchoAPIV2 implements IAPI {
             });
         }
 
-        throw new Error("No top scores");
+        throw new UserError("no-top-scores", "No top scores");
     }
 
     async getScoreByUid(
@@ -694,8 +658,25 @@ class BanchoAPIV2 implements IAPI {
         beatmapId: number,
         mode?: number,
         mods?: number,
-        forceLazerScore = false
+        options: ScoreRequestOptions = {}
     ): Promise<APIScore> {
+        if (mods === 0) {
+            const data: BeatmapUserScores = await this.get(`/beatmaps/${beatmapId}/scores/users/${uid}/all`, {
+                ruleset: getRuleset(mode),
+            });
+            if (!data) {
+                throw new NoScoreError("No scores found");
+            }
+            if (!Array.isArray(data.scores)) {
+                throw new Error("Invalid user scores response from osu! API");
+            }
+            const score = data.scores.find((candidate) => new Mods(candidate.mods).sum() === 0);
+            if (!score) {
+                throw new NoScoreError("No scores found");
+            }
+            return new V2Score(score, options.forceLazerScore);
+        }
+
         const query: Record<string, string | string[]> = {
             mode: getRuleset(mode),
         };
@@ -706,13 +687,13 @@ class BanchoAPIV2 implements IAPI {
         const data: BeatmapUserScore = await this.get(`/beatmaps/${beatmapId}/scores/users/${uid}`, query);
 
         if (!data) {
-            throw new NoScoresError("No scores found");
+            throw new NoScoreError("No scores found");
         }
         if (!data.score) {
             throw new Error("Invalid user score response from osu! API");
         }
 
-        return new V2Score(data.score, forceLazerScore);
+        return new V2Score(data.score, options.forceLazerScore);
     }
 
     async getScoreByScoreId(scoreId: number | string, legacyOnly = false): Promise<V2Score> {
@@ -723,7 +704,7 @@ class BanchoAPIV2 implements IAPI {
     async downloadReplay(scoreId: number | string): Promise<Buffer> {
         const data = await this.getArrayBuffer(`/scores/${scoreId}/download`);
         if (!data) {
-            throw new Error("Replay is not available");
+            throw new UserError("replay-not-available", "Replay is not available");
         }
         const buffer = Buffer.from(data, "binary");
 
@@ -736,7 +717,7 @@ class BanchoAPIV2 implements IAPI {
         });
 
         if (!data) {
-            throw new Error("No scores found");
+            throw new NoScoreError("No scores found");
         }
 
         return data;

@@ -1,6 +1,7 @@
 import IAPI from "./base";
 import * as axios from "axios";
 import qs from "querystring";
+import { UserError } from "../UserError";
 import {
     APIBeatmap,
     APIScore,
@@ -272,7 +273,7 @@ export default class ScoreSaberAPI implements IAPI {
             return new ScoreSaberUser(data);
         } catch (error) {
             if (axios.isAxiosError(error) && error.response?.status === 404) {
-                throw new Error("User not found");
+                throw new UserError("user-not-found", "User not found");
             }
             throw error;
         }
@@ -288,7 +289,7 @@ export default class ScoreSaberAPI implements IAPI {
             return new BeatSaberScore(data.playerScores[0]);
         }
 
-        throw new Error("No recent scores");
+        throw new UserError("no-recent-scores", "No recent scores");
     }
 
     async getUserTopById(id: string, mode?: number, limit: number = 3): Promise<APIScore[]> {
@@ -301,6 +302,6 @@ export default class ScoreSaberAPI implements IAPI {
             return data.playerScores.map((scoreData: SSScoreData) => new BeatSaberScore(scoreData));
         }
 
-        throw new Error("No top scores");
+        throw new UserError("no-top-scores", "No top scores");
     }
 }
