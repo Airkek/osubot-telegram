@@ -13,6 +13,7 @@ import {
     IBeatmapStars,
     BeatmapStatus,
     IBeatmapStats,
+    RankedPlayStatistics,
 } from "../Types";
 import Mods from "../osu_specific/pp/Mods";
 import IAPI, { NoScoreError, ScoreRequestOptions } from "./base";
@@ -145,6 +146,23 @@ interface User {
     statistics?: UserStats;
     playmode: Ruleset;
     cover?: ProfileCover;
+    matchmaking_stats?: MatchmakingStatistics[];
+}
+
+interface MatchmakingPool {
+    name: string;
+    active: boolean;
+    ruleset_id: number;
+}
+
+interface MatchmakingStatistics {
+    pool_id: number;
+    rating: number;
+    rank?: number;
+    plays: number;
+    first_placements: number;
+    is_rating_provisional: boolean;
+    pool: MatchmakingPool;
 }
 
 interface BeatmapCovers {
@@ -322,6 +340,7 @@ class V2User implements APIUser {
     profileAvatarUrl: string;
     profileBackgroundUrl?: string;
     total_score?: number;
+    rankedPlay?: RankedPlayStatistics;
 
     constructor(data: User, mode?: number) {
         if (!data?.statistics?.level) {
@@ -346,6 +365,23 @@ class V2User implements APIUser {
         this.grades = data.statistics?.grade_counts;
         this.is_supporter = data.is_supporter;
         this.total_score = data.statistics?.total_score;
+
+        const activeRankedPlay = data.matchmaking_stats
+            ?.filter((statistics) => statistics.pool.active && statistics.pool.ruleset_id === this.mode)
+            .sort((left, right) => {
+                const rankDifference = (left.rank ?? Number.MAX_SAFE_INTEGER) - (right.rank ?? Number.MAX_SAFE_INTEGER);
+                return rankDifference || right.rating - left.rating || right.pool_id - left.pool_id;
+            })[0];
+        if (activeRankedPlay) {
+            this.rankedPlay = {
+                poolName: activeRankedPlay.pool.name,
+                rating: activeRankedPlay.rating,
+                rank: activeRankedPlay.rank,
+                plays: activeRankedPlay.plays,
+                wins: activeRankedPlay.first_placements,
+                provisional: activeRankedPlay.is_rating_provisional,
+            };
+        }
     }
 }
 

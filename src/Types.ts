@@ -242,6 +242,15 @@ interface APIUserGradeCounts {
     ssh: number;
 }
 
+interface RankedPlayStatistics {
+    poolName: string;
+    rating: number;
+    rank?: number;
+    plays: number;
+    wins: number;
+    provisional: boolean;
+}
+
 interface APIUser {
     id: number | string;
     nickname: string;
@@ -264,6 +273,7 @@ interface APIUser {
 
     profileBackgroundUrl?: string;
     profileAvatarUrl?: string;
+    rankedPlay?: RankedPlayStatistics;
 }
 
 interface APIScore {
@@ -422,6 +432,7 @@ export {
     APIScore,
     APIBeatmap,
     APIUserGradeCounts,
+    RankedPlayStatistics,
     TrackTopScore,
     BeatmapStatus,
     ProfileMode,

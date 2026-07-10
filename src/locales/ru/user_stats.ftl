@@ -4,3 +4,7 @@ player-playcount = Количество игр
 player-playtime = Время в игре
 player-accuracy = Точность
 player-totalscore = Очки
+player-ranked-play = Ranked Play
+player-ranked-play-rating = Рейтинг
+player-ranked-play-wins = Победы
+player-ranked-play-games = Игры

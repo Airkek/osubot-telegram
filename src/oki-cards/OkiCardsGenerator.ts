@@ -405,13 +405,13 @@ export class OkiCardsGenerator {
         }
 
         ctx.fillStyle = color.background;
-        OkiFormat.rect(ctx, 0, 0, ctx.canvas.width, ctx.canvas.height, 37);
+        OkiFormat.rect(ctx, 0, 0, ctx.canvas.width, ctx.canvas.height, 0);
 
         const beatmapImage = await Canvas.loadImage(coverBuffer);
         ctx.shadowColor = "rgba(0,0,0,0.8)";
         ctx.shadowBlur = 20;
         ctx.save();
-        OkiFormat.rect(ctx, 0, 0, ctx.canvas.width, 300, 37);
+        OkiFormat.rect(ctx, 0, 0, ctx.canvas.width, 300, 0);
         ctx.clip();
 
         ctx.drawImage(beatmapImage, 0, 0, ctx.canvas.width, 300);
@@ -1153,7 +1153,7 @@ export class OkiCardsGenerator {
     }
 
     async generateUserCard(user: APIUser, l: ILocalisator): Promise<Buffer> {
-        const canvas = Canvas.createCanvas(1200, 624);
+        const canvas = Canvas.createCanvas(1200, user.rankedPlay ? 816 : 624);
         const ctx = canvas.getContext("2d");
 
         let background: Buffer = undefined;
@@ -1189,21 +1189,21 @@ export class OkiCardsGenerator {
 
         ctx.beginPath();
         ctx.fillStyle = colors.background;
-        OkiFormat.rect(ctx, 0, 0, canvas.width, canvas.height, 45);
+        OkiFormat.rect(ctx, 0, 0, canvas.width, canvas.height, 0);
         ctx.fill();
 
         const backgroundImage = await Canvas.loadImage(background);
         ctx.shadowColor = "rgba(0,0,0,0.5)";
         ctx.shadowBlur = 40;
         ctx.save();
-        OkiFormat.rect(ctx, 0, 0, canvas.width, 432, 45);
+        OkiFormat.rect(ctx, 0, 0, canvas.width, 432, 0);
         ctx.clip();
 
         if (!isActiveColorDark) {
             ctx.globalCompositeOperation = "soft-light";
         }
 
-        ctx.drawImage(backgroundImage, -500, 0, canvas.width + 1000, canvas.height + 71);
+        ctx.drawImage(backgroundImage, -500, 0, canvas.width + 1000, 695);
 
         ctx.fillStyle = "rgb(100, 100, 100)";
         if (isActiveColorDark) {
@@ -1337,6 +1337,53 @@ export class OkiCardsGenerator {
                 },
             ],
         ]);
+
+        if (user.rankedPlay) {
+            const rankedPlay = user.rankedPlay;
+            ctx.fillStyle = mainColor + "21";
+            OkiFormat.rect(ctx, 44, 616, 1112, 160, 20);
+            ctx.fill();
+
+            ctx.fillStyle = mainColor;
+            ctx.textAlign = "left";
+            ctx.textBaseline = "alphabetic";
+            ctx.font = "bold 42px Torus";
+            ctx.fillText(l.tr("player-ranked-play"), 72, 678);
+
+            ctx.font = "28px Mulish, NotoSansSC";
+            ctx.fillText(rankedPlay.poolName, 72, 738);
+
+            const rankedFields = [
+                {
+                    label: l.tr("player-rank"),
+                    value: rankedPlay.rank ? `#${OkiFormat.number(rankedPlay.rank)}` : "—",
+                },
+                {
+                    label: l.tr("player-ranked-play-rating"),
+                    value: OkiFormat.number(rankedPlay.rating) + (rankedPlay.provisional ? "*" : ""),
+                },
+                {
+                    label: l.tr("player-ranked-play-wins"),
+                    value: OkiFormat.number(rankedPlay.wins),
+                },
+                {
+                    label: l.tr("player-ranked-play-games"),
+                    value: OkiFormat.number(rankedPlay.plays),
+                },
+            ];
+            const rankedFieldsStartX = 500;
+            const rankedFieldsEndX = 1085;
+            const rankedFieldSpacing = (rankedFieldsEndX - rankedFieldsStartX) / (rankedFields.length - 1);
+
+            ctx.textAlign = "center";
+            for (const [index, field] of rankedFields.entries()) {
+                const fieldX = rankedFieldsStartX + rankedFieldSpacing * index;
+                ctx.font = "28px Mulish, NotoSansSC";
+                ctx.fillText(field.label, fieldX, 670);
+                ctx.font = "bold 48px Torus";
+                ctx.fillText(field.value, fieldX, 736);
+            }
+        }
 
         return canvas.toBuffer("image/png");
     }

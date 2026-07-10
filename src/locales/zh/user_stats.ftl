@@ -4,3 +4,7 @@ player-playcount = 游戏次数
 player-playtime = 游戏时长
 player-accuracy = 准确率
 player-totalscore = 总分
+player-ranked-play = Ranked Play
+player-ranked-play-rating = 评分
+player-ranked-play-wins = 胜场
+player-ranked-play-games = 场次

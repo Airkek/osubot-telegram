@@ -4,3 +4,7 @@ player-playcount = Playcount
 player-playtime = Playtime
 player-accuracy = Accuracy
 player-totalscore = Score
+player-ranked-play = Ranked Play
+player-ranked-play-rating = Rating
+player-ranked-play-wins = Wins
+player-ranked-play-games = Games

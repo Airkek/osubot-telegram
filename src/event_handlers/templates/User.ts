@@ -3,6 +3,10 @@ import { APIUser } from "../../Types";
 import { ILocalisator } from "../../ILocalisator";
 
 export default function (l: ILocalisator, user: APIUser, link: string) {
+    const rankedPlay = user.rankedPlay
+        ? `\n${l.tr("player-ranked-play")}: ${user.rankedPlay.rank ? `#${user.rankedPlay.rank.toLocaleString()}` : "—"} · ${l.tr("player-ranked-play-rating")}: ${user.rankedPlay.rating.toLocaleString()}${user.rankedPlay.provisional ? "*" : ""} · ${l.tr("player-ranked-play-wins")}: ${user.rankedPlay.wins.toLocaleString()} · ${l.tr("player-ranked-play-games")}: ${user.rankedPlay.plays.toLocaleString()}`
+        : "";
+
     return `${l.tr("player-name", {
         player_name: user.nickname,
     })} (${Util.profileModes[user.mode]})
@@ -14,7 +18,7 @@ ${l.tr("player-playtime")}: ${Util.minutesToPlaytimeString(user.playtime)}`
             : ""
     }
 PP: ${Math.round(user.pp)?.toLocaleString()}
-${l.tr("player-accuracy")}: ${user.accuracy.toFixed(2)}%
+${l.tr("player-accuracy")}: ${user.accuracy.toFixed(2)}%${rankedPlay}
 
 ${link}/u/${user.id}`;
 }
