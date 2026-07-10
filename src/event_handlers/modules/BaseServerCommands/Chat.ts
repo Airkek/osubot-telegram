@@ -19,7 +19,7 @@ export default class AbstractChat extends ServerCommand {
 
             const mode = self.args.mode === null ? self.user.dbUser?.mode || 0 : self.args.mode;
 
-            const members = await self.module.bot.database.chats.getChatUsers(id);
+            const members = await self.module.bot.storage.memberships.getChatUsers(id);
             let users = [];
             for (let i = 0; i < members.length; i++) {
                 const u = await self.module.db.getUserStats(members[i], mode);

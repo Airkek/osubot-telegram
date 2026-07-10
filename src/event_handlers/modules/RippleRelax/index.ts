@@ -14,14 +14,14 @@ export default class RippleRelax extends ServerModule {
         this.link = "https://ripple.moe";
         this.api = bot.api.rippleRx;
         this.beatmapProvider = bot.osuBeatmapProvider;
-        this.db = bot.database.servers.ripple;
+        this.db = bot.storage.gameServers.ripple;
 
         this.registerCommand([
             new AbstractUser(this, true),
             new AbstractTop(this, true),
             new AbstractRecent(this),
-            new AbstractNick(this, bot.api.ripple, bot.database.servers.ripple),
-            new AbstractMode(this, bot.database.servers.ripple),
+            new AbstractNick(this, bot.api.ripple, bot.storage.gameServers.ripple),
+            new AbstractMode(this, bot.storage.gameServers.ripple),
         ]);
     }
 }

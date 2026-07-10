@@ -1,7 +1,7 @@
 import { Command } from "../Command";
 import { BotRuntime } from "../../core/BotRuntime";
 import IAPI from "../../api/base";
-import { IDatabaseServer } from "../../Types";
+import { GameUserRepository } from "../../core/ApplicationStorage";
 import { IMessageContext } from "../../core/MessageContext";
 import { IBeatmapProvider } from "../../beatmaps/IBeatmapProvider";
 
@@ -82,6 +82,6 @@ export class Module implements ICommandsModule {
 export class ServerModule extends Module {
     link: string;
     api: IAPI;
-    db: IDatabaseServer;
+    db: GameUserRepository;
     beatmapProvider?: IBeatmapProvider;
 }

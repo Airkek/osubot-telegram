@@ -219,11 +219,11 @@ export class OsuReplay extends Command {
                 effectsVolume: settings.ordr_effects_volume,
             };
 
-            await this.module.bot.database.statsModel.logRenderStart(ctx, replay.mode, useExperimental);
+            await this.module.bot.storage.telemetry.logRenderStart(ctx, replay.mode, useExperimental);
             const replayResponse = await renderer.render(file, renderSettings);
 
             if (replayResponse.success) {
-                await this.module.bot.database.statsModel.logRenderSuccess(ctx, replay.mode, useExperimental);
+                await this.module.bot.storage.telemetry.logRenderSuccess(ctx, replay.mode, useExperimental);
                 await ctx.reply("", {
                     video: {
                         url: replayResponse.video.url,
@@ -233,7 +233,7 @@ export class OsuReplay extends Command {
                     },
                 });
             } else {
-                await this.module.bot.database.statsModel.logRenderFailed(
+                await this.module.bot.storage.telemetry.logRenderFailed(
                     ctx,
                     replay.mode,
                     replayResponse.error,

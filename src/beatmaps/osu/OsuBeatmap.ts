@@ -5,7 +5,7 @@ import AttributesCalculator from "../../osu_specific/pp/AttributesCalculator";
 import { getRosuBeatmap } from "../../osu_specific/pp/RosuUtils";
 import * as rosu from "rosu-pp-js";
 import { APIBeatmap } from "../../Types";
-import { IOsuBeatmapMetadata } from "../../data/Models/OsuBeatmapCacheModel";
+import { BeatmapMetadata } from "../../core/ApplicationStorage";
 
 export class OsuBeatmapStats implements IBeatmapStats {
     readonly ar: number;
@@ -80,7 +80,7 @@ export class OsuBeatmap implements IBeatmap {
 
     readonly coverUrl: string;
 
-    constructor(apiBeatmap?: APIBeatmap, dbBeatmap?: IOsuBeatmapMetadata) {
+    constructor(apiBeatmap?: APIBeatmap, dbBeatmap?: BeatmapMetadata) {
         if (apiBeatmap) {
             this.native_mode = apiBeatmap.mode;
             this.native_length = apiBeatmap.length;

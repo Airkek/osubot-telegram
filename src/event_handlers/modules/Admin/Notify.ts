@@ -22,8 +22,8 @@ export default class NotifyCommand extends Command {
                 this.pending[hash] = undefined;
 
                 let target = [];
-                const chats = await self.module.bot.database.notifications.getChatsForNotifications();
-                const users = await self.module.bot.database.notifications.getUsersForNotifications();
+                const chats = await self.module.bot.storage.notificationAudience.getChatsForNotifications();
+                const users = await self.module.bot.storage.notificationAudience.getUsersForNotifications();
                 switch (eventSplit[1]) {
                     case "1":
                         target = chats.concat(users);
@@ -35,11 +35,11 @@ export default class NotifyCommand extends Command {
                         target = chats;
                         break;
                     default:
-                        await ctx.edit("Рассылка отменена");
+                        await ctx.edit(ctx.tr("admin-notify-cancelled"));
                         return;
                 }
 
-                await ctx.edit(`Рассылка начата.`);
+                await ctx.edit(ctx.tr("admin-notify-started"));
 
                 let errors = 0;
                 let sent = 0;
@@ -54,7 +54,7 @@ export default class NotifyCommand extends Command {
                             e.message.includes("bot was kicked from the") ||
                             e.message.includes("the group chat was deleted")
                         ) {
-                            await this.module.bot.database.chats.removeChat(chatId);
+                            await this.module.bot.storage.memberships.removeChat(chatId);
                             dirtyChats++;
                         } else {
                             global.logger.error(e);
@@ -63,18 +63,18 @@ export default class NotifyCommand extends Command {
                     }
                 }
 
-                await ctx.reply(
-                    `Рассылка окончена.\nВсего отправлено сообщений: ${sent}\nОшибок: ${errors}\nМусорных чатов: ${dirtyChats}`
-                );
+                await ctx.reply(ctx.tr("admin-notify-finished", { sent, errors, dirtyChats }));
                 return;
             }
 
-            const chatsToNotifyCount = await self.module.bot.database.notifications.getChatCountForNotifications();
-            const usersToNotifyCount = await self.module.bot.database.notifications.getUserCountForNotifications();
+            const chatsToNotifyCount =
+                await self.module.bot.storage.notificationAudience.getChatCountForNotifications();
+            const usersToNotifyCount =
+                await self.module.bot.storage.notificationAudience.getUserCountForNotifications();
 
             const textSplit = ctx.text.split("\n").splice(1);
             if (textSplit.length == 0) {
-                await ctx.reply("Не указан текст");
+                await ctx.reply(ctx.tr("admin-notify-text-required"));
                 return;
             }
 
@@ -83,11 +83,11 @@ export default class NotifyCommand extends Command {
             this.pending[hash] = text;
 
             await ctx.send(text);
-            await ctx.reply(`Будет оповещено:\n${usersToNotifyCount} пользователей\n${chatsToNotifyCount} чатов`, {
+            await ctx.reply(ctx.tr("admin-notify-audience", { users: usersToNotifyCount, chats: chatsToNotifyCount }), {
                 keyboard: [
-                    [{ text: "✅Отправить всем", command: `admin notify ${hash}:1` }],
-                    [{ text: "✅Отправить только пользователям", command: `admin notify ${hash}:2` }],
-                    [{ text: "✅Отправить только чатам", command: `admin notify ${hash}:3` }],
+                    [{ text: ctx.tr("admin-notify-button-all"), command: `admin notify ${hash}:1` }],
+                    [{ text: ctx.tr("admin-notify-button-users"), command: `admin notify ${hash}:2` }],
+                    [{ text: ctx.tr("admin-notify-button-chats"), command: `admin notify ${hash}:3` }],
                     [{ text: ctx.tr("cancel-button"), command: `admin notify ${hash}:0` }],
                 ],
             });

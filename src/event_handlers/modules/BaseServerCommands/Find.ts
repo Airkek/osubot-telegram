@@ -15,12 +15,12 @@ export default class AbstractFind extends ServerCommand {
 
             if (usersUnfiltered) {
                 for (const user of usersUnfiltered) {
-                    const settings = await self.module.bot.database.userSettings.getUserSettings(user.id);
+                    const settings = await self.module.bot.storage.userSettings.getUserSettings(user.id);
                     if (!settings.enable_find) {
                         continue;
                     }
 
-                    const mention = await self.module.bot.database.userInfo.getMention(user.id);
+                    const mention = await self.ctx.mentionUser(user.id);
                     users.push(mention);
                 }
             }

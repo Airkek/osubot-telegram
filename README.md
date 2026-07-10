@@ -49,3 +49,9 @@ docker compose up -d
 ```bash
 docker compose pull
 ```
+
+## License
+
+The original source code is licensed under GPL-3.0-only; see [LICENSE](LICENSE).
+
+Files under [`assets/`](assets/) are third-party material and are expressly excluded from the GPL license grant. osu!-specific assets remain the property of ppy Pty Ltd and/or their respective rights holders. See [NOTICE](NOTICE) and [assets/NOTICE](assets/NOTICE) before reusing them.

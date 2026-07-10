@@ -3,15 +3,6 @@ import Util from "./Util";
 import { IBeatmap } from "./beatmaps/BeatmapTypes";
 import { ILocalisator } from "./ILocalisator";
 
-interface IDatabaseServer {
-    getUser(id: number): Promise<IDatabaseUser | null>;
-    findByUserId(id: number | string): Promise<IDatabaseUser[]>;
-    setNickname(id: number, uid: number | string, nickname: string, mode?: number): Promise<void>;
-    setMode(id: number, mode: number): Promise<boolean>;
-    updateInfo(user: APIUser, mode: number): Promise<void>;
-    getUserStats(id: number, mode: number): Promise<IDatabaseUserStats>;
-}
-
 interface PPArgs {
     score?: number;
     acc?: number;
@@ -440,7 +431,6 @@ export {
     IBeatmapStats,
     IBeatmapStars,
     IBeatmapObjects,
-    IDatabaseServer,
     PPArgs,
     CalcArgs,
     IDatabaseUser,

@@ -1,7 +1,6 @@
 import { ILocalisator } from "../ILocalisator";
-import { ChatSettings } from "../data/Models/Settings/ChatSettingsModel";
-import { UserSettings } from "../data/Models/Settings/UserSettingsModel";
-import { ControllableFeature } from "../data/Models/FeatureControlModel";
+import { ControllableFeature } from "./ApplicationStorage";
+import { ChatSettings, UserSettings } from "./Settings";
 import { IKeyboard } from "../Util";
 
 export interface ReplyToMessage {
@@ -73,6 +72,7 @@ export interface IMessageContext extends ILocalisator {
     isUserInChat(userId: number, chatId?: number): Promise<boolean>;
     isChatValid(chatId: number): Promise<boolean>;
     isBotInChat(chatId: number): Promise<boolean>;
+    mentionUser(userId: number): Promise<string>;
     chatMembersCount(): Promise<number>;
     hasLinks(): boolean;
     getLinks(): TextLinkEntity[];

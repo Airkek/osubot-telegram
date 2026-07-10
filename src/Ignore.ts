@@ -1,17 +1,17 @@
-import Database from "./data/Database";
+import { IgnoredUsersRepository } from "./core/ApplicationStorage";
 
 export default class IgnoreList {
     list: Set<number>;
-    db: Database;
+    repository: IgnoredUsersRepository;
     inited = false;
 
-    constructor(db: Database) {
+    constructor(repository: IgnoredUsersRepository) {
         this.list = new Set();
-        this.db = db;
+        this.repository = repository;
     }
 
     async init() {
-        this.list = new Set(await this.db.ignore.getIgnoredUsers());
+        this.list = new Set(await this.repository.getIgnoredUsers());
         this.inited = true;
     }
 
@@ -21,12 +21,12 @@ export default class IgnoreList {
         }
 
         if (this.isIgnored(id)) {
-            await this.db.ignore.unignoreUser(id);
+            await this.repository.unignoreUser(id);
             this.list.delete(id);
             return false;
         }
 
-        await this.db.ignore.ignoreUser(id);
+        await this.repository.ignoreUser(id);
         this.list.add(id);
 
         return true;

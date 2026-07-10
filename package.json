@@ -1,6 +1,6 @@
 {
   "name": "osubot-telegram",
-  "version": "3.0.0",
+  "version": "4.0.0",
   "description": "",
   "main": "index.ts",
   "scripts": {
@@ -12,7 +12,7 @@
     "update": "git pull && npm ci && npm run build"
   },
   "author": "keijia",
-  "license": "UNLICENSED",
+  "license": "GPL-3.0-only",
   "repository": {
     "type": "git",
     "url": "https://github.com/Airkek/osubot-telegram"

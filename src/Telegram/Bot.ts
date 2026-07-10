@@ -14,6 +14,7 @@ import { TelegramMessageContext, TgApi, TgContext } from "./MessageContext";
 import { TelegramCoversProvider } from "./CoversProvider";
 import { WebhookUpdateDispatcher } from "./UpdateDispatcher";
 import { createTelegramWebhookIngress } from "./WebhookIngress";
+import PostgresStorage from "../data/PostgresStorage";
 
 const WEBHOOK_UPDATE_CONCURRENCY = 40;
 const WEBHOOK_UPDATE_QUEUE_CAPACITY = 1000;
@@ -60,13 +61,16 @@ export class TelegramBotAdapter {
         this.tg = new TelegramBot<TgContext, TgApi>(config.tg.token, {
             client: { apiRoot },
         });
+        const storage = PostgresStorage.fromEnvironment();
         this.runtime = ApplicationRuntime.create(
             {
                 banchoAppId: config.tokens.bancho_v2_app_id,
                 banchoClientSecret: config.tokens.bancho_v2_secret,
             },
+            storage,
             {
-                createCoversProvider: (database) => new TelegramCoversProvider(database, this.tg, config.tg.owner),
+                createCoversProvider: (mediaReferences) =>
+                    new TelegramCoversProvider(mediaReferences, this.tg, config.tg.owner),
                 sendMessage: async (recipientId, text) => {
                     await this.tg.api.sendMessage(recipientId, text);
                 },
@@ -117,7 +121,7 @@ export class TelegramBotAdapter {
     }
 
     private buildContext(ctx: TgContext): TelegramMessageContext {
-        return new TelegramMessageContext(ctx, this.config.tg.owner, this.me, this.useLocalApi, this.runtime.database);
+        return new TelegramMessageContext(ctx, this.config.tg.owner, this.me, this.useLocalApi, this.runtime.storage);
     }
 
     private setupBotMiddleware(): void {

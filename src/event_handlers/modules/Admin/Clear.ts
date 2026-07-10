@@ -2,6 +2,7 @@ import { Command, ICommandArgs } from "../../Command";
 import { IMessageContext } from "../../../core/MessageContext";
 import { IKeyboard } from "../../../Util";
 import { Module } from "../Module";
+import { GameServerName, MaintenanceTarget } from "../../../core/ApplicationStorage";
 
 const SERVER_OPTIONS = [
     { id: "bancho", label: "Bancho" },
@@ -13,13 +14,7 @@ const SERVER_OPTIONS = [
 ] as const;
 
 type ClearTarget = "beatmapmeta" | "nick" | "images" | "stats" | "chats";
-type ClearServer = (typeof SERVER_OPTIONS)[number]["id"] | "all";
-
-type TableName = "osu_beatmap_metadata" | "covers" | "photos" | "users" | "stats";
-
-interface CountRow {
-    count: number;
-}
+type ClearServer = GameServerName | "all";
 
 export default class ClearCommand extends Command {
     constructor(module: Module) {
@@ -60,8 +55,8 @@ export default class ClearCommand extends Command {
             if (!scope) {
                 await this.render(
                     ctx,
-                    `Неизвестный сервер: '${scopeToken}'. Выберите сервер через меню.`,
-                    this.buildServerSelectionKeyboard(target)
+                    ctx.tr("admin-clear-unknown-server", { server: scopeToken }),
+                    this.buildServerSelectionKeyboard(ctx, target)
                 );
                 return;
             }
@@ -91,7 +86,7 @@ export default class ClearCommand extends Command {
 
         if (ctx.messagePayload) {
             try {
-                await ctx.answer("Выполняю очистку...");
+                await ctx.answer(ctx.tr("admin-clear-running"));
             } catch {
                 // ignore callback response errors and continue action
             }
@@ -101,112 +96,108 @@ export default class ClearCommand extends Command {
     }
 
     private async runAction(ctx: IMessageContext, target: ClearTarget, scope?: ClearServer) {
-        const db = this.module.bot.database;
+        const storage = this.module.bot.storage;
 
         if (target == "beatmapmeta") {
-            const removed = await this.countRows("osu_beatmap_metadata");
-            await db.run("DELETE FROM osu_beatmap_metadata");
-            await db.statsModel.logBeatmapMetadataCacheCount();
+            const removed = await storage.maintenance.clear("beatmapMetadata");
+            await storage.telemetry.logBeatmapMetadataCacheCount();
 
-            await this.showResult(ctx, `Кэш metadata beatmaps очищен. Удалено записей: ${removed}`);
+            await this.showResult(ctx, ctx.tr("admin-clear-beatmap-result", { removed }));
             return;
         }
 
         if (target == "images") {
-            const coversRemoved = await this.countRows("covers");
-            const photosRemoved = await this.countRows("photos");
-
-            await db.run("DELETE FROM covers");
-            await db.run("DELETE FROM photos");
+            const coversRemoved = await storage.maintenance.clear("covers");
+            const photosRemoved = await storage.maintenance.clear("photos");
 
             const totalRemoved = coversRemoved + photosRemoved;
             await this.showResult(
                 ctx,
-                `Кэш картинок очищен.\nУдалено cover: ${coversRemoved}\nУдалено photos: ${photosRemoved}\nВсего удалено: ${totalRemoved}`
+                ctx.tr("admin-clear-images-result", {
+                    covers: coversRemoved,
+                    photos: photosRemoved,
+                    total: totalRemoved,
+                })
             );
             return;
         }
 
         if (target == "nick") {
-            const removed = await this.clearServerScopedTable("users", scope);
+            const removed = await storage.maintenance.clear("gameLinks", scope == "all" ? undefined : scope);
             await this.showResult(
                 ctx,
-                `Привязки ников очищены (${this.getServerLabel(scope)}). Удалено записей: ${removed}`
+                ctx.tr("admin-clear-links-result", { server: this.getServerLabel(ctx, scope), removed })
             );
             return;
         }
 
         if (target == "stats") {
-            const removed = await this.clearServerScopedTable("stats", scope);
+            const removed = await storage.maintenance.clear("gameStats", scope == "all" ? undefined : scope);
             await this.showResult(
                 ctx,
-                `Кэш статов пользователей очищен (${this.getServerLabel(scope)}). Удалено записей: ${removed}`
+                ctx.tr("admin-clear-stats-result", { server: this.getServerLabel(ctx, scope), removed })
             );
             return;
         }
 
-        const chats = await db.chats.getChats();
-        await this.render(ctx, `Идёт чистка чатов. Всего чатов: ${chats.length}`);
+        const chats = await storage.memberships.getChats();
+        await this.render(ctx, ctx.tr("admin-clear-chats-running", { count: chats.length }));
 
         let removed = 0;
         for (const chatId of chats) {
             const isValid = await ctx.isBotInChat(chatId);
             if (!isValid) {
                 removed++;
-                await db.chats.removeChat(chatId);
+                await storage.memberships.removeChat(chatId);
             }
         }
 
-        const newCount = await db.chats.getChatCount();
+        const newCount = await storage.memberships.getChatCount();
         await this.showResult(
             ctx,
-            `Чистка чатов выполнена.\n\nБыло чатов: ${chats.length}\nУдалено чатов: ${removed}\nОсталось чатов: ${newCount}`
+            ctx.tr("admin-clear-chats-result", { before: chats.length, removed, remaining: newCount })
         );
     }
 
     private async showMainMenu(ctx: IMessageContext) {
-        await this.render(ctx, "Меню очистки admin clear.\nВыберите действие:", this.buildMainMenuKeyboard());
+        await this.render(ctx, ctx.tr("admin-clear-menu"), this.buildMainMenuKeyboard(ctx));
     }
 
     private async showServerSelection(ctx: IMessageContext, target: "nick" | "stats") {
-        const title = target == "nick" ? "привязок ников" : "кэша статов";
-        await this.render(ctx, `Выберите сервер для очистки ${title}:`, this.buildServerSelectionKeyboard(target));
+        const key = target == "nick" ? "admin-clear-select-server-links" : "admin-clear-select-server-stats";
+        await this.render(ctx, ctx.tr(key), this.buildServerSelectionKeyboard(ctx, target));
     }
 
     private async showConfirmation(ctx: IMessageContext, target: ClearTarget, scope?: ClearServer) {
-        const description = this.getActionDescription(target, scope);
-        const details = await this.getPreviewDetails(target, scope);
+        const description = this.getActionDescription(ctx, target, scope);
+        const details = await this.getPreviewDetails(ctx, target, scope);
 
         await this.render(
             ctx,
-            `Подтверждение очистки ${description}.\n${details}`,
-            this.buildConfirmKeyboard(target, scope)
+            ctx.tr("admin-clear-confirmation", { description, details }),
+            this.buildConfirmKeyboard(ctx, target, scope)
         );
     }
 
     private async showUnknownSubcommand(ctx: IMessageContext) {
-        await this.render(
-            ctx,
-            "Неизвестная подкоманда очистки. Выберите действие из меню.",
-            this.buildMainMenuKeyboard()
-        );
+        await this.render(ctx, ctx.tr("admin-clear-unknown-action"), this.buildMainMenuKeyboard(ctx));
     }
 
     private async showResult(ctx: IMessageContext, text: string) {
-        await this.render(ctx, text, [[{ text: "⬅ В меню очистки", command: "admin clear" }]]);
+        await this.render(ctx, text, [[{ text: ctx.tr("admin-clear-button-menu"), command: "admin clear" }]]);
     }
 
-    private buildMainMenuKeyboard(): IKeyboard {
+    private buildMainMenuKeyboard(ctx: IMessageContext): IKeyboard {
         return [
-            [{ text: "🗂 Очистить кэш beatmaps metadata", command: "admin clear beatmapmeta" }],
-            [{ text: "🧷 Очистить привязки ников", command: "admin clear nick" }],
-            [{ text: "🖼 Очистить кэш картинок", command: "admin clear images" }],
-            [{ text: "📊 Очистить кэш статов пользователей", command: "admin clear stats" }],
-            [{ text: "🧹 Очистить невалидные чаты (clearchats)", command: "admin clear clearchats" }],
+            [{ text: ctx.tr("admin-clear-button-beatmaps"), command: "admin clear beatmapmeta" }],
+            [{ text: ctx.tr("admin-clear-button-links"), command: "admin clear nick" }],
+            [{ text: ctx.tr("admin-clear-button-images"), command: "admin clear images" }],
+            [{ text: ctx.tr("admin-clear-button-stats"), command: "admin clear stats" }],
+            [{ text: ctx.tr("admin-clear-button-chats"), command: "admin clear clearchats" }],
         ];
     }
 
-    private buildServerSelectionKeyboard(target: "nick" | "stats"): IKeyboard {
+    private buildServerSelectionKeyboard(ctx: IMessageContext, target: "nick" | "stats"): IKeyboard {
         const keyboard: IKeyboard = [];
 
         for (let i = 0; i < SERVER_OPTIONS.length; i += 2) {
@@ -217,83 +208,59 @@ export default class ClearCommand extends Command {
             keyboard.push(row);
         }
 
-        keyboard.push([{ text: "🌐 Все сервера", command: `admin clear ${target} all` }]);
-        keyboard.push([{ text: "⬅ Назад", command: "admin clear" }]);
+        keyboard.push([{ text: ctx.tr("admin-clear-button-all-servers"), command: `admin clear ${target} all` }]);
+        keyboard.push([{ text: ctx.tr("admin-clear-button-back"), command: "admin clear" }]);
 
         return keyboard;
     }
 
-    private buildConfirmKeyboard(target: ClearTarget, scope?: ClearServer): IKeyboard {
+    private buildConfirmKeyboard(ctx: IMessageContext, target: ClearTarget, scope?: ClearServer): IKeyboard {
         const applyCommand = scope ? `admin clear apply ${target} ${scope}` : `admin clear apply ${target}`;
         const backCommand = target == "nick" || target == "stats" ? `admin clear ${target}` : "admin clear";
 
-        return [[{ text: "✅ Подтвердить", command: applyCommand }], [{ text: "⬅ Назад", command: backCommand }]];
+        return [
+            [{ text: ctx.tr("admin-clear-button-confirm"), command: applyCommand }],
+            [{ text: ctx.tr("admin-clear-button-back"), command: backCommand }],
+        ];
     }
 
-    private getActionDescription(target: ClearTarget, scope?: ClearServer): string {
+    private getActionDescription(ctx: IMessageContext, target: ClearTarget, scope?: ClearServer): string {
         if (target == "beatmapmeta") {
-            return "кэша beatmaps metadata";
+            return ctx.tr("admin-clear-description-beatmaps");
         }
         if (target == "images") {
-            return "кэша картинок";
+            return ctx.tr("admin-clear-description-images");
         }
         if (target == "chats") {
-            return "невалидных чатов";
+            return ctx.tr("admin-clear-description-chats");
         }
         if (target == "nick") {
-            return `привязок ников (${this.getServerLabel(scope)})`;
+            return ctx.tr("admin-clear-description-links", { server: this.getServerLabel(ctx, scope) });
         }
-        return `кэша статов пользователей (${this.getServerLabel(scope)})`;
+        return ctx.tr("admin-clear-description-stats", { server: this.getServerLabel(ctx, scope) });
     }
 
-    private async getPreviewDetails(target: ClearTarget, scope?: ClearServer): Promise<string> {
+    private async getPreviewDetails(ctx: IMessageContext, target: ClearTarget, scope?: ClearServer): Promise<string> {
         if (target == "beatmapmeta") {
-            const count = await this.countRows("osu_beatmap_metadata");
-            return `Сейчас записей в кэше: ${count}`;
+            const count = await this.module.bot.storage.maintenance.count("beatmapMetadata");
+            return ctx.tr("admin-clear-preview-beatmaps", { count });
         }
 
         if (target == "images") {
-            const covers = await this.countRows("covers");
-            const photos = await this.countRows("photos");
-            return `Сейчас в кэше: cover=${covers}, photos=${photos}`;
+            const covers = await this.module.bot.storage.maintenance.count("covers");
+            const photos = await this.module.bot.storage.maintenance.count("photos");
+            return ctx.tr("admin-clear-preview-images", { covers, photos });
         }
 
         if (target == "chats") {
-            const count = await this.module.bot.database.chats.getChatCount();
-            return `Будет проверено чатов: ${count}`;
+            const count = await this.module.bot.storage.memberships.getChatCount();
+            return ctx.tr("admin-clear-preview-chats", { count });
         }
 
         const realScope = scope == "all" ? undefined : scope;
-        const table = target == "nick" ? "users" : "stats";
-        const count = await this.countRows(table, realScope);
-        return `Записей к удалению: ${count}`;
-    }
-
-    private async clearServerScopedTable(table: "users" | "stats", scope: ClearServer): Promise<number> {
-        const db = this.module.bot.database;
-
-        if (scope == "all") {
-            const count = await this.countRows(table);
-            await db.run(`DELETE FROM ${table}`);
-            return count;
-        }
-
-        const count = await this.countRows(table, scope);
-        await db.run(`DELETE FROM ${table} WHERE server = $1`, [scope]);
-        return count;
-    }
-
-    private async countRows(table: TableName, server?: (typeof SERVER_OPTIONS)[number]["id"]): Promise<number> {
-        let query = `SELECT COUNT(*)::INT AS count FROM ${table}`;
-        const params: string[] = [];
-
-        if (server) {
-            query += " WHERE server = $1";
-            params.push(server);
-        }
-
-        const row = await this.module.bot.database.get<CountRow>(query, params);
-        return row?.count ?? 0;
+        const maintenanceTarget: MaintenanceTarget = target == "nick" ? "gameLinks" : "gameStats";
+        const count = await this.module.bot.storage.maintenance.count(maintenanceTarget, realScope);
+        return ctx.tr("admin-clear-preview-rows", { count });
     }
 
     private normalizeTarget(token: string): ClearTarget | null {
@@ -347,9 +314,9 @@ export default class ClearCommand extends Command {
         return null;
     }
 
-    private getServerLabel(scope: ClearServer): string {
+    private getServerLabel(ctx: IMessageContext, scope: ClearServer): string {
         if (scope == "all") {
-            return "все сервера";
+            return ctx.tr("admin-clear-all-servers");
         }
 
         const found = SERVER_OPTIONS.find((server) => server.id == scope);
@@ -371,7 +338,7 @@ export default class ClearCommand extends Command {
         } catch (e) {
             const message = e instanceof Error ? e.message : String(e);
             if (message.includes("message is not modified")) {
-                await ctx.answer("Без изменений");
+                await ctx.answer(ctx.tr("admin-clear-no-changes"));
                 return;
             }
             throw e;

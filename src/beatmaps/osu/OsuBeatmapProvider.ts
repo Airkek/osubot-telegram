@@ -2,13 +2,13 @@ import { IBeatmapProvider } from "../IBeatmapProvider";
 import { OsuBeatmap } from "./OsuBeatmap";
 import BanchoAPIV2 from "../../api/BanchoV2";
 import { APIBeatmap, BeatmapStatus } from "../../Types";
-import { IOsuBeatmapMetadata, OsuBeatmapCacheModel } from "../../data/Models/OsuBeatmapCacheModel";
+import { BeatmapCacheRepository, BeatmapMetadata } from "../../core/ApplicationStorage";
 
 export class OsuBeatmapProvider implements IBeatmapProvider {
     private api: BanchoAPIV2;
-    private db: OsuBeatmapCacheModel;
+    private db: BeatmapCacheRepository;
 
-    constructor(api: BanchoAPIV2, db: OsuBeatmapCacheModel) {
+    constructor(api: BanchoAPIV2, db: BeatmapCacheRepository) {
         this.api = api;
         this.db = db;
     }
@@ -47,7 +47,7 @@ export class OsuBeatmapProvider implements IBeatmapProvider {
         return osuBeatmap;
     }
 
-    private async buildFromCache(beatmap: IOsuBeatmapMetadata, mode?: number) {
+    private async buildFromCache(beatmap: BeatmapMetadata, mode?: number) {
         const osuBeatmap = new OsuBeatmap(undefined, beatmap);
         await osuBeatmap.asMode(mode ?? osuBeatmap.native_mode);
         return osuBeatmap;

@@ -14,14 +14,14 @@ export default class AkatsukiRelax extends ServerModule {
         this.link = "https://akatsuki.gg";
         this.api = bot.api.akatsukiRx;
         this.beatmapProvider = bot.osuBeatmapProvider;
-        this.db = bot.database.servers.akatsuki;
+        this.db = bot.storage.gameServers.akatsuki;
 
         this.registerCommand([
             new AbstractUser(this, true),
             new AbstractTop(this, true),
             new AbstractRecent(this),
-            new AbstractNick(this, bot.api.akatsuki, bot.database.servers.akatsuki),
-            new AbstractMode(this, bot.database.servers.akatsuki),
+            new AbstractNick(this, bot.api.akatsuki, bot.storage.gameServers.akatsuki),
+            new AbstractMode(this, bot.storage.gameServers.akatsuki),
         ]);
     }
 }

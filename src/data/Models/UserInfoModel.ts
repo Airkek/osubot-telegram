@@ -1,23 +1,15 @@
-import Database from "../Database";
+import { ExtendedUserInfo, UserInfo } from "../../core/ApplicationStorage";
+import { SqlExecutor } from "../SqlExecutor";
 
-export interface IUserInfo {
-    user_id: number;
-    display_username?: string | null;
-    first_name?: string | null;
-    last_name?: string | null;
-}
-
-export interface IExtendedUserInfo extends IUserInfo {
-    username?: string | null;
-}
+export { ExtendedUserInfo as IExtendedUserInfo, UserInfo as IUserInfo } from "../../core/ApplicationStorage";
 
 export class UserInfoModel {
-    private readonly db: Database;
-    private readonly cache: Map<number, { val: IExtendedUserInfo | null; expiresAt: number }> = new Map();
+    private readonly db: SqlExecutor;
+    private readonly cache: Map<number, { val: ExtendedUserInfo | null; expiresAt: number }> = new Map();
     private readonly ttl: number; // milliseconds
     private readonly limit: number;
 
-    constructor(db: Database, ttlMinutes: number = 15, limit: number = 5000) {
+    constructor(db: SqlExecutor, ttlMinutes: number = 15, limit: number = 5000) {
         this.db = db;
         this.ttl = ttlMinutes * 60 * 1000;
         this.limit = limit;
@@ -33,13 +25,13 @@ export class UserInfoModel {
         }
     }
 
-    private setCache(userId: number, val: IExtendedUserInfo | null) {
+    private setCache(userId: number, val: ExtendedUserInfo | null) {
         const expiresAt = Date.now() + this.ttl;
         this.cache.set(userId, { val, expiresAt });
         this.pruneIfNeeded();
     }
 
-    private getCache(userId: number): IExtendedUserInfo | null {
+    private getCache(userId: number): ExtendedUserInfo | null {
         const entry = this.cache.get(userId);
         if (!entry) return null;
         if (entry.expiresAt < Date.now()) {
@@ -49,11 +41,11 @@ export class UserInfoModel {
         return entry.val;
     }
 
-    async get(userId: number): Promise<IExtendedUserInfo | null> {
+    async get(userId: number): Promise<ExtendedUserInfo | null> {
         const cached = this.getCache(userId);
         if (cached !== null) return cached;
 
-        const row = await this.db.get<IExtendedUserInfo>(
+        const row = await this.db.get<ExtendedUserInfo>(
             "SELECT user_id, username, display_username, first_name, last_name FROM user_info WHERE user_id = $1",
             [userId]
         );
@@ -61,16 +53,16 @@ export class UserInfoModel {
         return row;
     }
 
-    async findByUsername(username: string): Promise<IExtendedUserInfo | null> {
+    async findByUsername(username: string): Promise<ExtendedUserInfo | null> {
         if (!username) return null;
-        const row = await this.db.get<IExtendedUserInfo>(
+        const row = await this.db.get<ExtendedUserInfo>(
             "SELECT user_id, username, display_username, first_name, last_name FROM user_info WHERE username = $1 LIMIT 1",
             [username.toLowerCase()]
         );
         return row ?? null;
     }
 
-    async set(info: IUserInfo): Promise<void> {
+    async set(info: UserInfo): Promise<void> {
         // Convert username to lowercase for storage
         const usernameLower = info.display_username ? info.display_username.toLowerCase() : null;
         const displayUsername = info.display_username ?? null;
@@ -103,14 +95,6 @@ export class UserInfoModel {
             first_name: info.first_name ?? null,
             last_name: info.last_name ?? null,
         });
-    }
-
-    async getMention(userId: number): Promise<string> {
-        const info = await this.get(userId);
-        if (info && info.display_username) {
-            return `@${info.display_username}`;
-        }
-        return `tg://user?id=${userId}`;
     }
 }
 

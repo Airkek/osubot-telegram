@@ -56,7 +56,7 @@ export class Command {
         } catch (e: unknown) {
             let errorId: string;
             try {
-                errorId = await this.module.bot.database.errors.addError(ctx, e);
+                errorId = await this.module.bot.storage.errors.addError(ctx, e);
             } catch (recordError) {
                 global.logger.error("Failed to record command error", recordError, e);
             }
@@ -69,7 +69,7 @@ export class Command {
             }
         }
 
-        await this.module.bot.database.statsModel.logCommand(this, ctx);
+        await this.module.bot.storage.telemetry.logCommand(this, ctx);
         global.logger.trace(`[${this.module.name}::${this.name}] command processing took ${timer.ms}`);
     }
 

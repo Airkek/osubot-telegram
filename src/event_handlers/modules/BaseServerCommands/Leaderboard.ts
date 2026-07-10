@@ -17,7 +17,7 @@ export default class AbstractLeaderboard extends ServerCommand {
                 return;
             }
 
-            const profiles = await self.module.bot.database.chats.getChatUsers(self.ctx.chatId);
+            const profiles = await self.module.bot.storage.memberships.getChatUsers(self.ctx.chatId);
             const users: IDatabaseUser[] = [];
             for (let i = 0; i < profiles.length; i++) {
                 const profile = profiles[i];

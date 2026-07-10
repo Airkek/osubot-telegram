@@ -80,7 +80,7 @@ const createServerCommandRunner = (
             if (args.nickname[0]) {
                 if (args.nickname[0].startsWith("@")) {
                     const nickname = args.nickname[0].slice(1);
-                    const userInfo = await context.module.bot.database.userInfo.findByUsername(nickname);
+                    const userInfo = await context.module.bot.storage.userDirectory.findByUsername(nickname);
                     if (!userInfo) {
                         await context.reply(
                             ctx.tr("unknown-username", {

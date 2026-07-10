@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { ApplicationRuntime, RuntimeDependencies } from "../src/core/ApplicationRuntime";
+import { createTestStorage } from "./fakes/ApplicationStorageFake";
 
 global.logger = {
     info() {},
@@ -10,18 +11,7 @@ global.logger = {
 
 function createDependencies(overrides: Partial<RuntimeDependencies> = {}): RuntimeDependencies {
     return {
-        database: {
-            init: async () => {},
-            statsModel: {
-                logMessage: async () => {},
-            },
-            onboardingModel: {
-                isUserNeedOnboarding: async () => false,
-            },
-            errors: {
-                addError: async () => "test-error",
-            },
-        },
+        storage: createTestStorage(),
         api: {
             bancho: {
                 login: async () => {},
@@ -50,15 +40,15 @@ test("runtime initializes injected services and dispatches a matching command", 
         process: async () => calls.push("command"),
     };
     const dependencies = createDependencies({
-        database: {
-            init: async () => calls.push("database"),
-            statsModel: {
+        storage: createTestStorage({
+            initialize: async () => {
+                calls.push("database");
+            },
+            telemetry: {
+                ...createTestStorage().telemetry,
                 logMessage: async () => calls.push("stats"),
             },
-            onboardingModel: {
-                isUserNeedOnboarding: async () => false,
-            },
-        } as unknown as RuntimeDependencies["database"],
+        }),
         api: {
             bancho: {
                 login: async () => calls.push("api"),

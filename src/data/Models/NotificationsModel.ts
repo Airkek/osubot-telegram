@@ -1,4 +1,4 @@
-import Database from "../Database";
+import { SqlExecutor } from "../SqlExecutor";
 
 interface Counter {
     count: number;
@@ -9,15 +9,15 @@ interface IdValue {
 }
 
 export class NotificationsModel {
-    private db: Database;
+    private db: SqlExecutor;
 
-    constructor(db: Database) {
+    constructor(db: SqlExecutor) {
         this.db = db;
     }
 
     async getChatCountForNotifications(): Promise<number> {
         const result = await this.db.get<Counter>(
-            `SELECT COUNT(DISTINCT utc.chat_id) AS count
+            `SELECT COUNT(DISTINCT utc.chat_id)::INT AS count
          FROM users_to_chat utc
             LEFT JOIN chat_settings cs ON CAST(utc.chat_id AS BIGINT) = cs.chat_id
          WHERE cs.notifications_enabled = true OR cs.chat_id IS NULL`
@@ -27,7 +27,7 @@ export class NotificationsModel {
 
     async getUserCountForNotifications(): Promise<number> {
         const result = await this.db.get<Counter>(
-            `SELECT COUNT(DISTINCT u.id) AS count
+            `SELECT COUNT(DISTINCT u.id)::INT AS count
          FROM users u
             LEFT JOIN settings cs ON u.id = cs.user_id
          WHERE cs.notifications_enabled = true OR cs.user_id IS NULL`
@@ -42,7 +42,7 @@ export class NotificationsModel {
                 LEFT JOIN chat_settings cs ON CAST(utc.chat_id AS BIGINT) = cs.chat_id
              WHERE cs.notifications_enabled = true OR cs.chat_id IS NULL`
         );
-        return chats.map((chat) => chat.id);
+        return chats.map((chat) => Number(chat.id));
     }
 
     async getUsersForNotifications(): Promise<number[]> {
@@ -52,6 +52,6 @@ export class NotificationsModel {
                 LEFT JOIN settings cs ON u.id = cs.user_id
              WHERE cs.notifications_enabled = true OR cs.user_id IS NULL`
         );
-        return users.map((user) => user.id);
+        return users.map((user) => Number(user.id));
     }
 }

@@ -1,17 +1,12 @@
-import Database from "../../Database";
-import { LanguageOverride } from "./SettingsTypes";
+import { ChatSettings } from "../../../core/Settings";
+import { SqlExecutor } from "../../SqlExecutor";
 
-export interface ChatSettings {
-    chat_id: number;
-    render_enabled: boolean;
-    notifications_enabled: boolean;
-    language_override: LanguageOverride;
-}
+export { ChatSettings } from "../../../core/Settings";
 
 export class ChatSettingsModel {
-    private db: Database;
+    private db: SqlExecutor;
 
-    constructor(db: Database) {
+    constructor(db: SqlExecutor) {
         this.db = db;
     }
 

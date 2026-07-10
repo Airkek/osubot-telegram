@@ -1,38 +1,22 @@
 import { OsuBeatmap } from "../../beatmaps/osu/OsuBeatmap";
-import Database from "../Database";
+import { BeatmapMetadata } from "../../core/ApplicationStorage";
+import { SqlExecutor } from "../SqlExecutor";
 
-export interface IOsuBeatmapMetadata {
-    id: number;
-    set_id: number;
-    hash: string;
-
-    title: string;
-    artist: string;
-
-    version: string;
-    author: string;
-    author_id: number;
-    status: string;
-
-    native_mode: number;
-    native_length: number;
-
-    cover_url: string;
-}
+export { BeatmapMetadata as IOsuBeatmapMetadata } from "../../core/ApplicationStorage";
 
 export class OsuBeatmapCacheModel {
-    private db: Database;
+    private db: SqlExecutor;
 
-    constructor(db: Database) {
+    constructor(db: SqlExecutor) {
         this.db = db;
     }
 
-    async getBeatmapById(id: number): Promise<IOsuBeatmapMetadata | null> {
-        return await this.db.get<IOsuBeatmapMetadata>("SELECT * FROM osu_beatmap_metadata WHERE id = $1", [id]);
+    async getBeatmapById(id: number): Promise<BeatmapMetadata | null> {
+        return await this.db.get<BeatmapMetadata>("SELECT * FROM osu_beatmap_metadata WHERE id = $1", [id]);
     }
 
-    async getBeatmapByHash(hash: string): Promise<IOsuBeatmapMetadata | null> {
-        return await this.db.get<IOsuBeatmapMetadata>("SELECT * FROM osu_beatmap_metadata WHERE hash = $1", [hash]);
+    async getBeatmapByHash(hash: string): Promise<BeatmapMetadata | null> {
+        return await this.db.get<BeatmapMetadata>("SELECT * FROM osu_beatmap_metadata WHERE hash = $1", [hash]);
     }
 
     async addToCache(map: OsuBeatmap): Promise<void> {

@@ -1,0 +1,16 @@
+LICENSING SCOPE NOTICE
+
+The GNU General Public License version 3 in the top-level LICENSE file
+applies to the original source code of this project.
+
+The asset files under the assets/ directory are expressly excluded from the
+GPL-3.0-only license grant. That directory contains third-party material,
+including osu!-specific assets sourced from services operated by ppy Pty Ltd
+and fonts or other works owned by their respective copyright holders.
+
+Copyright, trademark, and other rights in those files remain with ppy Pty Ltd
+and/or their respective owners. Unless an individual asset is accompanied by
+an explicit license notice from its owner, this repository grants no right to
+copy, modify, or redistribute it.
+
+See assets/NOTICE for the notice distributed alongside those files.

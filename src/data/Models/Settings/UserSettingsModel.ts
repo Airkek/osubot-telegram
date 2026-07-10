@@ -1,41 +1,15 @@
-import { ContentOutput, LanguageOverride } from "./SettingsTypes";
-import Database from "../../Database";
+import { UserSettings } from "../../../core/Settings";
+import { SqlExecutor } from "../../SqlExecutor";
 
-interface BasicSettings {
-    render_enabled: boolean;
-    notifications_enabled: boolean;
-    enable_find: boolean;
-    language_override: LanguageOverride;
-    content_output: ContentOutput;
-}
-
-interface RenderSettings {
-    ordr_skin: string;
-    ordr_video: boolean;
-    ordr_storyboard: boolean;
-    ordr_bgdim: number;
-    ordr_pp_counter: boolean;
-    ordr_ur_counter: boolean;
-    ordr_hit_counter: boolean;
-    ordr_strain_graph: boolean;
-    ordr_is_skin_custom: boolean;
-    ordr_master_volume: number;
-    ordr_music_volume: number;
-    ordr_effects_volume: number;
-    experimental_renderer: boolean;
-}
-
-export interface UserSettings extends BasicSettings, RenderSettings {
-    user_id: number;
-}
+export { UserSettings } from "../../../core/Settings";
 
 export class UserSettingsModel {
-    private db: Database;
+    private db: SqlExecutor;
     private readonly cache: Map<number, { val: UserSettings | null; expiresAt: number }> = new Map();
     private readonly ttl: number; // milliseconds
     private readonly limit: number;
 
-    constructor(db: Database, ttlMinutes: number = 15, limit: number = 5000) {
+    constructor(db: SqlExecutor, ttlMinutes: number = 15, limit: number = 5000) {
         this.db = db;
         this.ttl = ttlMinutes * 60 * 1000;
         this.limit = limit;

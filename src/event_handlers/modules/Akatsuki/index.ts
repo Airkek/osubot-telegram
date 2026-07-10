@@ -16,7 +16,7 @@ export default class Akatsuki extends ServerModule {
         this.link = "https://akatsuki.gg";
         this.api = bot.api.akatsuki;
         this.beatmapProvider = bot.osuBeatmapProvider;
-        this.db = bot.database.servers.akatsuki;
+        this.db = bot.storage.gameServers.akatsuki;
 
         this.registerCommand([
             new AbstractNick(this),

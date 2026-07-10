@@ -3,7 +3,7 @@ import { Module } from "../Module";
 import { IKBButton, IKeyboard } from "../../../Util";
 import { ILocalisator } from "../../../ILocalisator";
 import { IMessageContext } from "../../../core/MessageContext";
-import { ONBOARDING_VERSION, OnboardingModel } from "../../../data/Models/OnboardingModel";
+import { ONBOARDING_VERSION, OnboardingRepository } from "../../../core/ApplicationStorage";
 
 type LanguageStep = "language";
 type OutputStyleStep = "output-style";
@@ -19,7 +19,7 @@ interface StepInfo {
     previous?: OnboardingSteps;
 
     build(userId: number, l: ILocalisator): StepData;
-    postprocess?(userId: number, onboardingModel: OnboardingModel): Promise<void>;
+    postprocess?(userId: number, onboardingModel: OnboardingRepository): Promise<void>;
 }
 
 const stepFlow: Record<OnboardingSteps, StepInfo> = {
@@ -179,12 +179,12 @@ function stepFinal(userId: number, l: ILocalisator): StepData {
     };
 }
 
-async function finalPostProcess(userId: number, onboardingModel: OnboardingModel) {
+async function finalPostProcess(userId: number, onboardingModel: OnboardingRepository) {
     await onboardingModel.userOnboarded(userId, ONBOARDING_VERSION);
 }
 
 export default class OnboardingCommand extends Command {
-    onboardingModel: OnboardingModel;
+    onboardingModel: OnboardingRepository;
 
     constructor(module: Module) {
         super(["onboarding", "start", "старт", "начать", "ыефке", "ob"], module, async (ctx, self, args) => {
@@ -219,7 +219,7 @@ export default class OnboardingCommand extends Command {
             }
         });
 
-        this.onboardingModel = module.bot.database.onboardingModel;
+        this.onboardingModel = module.bot.storage.onboarding;
     }
 
     async applyStepSet(step: OnboardingStepsWithSetters, value: string, ctx: IMessageContext) {
@@ -289,7 +289,7 @@ export default class OnboardingCommand extends Command {
         step: OnboardingSteps,
         ctx: IMessageContext,
         l: ILocalisator,
-        onboardingModel: OnboardingModel
+        onboardingModel: OnboardingRepository
     ) {
         const info = stepFlow[step];
         if (!info) {
@@ -304,7 +304,7 @@ export default class OnboardingCommand extends Command {
         step: OnboardingSteps,
         ctx: IMessageContext,
         l: ILocalisator,
-        onboardingModel: OnboardingModel
+        onboardingModel: OnboardingRepository
     ) {
         const info = stepFlow[step];
         if (!info) {

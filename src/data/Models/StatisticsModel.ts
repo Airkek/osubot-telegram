@@ -1,24 +1,6 @@
-import Database from "../Database";
+import { BotIdentity, CommandEvent, EventContext } from "../../core/ApplicationStorage";
+import { SqlExecutor } from "../SqlExecutor";
 import fs from "fs/promises";
-
-interface EventContext {
-    senderId: number;
-    chatId: number;
-    plainPayload?: string;
-    plainText?: string;
-}
-
-interface CommandEvent {
-    name: string;
-    module: { name: string };
-}
-
-interface BotIdentity {
-    id: number;
-    username?: string;
-    first_name: string;
-    last_name?: string;
-}
 
 type RenderEvents = "render_start" | "render_success" | "render_failed";
 type Metrics = "user_count" | "chat_count" | "cached_beatmap_files_count" | "cached_beatmap_metadata_count";
@@ -29,14 +11,14 @@ interface Counter {
 }
 
 export class StatisticsModel {
-    private readonly db: Database;
+    private readonly db: SqlExecutor;
 
-    constructor(db: Database) {
+    constructor(db: SqlExecutor) {
         this.db = db;
     }
 
     public async logUserCount() {
-        const result = await this.db.get<Counter>("SELECT COUNT(DISTINCT id) AS count FROM users");
+        const result = await this.db.get<Counter>("SELECT COUNT(DISTINCT id)::INT AS count FROM users");
         if (!result.count) {
             return;
         }
@@ -45,7 +27,7 @@ export class StatisticsModel {
     }
 
     public async logChatCount() {
-        const result = await this.db.get<Counter>("SELECT COUNT(DISTINCT chat_id) AS count FROM users_to_chat");
+        const result = await this.db.get<Counter>("SELECT COUNT(DISTINCT chat_id)::INT AS count FROM users_to_chat");
         if (!result.count) {
             return;
         }
@@ -53,7 +35,7 @@ export class StatisticsModel {
     }
 
     public async logBeatmapMetadataCacheCount() {
-        const result = await this.db.get<Counter>("SELECT COUNT(*) AS count FROM osu_beatmap_metadata");
+        const result = await this.db.get<Counter>("SELECT COUNT(*)::INT AS count FROM osu_beatmap_metadata");
         if (!result.count) {
             return;
         }

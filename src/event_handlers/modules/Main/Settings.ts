@@ -4,8 +4,7 @@ import { IKBButton, IKeyboard } from "../../../Util";
 import { IMessageContext } from "../../../core/MessageContext";
 import { OrdrSkinsProvider } from "../../../osu_specific/replay_render/OrdrSkinsProvider";
 import { ILocalisator } from "../../../ILocalisator";
-import { ChatSettings } from "../../../data/Models/Settings/ChatSettingsModel";
-import { UserSettings } from "../../../data/Models/Settings/UserSettingsModel";
+import { ChatSettings, UserSettings } from "../../../core/Settings";
 
 type SettingsPageWithPageControl = "skin_sel";
 type SettingsPage = "home" | "render" | "language" | "output_type" | SettingsPageWithPageControl;

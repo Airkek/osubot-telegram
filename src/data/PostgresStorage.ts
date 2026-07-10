@@ -1,5 +1,5 @@
-import { Pool, QueryResult } from "pg";
-import { APIUser, IDatabaseServer, IDatabaseUser, IDatabaseUserStats } from "../Types";
+import { Pool } from "pg";
+import { APIUser, IDatabaseUser, IDatabaseUserStats } from "../Types";
 import { createHash } from "node:crypto";
 import { applyMigrations } from "./Migrations";
 import { FeatureControlModel } from "./Models/FeatureControlModel";
@@ -11,13 +11,24 @@ import { StatisticsModel } from "./Models/StatisticsModel";
 import { ChatMembersModel } from "./Models/ChatMembersModel";
 import { OnboardingModel } from "./Models/OnboardingModel";
 import UserInfoModel from "./Models/UserInfoModel";
+import {
+    ApplicationStorage,
+    ErrorContext,
+    GameServerName,
+    GameUserRepository,
+    StoredError,
+} from "../core/ApplicationStorage";
+import { SqlConnection, SqlExecutor } from "./SqlExecutor";
+import { PostgresConnection } from "./PostgresConnection";
+import { MediaReferenceModel } from "./Models/MediaReferenceModel";
+import { MaintenanceModel } from "./Models/MaintenanceModel";
 
 // TODO: move all classes to src/data/Models/Settings
-class DatabaseServer implements IDatabaseServer {
+class PostgresGameUserRepository implements GameUserRepository {
     serverName: string;
-    db: Database;
+    db: SqlExecutor;
 
-    constructor(serverName: string, db: Database) {
+    constructor(serverName: string, db: SqlExecutor) {
         this.serverName = serverName;
         this.db = db;
     }
@@ -84,7 +95,7 @@ class DatabaseServer implements IDatabaseServer {
         }
     }
 
-    async getUserStats(id: number, mode: number): Promise<IDatabaseUserStats> {
+    async getUserStats(id: number, mode: number): Promise<IDatabaseUserStats | null> {
         const u = await this.getUser(id);
         if (!u) {
             return null;
@@ -100,10 +111,10 @@ interface IgnoredUsers {
     id: number;
 }
 
-class DatabaseIgnore {
-    db: Database;
+class PostgresIgnoredUsersRepository {
+    db: SqlExecutor;
 
-    constructor(db: Database) {
+    constructor(db: SqlExecutor) {
         this.db = db;
     }
 
@@ -121,10 +132,10 @@ class DatabaseIgnore {
     }
 }
 
-class DatabaseDrop {
-    db: Database;
+class PostgresUserRemovalRepository {
+    db: SqlExecutor;
 
-    constructor(db: Database) {
+    constructor(db: SqlExecutor) {
         this.db = db;
     }
 
@@ -133,28 +144,14 @@ class DatabaseDrop {
     }
 }
 
-interface IDatabaseError {
-    code: string;
-    info: string;
-    error: string;
-}
+class PostgresErrorStore {
+    db: SqlExecutor;
 
-class DatabaseErrors {
-    db: Database;
-
-    constructor(db: Database) {
+    constructor(db: SqlExecutor) {
         this.db = db;
     }
 
-    async addError(
-        ctx: {
-            senderId: number;
-            plainPayload?: string;
-            plainText?: string;
-            replyMessage?: { senderId: number };
-        },
-        error: unknown
-    ): Promise<string> {
+    async addError(ctx: ErrorContext, error: unknown): Promise<string> {
         let info = `Sent by: ${ctx.senderId}; Text: ${ctx.plainPayload ?? ctx.plainText}`;
         if (ctx.replyMessage) {
             info += `; Replied to: ${ctx.replyMessage.senderId}`;
@@ -173,8 +170,8 @@ class DatabaseErrors {
         return hash;
     }
 
-    async getError(code: string): Promise<IDatabaseError | null> {
-        return await this.db.get<IDatabaseError>("SELECT * FROM errors WHERE code = $1", [code]);
+    async getError(code: string): Promise<StoredError | null> {
+        return await this.db.get<StoredError>("SELECT * FROM errors WHERE code = $1", [code]);
     }
 
     async clear() {
@@ -182,137 +179,69 @@ class DatabaseErrors {
     }
 }
 
-interface IServersList {
-    bancho: DatabaseServer;
-    gatari: DatabaseServer;
-    ripple: DatabaseServer;
-    akatsuki: DatabaseServer;
-    beatleader: DatabaseServer;
-    scoresaber: DatabaseServer;
-}
-
-export default class Database {
-    // TODO: move out of there
-    readonly servers: IServersList;
-    readonly errors: DatabaseErrors;
-    readonly chats: ChatMembersModel;
-    readonly ignore: DatabaseIgnore;
-    readonly drop: DatabaseDrop;
-    readonly osuBeatmapMeta: OsuBeatmapCacheModel;
+export default class PostgresStorage implements ApplicationStorage {
+    readonly gameServers: Record<GameServerName, GameUserRepository>;
+    readonly errors: PostgresErrorStore;
+    readonly memberships: ChatMembersModel;
+    readonly ignoredUsers: PostgresIgnoredUsersRepository;
+    readonly userRemoval: PostgresUserRemovalRepository;
+    readonly beatmaps: OsuBeatmapCacheModel;
     readonly userSettings: UserSettingsModel;
     readonly chatSettings: ChatSettingsModel;
-    readonly notifications: NotificationsModel;
-    readonly featureControlModel: FeatureControlModel;
-    readonly statsModel: StatisticsModel;
-    readonly onboardingModel: OnboardingModel;
-    readonly userInfo: UserInfoModel;
+    readonly notificationAudience: NotificationsModel;
+    readonly featureFlags: FeatureControlModel;
+    readonly telemetry: StatisticsModel;
+    readonly onboarding: OnboardingModel;
+    readonly userDirectory: UserInfoModel;
+    readonly mediaReferences: MediaReferenceModel;
+    readonly maintenance: MaintenanceModel;
 
-    private readonly db: Pool;
-    constructor() {
-        this.servers = {
-            bancho: new DatabaseServer("bancho", this),
-            gatari: new DatabaseServer("gatari", this),
-            ripple: new DatabaseServer("ripple", this),
-            akatsuki: new DatabaseServer("akatsuki", this),
-            beatleader: new DatabaseServer("beatleader", this),
-            scoresaber: new DatabaseServer("scoresaber", this),
+    constructor(private readonly db: SqlConnection) {
+        this.gameServers = {
+            bancho: new PostgresGameUserRepository("bancho", db),
+            gatari: new PostgresGameUserRepository("gatari", db),
+            ripple: new PostgresGameUserRepository("ripple", db),
+            akatsuki: new PostgresGameUserRepository("akatsuki", db),
+            beatleader: new PostgresGameUserRepository("beatleader", db),
+            scoresaber: new PostgresGameUserRepository("scoresaber", db),
         };
 
-        this.errors = new DatabaseErrors(this);
-        this.chats = new ChatMembersModel(this);
-        this.ignore = new DatabaseIgnore(this);
-        this.drop = new DatabaseDrop(this);
-        this.osuBeatmapMeta = new OsuBeatmapCacheModel(this);
-        this.userSettings = new UserSettingsModel(this);
-        this.chatSettings = new ChatSettingsModel(this);
-        this.notifications = new NotificationsModel(this);
-        this.featureControlModel = new FeatureControlModel(this);
-        this.statsModel = new StatisticsModel(this);
-        this.onboardingModel = new OnboardingModel(this);
-        this.userInfo = new UserInfoModel(this);
+        this.errors = new PostgresErrorStore(db);
+        this.memberships = new ChatMembersModel(db);
+        this.ignoredUsers = new PostgresIgnoredUsersRepository(db);
+        this.userRemoval = new PostgresUserRemovalRepository(db);
+        this.beatmaps = new OsuBeatmapCacheModel(db);
+        this.userSettings = new UserSettingsModel(db);
+        this.chatSettings = new ChatSettingsModel(db);
+        this.notificationAudience = new NotificationsModel(db);
+        this.featureFlags = new FeatureControlModel(db);
+        this.telemetry = new StatisticsModel(db);
+        this.onboarding = new OnboardingModel(db);
+        this.userDirectory = new UserInfoModel(db);
+        this.mediaReferences = new MediaReferenceModel(db);
+        this.maintenance = new MaintenanceModel(db);
+    }
 
-        this.db = new Pool({
+    static fromEnvironment(): PostgresStorage {
+        const pool = new Pool({
             user: process.env.DB_USERNAME,
             host: process.env.DB_HOST,
             database: process.env.DB_DATABASE_NAME,
             password: process.env.DB_PASSWORD,
             port: Number(process.env.DB_PORT),
         });
+        return new PostgresStorage(new PostgresConnection(pool));
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    async get<T>(stmt: string, opts: any[] = []): Promise<T> {
-        return new Promise((resolve, reject) => {
-            this.db.query(stmt, opts, (err: Error, res: QueryResult<T>) => {
-                if (err) {
-                    reject(err);
-                } else {
-                    resolve(res.rows[0] || null);
-                }
-            });
-        });
-    }
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    async all<T>(stmt: string, opts: any[] = []): Promise<T[]> {
-        return new Promise((resolve, reject) => {
-            this.db.query(stmt, opts, (err: Error, res: QueryResult<T>) => {
-                if (err) {
-                    reject(err);
-                } else {
-                    resolve(res.rows);
-                }
-            });
-        });
-    }
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    async run(stmt: string, opts: any[] = []): Promise<QueryResult<unknown>> {
-        return new Promise((resolve, reject) => {
-            this.db.query(stmt, opts, (err: Error, res: QueryResult<unknown>) => {
-                if (err) {
-                    reject(err);
-                } else {
-                    resolve(res);
-                }
-            });
-        });
-    }
-
-    async transaction<T>(callback: (tx: Pick<Database, "get" | "all" | "run">) => Promise<T>): Promise<T> {
-        const client = await this.db.connect();
-        const tx = {
-            get: async <R>(stmt: string, opts: unknown[] = []): Promise<R> => {
-                const res = await client.query(stmt, opts);
-                return (res.rows[0] as R) || null;
-            },
-            all: async <R>(stmt: string, opts: unknown[] = []): Promise<R[]> => {
-                const res = await client.query(stmt, opts);
-                return res.rows as R[];
-            },
-            run: async (stmt: string, opts: unknown[] = []): Promise<QueryResult<unknown>> => {
-                return await client.query(stmt, opts);
-            },
-        } as Pick<Database, "get" | "all" | "run">;
-
-        try {
-            await client.query("BEGIN");
-            const result = await callback(tx);
-            await client.query("COMMIT");
-            return result;
-        } catch (error) {
-            await client.query("ROLLBACK");
-            throw error;
-        } finally {
-            client.release();
-        }
-    }
-
-    async init() {
+    async initialize(): Promise<void> {
         global.logger.info("Initializing database");
-        await this.run("CREATE TABLE IF NOT EXISTS migrations (version INTEGER UNIQUE)");
+        await this.db.run("CREATE TABLE IF NOT EXISTS migrations (version INTEGER UNIQUE)");
 
-        await applyMigrations(this);
+        await applyMigrations(this.db);
         global.logger.info("Database initialized successfully");
+    }
+
+    async close(): Promise<void> {
+        await this.db.close();
     }
 }

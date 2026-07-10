@@ -14,7 +14,7 @@ export default class BeatLeader extends ServerModule {
         this.name = "BeatLeader";
         this.link = "https://beatleader.xyz";
         this.api = bot.api.beatleader;
-        this.db = bot.database.servers.beatleader;
+        this.db = bot.storage.gameServers.beatleader;
 
         this.registerCommand([
             new UseIdInsteadOfNick(this),

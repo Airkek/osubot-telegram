@@ -6,14 +6,14 @@ export default class IgnoreCommand extends Command {
         super(["ignore", "шптщку"], module, async (ctx, self, args) => {
             const arg = args.full[0];
             if (arg === undefined && !ctx.replyMessage) {
-                await ctx.send("Перешлите сообщение или напишите id пользователя!");
+                await ctx.send(ctx.tr("admin-user-target-required"));
                 return;
             }
 
             let id = arg ? Number(arg) : ctx.replyMessage.senderId;
             if (arg?.startsWith("@")) {
                 const nickname = args.nickname[0].slice(1);
-                const userInfo = await module.bot.database.userInfo.findByUsername(nickname);
+                const userInfo = await module.bot.storage.userDirectory.findByUsername(nickname);
                 if (!userInfo) {
                     await ctx.reply(
                         ctx.tr("unknown-username", {
@@ -27,14 +27,13 @@ export default class IgnoreCommand extends Command {
             }
 
             if (isNaN(id)) {
-                await ctx.send("Невалидный id");
+                await ctx.send(ctx.tr("admin-invalid-user-id"));
                 return;
             }
 
             const ignored = await self.module.bot.ignored.switch(id);
-            const mention = await self.module.bot.database.userInfo.getMention(id);
-
-            await ctx.send(`${mention} ${ignored ? "добавлен в игнор-лист" : "убран из игнор-листа"}!`);
+            const mention = await ctx.mentionUser(id);
+            await ctx.send(ctx.tr(ignored ? "admin-ignore-added" : "admin-ignore-removed", { user: mention }));
         });
 
         this.permission = (ctx) => ctx.isFromOwner;

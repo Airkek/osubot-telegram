@@ -1,19 +1,20 @@
-import Database from "../Database";
+import { SqlExecutor } from "../SqlExecutor";
+import { ONBOARDING_VERSION } from "../../core/ApplicationStorage";
+
+export { ONBOARDING_VERSION } from "../../core/ApplicationStorage";
 
 interface OnboardingScheme {
     user_id: number;
     version: number;
 }
 
-export const ONBOARDING_VERSION = 1;
-
 export class OnboardingModel {
-    private db: Database;
+    private db: SqlExecutor;
     private cache: Map<number, number>;
     private readonly cacheTTL: number;
     private lastUpdated: Map<number, number>;
 
-    constructor(db: Database) {
+    constructor(db: SqlExecutor) {
         this.db = db;
         this.cache = new Map();
         this.cacheTTL = 60 * 60 * 1000; // 6 hour

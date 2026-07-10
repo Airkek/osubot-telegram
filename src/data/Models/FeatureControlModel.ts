@@ -1,19 +1,15 @@
-import Database from "../Database";
+import { ControllableFeature, FeatureStatus } from "../../core/ApplicationStorage";
+import { SqlExecutor } from "../SqlExecutor";
 
-export type ControllableFeature = "oki-cards" | "plaintext-overrides" | "force-onboarding" | "admin-all-features";
-
-interface FeatureControlSchema {
-    feature: ControllableFeature;
-    enabled_for_all: boolean;
-}
+export { ControllableFeature } from "../../core/ApplicationStorage";
 
 export class FeatureControlModel {
-    private db: Database;
+    private db: SqlExecutor;
     private cache: Map<ControllableFeature, boolean>;
     private readonly cacheTTL: number;
     private lastUpdated: Map<ControllableFeature, number>;
 
-    constructor(db: Database) {
+    constructor(db: SqlExecutor) {
         this.db = db;
         this.cache = new Map();
         this.cacheTTL = 60 * 60 * 1000; // 6 hour
@@ -28,10 +24,9 @@ export class FeatureControlModel {
             return this.cache.get(feature)!;
         }
 
-        const featureStatus = await this.db.get<FeatureControlSchema>(
-            "SELECT * FROM feature_control WHERE feature = $1",
-            [feature]
-        );
+        const featureStatus = await this.db.get<FeatureStatus>("SELECT * FROM feature_control WHERE feature = $1", [
+            feature,
+        ]);
 
         const isEnabled = featureStatus && featureStatus.enabled_for_all;
         this.cache.set(feature, isEnabled);
@@ -52,8 +47,8 @@ export class FeatureControlModel {
         this.lastUpdated.delete(feature);
     }
 
-    async listFeatures(): Promise<FeatureControlSchema[]> {
-        return await this.db.all<FeatureControlSchema>("SELECT * FROM feature_control");
+    async listFeatures(): Promise<FeatureStatus[]> {
+        return await this.db.all<FeatureStatus>("SELECT * FROM feature_control");
     }
 
     clearCache(): void {

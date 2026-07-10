@@ -1,17 +1,17 @@
-import Database from "./Database";
+import { SqlDatabase, SqlExecutor } from "./SqlExecutor";
 import { BeatmapStatus } from "../Types";
 
 export interface IMigration {
     version: number;
     name: string;
-    process: (db: Pick<Database, "get" | "all" | "run">) => Promise<boolean>;
+    process: (db: SqlExecutor) => Promise<boolean>;
 }
 
 const migrations: IMigration[] = [
     {
         version: 1,
         name: "Create tables",
-        process: async (db: Database) => {
+        process: async (db) => {
             await db.run("CREATE TABLE IF NOT EXISTS covers (id BIGINT, attachment TEXT)");
             await db.run("CREATE TABLE IF NOT EXISTS photos (url TEXT, attachment TEXT)");
             await db.run("CREATE TABLE IF NOT EXISTS errors (code TEXT, info TEXT, error TEXT)");
@@ -28,7 +28,7 @@ const migrations: IMigration[] = [
     {
         version: 2,
         name: "Create ignore list table",
-        process: async (db: Database) => {
+        process: async (db) => {
             await db.run("CREATE TABLE IF NOT EXISTS ignored_users (id BIGINT)");
             return true;
         },
@@ -36,7 +36,7 @@ const migrations: IMigration[] = [
     {
         version: 3,
         name: "Remove all cached covers (migrate from raw to cover@2x)",
-        process: async (db: Database) => {
+        process: async (db) => {
             await db.run("DELETE FROM covers");
             return true;
         },
@@ -44,7 +44,7 @@ const migrations: IMigration[] = [
     {
         version: 4,
         name: "Create osu! beatmap metadata cache table",
-        process: async (db: Database) => {
+        process: async (db) => {
             await db.run(
                 `CREATE TABLE IF NOT EXISTS osu_beatmap_metadata
                  (
@@ -69,7 +69,7 @@ const migrations: IMigration[] = [
     {
         version: 5,
         name: "Create settings table",
-        process: async (db: Database) => {
+        process: async (db) => {
             await db.run(
                 `CREATE TABLE IF NOT EXISTS settings
                  (
@@ -90,7 +90,7 @@ const migrations: IMigration[] = [
     {
         version: 6,
         name: "Add ordr_strain_graph to settings",
-        process: async (db: Database) => {
+        process: async (db) => {
             await db.run(
                 `ALTER TABLE settings
                     ADD COLUMN ordr_strain_graph BOOLEAN DEFAULT true`
@@ -101,7 +101,7 @@ const migrations: IMigration[] = [
     {
         version: 7,
         name: "Change ordr_skin type to TEXT",
-        process: async (db: Database) => {
+        process: async (db) => {
             await db.run(`ALTER TABLE settings
                 RENAME TO temp_settings`);
 
@@ -144,7 +144,7 @@ const migrations: IMigration[] = [
     {
         version: 8,
         name: "Add ability to set custom o!rdr skin",
-        process: async (db: Database) => {
+        process: async (db) => {
             await db.run(
                 `ALTER TABLE settings
                     ADD COLUMN ordr_is_skin_custom BOOLEAN DEFAULT false`
@@ -155,7 +155,7 @@ const migrations: IMigration[] = [
     {
         version: 9,
         name: "Create chat_settings table",
-        process: async (db: Database) => {
+        process: async (db) => {
             await db.run(
                 `CREATE TABLE IF NOT EXISTS chat_settings
                  (
@@ -169,7 +169,7 @@ const migrations: IMigration[] = [
     {
         version: 10,
         name: "Remove Qualified maps from cache",
-        process: async (db: Database) => {
+        process: async (db) => {
             await db.run(
                 `DELETE
                  FROM osu_beatmap_metadata
@@ -182,7 +182,7 @@ const migrations: IMigration[] = [
     {
         version: 11,
         name: "Add notifications_enabled to settings",
-        process: async (db: Database) => {
+        process: async (db) => {
             await db.run(
                 `ALTER TABLE chat_settings
                     ADD COLUMN notifications_enabled BOOLEAN DEFAULT true`
@@ -197,7 +197,7 @@ const migrations: IMigration[] = [
     {
         version: 12,
         name: "Add experimental_renderer to settings",
-        process: async (db: Database) => {
+        process: async (db) => {
             await db.run(
                 `ALTER TABLE settings
                     ADD COLUMN experimental_renderer BOOLEAN DEFAULT false`
@@ -208,7 +208,7 @@ const migrations: IMigration[] = [
     {
         version: 13,
         name: "Add language_override to settings",
-        process: async (db: Database) => {
+        process: async (db) => {
             await db.run(
                 `ALTER TABLE chat_settings
                     ADD COLUMN language_override TEXT DEFAULT 'do_not_override'`
@@ -223,7 +223,7 @@ const migrations: IMigration[] = [
     {
         version: 14,
         name: "Add render volume settings",
-        process: async (db: Database) => {
+        process: async (db) => {
             await db.run(
                 `ALTER TABLE settings
                     ADD COLUMN ordr_music_volume SMALLINT DEFAULT 50`
@@ -242,7 +242,7 @@ const migrations: IMigration[] = [
     {
         version: 15,
         name: "Add content output type settings",
-        process: async (db: Database) => {
+        process: async (db) => {
             await db.run(
                 `ALTER TABLE settings
                     ADD COLUMN content_output TEXT DEFAULT 'oki-cards'`
@@ -255,7 +255,7 @@ const migrations: IMigration[] = [
     {
         version: 16,
         name: "Add feature control",
-        process: async (db: Database) => {
+        process: async (db) => {
             await db.run(
                 `CREATE TABLE IF NOT EXISTS feature_control
                  (
@@ -272,7 +272,7 @@ const migrations: IMigration[] = [
     {
         version: 17,
         name: "Add feature 'plaintext-overrides'",
-        process: async (db: Database) => {
+        process: async (db) => {
             await db.run(
                 `INSERT INTO feature_control (feature, enabled_for_all)
                  VALUES ('plaintext-overrides', false)`
@@ -283,7 +283,7 @@ const migrations: IMigration[] = [
     {
         version: 18,
         name: "Add cover url to beatmap cache",
-        process: async (db: Database) => {
+        process: async (db) => {
             await db.run(
                 `ALTER TABLE osu_beatmap_metadata
                     ADD COLUMN cover_url TEXT`
@@ -300,7 +300,7 @@ const migrations: IMigration[] = [
     {
         version: 19,
         name: "Add author_id to beatmap cache",
-        process: async (db: Database) => {
+        process: async (db) => {
             await db.run(
                 `ALTER TABLE osu_beatmap_metadata
                     ADD COLUMN author_id BIGINT`
@@ -316,7 +316,7 @@ const migrations: IMigration[] = [
     {
         version: 20,
         name: "Force enable oki-cards for all",
-        process: async (db: Database) => {
+        process: async (db) => {
             await db.run("UPDATE settings SET content_output = 'oki-cards'");
             return true;
         },
@@ -324,7 +324,7 @@ const migrations: IMigration[] = [
     {
         version: 21,
         name: "Create 'statistics' table",
-        process: async (db: Database) => {
+        process: async (db) => {
             await db.run("CREATE EXTENSION IF NOT EXISTS timescaledb");
 
             await db.run(`CREATE TABLE bot_events
@@ -345,7 +345,7 @@ const migrations: IMigration[] = [
     {
         version: 22,
         name: "Optimize stats events",
-        process: async (db: Database) => {
+        process: async (db) => {
             await db.run(`CREATE TABLE bot_events_metrics
                           (
                               time       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -482,7 +482,7 @@ const migrations: IMigration[] = [
     {
         version: 23,
         name: "add 'admin-all-features' feature",
-        process: async (db: Database) => {
+        process: async (db) => {
             await db.run(
                 `INSERT INTO feature_control (feature, enabled_for_all)
                  VALUES ('admin-all-features', false)`
@@ -493,7 +493,7 @@ const migrations: IMigration[] = [
     {
         version: 24,
         name: "add 'force-onboarding' feature",
-        process: async (db: Database) => {
+        process: async (db) => {
             await db.run(`CREATE TABLE onboarded_users
                           (
                               user_id BIGINT UNIQUE,
@@ -511,7 +511,7 @@ const migrations: IMigration[] = [
     {
         version: 25,
         name: "Enable compression for statistics hypertables",
-        process: async (db: Database) => {
+        process: async (db) => {
             const tables = [
                 {
                     name: "bot_events",
@@ -562,7 +562,7 @@ const migrations: IMigration[] = [
     {
         version: 26,
         name: "Set daily chunk interval for high-volume statistics tables",
-        process: async (db: Database) => {
+        process: async (db) => {
             const highVolumeTables = ["bot_events", "bot_events_commands", "bot_events_render"];
 
             for (const tableName of highVolumeTables) {
@@ -576,7 +576,7 @@ const migrations: IMigration[] = [
     {
         version: 27,
         name: "Create user_info table for telegram usernames cache",
-        process: async (db: Database) => {
+        process: async (db) => {
             await db.run(`CREATE TABLE IF NOT EXISTS user_info
                           (
                               user_id   BIGINT PRIMARY KEY,
@@ -591,7 +591,7 @@ const migrations: IMigration[] = [
     {
         version: 28,
         name: "Add display_username to user_info and convert username to lowercase",
-        process: async (db: Database) => {
+        process: async (db) => {
             // Add display_username column
             await db.run(`ALTER TABLE user_info ADD COLUMN display_username TEXT`);
 
@@ -607,7 +607,7 @@ const migrations: IMigration[] = [
     {
         version: 29,
         name: "Add enable_find to settings",
-        process: async (db: Database) => {
+        process: async (db) => {
             await db.run(`ALTER TABLE settings ADD COLUMN enable_find BOOLEAN DEFAULT true`);
             return true;
         },
@@ -630,34 +630,36 @@ const migrations: IMigration[] = [
     },
 ];
 
-export async function applyMigrations(db: Database) {
+export async function applyMigrations(db: SqlDatabase) {
     global.logger.info("Applying migrations");
-    const applied = new Set<number>();
-    const dbData: IMigration[] = await db.all<IMigration>("SELECT version FROM migrations");
-    for (const m of dbData) {
-        applied.add(m.version);
-    }
 
     for (const migration of migrations) {
-        if (applied.has(migration.version)) {
-            continue;
-        }
-
-        global.logger.info(`Processing migration #${migration.version}: ${migration.name}`);
-
         try {
-            await db.transaction(async (tx) => {
+            const applied = await db.transaction(async (tx) => {
+                await tx.run("LOCK TABLE migrations IN EXCLUSIVE MODE");
+                const existing = await tx.get<{ version: number }>(
+                    "SELECT version FROM migrations WHERE version = $1",
+                    [migration.version]
+                );
+                if (existing) {
+                    return false;
+                }
+
+                global.logger.info(`Processing migration #${migration.version}: ${migration.name}`);
                 const res = await migration.process(tx);
                 if (!res) {
                     throw new Error(`Migration #${migration.version} returned failure`);
                 }
                 await tx.run("INSERT INTO migrations (version) VALUES ($1)", [migration.version]);
+                return true;
             });
-            global.logger.info("Success");
+
+            if (applied) {
+                global.logger.info("Success");
+            }
         } catch (e) {
             global.logger.error(e);
-            global.logger.fatal("Failed. Aborting");
-            process.abort();
+            throw new Error(`Migration #${migration.version} failed`, { cause: e });
         }
     }
 }

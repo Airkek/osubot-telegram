@@ -1,6 +1,6 @@
 import type { APICollection } from "../api/APICollection";
 import type { OsuBeatmapProvider } from "../beatmaps/osu/OsuBeatmapProvider";
-import type Database from "../data/Database";
+import type { ApplicationStorage } from "./ApplicationStorage";
 import type IgnoreList from "../Ignore";
 import type Maps from "../Maps";
 import type OsuTrackAPI from "../osu_specific/OsuTrackAPI";
@@ -12,7 +12,7 @@ import type { IMessageContext } from "./MessageContext";
 export type PendingCallback = (ctx: IMessageContext) => Promise<boolean>;
 
 export interface BotRuntime {
-    readonly database: Database;
+    readonly storage: ApplicationStorage;
     readonly api: APICollection;
     readonly osuBeatmapProvider: OsuBeatmapProvider;
     readonly templates: ITemplates;

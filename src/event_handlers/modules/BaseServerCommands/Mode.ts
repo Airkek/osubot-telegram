@@ -1,9 +1,9 @@
 import { ServerModule } from "../Module";
 import { ServerCommand } from "../../ServerCommand";
-import { IDatabaseServer } from "../../../Types";
+import { GameUserRepository } from "../../../core/ApplicationStorage";
 
 export default class AbstractMode extends ServerCommand {
-    constructor(module: ServerModule, masterDb?: IDatabaseServer) {
+    constructor(module: ServerModule, masterDb?: GameUserRepository) {
         super(["mode", "m", "ь", "ьщву"], module, async (self) => {
             if (!self.args.full[0]) {
                 await self.reply(

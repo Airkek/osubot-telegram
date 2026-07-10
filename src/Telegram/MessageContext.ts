@@ -4,11 +4,8 @@ import { FileApiFlavor, FileFlavor } from "@grammyjs/files";
 import { I18nFlavor } from "@grammyjs/i18n";
 import fs from "fs/promises";
 import { TranslateFunction, TranslationVariables } from "../ILocalisator";
-import { UserSettings } from "../data/Models/Settings/UserSettingsModel";
-import { ChatSettings } from "../data/Models/Settings/ChatSettingsModel";
-import { Language } from "../data/Models/Settings/SettingsTypes";
-import Database from "../data/Database";
-import { ControllableFeature } from "../data/Models/FeatureControlModel";
+import { ApplicationStorage, ControllableFeature } from "../core/ApplicationStorage";
+import { ChatSettings, Language, UserSettings } from "../core/Settings";
 import { IKeyboard } from "../Util";
 import Util from "../Util";
 import {
@@ -21,6 +18,11 @@ import {
 
 export type TgContext = FileFlavor<Context & I18nFlavor>;
 export type TgApi = FileApiFlavor<Api>;
+
+type TelegramContextStorage = Pick<
+    ApplicationStorage,
+    "userDirectory" | "featureFlags" | "userSettings" | "chatSettings"
+>;
 
 const registry = new FinalizationRegistry(async (path: string) => {
     if (!(await Util.fileExists(path))) {
@@ -48,7 +50,7 @@ export class TelegramMessageContext implements IMessageContext {
     private readonly tgCtx: TgContext;
     private readonly me: UserFromGetMe;
     private readonly localServer: boolean;
-    private readonly database: Database;
+    private readonly storage: TelegramContextStorage;
 
     private tmpFile?: string;
     private registryToken?: object;
@@ -98,11 +100,11 @@ export class TelegramMessageContext implements IMessageContext {
         };
     }
 
-    constructor(ctx: TgContext, ownerId: number, me: UserFromGetMe, isLocal: boolean, database: Database) {
+    constructor(ctx: TgContext, ownerId: number, me: UserFromGetMe, isLocal: boolean, storage: TelegramContextStorage) {
         this.tgCtx = ctx;
         this.me = me;
         this.localServer = isLocal;
-        this.database = database;
+        this.storage = storage;
 
         this.plainText = ctx.message?.text ?? ctx.message?.caption;
         this.plainPayload = ctx.callbackQuery?.data;
@@ -209,7 +211,7 @@ export class TelegramMessageContext implements IMessageContext {
         }
 
         if (this.tgCtx.from && !this.tgCtx.from.is_bot) {
-            await this.database.userInfo.set({
+            await this.storage.userDirectory.set({
                 user_id: this.tgCtx.from.id,
                 display_username: this.tgCtx.from.username ?? null,
                 first_name: this.tgCtx.from.first_name ?? null,
@@ -255,13 +257,13 @@ export class TelegramMessageContext implements IMessageContext {
 
     public async checkFeature(feature: ControllableFeature) {
         if (this.isFromOwner) {
-            const allFeatures = await this.database.featureControlModel.isFeatureEnabled("admin-all-features");
+            const allFeatures = await this.storage.featureFlags.isFeatureEnabled("admin-all-features");
             if (allFeatures) {
                 return true;
             }
         }
 
-        return await this.database.featureControlModel.isFeatureEnabled(feature);
+        return await this.storage.featureFlags.isFeatureEnabled(feature);
     }
 
     async preferCardsOutput(): Promise<boolean> {
@@ -280,7 +282,7 @@ export class TelegramMessageContext implements IMessageContext {
 
     async userSettings(forceUpdate: boolean = false): Promise<UserSettings> {
         if (forceUpdate || !this.userSettingsCache) {
-            this.userSettingsCache = await this.database.userSettings.getUserSettings(this.senderId);
+            this.userSettingsCache = await this.storage.userSettings.getUserSettings(this.senderId);
         }
 
         return this.userSettingsCache;
@@ -292,7 +294,7 @@ export class TelegramMessageContext implements IMessageContext {
         }
 
         if (forceUpdate || !this.chatSettingsCache) {
-            this.chatSettingsCache = await this.database.chatSettings.getChatSettings(this.chatId);
+            this.chatSettingsCache = await this.storage.chatSettings.getChatSettings(this.chatId);
         }
 
         return this.chatSettingsCache;
@@ -302,7 +304,7 @@ export class TelegramMessageContext implements IMessageContext {
         if (settings.user_id != this.senderId) {
             return;
         }
-        await this.database.userSettings.updateSettings(settings);
+        await this.storage.userSettings.updateSettings(settings);
         this.userSettingsCache = settings;
     }
 
@@ -310,7 +312,7 @@ export class TelegramMessageContext implements IMessageContext {
         if (!this.isInGroupChat || settings.chat_id != this.chatId) {
             return;
         }
-        await this.database.chatSettings.updateSettings(settings);
+        await this.storage.chatSettings.updateSettings(settings);
         this.chatSettingsCache = settings;
     }
 
@@ -496,6 +498,11 @@ export class TelegramMessageContext implements IMessageContext {
 
     async isBotInChat(chatId: number): Promise<boolean> {
         return this.isUserInChat(this.me.id, chatId);
+    }
+
+    async mentionUser(userId: number): Promise<string> {
+        const info = await this.storage.userDirectory.get(userId);
+        return info?.display_username ? `@${info.display_username}` : `tg://user?id=${userId}`;
     }
 
     chatMembersCount(): Promise<number> {

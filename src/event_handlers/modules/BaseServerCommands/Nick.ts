@@ -1,11 +1,12 @@
 import { ServerModule } from "../Module";
 import { ServerCommand } from "../../ServerCommand";
-import { APIUser, IDatabaseServer } from "../../../Types";
+import { APIUser } from "../../../Types";
+import { GameUserRepository } from "../../../core/ApplicationStorage";
 import IAPI from "../../../api/base";
 import { isUserError } from "../../../UserError";
 
 export default class AbstractNick extends ServerCommand {
-    constructor(module: ServerModule, masterApi?: IAPI, masterDb?: IDatabaseServer) {
+    constructor(module: ServerModule, masterApi?: IAPI, masterDb?: GameUserRepository) {
         super(["nick", "n", "т", "тшсл"], module, async (self) => {
             if (!self.args.nickname[0]) {
                 await self.reply(

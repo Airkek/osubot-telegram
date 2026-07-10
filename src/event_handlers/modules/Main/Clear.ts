@@ -23,7 +23,7 @@ export default class ClearCommand extends Command {
             }
             this.setLimit(ctx.chatId);
 
-            const origMembers = await self.module.bot.database.chats.getChatUsers(ctx.chatId);
+            const origMembers = await self.module.bot.storage.memberships.getChatUsers(ctx.chatId);
             const duplicates = new Set<number>();
             const members = new Set<number>();
 
@@ -38,8 +38,8 @@ export default class ClearCommand extends Command {
             }
 
             for (const member of duplicates) {
-                await self.module.bot.database.chats.userLeft(member, ctx.chatId);
-                await self.module.bot.database.chats.userJoined(member, ctx.chatId);
+                await self.module.bot.storage.memberships.userLeft(member, ctx.chatId);
+                await self.module.bot.storage.memberships.userJoined(member, ctx.chatId);
             }
 
             const realCount = await ctx.chatMembersCount();
@@ -68,7 +68,7 @@ export default class ClearCommand extends Command {
                 const inGroup = await ctx.isUserInChat(member);
 
                 if (!inGroup) {
-                    await self.module.bot.database.chats.userLeft(member, ctx.chatId);
+                    await self.module.bot.storage.memberships.userLeft(member, ctx.chatId);
                     kicked++;
                 }
             }

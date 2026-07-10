@@ -3,7 +3,7 @@ import BanchoAPIV2 from "../api/BanchoV2";
 import { OsuBeatmapProvider } from "../beatmaps/osu/OsuBeatmapProvider";
 import { BotRuntime, PendingCallback } from "./BotRuntime";
 import { CoversProvider } from "./CoversProvider";
-import Database from "../data/Database";
+import { ApplicationStorage, BotIdentity, MediaReferenceCache } from "./ApplicationStorage";
 import Admin from "../event_handlers/modules/Admin";
 import Akatsuki from "../event_handlers/modules/Akatsuki";
 import AkatsukiAutoPilot from "../event_handlers/modules/AkatsukiAutoPilot";
@@ -35,14 +35,14 @@ export interface RuntimeConfig {
 }
 
 export interface RuntimePlatformServices {
-    createCoversProvider(database: Database): CoversProvider;
+    createCoversProvider(mediaReferences: MediaReferenceCache): CoversProvider;
     sendMessage(recipientId: number, text: string): Promise<void>;
 }
 
 export type ModuleFactory = (runtime: BotRuntime) => Module;
 
 export interface RuntimeDependencies {
-    database: Database;
+    storage: ApplicationStorage;
     api: APICollection;
     osuBeatmapProvider: OsuBeatmapProvider;
     templates: ITemplates;
@@ -53,13 +53,6 @@ export interface RuntimeDependencies {
     sendMessage(recipientId: number, text: string): Promise<void>;
     moduleFactories?: ModuleFactory[];
     version?: string;
-}
-
-interface BotIdentity {
-    id: number;
-    username?: string;
-    first_name: string;
-    last_name?: string;
 }
 
 const DEFAULT_MODULE_FACTORIES: ModuleFactory[] = [
@@ -78,7 +71,7 @@ const DEFAULT_MODULE_FACTORIES: ModuleFactory[] = [
 ];
 
 export class ApplicationRuntime implements BotRuntime {
-    readonly database: Database;
+    readonly storage: ApplicationStorage;
     readonly api: APICollection;
     readonly osuBeatmapProvider: OsuBeatmapProvider;
     readonly templates: ITemplates;
@@ -131,10 +124,11 @@ export class ApplicationRuntime implements BotRuntime {
     private readonly sendPlatformMessage: RuntimeDependencies["sendMessage"];
     private initializationPromise?: Promise<void>;
     private statsInterval?: NodeJS.Timeout;
+    private stopped = false;
     private totalMessages = 0;
 
     constructor(dependencies: RuntimeDependencies) {
-        this.database = dependencies.database;
+        this.storage = dependencies.storage;
         this.api = dependencies.api;
         this.osuBeatmapProvider = dependencies.osuBeatmapProvider;
         this.templates = dependencies.templates;
@@ -147,21 +141,24 @@ export class ApplicationRuntime implements BotRuntime {
         this.sendPlatformMessage = dependencies.sendMessage;
     }
 
-    static create(config: RuntimeConfig, platform: RuntimePlatformServices): ApplicationRuntime {
-        const database = new Database();
+    static create(
+        config: RuntimeConfig,
+        storage: ApplicationStorage,
+        platform: RuntimePlatformServices
+    ): ApplicationRuntime {
         const banchoApi = new BanchoAPIV2(config.banchoAppId, config.banchoClientSecret);
-        const osuBeatmapProvider = new OsuBeatmapProvider(banchoApi, database.osuBeatmapMeta);
+        const osuBeatmapProvider = new OsuBeatmapProvider(banchoApi, storage.beatmaps);
         const cards = new OkiCardsGenerator();
 
         return new ApplicationRuntime({
-            database,
+            storage,
             api: new APICollection(banchoApi),
             osuBeatmapProvider,
             templates: Templates,
             maps: new Maps(),
-            ignored: new IgnoreList(database),
+            ignored: new IgnoreList(storage.ignoredUsers),
             track: new OsuTrackAPI(),
-            replyUtils: new ReplyUtils(cards, Templates, platform.createCoversProvider(database)),
+            replyUtils: new ReplyUtils(cards, Templates, platform.createCoversProvider(storage.mediaReferences)),
             sendMessage: platform.sendMessage,
         });
     }
@@ -172,7 +169,7 @@ export class ApplicationRuntime implements BotRuntime {
     }
 
     private async initializeInternal(): Promise<void> {
-        await this.database.init();
+        await this.storage.initialize();
         await this.ignored.init();
         await this.api.bancho.login();
         this.modules.push(...this.moduleFactories.map((factory) => factory(this)));
@@ -180,15 +177,17 @@ export class ApplicationRuntime implements BotRuntime {
 
     async markStarted(identity: BotIdentity): Promise<void> {
         this.startTime = Date.now();
-        await this.database.statsModel.logStartup(identity);
+        await this.storage.telemetry.logStartup(identity);
         await this.startStatsLogger();
     }
 
     async stop(): Promise<void> {
-        if (this.statsInterval) {
-            clearInterval(this.statsInterval);
-            this.statsInterval = undefined;
+        if (this.stopped) {
+            return;
         }
+        this.stopped = true;
+        this.stopStatsLogger();
+        await this.storage.close();
     }
 
     async handleMessage(ctx: IMessageContext): Promise<void> {
@@ -202,7 +201,7 @@ export class ApplicationRuntime implements BotRuntime {
         }
 
         this.totalMessages++;
-        await this.database.statsModel.logMessage(ctx);
+        await this.storage.telemetry.logMessage(ctx);
 
         const ticket = this.createCallbackTicket(ctx);
         const callback = this.pendingCallbacks.get(ticket);
@@ -216,21 +215,21 @@ export class ApplicationRuntime implements BotRuntime {
 
     async handleCallbackQuery(ctx: IMessageContext): Promise<boolean> {
         await ctx.ensureUserInfoUpdated();
-        await this.database.statsModel.logMessage(ctx);
+        await this.storage.telemetry.logMessage(ctx);
         return await this.processCommands(ctx);
     }
 
     async handleCommandAlias(ctx: IMessageContext, sourceCommand: string, alias: string): Promise<void> {
         await ctx.ensureUserInfoUpdated();
         ctx.applyTextOverrides({ [sourceCommand]: alias });
-        await this.database.statsModel.logMessage(ctx);
+        await this.storage.telemetry.logMessage(ctx);
         await this.processCommands(ctx);
     }
 
     async handleRateLimit(ctx: IMessageContext): Promise<void> {
         await ctx.ensureUserInfoUpdated();
         await ctx.activateLocalisator();
-        await this.database.statsModel.logMessage(ctx);
+        await this.storage.telemetry.logMessage(ctx);
         if (ctx.messagePayload) {
             await ctx.answer(ctx.tr("too-fast-notification"));
         } else {
@@ -246,8 +245,8 @@ export class ApplicationRuntime implements BotRuntime {
     }
 
     async userJoined(userId: number, chatId: number): Promise<void> {
-        if (!(await this.database.chats.isUserInChat(userId, chatId))) {
-            await this.database.chats.userJoined(userId, chatId);
+        if (!(await this.storage.memberships.isUserInChat(userId, chatId))) {
+            await this.storage.memberships.userJoined(userId, chatId);
         }
     }
 
@@ -255,7 +254,7 @@ export class ApplicationRuntime implements BotRuntime {
         if (isCurrentBot) {
             this.maps.removeChat(chatId);
         }
-        await this.database.chats.userLeft(userId, chatId);
+        await this.storage.memberships.userLeft(userId, chatId);
     }
 
     addCallback(ctx: IMessageContext, callback: PendingCallback): string {
@@ -290,7 +289,7 @@ export class ApplicationRuntime implements BotRuntime {
     private async reportContextError(ctx: IMessageContext, error: unknown, source: string): Promise<void> {
         let errorId: string;
         try {
-            errorId = await this.database.errors.addError(ctx, error);
+            errorId = await this.storage.errors.addError(ctx, error);
         } catch (recordError) {
             global.logger.error(`Failed to record ${source} error`, recordError, error);
         }
@@ -307,7 +306,7 @@ export class ApplicationRuntime implements BotRuntime {
         if (!(await ctx.checkFeature("force-onboarding"))) {
             return false;
         }
-        if (!(await this.database.onboardingModel.isUserNeedOnboarding(ctx.senderId))) {
+        if (!(await this.storage.onboarding.isUserNeedOnboarding(ctx.senderId))) {
             return false;
         }
 
@@ -361,15 +360,15 @@ export class ApplicationRuntime implements BotRuntime {
 
     private async logStatsInfo(): Promise<void> {
         global.logger.info("Logging stats");
-        await this.database.statsModel.logUserCount();
-        await this.database.statsModel.logChatCount();
-        await this.database.statsModel.logBeatmapMetadataCacheCount();
-        await this.database.statsModel.logBeatmapFilesCount();
+        await this.storage.telemetry.logUserCount();
+        await this.storage.telemetry.logChatCount();
+        await this.storage.telemetry.logBeatmapMetadataCacheCount();
+        await this.storage.telemetry.logBeatmapFilesCount();
         global.logger.info("Stats logged");
     }
 
     private async startStatsLogger(): Promise<void> {
-        await this.stop();
+        this.stopStatsLogger();
         await this.logStatsInfo();
         this.statsInterval = setInterval(
             () => {
@@ -379,5 +378,12 @@ export class ApplicationRuntime implements BotRuntime {
             },
             15 * 60 * 1000
         );
+    }
+
+    private stopStatsLogger(): void {
+        if (this.statsInterval) {
+            clearInterval(this.statsInterval);
+            this.statsInterval = undefined;
+        }
     }
 }
