@@ -1,5 +1,7 @@
 /build
 /node_modules
+**/bin
+**/obj
 /beatmap_cache
 /osubot_postgres
 /osubot_data

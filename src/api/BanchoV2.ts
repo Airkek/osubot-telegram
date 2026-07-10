@@ -36,6 +36,9 @@ interface Score {
 
         // std lazer slider stats:
         large_tick_hit?: number;
+        large_tick_miss?: number;
+        small_tick_hit?: number;
+        small_tick_miss?: number;
         slider_tail_hit?: number;
     };
     ruleset_id: number;
@@ -274,13 +277,15 @@ class V2Score implements APIScore {
         this.counts = new HitCounts(
             {
                 300: data.statistics.great || 0,
-                100: data.statistics.ok || 0,
-                50: data.statistics.meh || 0,
+                100: data.ruleset_id === 2 ? data.statistics.large_tick_hit || 0 : data.statistics.ok || 0,
+                50: data.ruleset_id === 2 ? data.statistics.small_tick_hit || 0 : data.statistics.meh || 0,
                 miss: data.statistics.miss || 0,
-                katu: data.statistics.good || 0,
+                katu: data.ruleset_id === 2 ? data.statistics.small_tick_miss || 0 : data.statistics.good || 0,
                 geki: data.statistics.perfect || 0,
                 slider_large: data.statistics.large_tick_hit || 0,
                 slider_tail: data.statistics.slider_tail_hit || 0,
+                small_tick_miss: data.statistics.small_tick_miss || 0,
+                large_tick_miss: data.statistics.large_tick_miss || 0,
             },
             data.ruleset_id
         );

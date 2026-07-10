@@ -1,16 +1,16 @@
-import * as rosu from "rosu-pp-js";
-import fs from "fs/promises";
 import axios from "axios";
-import crypto from "crypto";
+import crypto from "node:crypto";
+import fs from "node:fs/promises";
+import path from "node:path";
 import { IBeatmap } from "../../beatmaps/BeatmapTypes";
 import Util from "../../Util";
 
 const folderPath = "./beatmap_cache";
 
-async function downloadRosuBeatmap(map: IBeatmap): Promise<string> {
+export async function getBeatmapFile(map: IBeatmap): Promise<string> {
     await fs.mkdir(folderPath, { recursive: true });
 
-    const filePath = `${folderPath}/${map.hash}.osu`;
+    const filePath = path.resolve(folderPath, `${map.hash}.osu`);
     let resolvedPath = filePath;
     if (!(await Util.fileExists(filePath))) {
         const response = await axios.get(`https://osu.ppy.sh/osu/${map.id}`, {
@@ -30,7 +30,7 @@ async function downloadRosuBeatmap(map: IBeatmap): Promise<string> {
         const md5sum = crypto.createHash("md5").update(buffer).digest("hex");
         let savePath = filePath;
         if (md5sum !== map.hash) {
-            savePath = `${folderPath}/${md5sum}.osu`;
+            savePath = path.resolve(folderPath, `${md5sum}.osu`);
             resolvedPath = savePath;
             global.logger.error(`Beatmap ${map.id}: hash mismatch - expected '${map.hash}', got ${md5sum}`);
             if (await Util.fileExists(savePath)) {
@@ -42,13 +42,4 @@ async function downloadRosuBeatmap(map: IBeatmap): Promise<string> {
     }
 
     return resolvedPath;
-}
-export async function getRosuBeatmap(map: IBeatmap): Promise<rosu.Beatmap> {
-    const filePath = await downloadRosuBeatmap(map);
-    try {
-        return new rosu.Beatmap(await fs.readFile(filePath, "utf-8"));
-    } catch (error) {
-        global.logger.error(`Cannot parse beatmap with hash ${map.hash}`, error);
-    }
-    return null;
 }

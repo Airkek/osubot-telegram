@@ -1,5 +1,6 @@
 import fs from "fs/promises";
-import { ScoreDecoder } from "osu-parsers";
+import os from "node:os";
+import path from "node:path";
 import { Command } from "../../Command";
 import { SimpleCommandsModule } from "./index";
 import { IMessageContext, MediaFile } from "../../../core/MessageContext";
@@ -8,6 +9,8 @@ import { IReplayRenderer, RenderSettings } from "../../../osu_specific/replay_re
 import { IssouBestRenderer } from "../../../osu_specific/replay_render/IssouBestRenderer";
 import { OsrReplay } from "../../../osu_specific/OsrReplay";
 import { ExperimentalRenderer } from "../../../osu_specific/replay_render/ExperimentalRenderer";
+import { decodeReplay, readReplayHeader } from "../../../osu_specific/pp/OfficialCalculator";
+import { OsuBeatmap } from "../../../beatmaps/osu/OsuBeatmap";
 
 export class OsuReplay extends Command {
     renderer: IReplayRenderer;
@@ -50,10 +53,18 @@ export class OsuReplay extends Command {
                 }
             }
 
-            const decoder = new ScoreDecoder();
-            const score = await decoder.decodeFromBuffer(file, true);
-            const replay = new OsrReplay(score);
-            const beatmap = await module.bot.osuBeatmapProvider.getBeatmapByHash(replay.beatmapHash, replay.mode);
+            const replayDirectory = await fs.mkdtemp(path.join(os.tmpdir(), "osubot-replay-"));
+            const replayPath = path.join(replayDirectory, "replay.osr");
+            let replay: OsrReplay;
+            let beatmap: OsuBeatmap;
+            try {
+                await fs.writeFile(replayPath, file);
+                const header = await readReplayHeader(replayPath);
+                beatmap = await module.bot.osuBeatmapProvider.getBeatmapByHash(header.beatmap_hash, header.mode);
+                replay = new OsrReplay(await decodeReplay(replayPath, beatmap));
+            } finally {
+                await fs.rm(replayDirectory, { recursive: true, force: true });
+            }
             await beatmap.applyMods(replay.mods);
 
             const keyboard = makeKeyboard(
@@ -120,7 +131,7 @@ export class OsuReplay extends Command {
                 }
             }
 
-            if (needRender && (!score.replay?.frames || score.replay.frames.length < 1)) {
+            if (needRender && replay.frameCount < 1) {
                 renderAdditional = "\n\n" + ctx.tr("renderer-no-replay-frames");
                 needRender = false;
                 this.removeLimit(ctx.senderId);

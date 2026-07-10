@@ -1,0 +1,51 @@
+osu file format v14
+
+[General]
+AudioFilename: audio.mp3
+AudioLeadIn: 0
+PreviewTime: -1
+Countdown: 0
+SampleSet: Normal
+StackLeniency: 0.7
+Mode: 0
+LetterboxInBreaks: 0
+WidescreenStoryboard: 0
+
+[Editor]
+DistanceSpacing: 1
+BeatDivisor: 4
+GridSize: 4
+TimelineZoom: 1
+
+[Metadata]
+Title:Official calculator fixture
+TitleUnicode:Official calculator fixture
+Artist:osubot tests
+ArtistUnicode:osubot tests
+Creator:osubot
+Version:Test
+Source:
+Tags:test
+BeatmapID:0
+BeatmapSetID:-1
+
+[Difficulty]
+HPDrainRate:5
+CircleSize:4
+OverallDifficulty:8
+ApproachRate:9
+SliderMultiplier:1.4
+SliderTickRate:1
+
+[Events]
+
+[TimingPoints]
+0,500,4,2,1,50,1,0
+
+[Colours]
+Combo1 : 255,128,128
+
+[HitObjects]
+128,192,1000,1,0,0:0:0:0:
+256,192,1500,2,0,B|384:192,1,140
+384,192,2500,1,0,0:0:0:0:

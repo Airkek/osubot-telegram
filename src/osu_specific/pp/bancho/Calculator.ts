@@ -1,10 +1,9 @@
 import { IPPCalculator as ICalc } from "../Calculator";
-import * as rosu from "rosu-pp-js";
-import Mods, { ModsBitwise } from "../Mods";
+import Mods from "../Mods";
 import { APIScore, CalcArgs, HitCounts } from "../../../Types";
 import { OsrReplay } from "../../OsrReplay";
-import { getRosuBeatmap } from "../RosuUtils";
 import { IBeatmap } from "../../../beatmaps/BeatmapTypes";
+import { calculatePerformance, hitStatistics } from "../OfficialCalculator";
 
 interface IPP {
     pp: number;
@@ -27,100 +26,18 @@ class BanchoPP implements ICalc {
         if (!(score.counts instanceof HitCounts)) {
             return placeholder;
         }
-
-        const map = await getRosuBeatmap(this.map);
-        if (map == null) {
-            return placeholder;
-        }
-
-        try {
-            const pp = this.PP(score, map);
-            if (!pp) {
-                return placeholder;
-            }
-            return pp;
-        } finally {
-            map.free();
-        }
-    }
-
-    PP(score: APIScore | CalcArgs | OsrReplay, rmap: rosu.Beatmap) {
-        if (!rmap || !(score.counts instanceof HitCounts)) {
-            return undefined;
-        }
-
-        switch (score.mode) {
-            case 1:
-                rmap.convert(rosu.GameMode.Taiko);
-                break;
-            case 2:
-                rmap.convert(rosu.GameMode.Catch);
-                break;
-            case 3:
-                rmap.convert(rosu.GameMode.Mania);
-                break;
-            default:
-                rmap.convert(rosu.GameMode.Osu);
-                break;
-        }
-
-        if (rmap.isSuspicious()) {
-            return undefined;
-        }
-
-        let flags = this.mods.flags;
-        if (flags & ModsBitwise.Relax) {
-            flags ^= ModsBitwise.Relax;
-        }
-        if (flags & ModsBitwise.Relax2) {
-            flags ^= ModsBitwise.Relax2;
-        }
-        if (flags & ModsBitwise.Autoplay) {
-            flags ^= ModsBitwise.Autoplay;
-        }
-
         const hitData = score.counts.hitData;
-        const currAttrs = new rosu.Performance({
-            mods: flags,
-            clockRate: this.speedMultiplier,
-            n300: score.fake ? undefined : hitData[300],
-            n100: score.fake ? undefined : hitData[100],
-            n50: score.fake ? undefined : hitData[50],
-            nGeki: score.fake ? undefined : hitData.geki,
-            nKatu: score.fake ? undefined : hitData.katu,
-            misses: hitData.miss,
-            largeTickHits: hitData.slider_large,
-            sliderEndHits: hitData.slider_tail,
-            lazer: this.mods.isLazer(),
-            accuracy: score.fake ? score.accuracy() * 100 : undefined,
+        const legacy = !this.mods.isLazer();
+        const result = await calculatePerformance(this.map, score.mode, this.mods, {
+            accuracy: score.accuracy(),
             combo: score.combo,
-        }).calculate(rmap);
-
-        const fcAttrs = new rosu.Performance({
-            mods: flags,
-            clockRate: this.speedMultiplier,
-            n300: hitData[300] + hitData.miss,
-            n100: hitData[100],
-            n50: hitData[50],
-            nGeki: hitData.geki,
-            nKatu: hitData.katu,
-            lazer: this.mods.isLazer(),
-        }).calculate(rmap);
-
-        const maxAttrs =
-            score.accuracy() === 1 &&
-            hitData[100] === 0 &&
-            hitData[50] === 0 &&
-            hitData.miss === 0 &&
-            (score.mode != 3 || (hitData.katu === 0 && hitData[300] === 0))
-                ? currAttrs
-                : new rosu.Performance({
-                      mods: flags,
-                      clockRate: this.speedMultiplier,
-                      lazer: this.mods.isLazer(),
-                  }).calculate(rmap);
-
-        return { pp: currAttrs.pp, fc: fcAttrs.pp, ss: maxAttrs.pp };
+            total_score: score.score ?? 0,
+            legacy,
+            standardised: score.standardised ?? !legacy,
+            simulate: score.fake === true,
+            statistics: score.fake ? { miss: hitData.miss ?? 0 } : hitStatistics(hitData, score.mode),
+        });
+        return { pp: result.pp, fc: result.fc_pp, ss: result.ss_pp };
     }
 }
 

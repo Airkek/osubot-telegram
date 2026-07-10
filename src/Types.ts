@@ -23,6 +23,7 @@ class CalcArgs {
     mods: Mods;
     mode: number;
     fake: boolean;
+    standardised: boolean = true;
     constructor(args: PPArgs, mode: number) {
         this.fake = true;
         this.mods = args.mods;
@@ -108,6 +109,8 @@ interface IHits {
     geki?: number;
     slider_large?: number;
     slider_tail?: number;
+    small_tick_miss?: number;
+    large_tick_miss?: number;
 }
 
 interface ICustomHit {
@@ -280,6 +283,7 @@ interface APIScore {
     beatmap?: IBeatmap;
     player_id?: number;
     fake?: boolean;
+    standardised?: boolean;
     has_replay?: boolean;
     accuracy(): number;
 }
@@ -408,7 +412,7 @@ interface V2Beatmap {
 
 interface V2Mod {
     acronym: string;
-    settings?: {
+    settings?: Record<string, unknown> & {
         speed_change?: number;
     };
 }

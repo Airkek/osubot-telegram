@@ -26,6 +26,11 @@ jobs:
                   node-version: 24
                   cache: npm
 
+            - name: Install .NET
+              uses: actions/setup-dotnet@v4
+              with:
+                  dotnet-version: 8.0.x
+
             - name: Install modules
               run: npm ci
 
