@@ -43,13 +43,13 @@ export class TelegramBotAdapter implements RuntimePlatformServices {
         global.logger.info("Set owner id: ", config.owner);
 
         if (this.useWebhooks) {
-            const configuredSecret = process.env.WEBHOOK_SECRET_TOKEN;
+            const configuredSecret = process.env.TELEGRAM_WEBHOOK_TOKEN;
             if (configuredSecret && !/^[A-Za-z0-9_-]{32,256}$/.test(configuredSecret)) {
-                throw new Error("WEBHOOK_SECRET_TOKEN must contain 32-256 characters from A-Z, a-z, 0-9, _ and -");
+                throw new Error("TELEGRAM_WEBHOOK_TOKEN must contain 32-256 characters from A-Z, a-z, 0-9, _ and -");
             }
             this.webhookSecret = configuredSecret || randomBytes(32).toString("base64url");
             if (!configuredSecret) {
-                global.logger.warn("WEBHOOK_SECRET_TOKEN is not set; generated an ephemeral webhook secret");
+                global.logger.warn("TELEGRAM_WEBHOOK_TOKEN is not set; generated an ephemeral webhook secret");
             }
         }
 
