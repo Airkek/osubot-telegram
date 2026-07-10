@@ -1,4 +1,5 @@
 import { expect, jest, test } from "@jest/globals";
+import { MessageContext as VKIOMessageContext, UpdateSource } from "vk-io";
 import path from "node:path";
 import sharp from "sharp";
 import { FluentLocalizer } from "../src/core/FluentLocalizer";
@@ -44,16 +45,39 @@ test("VK callback payload uses the shared command and graphical-mode envelope", 
     expect(payload.command).toBe("^g1^len^s u");
 });
 
-test.each(["start", "/start"])("VK start payload '%s' opens the shared onboarding", (command) => {
+test.each([
+    { command: "start" },
+    { command: "/start" },
+    { command: "Начать" },
+    { command: "СТАРТ" },
+    { button: "start" },
+    { cmd: "/start" },
+])("VK start payload $command$button$cmd opens the shared onboarding", (messagePayload) => {
+    const event = new VKIOMessageContext({
+        api: {},
+        upload: {},
+        source: UpdateSource.WEBHOOK,
+        groupId: 30,
+        updateType: "message_new",
+        state: {},
+        payload: {
+            client_info: { lang_id: 0 },
+            message: {
+                id: 1,
+                conversation_message_id: 1,
+                sender_id: 10,
+                peer_id: 10,
+                from_id: 10,
+                text: "Начать",
+                date: 1,
+                attachments: [],
+                out: 0,
+                payload: JSON.stringify(messagePayload),
+            },
+        },
+    } as never);
     const context = new VKMessageContext(
-        {
-            type: "message",
-            id: 1,
-            senderId: 10,
-            peerId: 10,
-            text: "Начать",
-            messagePayload: { command },
-        } as never,
+        event,
         {} as never,
         30,
         40,
@@ -248,9 +272,11 @@ test("VK uploads video through the user client", async () => {
 
     expect(video).toHaveBeenCalledWith(
         expect.objectContaining({
+            group_id: 30,
             name: "match export",
             is_private: 1,
             wallpost: 0,
+            no_comments: 1,
             source: expect.objectContaining({
                 values: expect.objectContaining({
                     value: internalUrl,

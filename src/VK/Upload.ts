@@ -85,11 +85,18 @@ export async function uploadMessagePhoto(
     throw new Error("VK photo upload attempts were exhausted");
 }
 
-export async function uploadPrivateVideo(vk: VK, videoUrl: string, title?: string): Promise<VideoAttachment> {
+export async function uploadMessageVideo(
+    vk: VK,
+    groupId: number,
+    videoUrl: string,
+    title?: string
+): Promise<VideoAttachment> {
     return await vk.upload.video({
+        group_id: groupId,
         name: title?.trim() || "video",
         is_private: 1,
         wallpost: 0,
+        no_comments: 1,
         source: {
             values: {
                 value: videoUrl,

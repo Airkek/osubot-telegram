@@ -19,7 +19,7 @@ import { FluentLocalizer } from "../core/FluentLocalizer";
 import { MessageNotModifiedError, ReplyToMessage, SendOptions, TextLinkEntity } from "../core/MessageContext";
 import { Language } from "../core/Settings";
 import { IKeyboard, validateKeyboard } from "../Util";
-import { uploadMessagePhoto, uploadPrivateVideo } from "./Upload";
+import { uploadMessagePhoto, uploadMessageVideo } from "./Upload";
 
 const VK_CHAT_PEER_OFFSET = 2_000_000_000;
 const MAX_REPLAY_FILE_SIZE = 5 * 1024 * 1024;
@@ -50,7 +50,7 @@ function isMessageContext(context: IncomingVKContext): context is VKIOMessageCon
 
 function normalizeStartCommand(command: string): string {
     const normalized = command.trim().toLowerCase();
-    return normalized === "start" || normalized === "/start" ? START_COMMAND : command;
+    return ["start", "/start", "начать", "старт"].includes(normalized) ? START_COMMAND : command;
 }
 
 function payloadCommand(payload: unknown): string | undefined {
@@ -61,9 +61,15 @@ function payloadCommand(payload: unknown): string | undefined {
             return normalizeStartCommand(payload);
         }
     }
-    if (payload && typeof payload === "object" && "command" in payload) {
-        const command = (payload as { command?: unknown }).command;
+    if (payload && typeof payload === "object") {
+        const values = payload as { command?: unknown; button?: unknown; cmd?: unknown };
+        const command = values.command;
         if (typeof command !== "string") {
+            for (const fallback of [values.button, values.cmd]) {
+                if (typeof fallback === "string" && normalizeStartCommand(fallback) === START_COMMAND) {
+                    return START_COMMAND;
+                }
+            }
             return undefined;
         }
         return normalizeStartCommand(command);
@@ -73,10 +79,10 @@ function payloadCommand(payload: unknown): string | undefined {
 
 function messageText(context: VKIOMessageContext | undefined): string | undefined {
     const text = context?.text;
-    if (!text || context.peerId !== context.senderId) {
+    if (!text || String(context.peerId) !== String(context.senderId)) {
         return text;
     }
-    return text.trim().toLowerCase() === "начать" ? START_COMMAND : text;
+    return normalizeStartCommand(text);
 }
 
 function replyMessage(context: VKIOMessageContext | undefined): ReplyToMessage | undefined {
@@ -500,7 +506,12 @@ export class VKMessageContext extends BaseMessageContext {
                 throw new UserError("video-send-failed", "VK_USER_TOKEN is not configured");
             }
             try {
-                const video = await uploadPrivateVideo(this.userVk, options.video.url, options.video.title);
+                const video = await uploadMessageVideo(
+                    this.userVk,
+                    this.groupId,
+                    options.video.url,
+                    options.video.title
+                );
                 return { text, attachment: video.toString() };
             } catch (error) {
                 const message = error instanceof Error ? error.message : String(error);
