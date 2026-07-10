@@ -116,19 +116,12 @@ export class OkiCardsGenerator {
     }
 
     private getFlagAssetPath(countryCode: string): string {
-        return this.getAssetPath(path.join("flags", countryCode + ".png"));
+        return this.getAssetPath(path.join("flags", `${countryCode}.svg`));
     }
 
     private async getFlagAssetData(countryCode: string): Promise<Buffer> {
-        const path = this.getFlagAssetPath(countryCode);
-        const flag = await this.getAssetDataByPath(path);
-
-        if (!flag) {
-            const unknownFlagPath = this.getFlagAssetPath("XX");
-            return this.getAssetDataByPath(unknownFlagPath);
-        }
-
-        return flag;
+        const flag = await this.getAssetDataByPath(this.getFlagAssetPath(countryCode));
+        return flag || this.getAssetDataByPath(this.getAssetPath(path.join("flags", "XX.png")));
     }
 
     private async getModeAssetData(mode: number): Promise<Buffer> {
