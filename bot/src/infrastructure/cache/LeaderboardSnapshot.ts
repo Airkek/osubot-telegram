@@ -11,6 +11,6 @@ export class LeaderboardSnapshot {
         readonly mods: Mods | undefined,
         readonly useCards: boolean,
         readonly expiresAt: number,
-        public result: ILeaderboardResult | undefined
+        readonly result: ILeaderboardResult
     ) {}
 }

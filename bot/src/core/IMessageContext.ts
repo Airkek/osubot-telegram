@@ -45,6 +45,7 @@ export interface IMessageContext extends ILocalizer {
     edit(text: string, options?: ISendOptions): Promise<void>;
     editMarkup(keyboard: IKeyboard): Promise<unknown>;
     answer(text: string): Promise<true | void>;
+    acknowledge(): Promise<void>;
     isUserAdmin(accountId: number): Promise<boolean>;
     isSenderAdmin(): Promise<boolean>;
     isBotAdmin(): Promise<boolean>;

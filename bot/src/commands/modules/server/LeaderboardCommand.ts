@@ -11,7 +11,8 @@ import { IKeyboard } from "presentation/keyboard/IKeyboard";
 import { makeKeyboard } from "presentation/keyboard/makeKeyboard";
 
 const PAGE_SIZE = 5;
-const SNAPSHOT_PAYLOAD_PATTERN = /^\^lb(r?):([a-f0-9]{16}):(\d+)$/;
+const SNAPSHOT_PAYLOAD_PATTERN = /^\^lb:([a-f0-9]{16}):(\d+)$/;
+const LEGACY_REFRESH_PAYLOAD_PATTERN = /^\^lbr:[a-f0-9]{16}:\d+$/;
 
 export class LeaderboardCommand extends ServerCommand {
     constructor(module: ServerModule) {
@@ -26,10 +27,18 @@ export class LeaderboardCommand extends ServerCommand {
             return;
         }
 
+        if (
+            context.isPayload &&
+            context.args.full.some((arg) => LEGACY_REFRESH_PAYLOAD_PATTERN.test(arg.toLowerCase()))
+        ) {
+            await context.answer(context.ctx.tr("leaderboard-cache-expired"));
+            return;
+        }
+
         const snapshotAction = context.isPayload ? this.parseSnapshotAction(context) : undefined;
         if (snapshotAction) {
-            const [id, page, refresh] = snapshotAction;
-            await this.handleSnapshot(context, id, page, refresh);
+            const [id, page] = snapshotAction;
+            await this.handleSnapshot(context, id, page);
             return;
         }
 
@@ -58,36 +67,30 @@ export class LeaderboardCommand extends ServerCommand {
         await this.sendPage(context, snapshot, 1);
     }
 
-    private parseSnapshotAction(context: CommandContext): [string, number, boolean] | undefined {
+    private parseSnapshotAction(context: CommandContext): [string, number] | undefined {
         for (const arg of context.args.full) {
             const match = arg.toLowerCase().match(SNAPSHOT_PAYLOAD_PATTERN);
             if (match) {
-                return [match[2], Math.max(Number(match[3]), 1), match[1] === "r"];
+                return [match[1], Math.max(Number(match[2]), 1)];
             }
         }
         return undefined;
     }
 
-    private async handleSnapshot(context: CommandContext, id: string, page: number, refresh: boolean): Promise<void> {
+    private async handleSnapshot(context: CommandContext, id: string, page: number): Promise<void> {
         const snapshot = context.module.bot.leaderboards.get(id, context.ctx.chatId, context.module.name);
         if (!snapshot) {
             await context.answer(context.ctx.tr("leaderboard-cache-expired"));
             return;
         }
 
-        if (refresh) {
-            if (!(await this.acquireRateLimit(context))) {
-                return;
-            }
-            context.module.bot.leaderboards.invalidate(snapshot);
-            const result = await this.loadLeaderboard(context, snapshot.beatmapId, snapshot.mode, snapshot.mods);
-            context.module.bot.leaderboards.update(snapshot, result);
-        }
-
-        if (!snapshot.result) {
-            await context.answer(context.ctx.tr("leaderboard-refresh-required"));
+        const maxPage = Math.max(1, Math.ceil(snapshot.result.scores.length / PAGE_SIZE));
+        if (page > maxPage) {
+            await context.answer(context.ctx.tr("max-page-error", { pages: maxPage }));
             return;
         }
+
+        await context.acknowledge();
         await this.sendPage(context, snapshot, page);
     }
 
@@ -171,7 +174,6 @@ export class LeaderboardCommand extends ServerCommand {
             await context.edit(text, { keyboard, photo: data.photo });
         } catch (error) {
             if (error instanceof MessageNotModifiedError) {
-                await context.answer(context.ctx.tr("no-updates-notification"));
                 return;
             }
             throw error;
@@ -180,14 +182,13 @@ export class LeaderboardCommand extends ServerCommand {
 
     private createKeyboard(context: CommandContext, id: string, page: number, maxPage: number): IKeyboard {
         const prefix = context.module.prefix[0];
-        const previousPage = Math.max(page - 1, 1);
-        const nextPage = Math.min(page + 1, maxPage);
-        return makeKeyboard([
-            [
-                { text: "⬅️", command: `${prefix} lb ^lb:${id}:${previousPage}` },
-                { text: `${page}/${maxPage} 🔄`, command: `${prefix} lb ^lbr:${id}:${page}` },
-                { text: "➡️", command: `${prefix} lb ^lb:${id}:${nextPage}` },
-            ],
-        ]);
+        const buttons = [];
+        if (page > 1) {
+            buttons.push({ text: "⬅️", command: `${prefix} lb ^lb:${id}:${page - 1}` });
+        }
+        if (page < maxPage) {
+            buttons.push({ text: "➡️", command: `${prefix} lb ^lb:${id}:${page + 1}` });
+        }
+        return buttons.length > 0 ? makeKeyboard([buttons]) : undefined;
     }
 }

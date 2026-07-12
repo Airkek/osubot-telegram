@@ -49,4 +49,8 @@ export class CommandContext {
     async answer(text: string): Promise<true | void> {
         return await this.ctx.answer(text);
     }
+
+    async acknowledge(): Promise<void> {
+        await this.ctx.acknowledge();
+    }
 }

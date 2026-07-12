@@ -15,10 +15,10 @@ describe("LeaderboardCache", () => {
         expect(first.id).not.toBe(second.id);
     });
 
-    test("expires snapshots after ten minutes without sliding the TTL", () => {
+    test("expires snapshots after fifteen minutes without sliding the TTL", () => {
         let now = 1_000;
         const cache = new LeaderboardCache(
-            600_000,
+            900_000,
             60_000,
             100,
             () => now,
@@ -26,7 +26,7 @@ describe("LeaderboardCache", () => {
         );
         const snapshot = cache.create(20, "Bancho", 2, 0, undefined, false, {} as ILeaderboardResult);
 
-        now += 599_999;
+        now += 899_999;
         expect(cache.get(snapshot.id, 20, "Bancho")).toBe(snapshot);
         now += 1;
         expect(cache.get(snapshot.id, 20, "Bancho")).toBeUndefined();
@@ -40,18 +40,13 @@ describe("LeaderboardCache", () => {
         expect(cache.get(snapshot.id, 30, "Gatari")).toBeUndefined();
     });
 
-    test("keeps request metadata while its cached result is invalidated", () => {
+    test("keeps request metadata with its cached result", () => {
         const cache = new LeaderboardCache(600_000, 60_000, 100, Date.now, () => "0000000000000001");
-        const oldResult = {} as ILeaderboardResult;
-        const newResult = {} as ILeaderboardResult;
-        const snapshot = cache.create(40, "Bancho", 4, 3, new Mods("TC"), true, oldResult);
+        const result = {} as ILeaderboardResult;
+        const snapshot = cache.create(40, "Bancho", 4, 3, new Mods("TC"), true, result);
 
-        cache.invalidate(snapshot);
-        expect(snapshot.result).toBeUndefined();
+        expect(snapshot.result).toBe(result);
         expect(snapshot.mods.toExtendedMods()).toEqual([{ acronym: "TC" }]);
-
-        cache.update(snapshot, newResult);
-        expect(snapshot.result).toBe(newResult);
     });
 
     test("rate limits regular requests per chat and lets admins bypass it", () => {

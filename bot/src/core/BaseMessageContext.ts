@@ -263,6 +263,7 @@ export abstract class BaseMessageContext implements IMessageContext {
     abstract edit(text: string, options?: ISendOptions): Promise<void>;
     abstract editMarkup(keyboard: IKeyboard): Promise<unknown>;
     abstract answer(text: string): Promise<true | void>;
+    abstract acknowledge(): Promise<void>;
     abstract isUserAdmin(accountId: number): Promise<boolean>;
     abstract isSenderAdmin(): Promise<boolean>;
     abstract isBotAdmin(): Promise<boolean>;

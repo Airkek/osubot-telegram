@@ -10,8 +10,7 @@ map-leaderboard-header = Топ беседы на карте:
 leaderboard-card-header = Топ беседы
 leaderboard-card-subheader = {$artist} — {$title} [{$difficulty}]
 leaderboard-rate-limited = Лидерборд можно запрашивать не чаще раза в минуту. Попробуйте через {$seconds} сек.
-leaderboard-cache-expired = Этот лидерборд устарел. Вызовите команду ещё раз.
-leaderboard-refresh-required = Данные лидерборда сброшены. Нажмите кнопку обновления ещё раз.
+leaderboard-cache-expired = Этот лидерборд больше недоступен.
 nobody-played-this-map = Ни у кого нет скоров на этой карте!
 
 unknown-game-mode-error = Произошла ошибка: неизвестный режим игры!

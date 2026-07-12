@@ -3,7 +3,7 @@ import { ILeaderboardResult } from "games/leaderboards/ILeaderboardResult";
 import { Mods } from "games/osu/performance/Mods";
 import { LeaderboardSnapshot } from "infrastructure/cache/LeaderboardSnapshot";
 
-const DEFAULT_TTL_MS = 10 * 60 * 1000;
+const DEFAULT_TTL_MS = 15 * 60 * 1000;
 const DEFAULT_RATE_LIMIT_MS = 60 * 1000;
 const DEFAULT_MAX_ENTRIES = 10_000;
 
@@ -64,14 +64,6 @@ export class LeaderboardCache {
             return undefined;
         }
         return snapshot;
-    }
-
-    invalidate(snapshot: LeaderboardSnapshot): void {
-        snapshot.result = undefined;
-    }
-
-    update(snapshot: LeaderboardSnapshot, result: ILeaderboardResult): void {
-        snapshot.result = result;
     }
 
     acquireRateLimit(chatId: number, bypass: boolean): number {

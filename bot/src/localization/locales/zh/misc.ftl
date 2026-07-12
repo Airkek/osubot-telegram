@@ -10,8 +10,7 @@ map-leaderboard-header = 本群组谱面排行榜:
 leaderboard-card-header = 群组排行榜
 leaderboard-card-subheader = {$artist} — {$title} [{$difficulty}]
 leaderboard-rate-limited = 每分钟只能请求一次排行榜。请在 {$seconds} 秒后重试。
-leaderboard-cache-expired = 此排行榜已过期，请重新运行命令。
-leaderboard-refresh-required = 排行榜缓存已失效，请再次点击刷新。
+leaderboard-cache-expired = 此排行榜已不可用。
 nobody-played-this-map = 还没有人在此谱面上取得成绩!
 
 unknown-game-mode-error = 发生错误: 未知游戏模式!
