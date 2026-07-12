@@ -1,0 +1,132 @@
+import { CalculatedScoreInput } from "games/osu/performance/CalculatedScoreInput";
+import { IPerformanceRequest } from "games/osu/performance/IPerformanceRequest";
+import { HitCounts } from "games/scores/HitCounts";
+import { IBeatmap } from "games/IBeatmap";
+import fs from "fs/promises";
+
+export const Util = {
+    async fileExists(filename: string): Promise<boolean> {
+        try {
+            await fs.access(filename);
+            return true;
+        } catch (e) {
+            if (e.code == "ENOENT") {
+                return false;
+            }
+            throw e;
+        }
+    },
+    async directoryExists(path: string): Promise<boolean> {
+        try {
+            const stat = await fs.stat(path);
+            return stat.isDirectory();
+        } catch (e) {
+            if (e.code == "ENOENT") {
+                return false;
+            }
+            throw e;
+        }
+    },
+    round(num: number, p: number): number {
+        if (!num) {
+            return 0;
+        }
+        return Math.round(num * 10 ** p) / 10 ** p;
+    },
+    profileModes: ["STD", "Taiko", "Catch", "Mania"],
+    fixNumberLength(num: number): string {
+        if (num > 9) {
+            return String(num);
+        }
+        return `0${String(num)}`;
+    },
+    formatBeatmapLength(length: number): string {
+        length = Math.round(length);
+        return `${this.fixNumberLength(Math.floor(length / 60))}:${this.fixNumberLength(length % 60)}`;
+    },
+    accuracy(counts: HitCounts): number {
+        switch (counts.mode) {
+            case 1:
+                return (
+                    (counts.hitData[300] * 2 + counts.hitData[100]) /
+                    ((counts.hitData[300] + counts.hitData[100] + counts.hitData[50] + counts.hitData.miss) * 2)
+                );
+            case 2:
+                return (
+                    (counts.hitData[50] + counts.hitData[100] + counts.hitData[300]) /
+                    (counts.hitData[50] +
+                        counts.hitData[100] +
+                        counts.hitData[300] +
+                        counts.hitData.miss +
+                        counts.hitData.katu)
+                );
+            case 3:
+                return (
+                    ((counts.hitData[300] + counts.hitData.geki) * 6 +
+                        counts.hitData.katu * 4 +
+                        counts.hitData[100] * 2 +
+                        counts.hitData[50]) /
+                    ((counts.hitData[300] +
+                        counts.hitData[100] +
+                        counts.hitData.geki +
+                        counts.hitData.katu +
+                        counts.hitData[50] +
+                        counts.hitData.miss) *
+                        6)
+                );
+            default:
+                return (
+                    (counts.hitData[300] * 6 + counts.hitData[100] * 2 + counts.hitData[50]) /
+                    ((counts.hitData[300] + counts.hitData[100] + counts.hitData[50] + counts.hitData.miss) * 6)
+                );
+        }
+    },
+    formatCombo(combo: number, full: number): string {
+        if (!full) {
+            return `${combo}x`;
+        }
+        return `${combo}x/${full}x`;
+    },
+    formatBeatmap: function (map: IBeatmap): string {
+        return `${map.artist} - ${map.title} [${map.version}] by ${map.author} (${map.status}) | ${map.stats.toString()}`;
+    },
+    formatDate(d: Date, crop: boolean = false): string {
+        if (!crop) {
+            return `${this.fixNumberLength(d.getDate())}.${this.fixNumberLength(d.getMonth() + 1)}.${this.fixNumberLength(d.getFullYear())} ${this.fixNumberLength(d.getHours())}:${this.fixNumberLength(d.getMinutes())}`;
+        }
+        return `${this.fixNumberLength(d.getDate())}.${this.fixNumberLength(d.getMonth() + 1)}.${this.fixNumberLength(d.getFullYear())}`;
+    },
+    createPPArgs(args: IPerformanceRequest, mode: number): CalculatedScoreInput {
+        return new CalculatedScoreInput(args, mode);
+    },
+    getModeArg(mode: number) {
+        return ["-std", "-taiko", "-ctb", "-mania"][mode];
+    },
+    minutesToPlaytimeString(time: number) {
+        time = Math.round(time / 60);
+        const minutes = time % 60;
+        const hours = Math.floor(time / 60);
+
+        return `${hours}h ${minutes}m`;
+    },
+    timer() {
+        let timeStart = new Date().getTime();
+        return {
+            get seconds(): string {
+                return Math.ceil((new Date().getTime() - timeStart) / 1000) + "s";
+            },
+            get ms(): string {
+                return new Date().getTime() - timeStart + "ms";
+            },
+            get seconds_raw(): number {
+                return Math.ceil((new Date().getTime() - timeStart) / 1000);
+            },
+            get ms_raw(): number {
+                return new Date().getTime() - timeStart;
+            },
+            reset() {
+                timeStart = new Date().getTime();
+            },
+        };
+    },
+};

@@ -59,6 +59,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
+          file: ./bot/Dockerfile
           platforms: linux/amd64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
@@ -98,7 +99,8 @@ jobs:
       - name: Build and push performance image
         uses: docker/build-push-action@v6
         with:
-          context: ./performance-server
+          context: .
+          file: ./performance-server/Dockerfile
           platforms: linux/amd64
           push: true
           tags: ${{ steps.meta.outputs.tags }}

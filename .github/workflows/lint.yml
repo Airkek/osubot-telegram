@@ -3,8 +3,14 @@ name: "Lint"
 on:
     push:
         branches: [master]
+        paths:
+            - "bot/**"
+            - ".github/workflows/lint.yml"
     pull_request:
         branches: [master]
+        paths:
+            - "bot/**"
+            - ".github/workflows/lint.yml"
 
 permissions:
     contents: read
@@ -16,6 +22,9 @@ concurrency:
 jobs:
     lint:
         runs-on: ubuntu-latest
+        defaults:
+            run:
+                working-directory: bot
         steps:
             - name: Checkout code
               uses: actions/checkout@v4
@@ -25,9 +34,10 @@ jobs:
               with:
                   node-version: 24
                   cache: npm
+                  cache-dependency-path: bot/package-lock.json
 
             - name: Install modules
               run: npm ci
 
             - name: Run ESLint
-              run: npx eslint .
+              run: npm run lint

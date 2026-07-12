@@ -1,0 +1,25 @@
+THIRD-PARTY ASSETS -- NOT COVERED BY THE PROJECT GPL LICENSE
+
+All asset files in this directory are excluded from the GPL-3.0-only license
+that covers the project's original source code. This NOTICE file may be copied
+alongside those assets to preserve their licensing information.
+
+This directory contains third-party material, including osu!-specific assets
+sourced from services operated by ppy Pty Ltd and fonts or other works owned
+by their respective copyright holders. Copyright, trademark, and other rights
+remain with ppy Pty Ltd and/or their respective owners.
+
+Unless an individual file is accompanied by an explicit license notice from
+its owner, no permission to copy, modify, or redistribute that file is granted
+by this repository.
+
+osu! legal information: https://osu.ppy.sh/legal/en
+
+The ruleset glyphs, user-level icon, and score-rank SVGs in this directory are derived from
+official osu!web resources at revision 5b148b8d65b39b693617e8f72bdfdd0cb101e486:
+https://github.com/ppy/osu-web/tree/5b148b8d65b39b693617e8f72bdfdd0cb101e486/resources/fonts/extra
+https://github.com/ppy/osu-web/blob/5b148b8d65b39b693617e8f72bdfdd0cb101e486/resources/css/bem/user-level.less
+https://github.com/ppy/osu-web/blob/5b148b8d65b39b693617e8f72bdfdd0cb101e486/resources/js/components/user-level.tsx
+https://github.com/ppy/osu-web/tree/5b148b8d65b39b693617e8f72bdfdd0cb101e486/public/images/badges/score-ranks-v2019
+osu!web is distributed under the GNU Affero General Public License version 3:
+https://github.com/ppy/osu-web/blob/5b148b8d65b39b693617e8f72bdfdd0cb101e486/LICENCE

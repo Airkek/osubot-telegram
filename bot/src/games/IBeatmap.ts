@@ -1,0 +1,32 @@
+import { Mods } from "games/osu/performance/Mods";
+import { IBeatmapStats } from "games/IBeatmapStats";
+
+export interface IBeatmap {
+    readonly mode: number;
+
+    readonly id: number;
+    readonly setId: number;
+    readonly hash: string;
+
+    readonly title: string;
+    readonly artist: string;
+
+    readonly version: string;
+    readonly author: string;
+    readonly status: string;
+
+    readonly maxCombo: number;
+    readonly hitObjectsCount: number;
+
+    readonly stats: IBeatmapStats;
+
+    readonly url?: string;
+    readonly coverUrl: string;
+
+    readonly native_mode: number;
+
+    get currentMods(): Mods;
+
+    asMode(mode: number): Promise<void>;
+    applyMods(mods: Mods): Promise<void>;
+}

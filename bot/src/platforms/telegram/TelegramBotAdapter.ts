@@ -1,0 +1,230 @@
+import { Bot as TelegramBot, BotError, GrammyError, HttpError } from "grammy";
+import { autoRetry } from "@grammyjs/auto-retry";
+import { chatMemberFilter } from "@grammyjs/chat-members";
+import { run, RunnerHandle } from "@grammyjs/runner";
+import { Update, UserFromGetMe } from "@grammyjs/types";
+import { hydrateFiles } from "@grammyjs/files";
+import { limit } from "@grammyjs/ratelimiter";
+import { Express } from "express";
+import { randomBytes } from "node:crypto";
+import { ApplicationRuntime } from "application/ApplicationRuntime";
+import { TelegramMessageContext, TgApi, TgContext } from "platforms/telegram/TelegramMessageContext";
+import { TelegramMediaAttachmentProvider } from "platforms/telegram/TelegramMediaAttachmentProvider";
+import { UpdateDispatcher } from "application/UpdateDispatcher";
+import { createTelegramWebhookIngress } from "platforms/telegram/TelegramWebhookIngress";
+import { IMediaReferenceCache } from "core/storage/IMediaReferenceCache";
+import { ExternalId } from "core/ExternalId";
+import { IPlatformAdapter } from "core/IPlatformAdapter";
+import { FluentLocalizer } from "localization/FluentLocalizer";
+import { ITelegramBotConfig } from "platforms/telegram/ITelegramBotConfig";
+
+const WEBHOOK_UPDATE_CONCURRENCY = 40;
+const WEBHOOK_UPDATE_QUEUE_CAPACITY = 1000;
+
+export class TelegramBotAdapter implements IPlatformAdapter {
+    readonly platform = "telegram" as const;
+    readonly tg: TelegramBot<TgContext, TgApi>;
+    readonly useLocalApi = process.env.TELEGRAM_USE_LOCAL_API === "true";
+
+    private readonly useWebhooks = process.env.USE_WEBHOOKS === "true";
+    private readonly webhookSecret?: string;
+    private webhookDispatcher?: UpdateDispatcher<Update>;
+    private runner?: RunnerHandle;
+    private me?: UserFromGetMe;
+    private runtime: ApplicationRuntime;
+    private transportConfigured = false;
+
+    constructor(
+        private readonly config: ITelegramBotConfig,
+        private readonly httpApp: Express,
+        private readonly localizer: FluentLocalizer
+    ) {
+        global.logger.info("Set Telegram owner id: ", config.owner);
+
+        if (this.useWebhooks) {
+            const configuredSecret = process.env.TELEGRAM_WEBHOOK_TOKEN;
+            if (configuredSecret && !/^[A-Za-z0-9_-]{32,256}$/.test(configuredSecret)) {
+                throw new Error("TELEGRAM_WEBHOOK_TOKEN must contain 32-256 characters from A-Z, a-z, 0-9, _ and -");
+            }
+            this.webhookSecret = configuredSecret || randomBytes(32).toString("base64url");
+            if (!configuredSecret) {
+                global.logger.warn("TELEGRAM_WEBHOOK_TOKEN is not set; generated an ephemeral webhook secret");
+            }
+        }
+
+        const apiRoot = this.useLocalApi ? process.env.TELEGRAM_LOCAL_API_HOST : undefined;
+        this.tg = new TelegramBot<TgContext, TgApi>(config.token, {
+            client: { apiRoot },
+        });
+    }
+
+    createMediaAttachmentProvider(mediaReferences: IMediaReferenceCache): TelegramMediaAttachmentProvider {
+        return new TelegramMediaAttachmentProvider(mediaReferences, this.tg, this.config.owner);
+    }
+
+    async sendMessage(recipientId: ExternalId, text: string): Promise<void> {
+        await this.tg.api.sendMessage(recipientId, text);
+    }
+
+    getPublicLink(identity: UserFromGetMe): string {
+        return `https://t.me/${identity.username}`;
+    }
+
+    async start(runtime: ApplicationRuntime): Promise<UserFromGetMe> {
+        this.runtime = runtime;
+        this.configureTransport();
+
+        await this.tg.init();
+        this.me = this.tg.botInfo;
+
+        if (this.useWebhooks) {
+            await this.startWebhook();
+        } else {
+            await this.startPolling();
+        }
+
+        global.logger.info(`Telegram Bot started as @${this.me.username} (${this.me.first_name})`);
+        return this.me;
+    }
+
+    async stop(): Promise<void> {
+        if (this.useWebhooks) {
+            await this.tg.api.deleteWebhook();
+            await this.webhookDispatcher?.stop();
+        } else {
+            await this.runner?.stop();
+        }
+        global.logger.info("Bot stopped");
+    }
+
+    private configureTransport(): void {
+        if (this.transportConfigured) {
+            return;
+        }
+        this.transportConfigured = true;
+        this.setupBotMiddleware();
+        this.setupErrorHandling();
+        this.configureCommandAliases();
+        this.setupEventHandlers();
+    }
+
+    private buildContext(ctx: TgContext): TelegramMessageContext {
+        return new TelegramMessageContext(
+            ctx,
+            this.config.owner,
+            this.me,
+            this.useLocalApi,
+            this.runtime.storage,
+            this.localizer
+        );
+    }
+
+    private setupBotMiddleware(): void {
+        this.tg.use(
+            limit({
+                timeFrame: 5000,
+                limit: 3,
+                onLimitExceeded: async (tgCtx: TgContext) => {
+                    await this.runtime.handleRateLimit(this.buildContext(tgCtx));
+                },
+                keyGenerator: (tgCtx: TgContext) => this.runtime.getRateLimitKey(this.buildContext(tgCtx)),
+            })
+        );
+        this.tg.api.config.use(hydrateFiles(this.tg.token));
+    }
+
+    private setupErrorHandling(): void {
+        this.tg.catch(this.handleUpdateError);
+        this.tg.api.config.use(autoRetry());
+    }
+
+    private handleUpdateError = (error: BotError<TgContext>): void => {
+        global.logger.error(`Error handling update ${error.ctx.update.update_id}`);
+        if (error.error instanceof GrammyError) {
+            global.logger.error("Telegram API error", error.error.description);
+        } else if (error.error instanceof HttpError) {
+            global.logger.error("HTTP error", error.error);
+        } else {
+            global.logger.error("Unexpected error", error.error);
+        }
+    };
+
+    private setupEventHandlers(): void {
+        const groups = this.tg.chatType(["group", "supergroup"]);
+        groups.filter(chatMemberFilter("out", "in"), async (ctx) => {
+            await this.runtime.userJoined(this.platform, ctx.chatMember.new_chat_member.user.id, ctx.chat.id);
+        });
+        groups.filter(chatMemberFilter("in", "out"), async (ctx) => {
+            const user = ctx.chatMember.new_chat_member.user;
+            await this.runtime.userLeft(this.platform, user.id, ctx.chat.id, user.id === this.me?.id);
+        });
+        groups.on("message:new_chat_members", async (ctx) => {
+            for (const user of ctx.message.new_chat_members) {
+                await this.runtime.userJoined(this.platform, user.id, ctx.chat.id);
+            }
+        });
+
+        this.tg.on("callback_query:data", async (ctx) => {
+            const context = this.buildContext(ctx);
+            if (await this.runtime.handleCallbackQuery(context)) {
+                await context.acknowledge();
+            }
+        });
+        this.tg.on("message", async (ctx) => {
+            if (!ctx.from.is_bot) {
+                await this.runtime.handleMessage(this.buildContext(ctx));
+            }
+        });
+    }
+
+    private configureCommandAliases(): void {
+        for (const [command, alias] of Object.entries(this.runtime.commandAliases)) {
+            this.tg.command(command, async (ctx) => {
+                const sourceCommand = ctx.message.text.split(/\s+/)[0];
+                await this.runtime.handleCommandAlias(this.buildContext(ctx as TgContext), sourceCommand, alias);
+            });
+        }
+    }
+
+    private async startWebhook(): Promise<void> {
+        const endpoint = process.env.WEBHOOK_ENDPOINT;
+        const webhookPath = new URL(endpoint).pathname || "/";
+        this.webhookDispatcher = new UpdateDispatcher<Update>(
+            async (update) => {
+                await this.tg.handleUpdate(update);
+            },
+            async (error, update) => {
+                if (error instanceof BotError) {
+                    this.handleUpdateError(error as BotError<TgContext>);
+                } else {
+                    global.logger.error(`Failed to handle webhook update ${update.update_id}`, error);
+                }
+            },
+            WEBHOOK_UPDATE_CONCURRENCY,
+            WEBHOOK_UPDATE_QUEUE_CAPACITY
+        );
+        this.httpApp.post(
+            webhookPath,
+            createTelegramWebhookIngress(this.webhookSecret, (update) => this.webhookDispatcher.enqueue(update))
+        );
+        await this.tg.api.setWebhook(endpoint, {
+            drop_pending_updates: process.env.IGNORE_OLD_UPDATES === "true",
+            allowed_updates: ["chat_member", "callback_query", "message"],
+            secret_token: this.webhookSecret,
+            max_connections: 100,
+        });
+    }
+
+    private async startPolling(): Promise<void> {
+        await this.tg.api.deleteWebhook({
+            drop_pending_updates: process.env.IGNORE_OLD_UPDATES === "true",
+        });
+        this.runner = run(this.tg, {
+            runner: {
+                fetch: {
+                    allowed_updates: ["chat_member", "callback_query", "message"],
+                },
+            },
+        });
+    }
+}

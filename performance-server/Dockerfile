@@ -9,14 +9,14 @@ RUN apk add --no-cache grpc-plugins protoc
 ENV PROTOBUF_PROTOC=/usr/bin/protoc \
     GRPC_PROTOC_PLUGIN=/usr/bin/grpc_csharp_plugin
 
-COPY src/OsuPerformanceServer/OsuPerformanceServer.csproj src/OsuPerformanceServer/
-COPY proto/ proto/
-RUN dotnet restore src/OsuPerformanceServer/OsuPerformanceServer.csproj \
+COPY performance-server/src/OsuPerformanceServer/OsuPerformanceServer.csproj performance-server/src/OsuPerformanceServer/
+COPY contracts/ contracts/
+RUN dotnet restore performance-server/src/OsuPerformanceServer/OsuPerformanceServer.csproj \
     --use-current-runtime \
     -p:SelfContained=true
 
-COPY src/OsuPerformanceServer/ src/OsuPerformanceServer/
-RUN dotnet publish src/OsuPerformanceServer/OsuPerformanceServer.csproj \
+COPY performance-server/src/OsuPerformanceServer/ performance-server/src/OsuPerformanceServer/
+RUN dotnet publish performance-server/src/OsuPerformanceServer/OsuPerformanceServer.csproj \
     --configuration Release \
     --no-restore \
     --output /out \
