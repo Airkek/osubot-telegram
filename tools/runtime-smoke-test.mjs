@@ -1,14 +1,13 @@
-"use strict";
-
-const path = require("node:path");
-const { createRequire } = require("node:module");
+import { createRequire } from "node:module";
+import path from "node:path";
+import process from "node:process";
 
 const runtimeRequire = createRequire(path.join(process.cwd(), "runtime-smoke-test.cjs"));
 const Canvas = runtimeRequire("@napi-rs/canvas");
 const sharp = runtimeRequire("sharp");
 
 async function main() {
-    global.logger = {
+    globalThis.logger = {
         fatal(message) {
             throw message instanceof Error ? message : new Error(String(message));
         },

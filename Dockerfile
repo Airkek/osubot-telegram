@@ -49,8 +49,8 @@ ENV NODE_ENV=production \
 COPY --from=node-build /usr/local/bin/node /usr/local/bin/node
 COPY --from=node-build /src/node_modules/ ./node_modules/
 COPY --from=node-build /src/build/ ./build/
-RUN --mount=type=bind,source=tools/runtime-smoke-test.cjs,target=/tmp/runtime-smoke-test.cjs,ro \
-    node /tmp/runtime-smoke-test.cjs
+RUN --mount=type=bind,source=tools/runtime-smoke-test.mjs,target=/tmp/runtime-smoke-test.mjs,ro \
+    node /tmp/runtime-smoke-test.mjs
 
 COPY --from=performance-build /out/ /usr/local/lib/osu-performance-worker/
 RUN /usr/local/lib/osu-performance-worker/OsuPerformanceWorker --self-test
