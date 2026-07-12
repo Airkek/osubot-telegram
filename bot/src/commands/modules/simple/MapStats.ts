@@ -25,7 +25,7 @@ export class MapStats extends Command {
                 combo: maxCombo,
                 hits,
                 miss: missCount,
-                mods: new Mods(args.mods),
+                mods,
                 counts: {
                     50: args.c50,
                 },

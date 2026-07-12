@@ -49,8 +49,107 @@ public sealed class CalculatorOperationsTests
             Assert.That(Math.Round(result.CircleSize, 2), Is.EqualTo(6.5));
             Assert.That(Math.Round(result.ApproachRate, 2), Is.EqualTo(10.26));
             Assert.That(Math.Round(result.OverallDifficulty, 2), Is.EqualTo(9.9));
+            Assert.That(Math.Round(result.DrainRate, 2), Is.EqualTo(4.2));
             Assert.That(Math.Round(result.ClockRate, 2), Is.EqualTo(1.35));
         });
+    }
+
+    [Test]
+    public void DifficultyAdjustAppliesAllSettings()
+    {
+        BeatmapResult result = CalculatorOperations.CalculateBeatmap(
+            BeatmapPath,
+            0,
+            [
+                new ApiModInput
+                {
+                    Acronym = "DA",
+                    Settings = new Dictionary<string, object>
+                    {
+                        ["circle_size"] = 5,
+                        ["approach_rate"] = 5,
+                        ["overall_difficulty"] = 5,
+                        ["drain_rate"] = 5
+                    }
+                }
+            ]);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.CircleSize, Is.EqualTo(5));
+            Assert.That(result.ApproachRate, Is.EqualTo(5));
+            Assert.That(result.OverallDifficulty, Is.EqualTo(5));
+            Assert.That(result.DrainRate, Is.EqualTo(5));
+        });
+    }
+
+    [Test]
+    public void DifficultyAdjustPartialOverridePreservesOtherSettings()
+    {
+        BeatmapResult baseline = CalculatorOperations.CalculateBeatmap(BeatmapPath, 0, []);
+        BeatmapResult adjusted = CalculatorOperations.CalculateBeatmap(
+            BeatmapPath,
+            0,
+            [
+                new ApiModInput
+                {
+                    Acronym = "DA",
+                    Settings = new Dictionary<string, object> { ["circle_size"] = 6.5 }
+                }
+            ]);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(adjusted.CircleSize, Is.EqualTo(6.5));
+            Assert.That(adjusted.ApproachRate, Is.EqualTo(baseline.ApproachRate));
+            Assert.That(adjusted.OverallDifficulty, Is.EqualTo(baseline.OverallDifficulty));
+            Assert.That(adjusted.DrainRate, Is.EqualTo(baseline.DrainRate));
+        });
+    }
+
+    [Test]
+    public void DifficultyAdjustClampsValuesToExtendedLimits()
+    {
+        BeatmapResult result = CalculatorOperations.CalculateBeatmap(
+            BeatmapPath,
+            0,
+            [
+                new ApiModInput
+                {
+                    Acronym = "DA",
+                    Settings = new Dictionary<string, object>
+                    {
+                        ["circle_size"] = 50,
+                        ["approach_rate"] = -50,
+                        ["overall_difficulty"] = 50,
+                        ["drain_rate"] = -50,
+                        ["extended_limits"] = true
+                    }
+                }
+            ]);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.CircleSize, Is.EqualTo(11));
+            Assert.That(result.ApproachRate, Is.EqualTo(-10));
+            Assert.That(result.OverallDifficulty, Is.EqualTo(11));
+            Assert.That(result.DrainRate, Is.EqualTo(0));
+        });
+    }
+
+    [Test]
+    public void LazerOnlyModCombinationIsAccepted()
+    {
+        BeatmapResult result = CalculatorOperations.CalculateBeatmap(
+            BeatmapPath,
+            0,
+            [
+                new ApiModInput { Acronym = "HD" },
+                new ApiModInput { Acronym = "DT" },
+                new ApiModInput { Acronym = "TC" }
+            ]);
+
+        Assert.That(result.StarRating, Is.GreaterThan(0));
     }
 
     [Test]

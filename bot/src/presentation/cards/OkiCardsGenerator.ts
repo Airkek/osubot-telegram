@@ -18,9 +18,20 @@ import { ScoreSaberBeatmap } from "games/beatsaber/beatmaps/ScoreSaberBeatmap";
 import { downloadRemoteImage } from "infrastructure/http/RemoteImage";
 import { resolveScorePp, shouldDisplayPpEstimate } from "games/osu/performance/PPDisplay";
 import { runtimePaths } from "application/RuntimePaths";
+import { IScorePpDisplay } from "games/osu/performance/IScorePpDisplay";
+import { ILeaderboardResult } from "games/leaderboards/ILeaderboardResult";
 
 type CountryCodes = {
     [key: string]: string;
+};
+
+type CompactScoreRowLayout = {
+    scoreX: number;
+    scoreWidth: number;
+    detailsX: number;
+    detailsWidth: number;
+    identityX: number;
+    maxCombo: number;
 };
 
 export class OkiCardsGenerator {
@@ -1043,6 +1054,187 @@ export class OkiCardsGenerator {
         return canvas.toBuffer("image/png");
     }
 
+    private async drawScoreListRow(
+        ctx: SKRSContext2D,
+        score: IGameScore,
+        title: string,
+        accentLabel: string,
+        secondaryLabel: string,
+        startY: number,
+        pp: IScorePpDisplay,
+        countryCode?: string,
+        place?: number,
+        compactLayout?: CompactScoreRowLayout
+    ): Promise<void> {
+        const compact = compactLayout !== undefined;
+        const rowMargin = 45;
+        ctx.fillStyle = "#54454C";
+        OkiFormat.rect(ctx, rowMargin, startY, ctx.canvas.width - rowMargin * 2, 52, 10);
+
+        const rankAsset = await this.getGradeAssetData(score.rank);
+        if (rankAsset) {
+            const rankImage = await Canvas.loadImage(rankAsset);
+            ctx.drawImage(rankImage, rowMargin + 12, startY + 13.5, 49, 25);
+        }
+
+        ctx.textAlign = "left";
+        ctx.font = "20px Mulish";
+        ctx.fillStyle = "#ffffff";
+
+        const titleY = startY + (compact ? 33 : 23);
+        let titleX = 120;
+        if (compactLayout) {
+            ctx.fillStyle = "#46393f";
+            OkiFormat.rect(ctx, compactLayout.scoreX, startY, compactLayout.scoreWidth, 52, 8);
+            ctx.textAlign = "center";
+            ctx.font = "bold 18px Torus";
+            ctx.fillStyle = "#ffffff";
+            ctx.fillText(
+                score.score.toLocaleString("en-US"),
+                compactLayout.scoreX + compactLayout.scoreWidth / 2,
+                startY + 33
+            );
+
+            ctx.fillStyle = "#46393f";
+            OkiFormat.rect(ctx, compactLayout.detailsX, startY, compactLayout.detailsWidth, 52, 8);
+            ctx.font = "bold 15px Torus";
+            ctx.fillStyle = "#FFCC22";
+            ctx.fillText(
+                Util.formatCombo(score.combo, compactLayout.maxCombo),
+                compactLayout.detailsX + compactLayout.detailsWidth / 2,
+                startY + 21
+            );
+            ctx.font = "12px Mulish";
+            ctx.fillStyle = "rgb(163, 143, 152)";
+            ctx.fillText(score.counts.toString(), compactLayout.detailsX + compactLayout.detailsWidth / 2, startY + 41);
+
+            ctx.textAlign = "left";
+            ctx.font = "20px Mulish";
+            ctx.fillStyle = "#ffffff";
+            titleX = compactLayout.identityX;
+        }
+        if (place !== undefined) {
+            const placeLabel = `#${place}`;
+            ctx.fillText(placeLabel, titleX, titleY);
+            titleX += ctx.measureText(placeLabel).width + 10;
+        }
+        if (countryCode) {
+            const flagAsset = await this.getFlagAssetData(countryCode.toUpperCase());
+            if (flagAsset) {
+                const flag = await Canvas.loadImage(flagAsset);
+                const flagY = startY + (compact ? 16 : 4);
+                if (flag.width === 36 && flag.height === 36) {
+                    ctx.drawImage(flag, 0, 5, 36, 26, titleX, flagY, 30, 20);
+                } else {
+                    ctx.drawImage(flag, titleX, flagY, 30, 20);
+                }
+                titleX += 40;
+            }
+        }
+
+        const visibleTitle = OkiFormat.truncate(compact ? 18 : 55, title);
+        ctx.fillText(visibleTitle, titleX, titleY);
+
+        if (compact) {
+            const titleWidth = ctx.measureText(visibleTitle).width;
+            ctx.font = "15px Mulish";
+            ctx.fillStyle = "rgb(163, 143, 152)";
+            ctx.fillText(secondaryLabel, titleX + titleWidth + 20, titleY);
+        } else {
+            ctx.font = "15px Torus";
+            ctx.fillStyle = "rgb(255, 204, 34)";
+            ctx.fillText(accentLabel, 120, startY + 40);
+            const accentLabelWidth = ctx.measureText(accentLabel).width;
+
+            ctx.font = "15px Mulish";
+            ctx.fillStyle = "rgb(163, 143, 152)";
+            ctx.fillText(secondaryLabel, 120 + accentLabelWidth + 20, startY + 40);
+        }
+
+        if (pp.actual !== undefined) {
+            const ppPanelX = ctx.canvas.width - rowMargin - 125;
+            ctx.fillStyle = "#46393f";
+            OkiFormat.rect(ctx, ppPanelX, startY, 125, 52, 10);
+
+            let ppX = ppPanelX + 10;
+            let ppY = startY + 20;
+            const fcPp = shouldDisplayPpEstimate(pp.actual, pp.calculated, pp.fc) ? pp.fc : undefined;
+            if (fcPp === undefined) {
+                ppX += 10;
+                ppY += 15;
+            }
+
+            ctx.font = "bold 20px Torus";
+            ctx.fillStyle = "#FF66AB";
+            const realPpText = Util.round(pp.actual, 2).toString();
+            ctx.fillText(realPpText, ppX, ppY);
+            const realPpWidth = ctx.measureText(realPpText).width;
+
+            ctx.font = "bold 14px Torus";
+            ctx.fillStyle = "#D194AF";
+            ctx.fillText("pp", ppX + realPpWidth + 2, ppY);
+
+            if (fcPp !== undefined) {
+                ctx.font = "italic 20px Torus";
+                ctx.fillStyle = "#D194AF";
+                const fcPpDelimiterText = "/ ";
+                ctx.fillText(fcPpDelimiterText, ppX + 10, ppY + 25);
+                const fcPpDelimiterWidth = ctx.measureText(fcPpDelimiterText).width;
+
+                ctx.fillStyle = "#FF66AB";
+                const fcPpText = Util.round(fcPp, 2).toString();
+                ctx.fillText(fcPpText, ppX + 10 + fcPpDelimiterWidth, ppY + 25);
+                const fcPpTextWidth = ctx.measureText(fcPpText).width;
+
+                ctx.font = "italic 14px Torus";
+                ctx.fillStyle = "#D194AF";
+                ctx.fillText("pp", ppX + fcPpTextWidth + fcPpDelimiterWidth + 12, ppY + 25);
+            }
+        }
+
+        ctx.font = "bold 20px Torus";
+        ctx.fillStyle = "#FFCC22";
+        const accuracyX = ctx.canvas.width - rowMargin - 205;
+        ctx.fillText(`${(score.accuracy() * 100).toFixed(2)}%`, accuracyX, startY + 35);
+
+        await this.drawMods(ctx, score.mods, accuracyX - 15, startY + 10, 32);
+    }
+
+    private measureLeaderboardRowLayout(ctx: SKRSContext2D, leaderboard: ILeaderboardResult): CompactScoreRowLayout {
+        ctx.font = "bold 18px Torus";
+        const scoreTextWidth = Math.max(
+            ...leaderboard.scores.map((entry) => ctx.measureText(entry.score.score.toLocaleString("en-US")).width),
+            0
+        );
+
+        ctx.font = "bold 15px Torus";
+        const comboTextWidth = Math.max(
+            ...leaderboard.scores.map(
+                (entry) => ctx.measureText(Util.formatCombo(entry.score.combo, leaderboard.map.maxCombo)).width
+            ),
+            0
+        );
+        ctx.font = "12px Mulish";
+        const hitCountsTextWidth = Math.max(
+            ...leaderboard.scores.map((entry) => ctx.measureText(entry.score.counts.toString()).width),
+            0
+        );
+
+        const scoreX = 112;
+        const scoreWidth = Math.max(96, Math.ceil(scoreTextWidth) + 20);
+        const detailsX = scoreX + scoreWidth + 4;
+        const detailsWidth = Math.max(100, Math.ceil(Math.max(comboTextWidth, hitCountsTextWidth)) + 16);
+
+        return {
+            scoreX,
+            scoreWidth,
+            detailsX,
+            detailsWidth,
+            identityX: detailsX + detailsWidth + 12,
+            maxCombo: leaderboard.map.maxCombo,
+        };
+    }
+
     async generateTopScoresCard(
         scores: IGameScore[],
         maps: IBeatmap[],
@@ -1051,10 +1243,8 @@ export class OkiCardsGenerator {
     ): Promise<Buffer> {
         const canvas = Canvas.createCanvas(1200, 450);
         const ctx = canvas.getContext("2d");
-        ctx.beginPath();
         ctx.fillStyle = "#2a2226";
         OkiFormat.rect(ctx, 0, 0, canvas.width, canvas.height, 0);
-        ctx.fill();
 
         ctx.textAlign = "left";
         ctx.font = "50px Torus, VarelaRound, NotoSansSC";
@@ -1063,13 +1253,7 @@ export class OkiCardsGenerator {
         ctx.fillText(header, 40, 60);
         const headerMetrics = ctx.measureText(header);
 
-        let startpos = 90;
-        let textpos = 113;
-        let diffpos = 130;
-        const between = 60;
-
-        ctx.textAlign = "left";
-        ctx.font = `32px Mulish, NotoSansSC`;
+        ctx.font = "32px Mulish, NotoSansSC";
         ctx.fillStyle = "rgb(163, 143, 152)";
         ctx.fillText(
             l.tr("best-scores-subheader", {
@@ -1083,97 +1267,63 @@ export class OkiCardsGenerator {
         for (let i = 0; i < scores.length; i++) {
             const score = scores[i];
             const beatmap = maps[i];
-            // Score block
-            ctx.beginPath();
-            ctx.fillStyle = "#54454C";
-            ctx.fill();
-            OkiFormat.rect(ctx, 45, startpos, canvas.width - 45 * 2, 52, 10);
-
-            // Rank icon
-            const rankAsset = await this.getGradeAssetData(score.rank);
-            if (rankAsset) {
-                const rankImage = await Canvas.loadImage(rankAsset);
-                ctx.drawImage(rankImage, 57, startpos + 12, 49, 25);
-            }
-
-            // Title
-            ctx.textAlign = "left";
-            ctx.font = "20px Mulish";
-            ctx.fillStyle = "#ffffff";
-            ctx.fillText(beatmap.title, 120, textpos);
-
-            // Diff
-            const diffname = beatmap.version;
-            ctx.textAlign = "left";
-            ctx.font = "15px Torus";
-            ctx.fillStyle = "rgb(255, 204, 34)";
-            ctx.fillText(diffname, 120, diffpos);
-            const diffnameSize = ctx.measureText(diffname);
-
-            // Date
-            ctx.textAlign = "left";
-            ctx.font = "15px Mulish";
-            ctx.fillStyle = "rgb(163, 143, 152)";
-            ctx.fillText(Util.formatDate(score.date), 120 + diffnameSize.width + 20, diffpos);
-
             const pp = await resolveScorePp(score, new BanchoPerformanceCalculator(beatmap, score.mods));
-            if (pp.actual !== undefined) {
-                ctx.fillStyle = "#46393f";
-                OkiFormat.rect(ctx, 1030, startpos, 125, 52, 10);
-                ctx.fill();
+            await this.drawScoreListRow(
+                ctx,
+                score,
+                beatmap.title,
+                beatmap.version,
+                Util.formatDate(score.date),
+                90 + i * 60,
+                pp
+            );
+        }
 
-                let ppx = 1040;
-                let ppy = startpos + 20;
-                const fcPp = shouldDisplayPpEstimate(pp.actual, pp.calculated, pp.fc) ? pp.fc : undefined;
-                if (fcPp === undefined) {
-                    ppx += 10;
-                    ppy += 15;
-                }
+        return canvas.toBuffer("image/png");
+    }
 
-                ctx.textAlign = "left";
-                ctx.font = "bold 20px Torus";
-                ctx.fillStyle = "#FF66AB";
-                const realPpText = Util.round(pp.actual, 2).toString();
-                ctx.fillText(realPpText, ppx, ppy);
-                const realPpWidth = ctx.measureText(realPpText).width;
+    async generateLeaderboardCard(
+        leaderboard: ILeaderboardResult,
+        l: ILocalizer,
+        startNumber: number
+    ): Promise<Buffer> {
+        const canvas = Canvas.createCanvas(1200, 450);
+        const ctx = canvas.getContext("2d");
+        ctx.fillStyle = "#2a2226";
+        OkiFormat.rect(ctx, 0, 0, canvas.width, canvas.height, 0);
 
-                ctx.textAlign = "left";
-                ctx.font = "bold 14px Torus";
-                ctx.fillStyle = "#D194AF";
-                ctx.fillText("pp", ppx + realPpWidth + 2, ppy);
+        ctx.textAlign = "left";
+        ctx.font = "50px Torus, VarelaRound, NotoSansSC";
+        ctx.fillStyle = "#ffffff";
+        const header = l.tr("leaderboard-card-header");
+        ctx.fillText(header, 40, 55);
 
-                if (fcPp !== undefined) {
-                    ctx.textAlign = "left";
-                    ctx.font = "italic 20px Torus";
-                    ctx.fillStyle = "#D194AF";
-                    const fcPpDelimiterText = "/ ";
-                    ctx.fillText(fcPpDelimiterText, ppx + 10, ppy + 25);
-                    const fcPpDelimiterWidth = ctx.measureText(fcPpDelimiterText).width;
+        ctx.font = "16px Mulish, NotoSansSC";
+        ctx.fillStyle = "rgb(163, 143, 152)";
+        const map = leaderboard.map;
+        const subheader = l.tr("leaderboard-card-subheader", {
+            artist: map.artist,
+            title: map.title,
+            difficulty: map.version,
+        });
+        ctx.fillText(subheader, 40, 84);
+        const rowLayout = this.measureLeaderboardRowLayout(ctx, leaderboard);
 
-                    ctx.textAlign = "left";
-                    ctx.font = "italic 20px Torus";
-                    ctx.fillStyle = "#FF66AB";
-                    const fcPpText = Util.round(fcPp, 2).toString();
-                    ctx.fillText(fcPpText, ppx + 10 + fcPpDelimiterWidth, ppy + 25);
-                    const fcPpTextWidth = ctx.measureText(fcPpText).width;
-
-                    ctx.textAlign = "left";
-                    ctx.font = "italic 14px Torus";
-                    ctx.fillStyle = "#D194AF";
-                    ctx.fillText("pp", ppx + fcPpTextWidth + fcPpDelimiterWidth + 12, ppy + 25);
-                }
-            }
-
-            ctx.textAlign = "left";
-            ctx.font = "bold 20px Torus";
-            ctx.fillStyle = "#FFCC22";
-            ctx.fillText(`${(score.accuracy() * 100).toFixed(2)}%`, 950, startpos + 35);
-
-            await this.drawMods(ctx, score.mods, 935, startpos + 10, 32);
-
-            startpos = startpos + between;
-            textpos = textpos + between;
-            diffpos = diffpos + between;
+        for (let i = 0; i < leaderboard.scores.length; i++) {
+            const entry = leaderboard.scores[i];
+            const actualPp = Number.isFinite(entry.score.pp) ? entry.score.pp : undefined;
+            await this.drawScoreListRow(
+                ctx,
+                entry.score,
+                entry.user.nickname,
+                map.version,
+                Util.formatDate(entry.score.date, true),
+                105 + i * 60,
+                { actual: actualPp },
+                entry.country,
+                startNumber + i,
+                rowLayout
+            );
         }
 
         return canvas.toBuffer("image/png");

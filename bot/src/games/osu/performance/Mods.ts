@@ -38,40 +38,6 @@ export enum ModsBitwise {
     Unranked = Relax | Autoplay | Relax2 | Cinema | Target | ScoreV2,
 }
 
-enum ModsAcronyms {
-    "NF" = "NoFail",
-    "EZ" = "Easy",
-    "TD" = "TouchDevice",
-    "HD" = "Hidden",
-    "HR" = "HardRock",
-    "SD" = "SuddenDeath",
-    "DT" = "DoubleTime",
-    "RX" = "Relax",
-    "HT" = "HalfTime",
-    "NC" = "Nightcore",
-    "FL" = "Flashlight",
-    "AT" = "Autoplay",
-    "SO" = "SpunOut",
-    "AP" = "Relax2",
-    "PF" = "Perfect",
-    "K4" = "Key4",
-    "K5" = "Key5",
-    "K6" = "Key6",
-    "K7" = "Key7",
-    "K8" = "Key8",
-    "FI" = "FadeIn",
-    "RN" = "Random",
-    "CN" = "Cinema",
-    "TP" = "Target",
-    "K9" = "Key9",
-    "KX" = "Key10",
-    "K1" = "Key1",
-    "K3" = "Key3",
-    "K2" = "Key2",
-    "V2" = "ScoreV2",
-    "MR" = "Mirror",
-}
-
 enum ModsAcronyms2 {
     NoFail = "NF",
     Easy = "EZ",
@@ -88,21 +54,21 @@ enum ModsAcronyms2 {
     SpunOut = "SO",
     Relax2 = "AP",
     Perfect = "PF",
-    Key4 = "K4",
-    Key5 = "K5",
-    Key6 = "K6",
-    Key7 = "K7",
-    Key8 = "K8",
+    Key4 = "4K",
+    Key5 = "5K",
+    Key6 = "6K",
+    Key7 = "7K",
+    Key8 = "8K",
     FadeIn = "FI",
     Random = "RN",
     Cinema = "CN",
     Target = "TP",
-    Key9 = "K9",
-    Key10 = "KX",
-    Key1 = "K1",
-    Key3 = "K3",
-    Key2 = "K2",
-    ScoreV2 = "V2",
+    Key9 = "9K",
+    Key10 = "10K",
+    Key1 = "1K",
+    Key3 = "3K",
+    Key2 = "2K",
+    ScoreV2 = "SV2",
     Mirror = "MR",
 }
 
@@ -139,6 +105,45 @@ enum AcrToNum {
     V2 = 1 << 29,
     MR = 1 << 30,
 }
+
+const USER_ACRONYM_ALIASES: Record<string, string> = {
+    K1: "1K",
+    K2: "2K",
+    K3: "3K",
+    K4: "4K",
+    K5: "5K",
+    K6: "6K",
+    K7: "7K",
+    K8: "8K",
+    K9: "9K",
+    KX: "10K",
+    K10: "10K",
+    V2: "SV2",
+};
+
+const BITWISE_ACRONYM_ALIASES: Record<string, string> = {
+    "1K": "K1",
+    "2K": "K2",
+    "3K": "K3",
+    "4K": "K4",
+    "5K": "K5",
+    "6K": "K6",
+    "7K": "K7",
+    "8K": "K8",
+    "9K": "K9",
+    "10K": "KX",
+    SV2: "V2",
+};
+
+const THREE_CHARACTER_ACRONYMS = ["10K", "K10", "SV2"];
+const SPEED_CHANGING_ACRONYMS = ["DT", "NC", "HT", "DC"];
+const DIFFICULTY_ADJUST_SETTINGS = [
+    { acronym: "CS", key: "circle_size" },
+    { acronym: "AR", key: "approach_rate" },
+    { acronym: "OD", key: "overall_difficulty" },
+    { acronym: "HP", key: "drain_rate" },
+    { acronym: "SC", key: "scroll_speed" },
+] as const;
 
 type Mod =
     | "Nomod"
@@ -182,13 +187,14 @@ export class Mods {
     lazer: boolean = true;
     constructor(m: number | string | IExtendedMod[]) {
         if (typeof m === "string") {
-            this.flags = this.fromString(m);
+            this.modsv2 = this.fromString(m);
+            this.flags = this.fromMods(this.modsv2);
         } else if (typeof m === "number") {
             this.flags = m;
             this.lazer = false;
         } else {
             this.modsv2 = m.map((mod) => ({
-                acronym: mod.acronym,
+                acronym: mod.acronym.toUpperCase(),
                 settings: mod.settings ? { ...mod.settings } : undefined,
             }));
             this.flags = this.fromMods(this.modsv2);
@@ -209,18 +215,19 @@ export class Mods {
 
     fromMods(mods: IExtendedMod[]): number {
         let flags = 0;
-        const speedChanging = ["DT", "NC", "HT", "DC"];
         for (const mod of mods) {
-            if (AcrToNum[mod.acronym]) {
-                flags |= AcrToNum[mod.acronym];
+            const acronym = mod.acronym.toUpperCase();
+            const bitwiseAcronym = BITWISE_ACRONYM_ALIASES[acronym] ?? acronym;
+            if (AcrToNum[bitwiseAcronym]) {
+                flags |= AcrToNum[bitwiseAcronym];
             }
-            if (mod.acronym === "NC") {
+            if (acronym === "NC") {
                 flags |= ModsBitwise.DoubleTime;
-            } else if (mod.acronym === "PF") {
+            } else if (acronym === "PF") {
                 flags |= ModsBitwise.SuddenDeath;
             }
 
-            const idx = speedChanging.indexOf(mod.acronym);
+            const idx = SPEED_CHANGING_ACRONYMS.indexOf(acronym);
             if (idx != -1) {
                 if (mod.settings?.speed_change !== undefined) {
                     this.speedMultiplierV2 = mod.settings.speed_change;
@@ -231,7 +238,7 @@ export class Mods {
                 }
             }
 
-            if (mod.acronym == "CL") {
+            if (acronym == "CL") {
                 this.lazer = false;
             }
         }
@@ -239,28 +246,82 @@ export class Mods {
         return flags;
     }
 
-    fromString(str: string): number {
+    fromString(str: string): IExtendedMod[] {
         let offset = 0;
-        let buf = "";
-        let m = 0;
+        const mods: IExtendedMod[] = [];
+        const source = str.toUpperCase();
+
         while (offset < str.length) {
-            buf += str[offset];
-            const currAcr = buf.toUpperCase().slice(-2);
-            if (ModsAcronyms[currAcr]) {
-                m |= AcrToNum[currAcr];
-                if (currAcr === "NC") {
-                    m |= ModsBitwise.DoubleTime;
-                } else if (currAcr === "PF") {
-                    m |= ModsBitwise.SuddenDeath;
-                }
-                buf = "";
-            } else if (currAcr == "CL") {
-                this.lazer = false;
-                buf = "";
+            if (/[,\s+]/.test(source[offset])) {
+                offset++;
+                continue;
             }
-            offset++;
+
+            const threeCharacterAcronym = THREE_CHARACTER_ACRONYMS.find(
+                (acronym) => source.slice(offset, offset + acronym.length) === acronym
+            );
+            const rawAcronym = threeCharacterAcronym ?? source.slice(offset, offset + 2);
+            if (rawAcronym.length < 2 || !/^[A-Z0-9]+$/.test(rawAcronym)) {
+                offset++;
+                continue;
+            }
+            offset += rawAcronym.length;
+
+            const acronym = USER_ACRONYM_ALIASES[rawAcronym] ?? rawAcronym;
+            if (acronym === "NM") {
+                continue;
+            }
+
+            const mod: IExtendedMod = { acronym };
+            if (acronym === "DA") {
+                const openingBracket = source[offset];
+                const closingBracket = openingBracket === "(" ? ")" : openingBracket === "[" ? "]" : "";
+                const settingsEnd = closingBracket ? source.indexOf(closingBracket, offset + 1) : -1;
+                if (settingsEnd !== -1) {
+                    const settings = this.parseDifficultyAdjustSettings(source.slice(offset + 1, settingsEnd));
+                    if (Object.keys(settings).length > 0) {
+                        mod.settings = settings;
+                    }
+                    offset = settingsEnd + 1;
+                } else if (closingBracket) {
+                    offset = source.length;
+                }
+            } else if (SPEED_CHANGING_ACRONYMS.includes(acronym) && source[offset] === "X") {
+                const rateMatch = source.slice(offset + 1).match(/^\d+(?:\.\d+)?/);
+                if (rateMatch) {
+                    mod.settings = { speed_change: Number(rateMatch[0]) };
+                    offset += rateMatch[0].length + 1;
+                }
+            }
+
+            const existing = mods.find((candidate) => candidate.acronym === mod.acronym);
+            if (existing && mod.settings) {
+                existing.settings = { ...existing.settings, ...mod.settings };
+            } else if (!existing) {
+                mods.push(mod);
+            }
         }
-        return m;
+
+        return mods;
+    }
+
+    private parseDifficultyAdjustSettings(source: string): IExtendedMod["settings"] {
+        const settings: IExtendedMod["settings"] = {};
+        const settingPattern = /(AR|CS|OD|HP|SC)\s*(?:=|:)?\s*(-?(?:\d+(?:\.\d*)?|\.\d+))/g;
+
+        for (const match of source.matchAll(settingPattern)) {
+            const setting = DIFFICULTY_ADJUST_SETTINGS.find((candidate) => candidate.acronym === match[1]);
+            if (setting) {
+                settings[setting.key] = Number(match[2]);
+            }
+        }
+
+        const values = Object.values(settings).filter((value): value is number => typeof value === "number");
+        if (values.some((value) => value < 0 || value > 10)) {
+            settings.extended_limits = true;
+        }
+
+        return settings;
     }
 
     toExtendedMods(): IExtendedMod[] {
@@ -304,6 +365,15 @@ export class Mods {
             let mod = m.acronym;
             if (!ignoreMeta && m.rate !== undefined) {
                 mod += "x" + Util.round(m.rate, 2);
+            }
+            if (!ignoreMeta && m.acronym === "DA" && m.settings) {
+                const settings = DIFFICULTY_ADJUST_SETTINGS.flatMap((setting) => {
+                    const value = m.settings?.[setting.key];
+                    return typeof value === "number" ? [`${setting.acronym}=${value}`] : [];
+                });
+                if (settings.length > 0) {
+                    mod += `[${settings.join(",")}]`;
+                }
             }
 
             return mod;

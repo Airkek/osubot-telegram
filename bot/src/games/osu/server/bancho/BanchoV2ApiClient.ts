@@ -585,7 +585,7 @@ export class BanchoV2ApiClient implements IGameApi {
         return await this.getUserTopById(user.id as number, mode, limit);
     }
 
-    async getScore(nickname: string, beatmapId: number, mode?: number, mods?: number): Promise<IGameScore> {
+    async getScore(nickname: string, beatmapId: number, mode?: number, mods?: Mods): Promise<IGameScore> {
         const user = await this.getUser(nickname);
         return await this.getScoreByUid(user.id as number, beatmapId, mode, mods);
     }
@@ -708,10 +708,10 @@ export class BanchoV2ApiClient implements IGameApi {
         uid: number | string,
         beatmapId: number,
         mode?: number,
-        mods?: number,
+        mods?: Mods,
         options: IScoreRequestOptions = {}
     ): Promise<IGameScore> {
-        if (mods === 0) {
+        if (mods !== undefined && mods.toExtendedMods().length === 0) {
             const data: BeatmapUserScores = await this.get(`/beatmaps/${beatmapId}/scores/users/${uid}/all`, {
                 ruleset: getRuleset(mode),
             });
@@ -721,7 +721,9 @@ export class BanchoV2ApiClient implements IGameApi {
             if (!Array.isArray(data.scores)) {
                 throw new Error("Invalid user scores response from osu! API");
             }
-            const score = data.scores.find((candidate) => new Mods(candidate.mods).sum() === 0);
+            const score = data.scores.find((candidate) =>
+                candidate.mods.every((mod) => mod.acronym.toUpperCase() === "CL")
+            );
             if (!score) {
                 throw new NoScoresFoundError();
             }
@@ -731,8 +733,8 @@ export class BanchoV2ApiClient implements IGameApi {
         const query: Record<string, string | string[]> = {
             mode: getRuleset(mode),
         };
-        if (mods !== undefined && mods !== null) {
-            query["mods[]"] = new Mods(mods).toAcronymList(true).filter((mod) => mod !== "CL");
+        if (mods !== undefined) {
+            query["mods[]"] = mods.toAcronymList(true).filter((mod) => mod !== "CL");
         }
 
         const data: BeatmapUserScore = await this.get(`/beatmaps/${beatmapId}/scores/users/${uid}`, query);

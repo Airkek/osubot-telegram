@@ -332,18 +332,18 @@ export class GatariApiClient implements IGameApi {
         return new GatariRecentScore(data.scores[0]);
     }
 
-    async getScore(nickname: string, beatmapId: number, mode: number = 0, mods?: number): Promise<IGameScore> {
+    async getScore(nickname: string, beatmapId: number, mode: number = 0, mods?: Mods): Promise<IGameScore> {
         const user = await this.getUser(nickname, mode);
         return await this.getScoreByUid(user.id as number, beatmapId, mode, mods);
     }
 
-    async getScoreByUid(uid: number | string, beatmapId: number, mode: number = 0, mods?: number): Promise<IGameScore> {
+    async getScoreByUid(uid: number | string, beatmapId: number, mode: number = 0, mods?: Mods): Promise<IGameScore> {
         if (!Number.isInteger(mode) || mode < 0 || mode > 3) {
             throw new InvalidGameModeError();
         }
         const query: Record<string, number | string> = { b: beatmapId, u: uid, mode };
-        if (mods !== undefined && mods !== null) {
-            query.m = mods;
+        if (mods !== undefined) {
+            query.m = mods.sum();
         }
         const { data } = await this.api.get(`/beatmap/user/score?${qs.stringify(query)}`);
         if (data?.code !== 200) {

@@ -7,6 +7,11 @@ best-scores-header = Top Scores
 best-scores-subheader = by {$player_name} on {$date}
 
 map-leaderboard-header = Chat leaderboard for this map:
+leaderboard-card-header = Chat leaderboard
+leaderboard-card-subheader = {$artist} — {$title} [{$difficulty}]
+leaderboard-rate-limited = The leaderboard can only be requested once per minute. Try again in {$seconds} seconds.
+leaderboard-cache-expired = This leaderboard has expired. Run the command again.
+leaderboard-refresh-required = The leaderboard data was invalidated. Press refresh again.
 nobody-played-this-map = No one has scores on this map yet!
 
 unknown-game-mode-error = Error: Unknown game mode!

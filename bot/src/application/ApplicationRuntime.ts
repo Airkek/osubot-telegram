@@ -28,6 +28,7 @@ import { LegacyTextTemplates } from "presentation/templates/legacy-text/LegacyTe
 import { ReplyService } from "presentation/ReplyService";
 import { IgnoreList } from "infrastructure/cache/IgnoreList";
 import { ChatBeatmapCache } from "infrastructure/cache/ChatBeatmapCache";
+import { LeaderboardCache } from "infrastructure/cache/LeaderboardCache";
 import { OkiCardsGenerator } from "presentation/cards/OkiCardsGenerator";
 import { OsuTrackClient } from "games/osu/osutrack/OsuTrackClient";
 import { localizeError } from "core/errors/localizeError";
@@ -64,6 +65,7 @@ export class ApplicationRuntime implements IBotRuntime {
     readonly templates: ITemplateStorage;
     readonly chatBeatmaps: ChatBeatmapCache;
     readonly ignored: IgnoreList;
+    readonly leaderboards = new LeaderboardCache();
     readonly track: OsuTrackClient;
     readonly replies: ReplyService;
     readonly version: string;

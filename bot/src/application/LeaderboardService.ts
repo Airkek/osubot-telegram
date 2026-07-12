@@ -16,7 +16,7 @@ export async function getLeaderboard(
     beatmapId: number,
     users: IGameUserLink[],
     mode: number = 0,
-    mods?: number
+    mods?: Mods
 ): Promise<ILeaderboardResult> {
     if (!api.getScoreByUid) {
         throw new LeaderboardNotSupportedError();
@@ -24,8 +24,8 @@ export async function getLeaderboard(
 
     const map = await beatmapProvider.getBeatmapById(beatmapId, mode);
     const scoreMods = api.supportsScoreMods ? mods : undefined;
-    if (scoreMods) {
-        await map.applyMods(new Mods(scoreMods));
+    if (scoreMods !== undefined) {
+        await map.applyMods(scoreMods);
     }
 
     const scores: ILeaderboardEntry[] = [];
@@ -33,13 +33,19 @@ export async function getLeaderboard(
     for (let offset = 0; offset < users.length; offset += BATCH_SIZE) {
         const batch = users.slice(offset, offset + BATCH_SIZE);
         const results = await Promise.allSettled(
-            batch.map((user) => api.getScoreByUid!(user.game_id, beatmapId, mode, scoreMods, scoreOptions))
+            batch.map(async (user) => {
+                const [score, gameUser] = await Promise.all([
+                    api.getScoreByUid!(user.game_id, beatmapId, mode, scoreMods, scoreOptions),
+                    api.getUserById(user.game_id, mode).catch(() => undefined),
+                ]);
+                return { user, score, country: gameUser?.country };
+            })
         );
 
         for (let index = 0; index < results.length; index++) {
             const result = results[index];
             if (result.status === "fulfilled") {
-                scores.push({ user: batch[index], score: result.value });
+                scores.push(result.value);
             } else if (!(result.reason instanceof NoScoresFoundError)) {
                 throw result.reason;
             }

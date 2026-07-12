@@ -14,6 +14,7 @@ import { resolveScorePp } from "games/osu/performance/PPDisplay";
 import { Mods } from "games/osu/performance/Mods";
 import { OsuMode } from "games/osu/OsuMode";
 import { BeatmapPerformanceSummary } from "presentation/templates/BeatmapPerformanceSummary";
+import { ILeaderboardResult } from "games/leaderboards/ILeaderboardResult";
 
 interface ReplyData {
     text: string;
@@ -122,6 +123,31 @@ export class ReplyService {
 
         return {
             text: message,
+            photo: undefined,
+        };
+    }
+
+    async leaderboard(
+        l: ILocalizer,
+        leaderboard: ILeaderboardResult,
+        serverBase: string,
+        startNumber: number,
+        useCards: boolean
+    ): Promise<ReplyData> {
+        let templateAddition = "";
+        if (useCards && leaderboard.scores.length > 0) {
+            const card = await this.cards.generateLeaderboardCard(leaderboard, l, startNumber);
+            if (card) {
+                return {
+                    text: leaderboard.map.url ?? `${serverBase}/b/${leaderboard.map.id}`,
+                    photo: card,
+                };
+            }
+            templateAddition = "\n\n" + l.tr("card-gen-failed");
+        }
+
+        return {
+            text: this.templates.Leaderboard(l, leaderboard, startNumber) + templateAddition,
             photo: undefined,
         };
     }

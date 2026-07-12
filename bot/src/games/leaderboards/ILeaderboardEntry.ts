@@ -4,4 +4,5 @@ import { IGameUserLink } from "games/users/IGameUserLink";
 export interface ILeaderboardEntry {
     user: IGameUserLink;
     score: IGameScore;
+    country?: string;
 }

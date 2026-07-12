@@ -2,7 +2,7 @@ import { ILeaderboardResult } from "games/leaderboards/ILeaderboardResult";
 import { Util } from "shared/Util";
 import { ILocalizer } from "localization/ILocalizer";
 
-export function formatLeaderboard(l: ILocalizer, leaderboard: ILeaderboardResult): string {
+export function formatLeaderboard(l: ILocalizer, leaderboard: ILeaderboardResult, startNumber: number = 1): string {
     if (!leaderboard.scores[0]) {
         return l.tr("nobody-played-this-map");
     }
@@ -17,7 +17,7 @@ export function formatLeaderboard(l: ILocalizer, leaderboard: ILeaderboardResult
             .map((lbscore, i) => {
                 const missLike = lbscore.score.counts.getMissLikeValue(l);
                 return (
-                    `#${i + 1} ${lbscore.user.nickname} | ` +
+                    `#${startNumber + i} ${lbscore.user.nickname} | ` +
                     `${lbscore.score.score?.toLocaleString()} | ` +
                     `${Util.formatCombo(lbscore.score.combo, map.maxCombo)} | ` +
                     `${(lbscore.score.accuracy() * 100).toFixed(2)}% | ` +

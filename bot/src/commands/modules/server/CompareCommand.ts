@@ -17,18 +17,14 @@ export class CompareCommand extends ServerCommand {
                     await self.ctx.reply(self.ctx.tr("send-beatmap-first"));
                     return;
                 }
+                const mods = self.args.mods.length === 0 ? undefined : new Mods(self.args.mods);
                 const score = self.user.username
-                    ? await self.module.api.getScore(
-                          self.user.username,
-                          chat.map.id,
-                          mode,
-                          self.args.mods.length == 0 ? undefined : new Mods(self.args.mods).sum()
-                      )
+                    ? await self.module.api.getScore(self.user.username, chat.map.id, mode, mods)
                     : await self.module.api.getScoreByUid(
                           self.user.id || self.user.dbUser.game_id,
                           chat.map.id,
                           mode,
-                          self.args.mods.length == 0 ? undefined : new Mods(self.args.mods).sum()
+                          mods
                       );
                 let map: IBeatmap = score.beatmap;
                 if (!map) {

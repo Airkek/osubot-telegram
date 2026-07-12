@@ -11,6 +11,7 @@ import type { ReplyService } from "presentation/ReplyService";
 import type { PendingCallback } from "core/PendingCallback";
 import type { ChatBeatmapCache } from "infrastructure/cache/ChatBeatmapCache";
 import type { IgnoreList } from "infrastructure/cache/IgnoreList";
+import type { LeaderboardCache } from "infrastructure/cache/LeaderboardCache";
 
 export interface IBotRuntime {
     readonly storage: IApplicationStorage;
@@ -19,6 +20,7 @@ export interface IBotRuntime {
     readonly templates: ITemplateStorage;
     readonly chatBeatmaps: ChatBeatmapCache;
     readonly ignored: IgnoreList;
+    readonly leaderboards: LeaderboardCache;
     readonly track: OsuTrackClient;
     readonly replies: ReplyService;
     readonly version: string;
