@@ -9,7 +9,7 @@ using osu.Game.Scoring;
 using osu.Game.Scoring.Legacy;
 using osu.Game.Utils;
 
-namespace OsuPerformanceWorker;
+namespace OsuPerformanceServer;
 
 internal static class CalculatorOperations
 {

@@ -14,15 +14,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../OsuPerformanceWorker/OsuPerformanceWorker.csproj" />
+    <ProjectReference Include="../../src/OsuPerformanceServer/OsuPerformanceServer.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="../../../tests/fixtures/official-calculator.osu"
-          Link="fixtures/official-calculator.osu"
-          CopyToOutputDirectory="PreserveNewest" />
-    <None Include="../../../tests/fixtures/official-calculator-mania.osu"
-          Link="fixtures/official-calculator-mania.osu"
-          CopyToOutputDirectory="PreserveNewest" />
+    <None Update="fixtures/official-calculator.osu" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="fixtures/official-calculator-mania.osu" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

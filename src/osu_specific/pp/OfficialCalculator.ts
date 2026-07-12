@@ -1,9 +1,7 @@
-import path from "node:path";
 import { IBeatmap } from "../../beatmaps/BeatmapTypes";
 import { IHits } from "../../Types";
 import Mods, { ExtendedMod } from "./Mods";
-import { getBeatmapFile } from "./BeatmapFileCache";
-import client from "./OfficialCalculatorClient";
+import client from "../../performance/PerformanceClient";
 
 export interface OfficialBeatmapAttributes {
     native_mode: number;
@@ -59,15 +57,38 @@ export interface OfficialReplay {
     frame_count: number;
 }
 
-function performanceMods(mods: Mods): ExtendedMod[] {
-    return mods.toExtendedMods();
+interface BeatmapReference {
+    beatmap_id: number;
+    expected_md5: string;
+}
+
+interface PerformanceMod {
+    acronym: string;
+    settings_json: string;
+}
+
+interface PerformanceReplay extends Omit<OfficialReplay, "mods"> {
+    mods: PerformanceMod[];
+    _legacy_total_score?: "legacy_total_score";
+}
+
+function beatmapReference(map: IBeatmap): BeatmapReference {
+    return {
+        beatmap_id: map.id,
+        expected_md5: map.hash,
+    };
+}
+
+function performanceMods(mods: Mods): PerformanceMod[] {
+    return mods.toExtendedMods().map((mod) => ({
+        acronym: mod.acronym,
+        settings_json: JSON.stringify(mod.settings ?? {}),
+    }));
 }
 
 export async function calculateBeatmap(map: IBeatmap, mode: number, mods: Mods): Promise<OfficialBeatmapAttributes> {
-    const beatmapPath = await getBeatmapFile(map);
-    return await client.request<OfficialBeatmapAttributes>({
-        operation: "beatmap",
-        beatmap_path: path.resolve(beatmapPath),
+    return await client.request<OfficialBeatmapAttributes>("calculateBeatmap", {
+        beatmap: beatmapReference(map),
         mode,
         mods: performanceMods(mods),
     });
@@ -79,30 +100,34 @@ export async function calculatePerformance(
     mods: Mods,
     score: OfficialScoreInput
 ): Promise<OfficialPerformanceAttributes> {
-    const beatmapPath = await getBeatmapFile(map);
-    return await client.request<OfficialPerformanceAttributes>({
-        operation: "performance",
-        beatmap_path: path.resolve(beatmapPath),
+    return await client.request<OfficialPerformanceAttributes>("calculatePerformance", {
+        beatmap: beatmapReference(map),
         mode,
         mods: performanceMods(mods),
         score,
     });
 }
 
-export async function readReplayHeader(replayPath: string): Promise<OfficialReplayHeader> {
-    return await client.request<OfficialReplayHeader>({
-        operation: "replay_header",
-        replay_path: path.resolve(replayPath),
+export async function readReplayHeader(replay: Buffer): Promise<OfficialReplayHeader> {
+    return await client.request<OfficialReplayHeader>("readReplayHeader", {
+        replay,
     });
 }
 
-export async function decodeReplay(replayPath: string, map: IBeatmap): Promise<OfficialReplay> {
-    const beatmapPath = await getBeatmapFile(map);
-    return await client.request<OfficialReplay>({
-        operation: "replay",
-        replay_path: path.resolve(replayPath),
-        beatmap_path: path.resolve(beatmapPath),
+export async function decodeReplay(replay: Buffer, map: IBeatmap): Promise<OfficialReplay> {
+    const decoded = await client.request<PerformanceReplay>("decodeReplay", {
+        replay,
+        beatmap: beatmapReference(map),
     });
+    const { mods, legacy_total_score, _legacy_total_score, ...replayData } = decoded;
+    return {
+        ...replayData,
+        ...(_legacy_total_score ? { legacy_total_score } : {}),
+        mods: mods.map((mod) => {
+            const settings = JSON.parse(mod.settings_json || "{}") as ExtendedMod["settings"];
+            return Object.keys(settings).length > 0 ? { acronym: mod.acronym, settings } : { acronym: mod.acronym };
+        }),
+    };
 }
 
 export function hitStatistics(hits: IHits, mode: number): Record<string, number> {

@@ -8,19 +8,41 @@ services:
     restart: always
 
     volumes:
-      - ${OSU_BEATMAP_CACHE}:/usr/osubot/beatmap_cache
       - ${BOT_DATA_PATH}:/usr/osubot/data
       - ${TELEGRAM_API_DATA_PATH}:/var/lib/telegram-bot-api
 
     depends_on:
-      - database
-      - telegram_api
+      database:
+        condition: service_healthy
+      telegram_api:
+        condition: service_started
+      performance-server:
+        condition: service_healthy
 
     healthcheck:
       test: >-
         PORT=${APP_PORT} node /usr/osubot/healthcheck.js
       interval: 5m
       timeout: 10s
+      start_period: 30s
+      retries: 3
+
+  performance-server:
+    image: ghcr.io/airkek/osubot-performance-server
+    container_name: osubot_performance
+    restart: always
+
+    environment:
+      PERFORMANCE_SERVER_PORT: 50051
+      BEATMAP_CACHE_PATH: /var/lib/osu-performance/beatmaps
+
+    volumes:
+      - ${OSU_BEATMAP_CACHE}:/var/lib/osu-performance/beatmaps
+
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z 127.0.0.1 50051"]
+      interval: 30s
+      timeout: 5s
       start_period: 30s
       retries: 3
 
@@ -33,9 +55,9 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_USER: ${DB_USERNAME}
       POSTGRES_DB: ${DB_DATABASE_NAME}
-      POSTGRES_INITDB_ARGS: '--data-checksums'
-      TIMESCALEDB_TELEMETRY: 'off'
-      
+      POSTGRES_INITDB_ARGS: "--data-checksums"
+      TIMESCALEDB_TELEMETRY: "off"
+
     volumes:
       - ${DB_DATA_LOCATION}:/var/lib/postgresql/data
 

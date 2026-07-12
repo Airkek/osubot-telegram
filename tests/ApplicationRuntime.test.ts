@@ -119,6 +119,26 @@ test("completed callbacks are removed from the shared runtime", async () => {
     expect(callbackRuns).toBe(1);
 });
 
+test("runtime checks and closes the performance service", async () => {
+    const calls: string[] = [];
+    const runtime = new ApplicationRuntime(
+        createDependencies({
+            performanceClient: {
+                health: async () => {
+                    calls.push("health");
+                    return { status: "ok", version: "test" };
+                },
+                close: () => calls.push("close"),
+            },
+        })
+    );
+
+    await runtime.initialize();
+    await runtime.stop();
+
+    expect(calls).toEqual(["health", "close"]);
+});
+
 test("runtime resolves and binds platform identities before dispatch", async () => {
     const storage = createTestStorage();
     storage.identities.resolveUser = async (externalId) => {

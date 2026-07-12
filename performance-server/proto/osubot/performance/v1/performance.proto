@@ -1,0 +1,107 @@
+syntax = "proto3";
+
+package osubot.performance.v1;
+
+option csharp_namespace = "OsuPerformanceServer.Grpc.V1";
+
+service PerformanceService {
+  rpc Health(HealthRequest) returns (HealthResponse);
+  rpc CalculateBeatmap(CalculateBeatmapRequest) returns (BeatmapAttributes);
+  rpc CalculatePerformance(CalculatePerformanceRequest) returns (PerformanceAttributes);
+  rpc ReadReplayHeader(ReadReplayHeaderRequest) returns (ReplayHeader);
+  rpc DecodeReplay(DecodeReplayRequest) returns (Replay);
+}
+
+message HealthRequest {}
+
+message HealthResponse {
+  string status = 1;
+  string version = 2;
+}
+
+message BeatmapReference {
+  int64 beatmap_id = 1;
+  string expected_md5 = 2;
+  bytes content = 3;
+}
+
+message Mod {
+  string acronym = 1;
+  string settings_json = 2;
+}
+
+message CalculateBeatmapRequest {
+  BeatmapReference beatmap = 1;
+  int32 mode = 2;
+  repeated Mod mods = 3;
+}
+
+message ScoreInput {
+  double accuracy = 1;
+  optional int32 combo = 2;
+  int64 total_score = 3;
+  bool legacy = 4;
+  bool standardised = 5;
+  bool simulate = 6;
+  map<string, int32> statistics = 7;
+}
+
+message CalculatePerformanceRequest {
+  BeatmapReference beatmap = 1;
+  int32 mode = 2;
+  repeated Mod mods = 3;
+  ScoreInput score = 4;
+}
+
+message BeatmapAttributes {
+  int32 native_mode = 1;
+  double star_rating = 2;
+  int32 max_combo = 3;
+  int32 hit_object_count = 4;
+  double approach_rate = 5;
+  double circle_size = 6;
+  double overall_difficulty = 7;
+  double drain_rate = 8;
+  double bpm = 9;
+  double clock_rate = 10;
+}
+
+message PerformanceAttributes {
+  BeatmapAttributes difficulty = 1;
+  double pp = 2;
+  double fc_pp = 3;
+  double ss_pp = 4;
+}
+
+message ReadReplayHeaderRequest {
+  bytes replay = 1;
+}
+
+message ReplayHeader {
+  int32 mode = 1;
+  int32 version = 2;
+  string beatmap_hash = 3;
+}
+
+message DecodeReplayRequest {
+  bytes replay = 1;
+  BeatmapReference beatmap = 2;
+}
+
+message Replay {
+  int32 mode = 1;
+  string beatmap_hash = 2;
+  int64 beatmap_id = 3;
+  string player = 4;
+  int64 player_id = 5;
+  map<string, int32> statistics = 6;
+  int64 total_score = 7;
+  optional int64 legacy_total_score = 8;
+  int32 combo = 9;
+  bool perfect = 10;
+  double accuracy = 11;
+  string date = 12;
+  repeated Mod mods = 13;
+  bool legacy = 14;
+  int32 frame_count = 15;
+}

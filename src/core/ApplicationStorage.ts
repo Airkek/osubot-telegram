@@ -156,7 +156,6 @@ export interface TelemetrySink {
     logUserCount(): Promise<void>;
     logChatCount(): Promise<void>;
     logBeatmapMetadataCacheCount(): Promise<void>;
-    logBeatmapFilesCount(): Promise<void>;
     logRenderStart(context: EventContext, mode: number, isExperimental: boolean): Promise<unknown>;
     logRenderSuccess(context: EventContext, mode: number, isExperimental: boolean): Promise<unknown>;
     logRenderFailed(

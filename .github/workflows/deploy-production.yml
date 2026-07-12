@@ -5,7 +5,17 @@ env:
 
 on:
   workflow_dispatch:
+    inputs:
+      component:
+        description: Component to deploy
+        type: choice
+        options: [all, bot, performance]
+        default: bot
   workflow_call:
+    inputs:
+      component:
+        type: string
+        default: bot
     secrets:
       SSH_HOST:
         required: true
@@ -53,6 +63,22 @@ jobs:
             set -e
             cd ${{ secrets.SSH_TARGET_PATH }}
             echo ${{ secrets.PAT }} | docker login ${{ env.REGISTRY }} -u ${{ github.repository_owner }} --password-stdin
-            docker compose pull
+            case "${{ inputs.component }}" in
+              bot)
+                docker compose pull osubot
+                docker compose up -d --no-deps osubot
+                ;;
+              performance)
+                docker compose pull performance-server
+                docker compose up -d --no-deps performance-server
+                ;;
+              all)
+                docker compose pull
+                docker compose up -d --remove-orphans
+                ;;
+              *)
+                echo "Unknown component: ${{ inputs.component }}" >&2
+                exit 1
+                ;;
+            esac
             docker logout ${{ env.REGISTRY }}
-            docker compose up -d --remove-orphans

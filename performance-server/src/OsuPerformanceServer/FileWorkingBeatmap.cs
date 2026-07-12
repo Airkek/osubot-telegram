@@ -5,7 +5,7 @@ using osu.Game.Beatmaps.Formats;
 using osu.Game.IO;
 using osu.Game.Skinning;
 
-namespace OsuPerformanceWorker;
+namespace OsuPerformanceServer;
 
 internal sealed class FileWorkingBeatmap : WorkingBeatmap
 {

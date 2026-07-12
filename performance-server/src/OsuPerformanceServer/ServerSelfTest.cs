@@ -1,9 +1,6 @@
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
+namespace OsuPerformanceServer;
 
-namespace OsuPerformanceWorker;
-
-internal static class WorkerSelfTest
+internal static class ServerSelfTest
 {
     private static readonly ModeFixture[] fixtures =
     [
@@ -47,18 +44,15 @@ internal static class WorkerSelfTest
             Require(double.IsFinite(result.FcPp) && result.FcPp > 0, fixture, "FC performance was not calculated");
             Require(double.IsFinite(result.SsPp) && result.SsPp > 0, fixture, "SS performance was not calculated");
 
-            string id = $"self-test-{fixture.Name}";
-            string json = JsonConvert.SerializeObject(new WorkerResponse { Id = id, Result = result });
-            JObject response = JObject.Parse(json);
-            Require(response.Value<string>("id") == id, fixture, "response id was not serialized");
-            Require(response["result"]?["pp"]?.Value<double>() is > 0, fixture, "performance was not serialized");
+            var response = GrpcMapper.ToContract(result);
+            Require(response.CalculateSize() > 0, fixture, "gRPC response was not serialized");
         }
     }
 
     private static void Require(bool condition, ModeFixture fixture, string message)
     {
         if (!condition)
-            throw new InvalidOperationException($"Worker self-test failed for {fixture.Name}: {message}");
+            throw new InvalidOperationException($"Performance server self-test failed for {fixture.Name}: {message}");
     }
 
     private sealed record ModeFixture(int Mode, string Name, int HitObjectCount, int MaxCombo, string Beatmap);
@@ -71,7 +65,7 @@ internal static class WorkerSelfTest
         Mode: 0
 
         [Metadata]
-        Title:Worker self-test osu
+        Title:Server self-test osu
         Artist:osubot
         Creator:osubot
         Version:Test
@@ -103,7 +97,7 @@ internal static class WorkerSelfTest
         Mode: 1
 
         [Metadata]
-        Title:Worker self-test taiko
+        Title:Server self-test taiko
         Artist:osubot
         Creator:osubot
         Version:Test
@@ -138,7 +132,7 @@ internal static class WorkerSelfTest
         Mode: 2
 
         [Metadata]
-        Title:Worker self-test catch
+        Title:Server self-test catch
         Artist:osubot
         Creator:osubot
         Version:Test
@@ -173,7 +167,7 @@ internal static class WorkerSelfTest
         Mode: 3
 
         [Metadata]
-        Title:Worker self-test mania
+        Title:Server self-test mania
         Artist:osubot
         Creator:osubot
         Version:4K Test

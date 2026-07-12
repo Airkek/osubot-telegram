@@ -1,0 +1,56 @@
+name: "Build and run bot tests"
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "assets/**"
+      - "index.ts"
+      - "package.json"
+      - "package-lock.json"
+      - "performance-server/proto/**"
+      - "src/**"
+      - "tests/**"
+      - "tsconfig.json"
+      - ".github/workflows/build_and_run_bot_tests.yml"
+  pull_request:
+    branches: [master]
+    paths:
+      - "assets/**"
+      - "index.ts"
+      - "package.json"
+      - "package-lock.json"
+      - "performance-server/proto/**"
+      - "src/**"
+      - "tests/**"
+      - "tsconfig.json"
+      - ".github/workflows/build_and_run_bot_tests.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-bot-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build_and_test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install modules
+        run: npm ci
+
+      - name: Build bot
+        run: npm run build:node
+
+      - name: Run Jest tests
+        run: npm run test:js

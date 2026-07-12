@@ -1,6 +1,4 @@
 import fs from "fs/promises";
-import os from "node:os";
-import path from "node:path";
 import { Command } from "../../Command";
 import { SimpleCommandsModule } from "./index";
 import { IMessageContext, MediaFile } from "../../../core/MessageContext";
@@ -10,7 +8,6 @@ import { IssouBestRenderer } from "../../../osu_specific/replay_render/IssouBest
 import { OsrReplay } from "../../../osu_specific/OsrReplay";
 import { ExperimentalRenderer } from "../../../osu_specific/replay_render/ExperimentalRenderer";
 import { decodeReplay, readReplayHeader } from "../../../osu_specific/pp/OfficialCalculator";
-import { OsuBeatmap } from "../../../beatmaps/osu/OsuBeatmap";
 
 export class OsuReplay extends Command {
     renderer: IReplayRenderer;
@@ -53,18 +50,9 @@ export class OsuReplay extends Command {
                 }
             }
 
-            const replayDirectory = await fs.mkdtemp(path.join(os.tmpdir(), "osubot-replay-"));
-            const replayPath = path.join(replayDirectory, "replay.osr");
-            let replay: OsrReplay;
-            let beatmap: OsuBeatmap;
-            try {
-                await fs.writeFile(replayPath, file);
-                const header = await readReplayHeader(replayPath);
-                beatmap = await module.bot.osuBeatmapProvider.getBeatmapByHash(header.beatmap_hash, header.mode);
-                replay = new OsrReplay(await decodeReplay(replayPath, beatmap));
-            } finally {
-                await fs.rm(replayDirectory, { recursive: true, force: true });
-            }
+            const header = await readReplayHeader(file);
+            const beatmap = await module.bot.osuBeatmapProvider.getBeatmapByHash(header.beatmap_hash, header.mode);
+            const replay = new OsrReplay(await decodeReplay(file, beatmap));
             await beatmap.applyMods(replay.mods);
 
             const keyboard = makeKeyboard(

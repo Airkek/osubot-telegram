@@ -2,6 +2,12 @@ name: "Release: build & deploy"
 
 on:
   workflow_dispatch:
+    inputs:
+      component:
+        description: Component to build and deploy
+        type: choice
+        options: [all, bot, performance]
+        default: bot
 
 permissions:
   contents: read
@@ -14,8 +20,12 @@ concurrency:
 jobs:
   build:
     uses: ./.github/workflows/docker-build.yml
+    with:
+      component: ${{ inputs.component }}
 
   deploy:
     needs: build
     uses: ./.github/workflows/deploy-production.yml
+    with:
+      component: ${{ inputs.component }}
     secrets: inherit

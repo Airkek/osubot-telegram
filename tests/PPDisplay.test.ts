@@ -1,7 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import { IBeatmap } from "../src/beatmaps/BeatmapTypes";
 import TopScore from "../src/event_handlers/templates/TopScore";
-import { ppValuesLookEqual, shouldDisplayPpEstimate } from "../src/osu_specific/pp/PPDisplay";
+import { ppValuesLookEqual, resolveScorePp, shouldDisplayPpEstimate } from "../src/osu_specific/pp/PPDisplay";
 import { IPPCalculator } from "../src/osu_specific/pp/Calculator";
 import Mods from "../src/osu_specific/pp/Mods";
 import { APIScore, HitCounts } from "../src/Types";
@@ -60,5 +60,24 @@ describe("PP display", () => {
         const message = await TopScore(localizer, score, beatmap, 7, calculator, "https://osu.ppy.sh");
 
         expect(message).toContain("PP: 328.57 → FC: 372.83");
+    });
+
+    test("falls back to API PP when calculation fails and omits PP when neither is available", async () => {
+        const errors: unknown[] = [];
+        global.logger = {
+            error: (...args: unknown[]) => errors.push(args),
+        } as typeof global.logger;
+        const calculator = {
+            map: {} as IBeatmap,
+            mods: new Mods(""),
+            speedMultiplier: 1,
+            calculate: async () => {
+                throw new Error("performance service unavailable");
+            },
+        } satisfies IPPCalculator;
+
+        await expect(resolveScorePp({ pp: 321.96 } as APIScore, calculator)).resolves.toEqual({ actual: 321.96 });
+        await expect(resolveScorePp({} as APIScore, calculator)).resolves.toEqual({ actual: undefined });
+        expect(errors).toHaveLength(2);
     });
 });

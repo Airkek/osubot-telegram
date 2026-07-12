@@ -21,7 +21,7 @@ The project originated as a port of OctoDumb's [osubot-old](https://github.com/O
 
 ## Run with Docker Compose
 
-Docker Compose starts the bot, PostgreSQL and a local Telegram Bot API server.
+Docker Compose starts the bot, the osu! performance server, PostgreSQL and a local Telegram Bot API server.
 
 1. Create a deployment directory and download the Compose file:
 
@@ -72,14 +72,14 @@ npm run build
 npm test
 ```
 
-`npm test` runs the JavaScript tests, worker integration tests and the NUnit calculator tests. They can also be run separately:
+`npm test` runs the JavaScript unit tests and the NUnit performance-server tests. They can also be run separately:
 
 ```bash
 npm run test:js
 npm run test:calculator
 ```
 
-The performance worker and its NUnit project are grouped in [OsuPerformanceWorker.sln](tools/osu-performance-worker/OsuPerformanceWorker.sln).
+The independently deployable gRPC performance service, its versioned contract and NUnit project are grouped under [`performance-server/`](performance-server/) and [OsuPerformanceServer.sln](performance-server/OsuPerformanceServer.sln). It owns the on-disk `.osu` cache; the bot only keeps beatmap metadata.
 
 ## License
 

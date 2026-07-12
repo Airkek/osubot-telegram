@@ -1,10 +1,9 @@
 import { BotIdentity, CommandEvent, EventContext } from "../../core/ApplicationStorage";
 import { SqlExecutor } from "../SqlExecutor";
-import fs from "fs/promises";
 import { Platform } from "../../core/Identity";
 
 type RenderEvents = "render_start" | "render_success" | "render_failed";
-type Metrics = "user_count" | "chat_count" | "cached_beatmap_files_count" | "cached_beatmap_metadata_count";
+type Metrics = "user_count" | "chat_count" | "cached_beatmap_metadata_count";
 type RawEvents = "new_message";
 
 interface Counter {
@@ -58,17 +57,6 @@ export class StatisticsModel {
             return;
         }
         await this.logMetric("cached_beatmap_metadata_count", result.count);
-    }
-
-    public async logBeatmapFilesCount() {
-        const folderPath = "./beatmap_cache";
-        try {
-            const files = await fs.readdir(folderPath);
-            const count = files.length;
-            await this.logMetric("cached_beatmap_files_count", count);
-        } catch {
-            // ignore
-        }
     }
 
     private async logMetric(metric: Metrics, value: number, force: boolean = true) {

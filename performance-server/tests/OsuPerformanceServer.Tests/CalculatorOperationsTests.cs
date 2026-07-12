@@ -7,24 +7,51 @@ using osu.Game.Rulesets.Mods;
 using osu.Game.Rulesets.Scoring;
 using osu.Game.Scoring;
 
-namespace OsuPerformanceWorker.Tests;
+namespace OsuPerformanceServer.Tests;
 
 [TestFixture]
 [NonParallelizable]
 public sealed class CalculatorOperationsTests
 {
-    private BuiltInRulesetStore rulesetStore = null!;
-
-    [OneTimeSetUp]
-    public void InitialiseDecoders()
+    [Test]
+    public void LazerDifficultyAppliesClockRateAndDifficultyAdjust()
     {
-        rulesetStore = new BuiltInRulesetStore();
-        Decoder.RegisterDependencies(rulesetStore);
-        LegacyDifficultyCalculatorBeatmapDecoder.Register();
-    }
+        BeatmapResult result = CalculatorOperations.CalculateBeatmap(
+            BeatmapPath,
+            0,
+            [
+                new ApiModInput
+                {
+                    Acronym = "HD",
+                    Settings = new Dictionary<string, object> { ["only_fade_approach_circles"] = true }
+                },
+                new ApiModInput
+                {
+                    Acronym = "DT",
+                    Settings = new Dictionary<string, object> { ["speed_change"] = 1.35 }
+                },
+                new ApiModInput
+                {
+                    Acronym = "DA",
+                    Settings = new Dictionary<string, object>
+                    {
+                        ["circle_size"] = 6.5,
+                        ["approach_rate"] = 9.3,
+                        ["overall_difficulty"] = 8.7,
+                        ["drain_rate"] = 4.2
+                    }
+                }
+            ]);
 
-    [OneTimeTearDown]
-    public void DisposeRulesets() => rulesetStore.Dispose();
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.MaxCombo, Is.EqualTo(4));
+            Assert.That(Math.Round(result.CircleSize, 2), Is.EqualTo(6.5));
+            Assert.That(Math.Round(result.ApproachRate, 2), Is.EqualTo(10.26));
+            Assert.That(Math.Round(result.OverallDifficulty, 2), Is.EqualTo(9.9));
+            Assert.That(Math.Round(result.ClockRate, 2), Is.EqualTo(1.35));
+        });
+    }
 
     [Test]
     public void LegacyMigrationDerivesLegacyMaximumStatistics()

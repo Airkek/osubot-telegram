@@ -6,13 +6,18 @@ using osu.Game.Rulesets.Scoring;
 using osu.Game.Scoring;
 using osu.Game.Scoring.Legacy;
 
-namespace OsuPerformanceWorker;
+namespace OsuPerformanceServer;
 
 internal static class ReplayOperations
 {
-    public static ReplayHeaderResult ReadHeader(string replayPath)
+    public static ReplayHeaderResult ReadHeader(ReadOnlyMemory<byte> replay)
     {
-        using var stream = File.OpenRead(replayPath);
+        using var stream = new MemoryStream(replay.ToArray(), false);
+        return ReadHeader(stream);
+    }
+
+    private static ReplayHeaderResult ReadHeader(Stream stream)
+    {
         using var reader = new SerializationReader(stream);
         int mode = reader.ReadByte();
         int version = reader.ReadInt32();
@@ -26,14 +31,13 @@ internal static class ReplayOperations
         };
     }
 
-    public static ReplayResult Decode(string replayPath, string beatmapPath)
+    public static ReplayResult Decode(ReadOnlyMemory<byte> replay, WorkingBeatmap workingBeatmap)
     {
-        var header = ReadHeader(replayPath);
-        var workingBeatmap = new FileWorkingBeatmap(beatmapPath);
+        var header = ReadHeader(replay);
         var decoder = new FileScoreDecoder(workingBeatmap);
 
         Score score;
-        using (var stream = File.OpenRead(replayPath))
+        using (var stream = new MemoryStream(replay.ToArray(), false))
             score = decoder.Parse(stream);
 
         ScoreInfo info = score.ScoreInfo;
@@ -54,7 +58,15 @@ internal static class ReplayOperations
             Perfect = info.MaxCombo >= maximumCombo,
             Accuracy = info.Accuracy,
             Date = info.Date,
-            Mods = info.Mods.Select(mod => (object)new APIMod(mod)).ToArray(),
+            Mods = info.Mods.Select(mod =>
+            {
+                var apiMod = new APIMod(mod);
+                return new ApiModInput
+                {
+                    Acronym = apiMod.Acronym,
+                    Settings = apiMod.Settings
+                };
+            }).ToArray(),
             Legacy = info.IsLegacyScore,
             FrameCount = score.Replay.Frames.Count
         };

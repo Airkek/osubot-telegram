@@ -6,7 +6,7 @@ using osu.Game.Rulesets.Mods;
 using osu.Game.Rulesets.Osu;
 using osu.Game.Rulesets.Taiko;
 
-namespace OsuPerformanceWorker;
+namespace OsuPerformanceServer;
 
 internal static class RulesetHelper
 {

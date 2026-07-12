@@ -1,0 +1,35 @@
+name: "Build and run performance tests"
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "performance-server/**"
+      - ".github/workflows/build_and_run_performance_tests.yml"
+  pull_request:
+    branches: [master]
+    paths:
+      - "performance-server/**"
+      - ".github/workflows/build_and_run_performance_tests.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-performance-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build_and_test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Build and run NUnit tests
+        run: dotnet test performance-server/OsuPerformanceServer.sln --configuration Release

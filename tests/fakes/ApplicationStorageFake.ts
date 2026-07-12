@@ -93,7 +93,6 @@ const telemetry = (): TelemetrySink => ({
     logUserCount: async () => {},
     logChatCount: async () => {},
     logBeatmapMetadataCacheCount: async () => {},
-    logBeatmapFilesCount: async () => {},
     logRenderStart: async () => {},
     logRenderSuccess: async () => {},
     logRenderFailed: async () => {},

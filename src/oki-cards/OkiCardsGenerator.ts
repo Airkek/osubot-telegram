@@ -14,7 +14,7 @@ import Mods from "../osu_specific/pp/Mods";
 import { BeatLeaderBeatmap } from "../beatmaps/beatsaber/BeatLeaderBeatmap";
 import { ScoreSaberBeatmap } from "../beatmaps/beatsaber/ScoreSaberBeatmap";
 import { downloadRemoteImage } from "../RemoteImage";
-import { shouldDisplayPpEstimate } from "../osu_specific/pp/PPDisplay";
+import { resolveScorePp, shouldDisplayPpEstimate } from "../osu_specific/pp/PPDisplay";
 
 type CountryCodes = {
     [key: string]: string;
@@ -896,10 +896,7 @@ export class OkiCardsGenerator {
                 ? ((score.counts.totalHits() / beatmap.hitObjectsCount) * 100).toFixed(1) + "%"
                 : undefined;
 
-        const pp = score.fcPp
-            ? { pp: score.pp, fc: score.fcPp, ss: undefined }
-            : await new BanchoPP(beatmap, score.mods).calculate(score);
-        const actualPp = score.pp ?? pp.pp;
+        const pp = await resolveScorePp(score, new BanchoPP(beatmap, score.mods));
 
         const rows = [
             [
@@ -911,9 +908,13 @@ export class OkiCardsGenerator {
                     text: l.tr("score-combo"),
                     value: Util.formatCombo(score.combo, beatmap.maxCombo),
                 },
-                { text: "PP", value: actualPp.toFixed(2) },
-                ...(shouldDisplayPpEstimate(actualPp, pp.pp, pp.fc) ? [{ text: "FC", value: pp.fc.toFixed(2) }] : []),
-                ...(shouldDisplayPpEstimate(actualPp, pp.pp, pp.ss) ? [{ text: "SS", value: pp.ss.toFixed(2) }] : []),
+                ...(pp.actual !== undefined ? [{ text: "PP", value: pp.actual.toFixed(2) }] : []),
+                ...(shouldDisplayPpEstimate(pp.actual, pp.calculated, pp.fc)
+                    ? [{ text: "FC", value: pp.fc!.toFixed(2) }]
+                    : []),
+                ...(shouldDisplayPpEstimate(pp.actual, pp.calculated, pp.ss)
+                    ? [{ text: "SS", value: pp.ss!.toFixed(2) }]
+                    : []),
             ],
             [
                 ...score.counts.getCountNames(l).map((c) => {
@@ -1107,57 +1108,52 @@ export class OkiCardsGenerator {
             ctx.fillStyle = "rgb(163, 143, 152)";
             ctx.fillText(Util.formatDate(score.date), 120 + diffnameSize.width + 20, diffpos);
 
-            // pp block
-            ctx.fillStyle = "#46393f";
-            OkiFormat.rect(ctx, 1030, startpos, 125, 52, 10); // adjust the size and radius as needed
-            ctx.fill();
+            const pp = await resolveScorePp(score, new BanchoPP(beatmap, score.mods));
+            if (pp.actual !== undefined) {
+                ctx.fillStyle = "#46393f";
+                OkiFormat.rect(ctx, 1030, startpos, 125, 52, 10);
+                ctx.fill();
 
-            // PP
-            // TODO: remove this dirty hack, calculate pp outside cards generator
-            const pp = score.fcPp
-                ? { pp: score.pp, fc: score.fcPp, ss: undefined }
-                : await new BanchoPP(beatmap, score.mods).calculate(score);
-            const actualPp = score.pp ?? pp.pp;
-
-            let ppx = 1040;
-            let ppy = startpos + 20;
-            const isFc = !shouldDisplayPpEstimate(actualPp, pp.pp, pp.fc);
-            if (isFc) {
-                ppx += 10;
-                ppy += 15;
-            }
-
-            ctx.textAlign = "left";
-            ctx.font = "bold 20px Torus";
-            ctx.fillStyle = "#FF66AB";
-            const realPpText = Util.round(actualPp, 2).toString();
-            ctx.fillText(realPpText, ppx, ppy);
-            const realPpWidth = ctx.measureText(realPpText).width;
-
-            ctx.textAlign = "left";
-            ctx.font = "bold 14px Torus";
-            ctx.fillStyle = "#D194AF";
-            ctx.fillText("pp", ppx + realPpWidth + 2, ppy);
-
-            if (!isFc) {
-                ctx.textAlign = "left";
-                ctx.font = "italic 20px Torus";
-                ctx.fillStyle = "#D194AF";
-                const fcPpDelimiterText = "/ ";
-                ctx.fillText(fcPpDelimiterText, ppx + 10, ppy + 25);
-                const fcPpDelimiterWidth = ctx.measureText(fcPpDelimiterText).width;
+                let ppx = 1040;
+                let ppy = startpos + 20;
+                const fcPp = shouldDisplayPpEstimate(pp.actual, pp.calculated, pp.fc) ? pp.fc : undefined;
+                if (fcPp === undefined) {
+                    ppx += 10;
+                    ppy += 15;
+                }
 
                 ctx.textAlign = "left";
-                ctx.font = "italic 20px Torus";
+                ctx.font = "bold 20px Torus";
                 ctx.fillStyle = "#FF66AB";
-                const fcPpText = Util.round(pp.fc, 2).toString();
-                ctx.fillText(fcPpText, ppx + 10 + fcPpDelimiterWidth, ppy + 25);
-                const fcPpTextWidth = ctx.measureText(fcPpText).width;
+                const realPpText = Util.round(pp.actual, 2).toString();
+                ctx.fillText(realPpText, ppx, ppy);
+                const realPpWidth = ctx.measureText(realPpText).width;
 
                 ctx.textAlign = "left";
-                ctx.font = "italic 14px Torus";
+                ctx.font = "bold 14px Torus";
                 ctx.fillStyle = "#D194AF";
-                ctx.fillText("pp", ppx + fcPpTextWidth + fcPpDelimiterWidth + 12, ppy + 25);
+                ctx.fillText("pp", ppx + realPpWidth + 2, ppy);
+
+                if (fcPp !== undefined) {
+                    ctx.textAlign = "left";
+                    ctx.font = "italic 20px Torus";
+                    ctx.fillStyle = "#D194AF";
+                    const fcPpDelimiterText = "/ ";
+                    ctx.fillText(fcPpDelimiterText, ppx + 10, ppy + 25);
+                    const fcPpDelimiterWidth = ctx.measureText(fcPpDelimiterText).width;
+
+                    ctx.textAlign = "left";
+                    ctx.font = "italic 20px Torus";
+                    ctx.fillStyle = "#FF66AB";
+                    const fcPpText = Util.round(fcPp, 2).toString();
+                    ctx.fillText(fcPpText, ppx + 10 + fcPpDelimiterWidth, ppy + 25);
+                    const fcPpTextWidth = ctx.measureText(fcPpText).width;
+
+                    ctx.textAlign = "left";
+                    ctx.font = "italic 14px Torus";
+                    ctx.fillStyle = "#D194AF";
+                    ctx.fillText("pp", ppx + fcPpTextWidth + fcPpDelimiterWidth + 12, ppy + 25);
+                }
             }
 
             ctx.textAlign = "left";

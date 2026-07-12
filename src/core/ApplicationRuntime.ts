@@ -35,7 +35,7 @@ import { PACKAGE_VERSION } from "../version";
 import { clearInterval, setInterval } from "node:timers";
 import { Command } from "../event_handlers/Command";
 import { ExternalId, Platform } from "./Identity";
-import officialCalculatorClient from "../osu_specific/pp/OfficialCalculatorClient";
+import performanceClient, { PerformanceClient } from "../performance/PerformanceClient";
 
 export interface RuntimeConfig {
     banchoAppId: number;
@@ -60,6 +60,7 @@ export interface RuntimeDependencies {
     track: OsuTrackAPI;
     replyUtils: ReplyUtils;
     sendMessage(recipientId: ExternalId, text: string): Promise<void>;
+    performanceClient?: Pick<PerformanceClient, "health" | "close">;
     moduleFactories?: ModuleFactory[];
     version?: string;
 }
@@ -132,6 +133,7 @@ export class ApplicationRuntime implements BotRuntime {
     private readonly moduleFactories: ModuleFactory[];
     private readonly pendingCallbacks = new Map<string, PendingCallback>();
     private readonly sendPlatformMessage: RuntimeDependencies["sendMessage"];
+    private readonly performanceClient?: RuntimeDependencies["performanceClient"];
     private initializationPromise?: Promise<void>;
     private statsInterval?: NodeJS.Timeout;
     private stopped = false;
@@ -149,6 +151,7 @@ export class ApplicationRuntime implements BotRuntime {
         this.version = dependencies.version ?? PACKAGE_VERSION;
         this.moduleFactories = dependencies.moduleFactories ?? DEFAULT_MODULE_FACTORIES;
         this.sendPlatformMessage = dependencies.sendMessage;
+        this.performanceClient = dependencies.performanceClient;
     }
 
     static create(
@@ -204,6 +207,7 @@ export class ApplicationRuntime implements BotRuntime {
             track: new OsuTrackAPI(),
             replyUtils: new ReplyUtils(cards, Templates, mediaProvider),
             sendMessage: (recipientId, text) => currentPlatform().sendMessage(recipientId, text),
+            performanceClient,
         });
     }
 
@@ -216,6 +220,7 @@ export class ApplicationRuntime implements BotRuntime {
         await this.storage.initialize();
         await this.ignored.init();
         await this.api.bancho.login();
+        await this.performanceClient?.health();
         this.modules.push(...this.moduleFactories.map((factory) => factory(this)));
     }
 
@@ -242,7 +247,7 @@ export class ApplicationRuntime implements BotRuntime {
         }
         this.stopped = true;
         this.stopStatsLogger();
-        officialCalculatorClient.stop();
+        this.performanceClient?.close();
         await this.storage.close();
     }
 
@@ -485,7 +490,6 @@ export class ApplicationRuntime implements BotRuntime {
                 await this.storage.telemetry.logUserCount();
                 await this.storage.telemetry.logChatCount();
                 await this.storage.telemetry.logBeatmapMetadataCacheCount();
-                await this.storage.telemetry.logBeatmapFilesCount();
             });
         }
         global.logger.info("Stats logged");
