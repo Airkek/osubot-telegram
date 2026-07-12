@@ -28,7 +28,7 @@ global.logger = new Logger<ILogObj>();
 let bots: PlatformAdapter[] = [];
 let runtime: ApplicationRuntime;
 const httpServer = new ApplicationHttpServer();
-const localizer = new FluentLocalizer(path.join("./src", "locales"));
+const localizer = new FluentLocalizer(path.join(__dirname, "src", "locales"));
 let stopping = false;
 
 function requiredEnvironmentVariable(name: string): string {

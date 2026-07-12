@@ -3,6 +3,7 @@ import { ControllableFeature } from "./ApplicationStorage";
 import { ChatSettings, UserSettings } from "./Settings";
 import { IKeyboard } from "../Util";
 import { ExternalId, MessageIdentity, Platform } from "./Identity";
+import { ContentOutput } from "./ContentOutput";
 
 export interface ReplyToMessage {
     text: string;
@@ -65,6 +66,8 @@ export interface IMessageContext extends ILocalisator {
     activateLocalisator(): Promise<void>;
     reactivateLocalisator(): Promise<void>;
     checkFeature(feature: ControllableFeature): Promise<boolean>;
+    availableContentOutputs(): Promise<ContentOutput[]>;
+    preferredContentOutput(): Promise<ContentOutput>;
     preferCardsOutput(): Promise<boolean>;
     userSettings(forceUpdate?: boolean): Promise<UserSettings>;
     chatSettings(forceUpdate?: boolean): Promise<ChatSettings>;

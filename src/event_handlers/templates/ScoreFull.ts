@@ -3,6 +3,7 @@ import Util from "../../Util";
 import { IPPCalculator as ICalc } from "../../osu_specific/pp/Calculator";
 import { IBeatmap } from "../../beatmaps/BeatmapTypes";
 import { ILocalisator } from "../../ILocalisator";
+import { shouldDisplayPpEstimate } from "../../osu_specific/pp/PPDisplay";
 
 export default async function (
     l: ILocalisator,
@@ -13,12 +14,13 @@ export default async function (
 ): Promise<string> {
     const pp = score.fcPp ? { pp: score.pp, fc: score.fcPp, ss: undefined } : await calc.calculate(score);
 
-    let ppString = `PP: ${score.pp ? score.pp.toFixed(2) : pp.pp.toFixed(2)}`;
-    if (pp.fc !== undefined && pp.fc !== pp.pp) {
+    const actualPp = score.pp ?? pp.pp;
+    let ppString = `PP: ${actualPp.toFixed(2)}`;
+    if (shouldDisplayPpEstimate(actualPp, pp.pp, pp.fc)) {
         ppString += ` → FC: ${pp.fc.toFixed(2)}`;
     }
 
-    if (pp.ss !== undefined && pp.ss !== pp.pp) {
+    if (shouldDisplayPpEstimate(actualPp, pp.pp, pp.ss)) {
         ppString += ` → SS: ${pp.ss.toFixed(2)}`;
     }
 

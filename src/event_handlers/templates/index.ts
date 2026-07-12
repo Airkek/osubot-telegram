@@ -13,7 +13,14 @@ import { ILocalisator } from "../../ILocalisator";
 
 interface ITemplates {
     User: (l: ILocalisator, user: APIUser, link: string) => string;
-    TopScore: (l: ILocalisator, score: APIScore, beatmap: IBeatmap, place: number, calc: ICalc, link: string) => string;
+    TopScore: (
+        l: ILocalisator,
+        score: APIScore,
+        beatmap: IBeatmap,
+        place: number,
+        calc: ICalc,
+        link: string
+    ) => Promise<string>;
     ScoreFull: (l: ILocalisator, score: APIScore, beatmap: IBeatmap, calc: ICalc, link: string) => Promise<string>;
     Beatmap: (l: ILocalisator, map: IBeatmap) => Promise<string>;
     PP: (l: ILocalisator, map: IBeatmap, args: PPArgs) => Promise<string>;

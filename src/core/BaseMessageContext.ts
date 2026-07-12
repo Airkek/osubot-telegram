@@ -6,6 +6,14 @@ import { ApplicationStorage, ControllableFeature } from "./ApplicationStorage";
 import { ExternalId, MessageIdentity, Platform } from "./Identity";
 import { IMessageContext, ReplyToMessage, SendOptions, TextLinkEntity } from "./MessageContext";
 import { ChatSettings, Language, UserSettings } from "./Settings";
+import {
+    ContentOutput,
+    getContentOutputByPayloadCode,
+    getContentOutputDefinition,
+    getDefaultContentOutput,
+    getSupportedContentOutputs,
+    isContentOutputSupported,
+} from "./ContentOutput";
 
 export type MessageContextStorage = Pick<
     ApplicationStorage,
@@ -52,7 +60,7 @@ export abstract class BaseMessageContext implements IMessageContext {
     private readonly ownerId: ExternalId;
     private overriddenText?: string;
     private overriddenPayload?: string;
-    private graphicalModeOverride: "no" | "cards" | "plain" = "no";
+    private contentOutputOverride?: ContentOutput;
     private userSettingsCache?: UserSettings;
     private chatSettingsCache?: ChatSettings;
     private localisatorActivated = false;
@@ -151,14 +159,35 @@ export abstract class BaseMessageContext implements IMessageContext {
         return await this.storage.featureFlags.isFeatureEnabled(feature);
     }
 
+    async availableContentOutputs(): Promise<ContentOutput[]> {
+        const available: ContentOutput[] = [];
+        for (const output of getSupportedContentOutputs(this.platform)) {
+            const requiredFeature = getContentOutputDefinition(output).requiredFeature;
+            if (!requiredFeature || (await this.checkFeature(requiredFeature))) {
+                available.push(output);
+            }
+        }
+
+        return available;
+    }
+
+    async preferredContentOutput(): Promise<ContentOutput> {
+        const available = await this.availableContentOutputs();
+        if (available.length === 1) {
+            return available[0];
+        }
+
+        const configured = this.contentOutputOverride ?? (await this.userSettings())?.content_output;
+        if (available.includes(configured)) {
+            return configured;
+        }
+
+        const platformDefault = getDefaultContentOutput(this.platform);
+        return available.includes(platformDefault) ? platformDefault : (available[0] ?? platformDefault);
+    }
+
     async preferCardsOutput(): Promise<boolean> {
-        if (!(await this.checkFeature("oki-cards"))) {
-            return false;
-        }
-        if (this.graphicalModeOverride !== "no") {
-            return this.graphicalModeOverride === "cards";
-        }
-        return (await this.userSettings()).content_output === "oki-cards";
+        return (await this.preferredContentOutput()) === "oki-cards";
     }
 
     async userSettings(forceUpdate: boolean = false): Promise<UserSettings> {
@@ -244,9 +273,10 @@ export abstract class BaseMessageContext implements IMessageContext {
 
     protected async prepareButtonPayload(command: string): Promise<string> {
         await this.selectLanguage();
-        const graphicalMode = (await this.preferCardsOutput()) ? "g2" : "g1";
+        const contentOutput = await this.preferredContentOutput();
+        const outputCode = getContentOutputDefinition(contentOutput).payloadCode;
         const language = this.language ?? "en";
-        return `^${graphicalMode}^l${language}^${command}`;
+        return `^${outputCode}^l${language}^${command}`;
     }
 
     protected async getExternalUserId(accountId: number): Promise<number | undefined> {
@@ -281,10 +311,9 @@ export abstract class BaseMessageContext implements IMessageContext {
         let argsEnded = false;
         for (const part of payloadParts) {
             if (!argsEnded) {
-                if (part === "g1") {
-                    this.graphicalModeOverride = "plain";
-                } else if (part === "g2") {
-                    this.graphicalModeOverride = "cards";
+                const contentOutput = getContentOutputByPayloadCode(part);
+                if (contentOutput && isContentOutputSupported(this.platform, contentOutput)) {
+                    this.contentOutputOverride = contentOutput;
                 } else if (part === "lru" || part === "len" || part === "lzh") {
                     this.payloadLanguage = part.slice(1) as Language;
                 } else {

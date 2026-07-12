@@ -95,12 +95,13 @@ export class ReplyUtils {
             }
             templateAddition = "\n\n" + l.tr("card-gen-failed");
         }
-        const response = maps
-            .map((map, i) => {
+        const responses = await Promise.all(
+            maps.map((map, i) => {
                 const calc = new BanchoPP(map, scores[i].mods);
                 return this.templates.TopScore(l, scores[i], map, startNum + i, calc, serverBase);
             })
-            .join("\n");
+        );
+        const response = responses.join("\n");
         const message =
             `${l.tr("players-top-scores", {
                 player_name: user.nickname,

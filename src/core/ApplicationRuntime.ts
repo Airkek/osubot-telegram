@@ -35,6 +35,7 @@ import { PACKAGE_VERSION } from "../version";
 import { clearInterval, setInterval } from "node:timers";
 import { Command } from "../event_handlers/Command";
 import { ExternalId, Platform } from "./Identity";
+import officialCalculatorClient from "../osu_specific/pp/OfficialCalculatorClient";
 
 export interface RuntimeConfig {
     banchoAppId: number;
@@ -241,6 +242,7 @@ export class ApplicationRuntime implements BotRuntime {
         }
         this.stopped = true;
         this.stopStatsLogger();
+        officialCalculatorClient.stop();
         await this.storage.close();
     }
 

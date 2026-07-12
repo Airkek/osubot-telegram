@@ -1,10 +1,14 @@
+import { ContentOutput } from "./ContentOutput";
+import { Platform } from "./Identity";
+
 export type Language = "ru" | "en" | "zh";
 export type LanguageOverride = Language | "do_not_override";
-export type ContentOutput = "oki-cards" | "legacy-text";
+export type { ContentOutput } from "./ContentOutput";
 
 export interface UserSettings {
     user_id: number;
     account_id: number;
+    platform: Platform;
     render_enabled: boolean;
     notifications_enabled: boolean;
     enable_find: boolean;

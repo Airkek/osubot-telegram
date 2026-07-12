@@ -5,6 +5,7 @@ import { IMessageContext } from "../../../core/MessageContext";
 import { OrdrSkinsProvider } from "../../../osu_specific/replay_render/OrdrSkinsProvider";
 import { ILocalisator } from "../../../ILocalisator";
 import { ChatSettings, UserSettings } from "../../../core/Settings";
+import { getContentOutputDefinition, isContentOutputSupported } from "../../../core/ContentOutput";
 
 type SettingsPageWithPageControl = "skin_sel";
 type SettingsPage = "home" | "render" | "render_advanced" | "language" | "output_type" | SettingsPageWithPageControl;
@@ -36,6 +37,7 @@ type ToggleableChatSettingsKey =
     | "lang_auto";
 
 type GenericSettingsKey =
+    | "content_output"
     | "ordr_skin"
     | "ordr_bgdim"
     | "ordr_master_volume"
@@ -266,28 +268,19 @@ function buildUserLanguagePage(settings: UserSettings, l: ILocalisator): IKeyboa
     ]);
 }
 
-function buildOutputTypePage(settings: UserSettings, l: ILocalisator): IKeyboard {
+async function buildOutputTypePage(settings: UserSettings, ctx: IMessageContext): Promise<IKeyboard> {
     const page: SettingsPage = "output_type";
-    return buildLeveledPageKeyboard(settings.account_id, "home", l, [
-        [
-            toggleableButton(
-                settings.account_id,
-                page,
-                l.tr("output-style-oki-cards"),
-                "output_oki_cards",
-                settings.content_output == "oki-cards"
-            ),
-        ],
-        [
-            toggleableButton(
-                settings.account_id,
-                page,
-                l.tr("output-style-text"),
-                "output_text",
-                settings.content_output == "legacy-text"
-            ),
-        ],
-    ]);
+    const modes = await ctx.availableContentOutputs();
+    const rows = modes.map((mode): IKeyboardRow => {
+        const definition = getContentOutputDefinition(mode);
+        return [
+            {
+                text: `${bToS(settings.content_output === mode)}${ctx.tr(definition.labelKey)}`,
+                command: buildSetEvent(settings.account_id, page, "content_output", mode),
+            },
+        ];
+    });
+    return buildLeveledPageKeyboard(settings.account_id, "home", ctx, rows);
 }
 
 function buildChatLanguagePage(settings: ChatSettings, l: ILocalisator): IKeyboard {
@@ -515,9 +508,9 @@ export default class SettingsCommand extends Command {
                     });
                 } else {
                     const stgs = await ctx.userSettings();
-                    const cardsEnabled = await ctx.checkFeature("oki-cards");
+                    const outputModes = await ctx.availableContentOutputs();
                     await ctx.reply(ctx.tr("user-settings-header"), {
-                        keyboard: buildStartKeyboard(ctx.senderId, stgs, cardsEnabled, ctx),
+                        keyboard: buildStartKeyboard(ctx.senderId, stgs, outputModes.length > 1, ctx),
                     });
                 }
 
@@ -638,8 +631,8 @@ export default class SettingsCommand extends Command {
                 let answer: IKeyboard = undefined;
                 switch (page) {
                     case "home": {
-                        const cardsEnabled = await customCtx.checkFeature("oki-cards");
-                        answer = buildStartKeyboard(settings.account_id, settings, cardsEnabled, customCtx);
+                        const outputModes = await customCtx.availableContentOutputs();
+                        answer = buildStartKeyboard(settings.account_id, settings, outputModes.length > 1, customCtx);
                         break;
                     }
                     case "render": {
@@ -655,7 +648,7 @@ export default class SettingsCommand extends Command {
                         break;
                     }
                     case "output_type": {
-                        answer = buildOutputTypePage(settings, customCtx);
+                        answer = await buildOutputTypePage(settings, customCtx);
                         break;
                     }
                     case "skin_sel": {
@@ -712,12 +705,16 @@ export default class SettingsCommand extends Command {
                             allowUpdate = value;
                             break;
                         case "output_oki_cards":
-                            settings.content_output = "oki-cards";
-                            allowUpdate = value;
+                            if ((await ctx.availableContentOutputs()).includes("oki-cards")) {
+                                settings.content_output = "oki-cards";
+                                allowUpdate = value;
+                            }
                             break;
                         case "output_text":
-                            settings.content_output = "legacy-text";
-                            allowUpdate = value;
+                            if ((await ctx.availableContentOutputs()).includes("legacy-text")) {
+                                settings.content_output = "legacy-text";
+                                allowUpdate = value;
+                            }
                             break;
                     }
                     if (allowUpdate) {
@@ -734,6 +731,17 @@ export default class SettingsCommand extends Command {
                     let allowUpdate = false;
                     let pageNum = undefined as number;
                     switch (key) {
+                        case "content_output": {
+                            const output = eventParams[4];
+                            if (
+                                isContentOutputSupported(ctx.platform, output) &&
+                                (await ctx.availableContentOutputs()).includes(output)
+                            ) {
+                                settings.content_output = output;
+                                allowUpdate = true;
+                            }
+                            break;
+                        }
                         case "page_number": {
                             const cancelAction = ctx.tr("cancel-action");
                             const msg = ctx.tr("select-page-action", {

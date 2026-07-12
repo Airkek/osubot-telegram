@@ -16,6 +16,12 @@ internal sealed class FileWorkingBeatmap : WorkingBeatmap
     {
     }
 
+    public static FileWorkingBeatmap FromText(string content)
+    {
+        using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(content), false);
+        return new FileWorkingBeatmap(ReadFromStream(stream));
+    }
+
     private FileWorkingBeatmap(Beatmap beatmap)
         : base(beatmap.BeatmapInfo, null)
     {
@@ -26,6 +32,11 @@ internal sealed class FileWorkingBeatmap : WorkingBeatmap
     private static Beatmap ReadFromFile(string filename)
     {
         using var stream = File.OpenRead(filename);
+        return ReadFromStream(stream);
+    }
+
+    private static Beatmap ReadFromStream(Stream stream)
+    {
         using var reader = new LineBufferedReader(stream);
         return Decoder.GetDecoder<Beatmap>(reader).Decode(reader);
     }

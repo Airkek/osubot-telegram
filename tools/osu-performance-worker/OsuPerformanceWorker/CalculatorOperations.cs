@@ -14,8 +14,10 @@ namespace OsuPerformanceWorker;
 internal static class CalculatorOperations
 {
     public static BeatmapResult CalculateBeatmap(string beatmapPath, int mode, ApiModInput[] modInputs)
+        => CalculateBeatmap(new FileWorkingBeatmap(beatmapPath), mode, modInputs);
+
+    internal static BeatmapResult CalculateBeatmap(WorkingBeatmap workingBeatmap, int mode, ApiModInput[] modInputs)
     {
-        var workingBeatmap = new FileWorkingBeatmap(beatmapPath);
         var ruleset = RulesetHelper.FromLegacyId(mode);
         Mod[] mods = RulesetHelper.ParseMods(ruleset, modInputs);
         var playableBeatmap = workingBeatmap.GetPlayableBeatmap(ruleset.RulesetInfo, mods);
@@ -28,8 +30,14 @@ internal static class CalculatorOperations
         int mode,
         ApiModInput[] modInputs,
         ScoreInput input)
+        => CalculatePerformance(new FileWorkingBeatmap(beatmapPath), mode, modInputs, input);
+
+    internal static PerformanceResult CalculatePerformance(
+        WorkingBeatmap workingBeatmap,
+        int mode,
+        ApiModInput[] modInputs,
+        ScoreInput input)
     {
-        var workingBeatmap = new FileWorkingBeatmap(beatmapPath);
         var ruleset = RulesetHelper.FromLegacyId(mode);
         Mod[] mods = RulesetHelper.ParseMods(ruleset, modInputs);
         var playableBeatmap = workingBeatmap.GetPlayableBeatmap(ruleset.RulesetInfo, mods);

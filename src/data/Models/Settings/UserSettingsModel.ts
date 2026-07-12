@@ -1,4 +1,5 @@
 import { UserSettings } from "../../../core/Settings";
+import { getDefaultContentOutput, isContentOutputSupported } from "../../../core/ContentOutput";
 import { SqlExecutor } from "../../SqlExecutor";
 
 export { UserSettings } from "../../../core/Settings";
@@ -59,11 +60,12 @@ export class UserSettingsModel {
         return this.db.get<UserSettings>(
             `SELECT settings.app_user_id AS user_id,
                     $2::BIGINT AS account_id,
+                    account.platform,
                     settings.render_enabled,
                     COALESCE(account_settings.notifications_enabled, true) AS notifications_enabled,
-                    settings.enable_find,
+                    COALESCE(account_settings.enable_find, true) AS enable_find,
                     COALESCE(account_settings.language_override, 'do_not_override') AS language_override,
-                    settings.content_output,
+                    account_settings.content_output,
                     settings.ordr_skin,
                     settings.ordr_video,
                     settings.ordr_storyboard,
@@ -106,12 +108,18 @@ export class UserSettingsModel {
             ...res,
             user_id: Number(res.user_id),
             account_id: Number(res.account_id),
+            content_output: isContentOutputSupported(res.platform, res.content_output)
+                ? res.content_output
+                : getDefaultContentOutput(res.platform),
         };
         this.setCache(userId, accountId, settings);
         return settings;
     }
 
     async updateSettings(settings: UserSettings): Promise<void> {
+        const contentOutput = isContentOutputSupported(settings.platform, settings.content_output)
+            ? settings.content_output
+            : getDefaultContentOutput(settings.platform);
         await this.db.run(
             `UPDATE settings
              SET render_enabled        = $1,
@@ -127,10 +135,8 @@ export class UserSettingsModel {
                  ordr_master_volume    = $11,
                  ordr_music_volume     = $12,
                  ordr_effects_volume   = $13,
-                 experimental_renderer = $14,
-                 content_output        = $15,
-                 enable_find           = $16
-             WHERE app_user_id = $17`,
+                 experimental_renderer = $14
+             WHERE app_user_id = $15`,
             [
                 settings.render_enabled,
                 settings.ordr_skin,
@@ -146,21 +152,27 @@ export class UserSettingsModel {
                 settings.ordr_music_volume,
                 settings.ordr_effects_volume,
                 settings.experimental_renderer,
-                settings.content_output,
-                settings.enable_find,
                 settings.user_id,
             ]
         );
         await this.db.run(
             `INSERT INTO platform_account_settings
-                 (platform_account_id, notifications_enabled, language_override)
-             VALUES ($1, $2, $3)
+                 (platform_account_id, notifications_enabled, language_override, content_output, enable_find)
+             VALUES ($1, $2, $3, $4, $5)
              ON CONFLICT (platform_account_id) DO UPDATE
              SET notifications_enabled = EXCLUDED.notifications_enabled,
-                 language_override = EXCLUDED.language_override`,
-            [settings.account_id, settings.notifications_enabled, settings.language_override]
+                 language_override = EXCLUDED.language_override,
+                 content_output = EXCLUDED.content_output,
+                 enable_find = EXCLUDED.enable_find`,
+            [
+                settings.account_id,
+                settings.notifications_enabled,
+                settings.language_override,
+                contentOutput,
+                settings.enable_find,
+            ]
         );
         this.invalidateUser(settings.user_id);
-        this.setCache(settings.user_id, settings.account_id, settings);
+        this.setCache(settings.user_id, settings.account_id, { ...settings, content_output: contentOutput });
     }
 }

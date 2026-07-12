@@ -4,6 +4,7 @@ import { IKBButton, IKeyboard, makeKeyboard } from "../../../Util";
 import { ILocalisator } from "../../../ILocalisator";
 import { IMessageContext } from "../../../core/MessageContext";
 import { ONBOARDING_VERSION, OnboardingRepository } from "../../../core/ApplicationStorage";
+import { ContentOutput, getContentOutputDefinition, isContentOutputSupported } from "../../../core/ContentOutput";
 
 type LanguageStep = "language";
 type OutputStyleStep = "output-style";
@@ -18,7 +19,7 @@ interface StepInfo {
     next?: OnboardingSteps;
     previous?: OnboardingSteps;
 
-    build(userId: number, l: ILocalisator): StepData;
+    build(userId: number, ctx: IMessageContext): StepData | Promise<StepData>;
     postprocess?(userId: number, onboardingModel: OnboardingRepository): Promise<void>;
 }
 
@@ -105,7 +106,7 @@ function stepLang(userId: number, l: ILocalisator): StepData {
     };
 }
 
-type StyleParams = "oki-cards" | "legacy-text";
+type StyleParams = ContentOutput;
 
 function buildOutputStyleButton(userId: number, step: OutputStyleStep, text: string, param: StyleParams) {
     const action: Actions = "set";
@@ -117,15 +118,17 @@ function buildOutputStyleButton(userId: number, step: OutputStyleStep, text: str
     };
 }
 
-function stepOutputStyle(userId: number, l: ILocalisator): StepData {
+async function stepOutputStyle(userId: number, ctx: IMessageContext): Promise<StepData> {
     const currentStep: OutputStyleStep = "output-style";
+    const modes = await ctx.availableContentOutputs();
     return {
         step: currentStep,
-        text: l.tr("onboarding-text-step-output-style"),
-        buttons: [
-            [buildOutputStyleButton(userId, currentStep, l.tr("output-style-oki-cards"), "oki-cards")],
-            [buildOutputStyleButton(userId, currentStep, l.tr("output-style-text"), "legacy-text")],
-        ],
+        text: ctx.tr("onboarding-text-step-output-style"),
+        buttons: makeKeyboard(
+            modes.map((mode) => [
+                buildOutputStyleButton(userId, currentStep, ctx.tr(getContentOutputDefinition(mode).labelKey), mode),
+            ])
+        ),
     };
 }
 
@@ -273,15 +276,11 @@ export default class OnboardingCommand extends Command {
     }
 
     async applyOutputStyleSet(step: OutputStyleStep, value: StyleParams, ctx: IMessageContext) {
-        const settings = await ctx.userSettings();
-        switch (value) {
-            case "oki-cards":
-                settings.content_output = "oki-cards";
-                break;
-            case "legacy-text":
-                settings.content_output = "legacy-text";
-                break;
+        if (!isContentOutputSupported(ctx.platform, value) || !(await ctx.availableContentOutputs()).includes(value)) {
+            return;
         }
+        const settings = await ctx.userSettings();
+        settings.content_output = value;
         await ctx.updateUserSettings(settings);
     }
 
@@ -312,7 +311,7 @@ export default class OnboardingCommand extends Command {
             return;
         }
 
-        const stepData = info.build(ctx.senderId, l);
+        const stepData = await info.build(ctx.senderId, ctx);
         const realKeyboard = makeKeyboard([...stepData.buttons, ...buildFlowButtons(ctx.senderId, stepData.step, l)]);
         if (ctx.messagePayload) {
             await ctx.edit(stepData.text, {

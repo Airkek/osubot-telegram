@@ -881,6 +881,54 @@ const migrations: IMigration[] = [
             return true;
         },
     },
+    {
+        version: 36,
+        name: "Scope platform-specific user preferences by account",
+        process: async (db) => {
+            await db.run(`ALTER TABLE platform_account_settings
+                          ADD COLUMN content_output TEXT,
+                          ADD COLUMN enable_find BOOLEAN`);
+            await db.run(`UPDATE platform_account_settings AS account_settings
+                          SET content_output = CASE
+                                                   WHEN account.platform = 'telegram'
+                                                       THEN COALESCE(shared.content_output, 'oki-cards')
+                                                   ELSE 'legacy-text'
+                              END,
+                              enable_find = COALESCE(shared.enable_find, true)
+                          FROM platform_accounts AS account
+                          LEFT JOIN settings AS shared
+                            ON shared.app_user_id = account.user_id
+                          WHERE account_settings.platform_account_id = account.id`);
+            await db.run(`INSERT INTO platform_account_settings
+                              (platform_account_id, notifications_enabled, language_override, content_output, enable_find)
+                          SELECT account.id,
+                                 true,
+                                 'do_not_override',
+                                 CASE
+                                     WHEN account.platform = 'telegram'
+                                         THEN COALESCE(shared.content_output, 'oki-cards')
+                                     ELSE 'legacy-text'
+                                 END,
+                                 COALESCE(shared.enable_find, true)
+                          FROM platform_accounts AS account
+                          LEFT JOIN settings AS shared
+                            ON shared.app_user_id = account.user_id
+                          ON CONFLICT (platform_account_id) DO NOTHING`);
+            await db.run(`UPDATE platform_account_settings
+                          SET content_output = COALESCE(content_output, 'legacy-text'),
+                              enable_find = COALESCE(enable_find, true)
+                          WHERE content_output IS NULL OR enable_find IS NULL`);
+            await db.run(`ALTER TABLE platform_account_settings
+                          ALTER COLUMN content_output SET DEFAULT 'legacy-text',
+                          ALTER COLUMN content_output SET NOT NULL,
+                          ALTER COLUMN enable_find SET DEFAULT true,
+                          ALTER COLUMN enable_find SET NOT NULL`);
+            await db.run(`ALTER TABLE settings
+                          DROP COLUMN content_output,
+                          DROP COLUMN enable_find`);
+            return true;
+        },
+    },
 ];
 
 export async function applyMigrations(db: SqlDatabase) {

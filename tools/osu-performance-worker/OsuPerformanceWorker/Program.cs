@@ -9,7 +9,7 @@ internal static class Program
 {
     private static readonly SemaphoreSlim outputLock = new(1, 1);
 
-    public static async Task Main()
+    public static async Task<int> Main(string[] args)
     {
         CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
         CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.InvariantCulture;
@@ -17,6 +17,19 @@ internal static class Program
         using var rulesetStore = new BuiltInRulesetStore();
         Decoder.RegisterDependencies(rulesetStore);
         LegacyDifficultyCalculatorBeatmapDecoder.Register();
+
+        if (args is ["--self-test"])
+        {
+            WorkerSelfTest.Run();
+            await Console.Out.WriteLineAsync("{\"ok\":true,\"modes\":[0,1,2,3]}");
+            return 0;
+        }
+
+        if (args.Length > 0)
+        {
+            await Console.Error.WriteLineAsync($"Unknown argument '{args[0]}'");
+            return 2;
+        }
 
         int concurrency = Math.Max(1, Environment.ProcessorCount);
         using var limiter = new SemaphoreSlim(concurrency, concurrency);
@@ -43,6 +56,7 @@ internal static class Program
         }
 
         await Task.WhenAll(tasks);
+        return 0;
     }
 
     private static async Task ProcessLine(string line)

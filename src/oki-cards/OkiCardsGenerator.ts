@@ -14,6 +14,7 @@ import Mods from "../osu_specific/pp/Mods";
 import { BeatLeaderBeatmap } from "../beatmaps/beatsaber/BeatLeaderBeatmap";
 import { ScoreSaberBeatmap } from "../beatmaps/beatsaber/ScoreSaberBeatmap";
 import { downloadRemoteImage } from "../RemoteImage";
+import { shouldDisplayPpEstimate } from "../osu_specific/pp/PPDisplay";
 
 type CountryCodes = {
     [key: string]: string;
@@ -25,7 +26,7 @@ export class OkiCardsGenerator {
     private flagsInited: boolean = false;
 
     constructor() {
-        this.assetsDirectory = path.join("./assets", "oki-chan");
+        this.assetsDirectory = path.resolve(__dirname, "..", "..", "assets", "oki-chan");
 
         this.registerFontSync("Torus.ttf", "Torus");
         this.registerFontSync("Mulish.ttf", "Mulish");
@@ -898,6 +899,7 @@ export class OkiCardsGenerator {
         const pp = score.fcPp
             ? { pp: score.pp, fc: score.fcPp, ss: undefined }
             : await new BanchoPP(beatmap, score.mods).calculate(score);
+        const actualPp = score.pp ?? pp.pp;
 
         const rows = [
             [
@@ -909,9 +911,9 @@ export class OkiCardsGenerator {
                     text: l.tr("score-combo"),
                     value: Util.formatCombo(score.combo, beatmap.maxCombo),
                 },
-                { text: "PP", value: pp.pp.toFixed(2) },
-                ...(pp.fc && pp.fc != pp.pp ? [{ text: "FC", value: pp.fc.toFixed(2) }] : []),
-                ...(pp.ss && pp.ss != pp.pp ? [{ text: "SS", value: pp.ss.toFixed(2) }] : []),
+                { text: "PP", value: actualPp.toFixed(2) },
+                ...(shouldDisplayPpEstimate(actualPp, pp.pp, pp.fc) ? [{ text: "FC", value: pp.fc.toFixed(2) }] : []),
+                ...(shouldDisplayPpEstimate(actualPp, pp.pp, pp.ss) ? [{ text: "SS", value: pp.ss.toFixed(2) }] : []),
             ],
             [
                 ...score.counts.getCountNames(l).map((c) => {
@@ -1115,10 +1117,11 @@ export class OkiCardsGenerator {
             const pp = score.fcPp
                 ? { pp: score.pp, fc: score.fcPp, ss: undefined }
                 : await new BanchoPP(beatmap, score.mods).calculate(score);
+            const actualPp = score.pp ?? pp.pp;
 
             let ppx = 1040;
             let ppy = startpos + 20;
-            const isFc = pp.pp == pp.fc;
+            const isFc = !shouldDisplayPpEstimate(actualPp, pp.pp, pp.fc);
             if (isFc) {
                 ppx += 10;
                 ppy += 15;
@@ -1127,7 +1130,7 @@ export class OkiCardsGenerator {
             ctx.textAlign = "left";
             ctx.font = "bold 20px Torus";
             ctx.fillStyle = "#FF66AB";
-            const realPpText = Util.round(score.pp, 2).toString();
+            const realPpText = Util.round(actualPp, 2).toString();
             ctx.fillText(realPpText, ppx, ppy);
             const realPpWidth = ctx.measureText(realPpText).width;
 

@@ -16,6 +16,10 @@ dist
 build
 **/bin
 **/obj
+/tests
+/tools/osu-performance-worker/OsuPerformanceWorker.Tests
+/dump_*.sql.gz
+/README.md
 
 src/version.ts
 
