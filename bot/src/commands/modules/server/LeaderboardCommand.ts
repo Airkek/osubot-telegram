@@ -12,6 +12,7 @@ import { makeKeyboard } from "presentation/keyboard/makeKeyboard";
 
 const PAGE_SIZE = 5;
 const SNAPSHOT_PAYLOAD_PATTERN = /^\^lb:([a-f0-9]{16}):(\d+)$/;
+const SNAPSHOT_NOOP_PAYLOAD_PATTERN = /^\^lbn:([a-f0-9]{16})$/;
 const LEGACY_REFRESH_PAYLOAD_PATTERN = /^\^lbr:[a-f0-9]{16}:\d+$/;
 
 export class LeaderboardCommand extends ServerCommand {
@@ -32,6 +33,12 @@ export class LeaderboardCommand extends ServerCommand {
             context.args.full.some((arg) => LEGACY_REFRESH_PAYLOAD_PATTERN.test(arg.toLowerCase()))
         ) {
             await context.answer(context.ctx.tr("leaderboard-cache-expired"));
+            return;
+        }
+
+        const noopSnapshotId = context.isPayload ? this.parseNoopSnapshotId(context) : undefined;
+        if (noopSnapshotId) {
+            await this.handleNoopSnapshot(context, noopSnapshotId);
             return;
         }
 
@@ -75,6 +82,25 @@ export class LeaderboardCommand extends ServerCommand {
             }
         }
         return undefined;
+    }
+
+    private parseNoopSnapshotId(context: CommandContext): string | undefined {
+        for (const arg of context.args.full) {
+            const match = arg.toLowerCase().match(SNAPSHOT_NOOP_PAYLOAD_PATTERN);
+            if (match) {
+                return match[1];
+            }
+        }
+        return undefined;
+    }
+
+    private async handleNoopSnapshot(context: CommandContext, id: string): Promise<void> {
+        const snapshot = context.module.bot.leaderboards.get(id, context.ctx.chatId, context.module.name);
+        if (!snapshot) {
+            await context.answer(context.ctx.tr("leaderboard-cache-expired"));
+            return;
+        }
+        await context.acknowledge();
     }
 
     private async handleSnapshot(context: CommandContext, id: string, page: number): Promise<void> {
@@ -182,13 +208,15 @@ export class LeaderboardCommand extends ServerCommand {
 
     private createKeyboard(context: CommandContext, id: string, page: number, maxPage: number): IKeyboard {
         const prefix = context.module.prefix[0];
-        const buttons = [];
-        if (page > 1) {
-            buttons.push({ text: "⬅️", command: `${prefix} lb ^lb:${id}:${page - 1}` });
-        }
-        if (page < maxPage) {
-            buttons.push({ text: "➡️", command: `${prefix} lb ^lb:${id}:${page + 1}` });
-        }
-        return buttons.length > 0 ? makeKeyboard([buttons]) : undefined;
+        const noopCommand = `${prefix} lb ^lbn:${id}`;
+        const previousCommand = page > 1 ? `${prefix} lb ^lb:${id}:${page - 1}` : noopCommand;
+        const nextCommand = page < maxPage ? `${prefix} lb ^lb:${id}:${page + 1}` : noopCommand;
+        return makeKeyboard([
+            [
+                { text: "⬅️", command: previousCommand },
+                { text: `${page}/${maxPage}`, command: noopCommand },
+                { text: "➡️", command: nextCommand },
+            ],
+        ]);
     }
 }
