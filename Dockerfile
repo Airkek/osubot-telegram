@@ -2,11 +2,11 @@ FROM mcr.microsoft.com/dotnet/sdk:8.0-alpine AS performance-build
 
 WORKDIR /src
 
-COPY tools/osu-performance-worker/OsuPerformanceWorker.csproj tools/osu-performance-worker/
-RUN dotnet restore tools/osu-performance-worker/OsuPerformanceWorker.csproj --runtime linux-musl-x64
+COPY tools/osu-performance-worker/OsuPerformanceWorker/OsuPerformanceWorker.csproj tools/osu-performance-worker/OsuPerformanceWorker/
+RUN dotnet restore tools/osu-performance-worker/OsuPerformanceWorker/OsuPerformanceWorker.csproj --runtime linux-musl-x64
 
-COPY tools/osu-performance-worker/ tools/osu-performance-worker/
-RUN dotnet publish tools/osu-performance-worker/OsuPerformanceWorker.csproj \
+COPY tools/osu-performance-worker/OsuPerformanceWorker/ tools/osu-performance-worker/OsuPerformanceWorker/
+RUN dotnet publish tools/osu-performance-worker/OsuPerformanceWorker/OsuPerformanceWorker.csproj \
     --configuration Release \
     --runtime linux-musl-x64 \
     --self-contained true \

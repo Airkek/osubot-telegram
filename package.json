@@ -5,12 +5,15 @@
     "main": "index.ts",
     "scripts": {
         "test": "npm run build && npm run test:run",
-        "test:run": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --runInBand",
+        "test:run": "npm run test:js && npm run test:calculator",
+        "test:js": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --runInBand",
+        "test:calculator": "dotnet test tools/osu-performance-worker/OsuPerformanceWorker.sln --configuration Release",
         "start": "node ./build",
         "preinstall": "node -p \"'export const PACKAGE_VERSION = ' + JSON.stringify(require('./package.json').version) + ';'\" > src/version.ts",
-        "build": "npm run build:node && npm run build:performance",
+        "build": "npm run clean:build && npm run build:node && npm run build:performance",
+        "clean:build": "node -e \"require('node:fs').rmSync('build', { recursive: true, force: true })\"",
         "build:node": "npx tsc",
-        "build:performance": "dotnet publish tools/osu-performance-worker/OsuPerformanceWorker.csproj --configuration Release --output build/osu-performance",
+        "build:performance": "dotnet publish tools/osu-performance-worker/OsuPerformanceWorker/OsuPerformanceWorker.csproj --configuration Release --output build/osu-performance",
         "update": "git pull && npm ci && npm run build"
     },
     "author": "keijia",

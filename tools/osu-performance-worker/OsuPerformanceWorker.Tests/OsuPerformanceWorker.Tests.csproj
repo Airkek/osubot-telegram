@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.13.0" />
+    <PackageReference Include="NUnit" Version="4.5.1" />
+    <PackageReference Include="NUnit3TestAdapter" Version="4.6.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../OsuPerformanceWorker/OsuPerformanceWorker.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="../../../tests/fixtures/official-calculator.osu"
+          Link="fixtures/official-calculator.osu"
+          CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../../../tests/fixtures/official-calculator-mania.osu"
+          Link="fixtures/official-calculator-mania.osu"
+          CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

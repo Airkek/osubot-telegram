@@ -19,4 +19,8 @@
   <ItemGroup>
     <None Update="NOTICE" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="OsuPerformanceWorker.Tests" />
+  </ItemGroup>
 </Project>

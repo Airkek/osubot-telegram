@@ -38,7 +38,7 @@ internal static class CalculatorOperations
 
         ScoreInfo current = BuildScore(input, workingBeatmap, ruleset, mods, difficulty, maximumStatistics);
         ScoreInfo fc = BuildFullComboScore(current, workingBeatmap, ruleset, mods, difficulty, maximumStatistics);
-        ScoreInfo ss = BuildPerfectScore(workingBeatmap, ruleset, mods, difficulty, maximumStatistics);
+        ScoreInfo ss = BuildPerfectScore(current, workingBeatmap, ruleset, mods, difficulty, maximumStatistics);
 
         double pp = CalculatePp(ruleset, current, difficulty);
         double fcPp = CalculatePp(ruleset, fc, difficulty);
@@ -78,7 +78,7 @@ internal static class CalculatorOperations
         };
     }
 
-    private static ScoreInfo BuildScore(
+    internal static ScoreInfo BuildScore(
         ScoreInput input,
         WorkingBeatmap workingBeatmap,
         Ruleset ruleset,
@@ -89,23 +89,33 @@ internal static class CalculatorOperations
         Dictionary<HitResult, int> statistics = input.Simulate
             ? SimulateStatistics(input, ruleset, mods, maximumStatistics)
             : Statistics.FromWire(input.Statistics);
+        bool requiresLegacyMigration = input.Legacy && !input.Standardised;
+        if (requiresLegacyMigration && ruleset.RulesetInfo.OnlineID != 2)
+            statistics = statistics
+                .Where(pair => pair.Key.IsBasic())
+                .ToDictionary(pair => pair.Key, pair => pair.Value);
         double accuracy = input.Simulate
             ? CalculateSimulatedAccuracy(ruleset.RulesetInfo.OnlineID, statistics, maximumStatistics, mods)
             : input.Accuracy;
+        // The legacy decoder treats non-empty maximum statistics as authoritative. It must derive
+        // LegacyComboIncrease itself for stable scores, which only contain basic hit counts.
+        var scoreMaximumStatistics = requiresLegacyMigration
+            ? new Dictionary<HitResult, int>()
+            : new Dictionary<HitResult, int>(maximumStatistics);
 
         var score = new ScoreInfo(workingBeatmap.BeatmapInfo, ruleset.RulesetInfo)
         {
             Accuracy = accuracy,
             MaxCombo = input.Combo ?? difficulty.MaxCombo,
             Statistics = statistics,
-            MaximumStatistics = new Dictionary<HitResult, int>(maximumStatistics),
+            MaximumStatistics = scoreMaximumStatistics,
             TotalScore = input.TotalScore,
             LegacyTotalScore = input.Legacy ? input.TotalScore : null,
             IsLegacyScore = input.Legacy,
             Mods = mods
         };
 
-        if (input.Legacy && !input.Standardised)
+        if (requiresLegacyMigration)
         {
             var playableBeatmap = workingBeatmap.GetPlayableBeatmap(ruleset.RulesetInfo, mods);
             LegacyScoreDecoder.PopulateMaximumStatistics(score, workingBeatmap);
@@ -119,7 +129,7 @@ internal static class CalculatorOperations
         return score;
     }
 
-    private static ScoreInfo BuildFullComboScore(
+    internal static ScoreInfo BuildFullComboScore(
         ScoreInfo current,
         WorkingBeatmap workingBeatmap,
         Ruleset ruleset,
@@ -142,6 +152,31 @@ internal static class CalculatorOperations
             .Where(pair => pair.Key.IsBasic() && pair.Key != HitResult.Miss && pair.Key != topResult)
             .Sum(pair => Math.Max(0, pair.Value));
         statistics[topResult] = Math.Max(0, totalBasicResults - lowerResults);
+
+        if (current.IsLegacyScore)
+        {
+            if (ruleset.RulesetInfo.OnlineID != 2)
+                statistics = statistics
+                    .Where(pair => pair.Key.IsBasic())
+                    .ToDictionary(pair => pair.Key, pair => pair.Value);
+            var legacyFullCombo = new ScoreInfo(workingBeatmap.BeatmapInfo, ruleset.RulesetInfo)
+            {
+                MaxCombo = difficulty.MaxCombo,
+                Statistics = statistics,
+                MaximumStatistics = new Dictionary<HitResult, int>(),
+                TotalScore = 0,
+                LegacyTotalScore = null,
+                IsLegacyScore = true,
+                Mods = mods
+            };
+            LegacyScoreDecoder.PopulateMaximumStatistics(legacyFullCombo, workingBeatmap);
+            legacyFullCombo.Accuracy = CalculateAccuracy(
+                legacyFullCombo.Statistics,
+                legacyFullCombo.MaximumStatistics,
+                scoreProcessor);
+            return legacyFullCombo;
+        }
+
         FillNestedHits(statistics, maximumStatistics, HitResult.SmallTickMiss, HitResult.SmallTickHit);
         FillNestedHits(statistics, maximumStatistics, HitResult.LargeTickMiss, HitResult.LargeTickHit);
         if (maximumStatistics.TryGetValue(HitResult.SliderTailHit, out int sliderTails))
@@ -160,12 +195,48 @@ internal static class CalculatorOperations
         };
     }
 
-    private static ScoreInfo BuildPerfectScore(
+    internal static ScoreInfo BuildPerfectScore(
+        ScoreInfo current,
         WorkingBeatmap workingBeatmap,
         Ruleset ruleset,
         Mod[] mods,
         DifficultyAttributes difficulty,
-        Dictionary<HitResult, int> maximumStatistics) => new(workingBeatmap.BeatmapInfo, ruleset.RulesetInfo)
+        Dictionary<HitResult, int> maximumStatistics)
+    {
+        if (current.IsLegacyScore)
+        {
+            Dictionary<HitResult, int> statistics;
+            if (ruleset.RulesetInfo.OnlineID == 2)
+            {
+                statistics = new Dictionary<HitResult, int>(maximumStatistics);
+            }
+            else
+            {
+                var scoreProcessor = ruleset.CreateScoreProcessor();
+                HitResult topResult = ruleset.GetHitResultsForDisplay()
+                    .Select(result => result.result)
+                    .Where(result => result.IsBasic())
+                    .MaxBy(scoreProcessor.GetBaseScoreForResult);
+                int totalBasicResults = maximumStatistics.Where(pair => pair.Key.IsBasic()).Sum(pair => pair.Value);
+                statistics = new Dictionary<HitResult, int> { [topResult] = totalBasicResults };
+            }
+
+            var legacyPerfect = new ScoreInfo(workingBeatmap.BeatmapInfo, ruleset.RulesetInfo)
+            {
+                Accuracy = 1,
+                MaxCombo = difficulty.MaxCombo,
+                Statistics = statistics,
+                MaximumStatistics = new Dictionary<HitResult, int>(),
+                TotalScore = 0,
+                LegacyTotalScore = null,
+                IsLegacyScore = true,
+                Mods = mods
+            };
+            LegacyScoreDecoder.PopulateMaximumStatistics(legacyPerfect, workingBeatmap);
+            return legacyPerfect;
+        }
+
+        return new ScoreInfo(workingBeatmap.BeatmapInfo, ruleset.RulesetInfo)
         {
             Accuracy = 1,
             MaxCombo = difficulty.MaxCombo,
@@ -175,8 +246,9 @@ internal static class CalculatorOperations
             IsLegacyScore = false,
             Mods = mods
         };
+    }
 
-    private static Dictionary<HitResult, int> GetMaximumStatistics(Ruleset ruleset, IBeatmap beatmap, Mod[] mods)
+    internal static Dictionary<HitResult, int> GetMaximumStatistics(Ruleset ruleset, IBeatmap beatmap, Mod[] mods)
     {
         var processor = ruleset.CreateScoreProcessor();
         processor.Mods.Value = mods;
