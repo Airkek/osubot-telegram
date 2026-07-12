@@ -1,0 +1,188 @@
+import { IReplayRenderer } from "games/osu/replays/rendering/IReplayRenderer";
+import { IRenderResponse } from "games/osu/replays/rendering/IRenderResponse";
+import { IRenderSettings } from "games/osu/replays/rendering/IRenderSettings";
+import { IVideo } from "games/osu/replays/rendering/IVideo";
+import FormData from "form-data";
+import axios from "axios";
+import { Util } from "shared/Util";
+
+interface UploadResponse {
+    success: boolean;
+    renderId?: number;
+    error?: string;
+}
+
+const sleep = async (ms: number) => {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+};
+
+export class ExperimentalRenderer implements IReplayRenderer {
+    private readonly base_url: string;
+
+    constructor() {
+        this.base_url = process.env.EXPERIMENTAL_RENDERER_BASE_URL;
+    }
+
+    public supportGameMode(mode: number): boolean {
+        return [0, 1, 2, 3].includes(mode); // osu!, taiko, fruits, mania
+    }
+
+    public async available(): Promise<boolean> {
+        if (this.base_url == "disabled") {
+            return false;
+        }
+
+        try {
+            const { data } = await axios.get(`${this.base_url}/available`, {
+                timeout: 5000,
+            });
+            return data.trim() == "1";
+        } catch {
+            return false;
+        }
+    }
+
+    async render(file: Buffer, settings: IRenderSettings): Promise<IRenderResponse> {
+        const timer = Util.timer();
+        const uploadResponse = await this.uploadReplay(file, settings);
+
+        if (!uploadResponse.success) {
+            global.logger.info(
+                `Experimental render worker: render upload failed in ${timer.ms} (${uploadResponse.error})`
+            );
+            return {
+                success: false,
+                error: uploadResponse.error,
+            };
+        }
+
+        global.logger.info(`Experimental render worker: render started (upload took ${timer.ms})`);
+        try {
+            await this.waitForRenderCompletion(uploadResponse.renderId);
+        } catch (error) {
+            global.logger.info(`Experimental render worker: render failed in ${timer.ms} (${error})`);
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : String(error),
+            };
+        }
+
+        const url = `${this.base_url}/renders/${uploadResponse.renderId}`;
+
+        const video: IVideo = {
+            url,
+            duration: 60,
+            width: 1280,
+            height: 720,
+        };
+
+        global.logger.info(`Experimental render worker: render done in ${timer.ms}`);
+
+        return {
+            success: true,
+            video,
+        };
+    }
+
+    private async uploadReplay(file: Buffer, settings: IRenderSettings): Promise<UploadResponse> {
+        const form = new FormData();
+        form.append("replayFile", file, { filename: "replay.osr" });
+
+        form.append("useSkinColors", "true");
+        form.append("useSkinHitsounds", "true");
+        form.append("useBeatmapColors", "false");
+        form.append("resolution", "1280x720");
+        form.append("skip", "true");
+
+        form.append("loadVideo", settings.video ? "true" : "false");
+        form.append("loadStoryboard", settings.storyboard ? "true" : "false");
+        form.append("showPPCounter", settings.pp_counter ? "true" : "false");
+        form.append("showUnstableRate", settings.ur_counter ? "true" : "false");
+        form.append("showHitCounter", settings.hit_counter ? "true" : "false");
+        form.append("showStrainGraph", settings.strain_graph ? "true" : "false");
+        form.append("customSkin", settings.isSkinCustom ? "true" : "false");
+        form.append("inGameBGDim", settings.dim.toString());
+        form.append("globalVolume", settings.masterVolume.toString());
+        form.append("musicVolume", settings.musicVolume.toString());
+        form.append("hitsoundVolume", settings.effectsVolume.toString());
+        form.append("skin", settings.skin.toString());
+
+        try {
+            const { data } = await axios.post(`${this.base_url}/renders`, form, {
+                headers: form.getHeaders(),
+            });
+
+            return {
+                success: true,
+                renderId: data.renderID,
+            };
+        } catch (err) {
+            return {
+                success: false,
+                error: err.response?.data?.message || err.message,
+            };
+        }
+    }
+
+    private async getStatusWithRetry(renderId: number, deadline: number, attempts = 5): Promise<string> {
+        let wait = 500;
+        for (let i = 0; i < attempts; i++) {
+            const remaining = deadline - Date.now();
+            if (remaining <= 0) {
+                throw new Error("Render timed out");
+            }
+            try {
+                const { data } = await axios.get(`${this.base_url}/status/${renderId}`, {
+                    timeout: Math.min(30000, remaining),
+                });
+                return data;
+            } catch (err) {
+                const code = err.code || (err.response && err.response.status);
+                if (i === attempts - 1) throw err;
+                // retry on connection errors / timeouts / 5xx
+                if (
+                    code === "ECONNRESET" ||
+                    code === "ECONNABORTED" ||
+                    code === "ETIMEDOUT" ||
+                    (err.response && err.response.status >= 500) ||
+                    err.message?.includes("socket hang up")
+                ) {
+                    const retryRemaining = deadline - Date.now();
+                    if (retryRemaining <= 0) {
+                        throw new Error("Render timed out");
+                    }
+                    await sleep(Math.min(wait, retryRemaining));
+                    wait *= 2;
+                    continue;
+                }
+                throw err;
+            }
+        }
+        throw new Error("Retries exhausted");
+    }
+
+    private async waitForRenderCompletion(renderId: number, timeoutMs = 10 * 60 * 1000): Promise<void> {
+        const deadline = Date.now() + timeoutMs;
+        while (Date.now() < deadline) {
+            const data = await this.getStatusWithRetry(renderId, deadline);
+
+            const status = data.split("\n");
+
+            if (status[0] == "render") {
+                await sleep(Math.min(500, Math.max(0, deadline - Date.now())));
+                continue;
+            }
+
+            if (status[0] == "fail") {
+                throw new Error(status[1]);
+            }
+            if (status[0] == "done") {
+                return;
+            }
+
+            throw new Error(`Unknown error: ${data}`);
+        }
+
+        throw new Error(`Render timed out after ${timeoutMs}ms`);
+    }
+}

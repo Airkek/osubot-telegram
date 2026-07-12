@@ -64,25 +64,26 @@ docker compose up -d --remove-orphans
 
 ## Development
 
-Local builds require Node.js 24 and .NET 8:
+The bot and performance server are independently buildable. To build and test the bot with Node.js 24:
 
 ```bash
+cd bot
 npm ci
 npm run build
 npm test
+npm run lint
 ```
 
-`npm test` runs the JavaScript unit tests and the NUnit performance-server tests. They can also be run separately:
+To build and test the performance server with .NET 8:
 
 ```bash
-npm run test:js
-npm run test:calculator
+dotnet test performance-server/OsuPerformanceServer.sln --configuration Release
 ```
 
-The independently deployable gRPC performance service, its versioned contract and NUnit project are grouped under [`performance-server/`](performance-server/) and [OsuPerformanceServer.sln](performance-server/OsuPerformanceServer.sln). It owns the on-disk `.osu` cache; the bot only keeps beatmap metadata.
+Bot sources and runtime assets live under [`bot/`](bot/). The independently deployable gRPC performance service and its NUnit project live under [`performance-server/`](performance-server/); the shared versioned API contract lives under [`contracts/`](contracts/). The performance server owns the on-disk `.osu` cache, while the bot only keeps beatmap metadata.
 
 ## License
 
 The original source code is licensed under GPL-3.0-only; see [LICENSE](LICENSE).
 
-Files under [`assets/`](assets/) are third-party material and are expressly excluded from the GPL license grant. osu!-specific assets remain the property of ppy Pty Ltd and/or their respective rights holders. See [NOTICE](NOTICE) and [assets/NOTICE](assets/NOTICE) before reusing them.
+Files under [`bot/assets/`](bot/assets/) are third-party material and are expressly excluded from the GPL license grant. osu!-specific assets remain the property of ppy Pty Ltd and/or their respective rights holders. See [NOTICE](NOTICE) and [bot/assets/NOTICE](bot/assets/NOTICE) before reusing them.

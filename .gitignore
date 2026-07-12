@@ -1,5 +1,7 @@
 /build
 /node_modules
+/bot/build
+/bot/node_modules
 **/bin
 **/obj
 /beatmap_cache
@@ -13,6 +15,6 @@
 docker-compose.override.yml
 /dump_*.sql.gz
 
-/src/version.ts
+/bot/src/version.ts
 
 **/.DS_Store

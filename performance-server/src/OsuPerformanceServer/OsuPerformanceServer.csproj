@@ -26,7 +26,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Protobuf Include="../../proto/osubot/performance/v1/performance.proto" GrpcServices="Server" />
+    <Protobuf Include="../../../contracts/osubot/performance/v1/performance.proto" GrpcServices="Server" />
   </ItemGroup>
 
   <ItemGroup>

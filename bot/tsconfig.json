@@ -1,0 +1,29 @@
+{
+    "compilerOptions": {
+        "target": "ES2024",
+        "module": "CommonJS",
+        "rootDir": ".",
+        "outDir": "build",
+        "baseUrl": ".",
+        "paths": {
+            "application/*": ["src/application/*"],
+            "commands/*": ["src/commands/*"],
+            "core/*": ["src/core/*"],
+            "games/*": ["src/games/*"],
+            "infrastructure/*": ["src/infrastructure/*"],
+            "localization/*": ["src/localization/*"],
+            "platforms/*": ["src/platforms/*"],
+            "presentation/*": ["src/presentation/*"],
+            "shared/*": ["src/shared/*"],
+            "version": ["src/version"]
+        },
+        "resolveJsonModule": true,
+        "esModuleInterop": true,
+        "allowJs": true,
+        "skipLibCheck": true,
+        "noEmitOnError": true,
+        "forceConsistentCasingInFileNames": true
+    },
+    "include": ["src/**/*.ts", "tests/**/*.ts"],
+    "exclude": ["build", "node_modules"]
+}

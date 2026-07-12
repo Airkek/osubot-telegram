@@ -5,11 +5,13 @@ on:
     branches: [master]
     paths:
       - "performance-server/**"
+      - "contracts/**"
       - ".github/workflows/build_and_run_performance_tests.yml"
   pull_request:
     branches: [master]
     paths:
       - "performance-server/**"
+      - "contracts/**"
       - ".github/workflows/build_and_run_performance_tests.yml"
 
 permissions:
