@@ -34,10 +34,8 @@ export async function getLeaderboard(
         const batch = users.slice(offset, offset + BATCH_SIZE);
         const results = await Promise.allSettled(
             batch.map(async (user) => {
-                const [score, gameUser] = await Promise.all([
-                    api.getScoreByUid!(user.game_id, beatmapId, mode, scoreMods, scoreOptions),
-                    api.getUserById(user.game_id, mode).catch(() => undefined),
-                ]);
+                const score = await api.getScoreByUid!(user.game_id, beatmapId, mode, scoreMods, scoreOptions);
+                const gameUser = await api.getUserById(user.game_id, mode).catch(() => undefined);
                 return { user, score, country: gameUser?.country };
             })
         );

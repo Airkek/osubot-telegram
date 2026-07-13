@@ -22,6 +22,11 @@ import { NoTopScoresError } from "core/errors/NoTopScoresError";
 import { ReplayNotAvailableError } from "core/errors/ReplayNotAvailableError";
 import { UserNotFoundError } from "core/errors/UserNotFoundError";
 import { UserStatisticsUnavailableError } from "core/errors/UserStatisticsUnavailableError";
+import { setTimeout as wait } from "node:timers/promises";
+
+const MAX_RATE_LIMIT_RETRIES = 3;
+const DEFAULT_RATE_LIMIT_DELAY_MS = 1_000;
+const MAX_RATE_LIMIT_DELAY_MS = 30_000;
 
 type Ruleset = "osu" | "mania" | "taiko" | "fruits";
 
@@ -440,6 +445,7 @@ export class BanchoV2ApiClient implements IGameApi {
     token?: string;
     app_id: number;
     client_secret: string;
+    private rateLimitUntil = 0;
     constructor(appId: number, clientSecret: string) {
         this.api = axios.default.create({
             baseURL: "https://osu.ppy.sh/api/v2",
@@ -474,7 +480,8 @@ export class BanchoV2ApiClient implements IGameApi {
         }
     }
 
-    private async getArrayBuffer(method: string, query?, retryAuthentication = true) {
+    private async getArrayBuffer(method: string, query?, retryAuthentication = true, rateLimitRetries = 0) {
+        await this.waitForRateLimit();
         try {
             const { data } = await this.api.get(`${method}${query ? `?${qs.stringify(query)}` : ""}`, {
                 headers: {
@@ -487,7 +494,10 @@ export class BanchoV2ApiClient implements IGameApi {
         } catch (e) {
             if (axios.isAxiosError(e) && e.response?.status === 401 && retryAuthentication) {
                 await this.refresh();
-                return this.getArrayBuffer(method, query, false);
+                return this.getArrayBuffer(method, query, false, rateLimitRetries);
+            }
+            if (await this.retryRateLimitedRequest(e, rateLimitRetries)) {
+                return this.getArrayBuffer(method, query, retryAuthentication, rateLimitRetries + 1);
             }
             if (axios.isAxiosError(e) && e.response?.status === 404) {
                 return undefined;
@@ -496,7 +506,8 @@ export class BanchoV2ApiClient implements IGameApi {
         }
     }
 
-    private async get(method: string, query?, retryAuthentication = true) {
+    private async get(method: string, query?, retryAuthentication = true, rateLimitRetries = 0) {
+        await this.waitForRateLimit();
         try {
             const { data } = await this.api.get(`${method}${query ? `?${qs.stringify(query)}` : ""}`, {
                 headers: {
@@ -508,7 +519,10 @@ export class BanchoV2ApiClient implements IGameApi {
         } catch (e) {
             if (axios.isAxiosError(e) && e.response?.status === 401 && retryAuthentication) {
                 await this.refresh();
-                return this.get(method, query, false);
+                return this.get(method, query, false, rateLimitRetries);
+            }
+            if (await this.retryRateLimitedRequest(e, rateLimitRetries)) {
+                return this.get(method, query, retryAuthentication, rateLimitRetries + 1);
             }
             if (axios.isAxiosError(e) && e.response?.status === 404) {
                 return undefined;
@@ -517,7 +531,8 @@ export class BanchoV2ApiClient implements IGameApi {
         }
     }
 
-    private async post(method: string, query?, retryAuthentication = true) {
+    private async post(method: string, query?, retryAuthentication = true, rateLimitRetries = 0) {
+        await this.waitForRateLimit();
         try {
             const { data } = await this.api.post(`${method}`, query, {
                 headers: {
@@ -529,12 +544,58 @@ export class BanchoV2ApiClient implements IGameApi {
         } catch (e) {
             if (axios.isAxiosError(e) && e.response?.status === 401 && retryAuthentication) {
                 await this.refresh();
-                return this.post(method, query, false);
+                return this.post(method, query, false, rateLimitRetries);
+            }
+            if (await this.retryRateLimitedRequest(e, rateLimitRetries)) {
+                return this.post(method, query, retryAuthentication, rateLimitRetries + 1);
             }
             if (axios.isAxiosError(e) && e.response?.status === 404) {
                 return undefined;
             }
             throw e;
+        }
+    }
+
+    private async retryRateLimitedRequest(error: unknown, retryCount: number): Promise<boolean> {
+        if (!axios.isAxiosError(error) || error.response?.status !== 429 || retryCount >= MAX_RATE_LIMIT_RETRIES) {
+            return false;
+        }
+
+        const retryAfter = this.getRetryAfterMs(error, retryCount);
+        const jitter = retryAfter > 0 ? Math.floor(Math.random() * 250) : 0;
+        this.rateLimitUntil = Math.max(this.rateLimitUntil, Date.now() + retryAfter + jitter);
+        global.logger.warn(
+            `osu! API rate limit reached; retrying in ${Math.max(this.rateLimitUntil - Date.now(), 0)}ms ` +
+                `(attempt ${retryCount + 1}/${MAX_RATE_LIMIT_RETRIES})`
+        );
+        await this.waitForRateLimit();
+        return true;
+    }
+
+    private getRetryAfterMs(error: axios.AxiosError, retryCount: number): number {
+        const headers = error.response?.headers;
+        const headerGetter = headers?.get;
+        const retryAfterHeader =
+            typeof headerGetter === "function" ? headerGetter.call(headers, "retry-after") : headers?.["retry-after"];
+        if (retryAfterHeader !== undefined && retryAfterHeader !== null) {
+            const seconds = Number(retryAfterHeader);
+            if (Number.isFinite(seconds) && seconds >= 0) {
+                return Math.min(seconds * 1_000, MAX_RATE_LIMIT_DELAY_MS);
+            }
+
+            const retryAt = Date.parse(String(retryAfterHeader));
+            if (Number.isFinite(retryAt)) {
+                return Math.min(Math.max(retryAt - Date.now(), 0), MAX_RATE_LIMIT_DELAY_MS);
+            }
+        }
+
+        return Math.min(DEFAULT_RATE_LIMIT_DELAY_MS * 2 ** retryCount, MAX_RATE_LIMIT_DELAY_MS);
+    }
+
+    private async waitForRateLimit(): Promise<void> {
+        const delay = this.rateLimitUntil - Date.now();
+        if (delay > 0) {
+            await wait(delay);
         }
     }
 
