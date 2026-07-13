@@ -5,7 +5,7 @@ services:
     image: ghcr.io/airkek/osubot-telegram
     container_name: osubot_bot
     env_file: .env
-    restart: always
+    restart: unless-stopped
 
     volumes:
       - ${BOT_DATA_PATH}:/usr/osubot/data
@@ -30,7 +30,7 @@ services:
   performance-server:
     image: ghcr.io/airkek/osubot-performance-server
     container_name: osubot_performance
-    restart: always
+    restart: unless-stopped
 
     environment:
       PERFORMANCE_SERVER_PORT: 50051
@@ -49,7 +49,7 @@ services:
   database:
     image: timescale/timescaledb:latest-pg17
     container_name: osubot_postgres
-    restart: always
+    restart: unless-stopped
 
     environment:
       POSTGRES_PASSWORD: ${DB_PASSWORD}
@@ -85,7 +85,7 @@ services:
   telegram_api:
     image: aiogram/telegram-bot-api:latest
     container_name: osubot_telegram_api
-    restart: always
+    restart: unless-stopped
 
     environment:
       TELEGRAM_API_ID: ${TELEGRAM_APP_API_ID}
