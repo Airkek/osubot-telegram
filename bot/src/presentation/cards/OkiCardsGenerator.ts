@@ -218,8 +218,21 @@ export class OkiCardsGenerator {
         );
     }
 
-    private extractModSvgColors(input: string | Buffer): { background: string; foreground: string } {
+    private extractModSvgColors(input: string | Buffer): {
+        background: string;
+        foreground: string;
+        extender: string;
+    } {
         const s = input instanceof Buffer ? input.toString("utf-8") : (input as string);
+
+        const metadata = {
+            background: s.match(/\bdata-background="([^"]+)"/i)?.[1],
+            foreground: s.match(/\bdata-foreground="([^"]+)"/i)?.[1],
+            extender: s.match(/\bdata-extender="([^"]+)"/i)?.[1],
+        };
+        if (metadata.background && metadata.foreground && metadata.extender) {
+            return metadata;
+        }
 
         const attrRe = /(fill|stroke)\s*=\s*(['"])(.*?)\2/gi;
 
@@ -265,6 +278,7 @@ export class OkiCardsGenerator {
         return {
             background,
             foreground,
+            extender: foreground,
         };
     }
 
@@ -282,59 +296,51 @@ export class OkiCardsGenerator {
         const oldBaseline = ctx.textBaseline;
 
         const width = height / 0.7;
-        const extWidth = height * 3.114;
+        const extenderWidth = height * (155 / 70);
+        const extenderOverlap = height / 2;
         const extendedMods = mods.toExtendedMods();
         if (extendedMods.length > 0) {
-            let posX = toLeft ? firstModX - width : firstModX;
-            for (let i = extendedMods.length - 1; i >= 0; i--) {
-                const mod = extendedMods[i];
+            let cursorX = firstModX;
+            const orderedMods = toLeft ? [...extendedMods].reverse() : extendedMods;
+            for (const mod of orderedMods) {
                 const asset = await this.getModAssetData(mod.acronym, width, height);
                 if (!asset) {
                     continue;
                 }
 
+                let colors: ReturnType<OkiCardsGenerator["extractModSvgColors"]> = undefined;
                 if (mod.rate !== undefined) {
-                    const colors = this.extractModSvgColors(asset);
-                    if (colors != undefined) {
-                        const rawExtWidth = extWidth - width;
+                    colors = this.extractModSvgColors(asset);
+                }
 
-                        const extendedAsset = await this.getColoredSvgAssetByPath(
-                            this.getModAssetPath("extended"),
-                            colors.foreground,
-                            extWidth,
-                            height
-                        );
+                const hasExtender = colors !== undefined;
+                const unitWidth = hasExtender ? width + extenderWidth - extenderOverlap : width;
+                const posX = toLeft ? cursorX - unitWidth : cursorX;
 
-                        const extImage = await Canvas.loadImage(extendedAsset);
-                        const extX = toLeft ? posX - rawExtWidth : posX;
-                        ctx.drawImage(extImage, extX, posY, extWidth, height);
+                if (hasExtender) {
+                    const extendedAsset = await this.getColoredSvgAssetByPath(
+                        this.getModAssetPath("extended"),
+                        colors.extender,
+                        extenderWidth,
+                        height
+                    );
+                    const extenderX = posX + width - extenderOverlap;
+                    const extImage = await Canvas.loadImage(extendedAsset);
+                    ctx.drawImage(extImage, extenderX, posY, extenderWidth, height);
 
-                        ctx.fillStyle = colors.background;
-                        ctx.font = `bold ${height / 1.8}px Torus`;
-                        ctx.textAlign = "center";
-                        ctx.textBaseline = "middle";
-                        const textX = extX + width + rawExtWidth / 2 - width / 10;
-                        const textY = posY + height / 2;
-                        ctx.fillText(`${mod.rate.toFixed(2)}x`, textX, textY);
-
-                        if (toLeft) {
-                            posX -= rawExtWidth;
-                        }
-                    }
+                    ctx.fillStyle = colors.background;
+                    ctx.font = `bold ${height / 1.8}px Torus`;
+                    ctx.textAlign = "center";
+                    ctx.textBaseline = "middle";
+                    const visibleExtenderWidth = extenderWidth - extenderOverlap;
+                    const textX = posX + width + visibleExtenderWidth / 2 - height * (1.5 / 70);
+                    const textY = posY + height / 2;
+                    ctx.fillText(`${mod.rate.toFixed(2)}x`, textX, textY);
                 }
 
                 const image = await Canvas.loadImage(asset);
                 ctx.drawImage(image, posX, posY, width, height);
-
-                if (toLeft) {
-                    posX -= width;
-                } else {
-                    if (mod.rate !== undefined) {
-                        posX += extWidth;
-                    } else {
-                        posX += width;
-                    }
-                }
+                cursorX = toLeft ? posX : posX + unitWidth;
             }
         }
 
