@@ -7,7 +7,7 @@ import { ExternalId } from "core/ExternalId";
 import { IPlatformAdapter } from "core/IPlatformAdapter";
 import { UpdateDispatcher } from "application/UpdateDispatcher";
 import { VKMediaAttachmentProvider } from "platforms/vk/VKMediaAttachmentProvider";
-import { VKMessageContext } from "platforms/vk/VKMessageContext";
+import { parseVKPayloadCommand, VKMessageContext } from "platforms/vk/VKMessageContext";
 import { VK_UPLOAD_TIMEOUT_MS, VK_VIDEO_UPLOAD_TIMEOUT_MS } from "platforms/vk/Upload";
 import { IVKBotConfig } from "platforms/vk/IVKBotConfig";
 
@@ -15,6 +15,9 @@ const VK_UPDATE_CONCURRENCY = 40;
 const VK_UPDATE_QUEUE_CAPACITY = 1000;
 const RATE_LIMIT_WINDOW_MS = 5000;
 const RATE_LIMIT_COMMANDS = 3;
+const VK_PAYLOAD_COMMAND_ALIASES: Readonly<Record<string, string>> = {
+    start: "osu onboarding",
+};
 
 type VKUpdate = { type: "message"; context: MessageContext } | { type: "callback"; context: MessageEventContext };
 
@@ -192,6 +195,9 @@ export class VKBotAdapter implements IPlatformAdapter {
         if (!this.runtime) {
             throw new Error("VK runtime is not initialized");
         }
+        const payload = context.type === "message" ? context.messagePayload : context.eventPayload;
+        const command = parseVKPayloadCommand(payload);
+        const aliasedCommand = context.type === "message" && command ? VK_PAYLOAD_COMMAND_ALIASES[command] : undefined;
         return new VKMessageContext(
             context,
             this.vk,
@@ -199,7 +205,8 @@ export class VKBotAdapter implements IPlatformAdapter {
             this.config.owner,
             this.runtime.storage,
             this.localizer,
-            this.userVk
+            this.userVk,
+            aliasedCommand ? { text: aliasedCommand } : undefined
         );
     }
 

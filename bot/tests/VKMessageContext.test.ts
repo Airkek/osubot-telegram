@@ -5,12 +5,17 @@ import { runtimePaths } from "../src/application/RuntimePaths";
 import { FluentLocalizer } from "../src/localization/FluentLocalizer";
 import { VideoSendFailedError } from "../src/core/errors/VideoSendFailedError";
 import { VKMessageContext } from "../src/platforms/vk/VKMessageContext";
+import { VKBotAdapter } from "../src/platforms/vk/VKBotAdapter";
+import { Module } from "../src/commands/Module";
+import { OnboardingCommand } from "../src/commands/modules/main/OnboardingCommand";
 import { uploadMessagePhoto } from "../src/platforms/vk/Upload";
 import { createTestStorage } from "./fakes/ApplicationStorageFake";
 
 global.logger = {
     error() {},
+    info() {},
     warn() {},
+    trace() {},
 } as typeof global.logger;
 
 test("VK callback payload uses the shared command and graphical-mode envelope", async () => {
@@ -45,15 +50,8 @@ test("VK callback payload uses the shared command and graphical-mode envelope", 
     expect(payload.command).toBe("^g1^len^s u");
 });
 
-test.each([
-    { command: "start" },
-    { command: "/start" },
-    { command: "Начать" },
-    { command: "СТАРТ" },
-    { button: "start" },
-    { cmd: "/start" },
-])("VK start payload $command$button$cmd opens the shared onboarding", (messagePayload) => {
-    const event = new VKIOMessageContext({
+function createStartMessage(): VKIOMessageContext {
+    return new VKIOMessageContext({
         api: {},
         upload: {},
         source: UpdateSource.WEBHOOK,
@@ -72,12 +70,15 @@ test.each([
                 date: 1,
                 attachments: [],
                 out: 0,
-                payload: JSON.stringify(messagePayload),
+                payload: JSON.stringify({ command: "start" }),
             },
         },
     } as never);
+}
+
+test("VK message context only parses the start payload", () => {
     const context = new VKMessageContext(
-        event,
+        createStartMessage(),
         {} as never,
         30,
         40,
@@ -85,28 +86,50 @@ test.each([
         new FluentLocalizer(runtimePaths.locales)
     );
 
-    expect(context.messagePayload).toBe("osu onboarding");
+    expect(context.messagePayload).toBe("start");
+    expect(context.text).toBe("Начать");
 });
 
-test("VK start button text opens onboarding when the client omits its payload", () => {
-    const createContext = (peerId: number) =>
-        new VKMessageContext(
-            {
-                type: "message",
-                id: 1,
-                senderId: 10,
-                peerId,
-                text: "Начать",
-            } as never,
-            {} as never,
-            30,
-            40,
-            createTestStorage({ platform: "vk" }),
-            new FluentLocalizer(runtimePaths.locales)
-        );
+test("VK adapter routes the start payload to the onboarding greeting", async () => {
+    const storage = createTestStorage({ platform: "vk" });
+    const adapter = new VKBotAdapter({ token: "test", owner: 40 }, new FluentLocalizer(runtimePaths.locales));
+    Reflect.set(adapter, "runtime", { storage });
+    Reflect.set(adapter, "groupId", 30);
 
-    expect(createContext(10).text).toBe("osu onboarding");
-    expect(createContext(2_000_000_001).text).toBe("Начать");
+    const buildContext = Reflect.get(adapter, "buildContext");
+    if (typeof buildContext !== "function") {
+        throw new Error("VK adapter context builder is not available");
+    }
+    const context = Reflect.apply(buildContext, adapter, [createStartMessage()]);
+    if (!(context instanceof VKMessageContext)) {
+        throw new Error("VK adapter returned an invalid message context");
+    }
+    const [user, chat] = await Promise.all([
+        storage.identities.resolveUser(context.externalSenderId),
+        storage.identities.resolveChat(context.externalChatId),
+    ]);
+    context.bindIdentity({ user, chat });
+
+    const reply = jest.spyOn(context, "reply").mockResolvedValue(undefined);
+    const edit = jest.spyOn(context, "edit").mockResolvedValue(undefined);
+    const module = new Module(["osu"], { storage } as never);
+    module.name = "Main";
+    const onboarding = new OnboardingCommand(module);
+    module.registerCommand(onboarding);
+    const match = module.checkContext(context);
+    if (!match) {
+        throw new Error("VK start payload did not resolve to onboarding");
+    }
+
+    await match.command.process(context);
+
+    expect(context.messagePayload).toBeUndefined();
+    expect(context.text).toBe("osu onboarding");
+    expect(reply).toHaveBeenCalledWith(
+        expect.stringContaining(context.tr("onboarding-text-greeting")),
+        expect.objectContaining({ keyboard: expect.any(Array) })
+    );
+    expect(edit).not.toHaveBeenCalled();
 });
 
 test("VK treats the first forwarded message as a reply fallback", () => {

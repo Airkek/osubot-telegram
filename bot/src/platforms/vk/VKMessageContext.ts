@@ -27,7 +27,6 @@ import { uploadMessagePhoto, uploadMessageVideo } from "platforms/vk/Upload";
 
 const VK_CHAT_PEER_OFFSET = 2_000_000_000;
 const MAX_REPLAY_FILE_SIZE = 5 * 1024 * 1024;
-const START_COMMAND = "osu onboarding";
 
 type IncomingVKContext = VKIOMessageContext | MessageEventContext;
 
@@ -48,45 +47,27 @@ interface VKMessageAttachment {
     [key: string]: unknown;
 }
 
+interface VKMessageInputOverride {
+    text: string;
+    payload?: string;
+}
+
 function isMessageContext(context: IncomingVKContext): context is VKIOMessageContext {
     return context.type === "message";
 }
 
-function normalizeStartCommand(command: string): string {
-    const normalized = command.trim().toLowerCase();
-    return ["start", "/start", "начать", "старт"].includes(normalized) ? START_COMMAND : command;
-}
-
-function payloadCommand(payload: unknown): string | undefined {
+export function parseVKPayloadCommand(payload: unknown): string | undefined {
     if (typeof payload === "string") {
         try {
-            return payloadCommand(JSON.parse(payload));
+            return parseVKPayloadCommand(JSON.parse(payload));
         } catch {
-            return normalizeStartCommand(payload);
+            return payload;
         }
     }
-    if (payload && typeof payload === "object") {
-        const values = payload as { command?: unknown; button?: unknown; cmd?: unknown };
-        const command = values.command;
-        if (typeof command !== "string") {
-            for (const fallback of [values.button, values.cmd]) {
-                if (typeof fallback === "string" && normalizeStartCommand(fallback) === START_COMMAND) {
-                    return START_COMMAND;
-                }
-            }
-            return undefined;
-        }
-        return normalizeStartCommand(command);
+    if (!payload || typeof payload !== "object" || !("command" in payload)) {
+        return undefined;
     }
-    return undefined;
-}
-
-function messageText(context: VKIOMessageContext | undefined): string | undefined {
-    const text = context?.text;
-    if (!text || String(context.peerId) !== String(context.senderId)) {
-        return text;
-    }
-    return normalizeStartCommand(text);
+    return typeof payload.command === "string" ? payload.command : undefined;
 }
 
 function replyMessage(context: VKIOMessageContext | undefined): IReplyMessage | undefined {
@@ -138,7 +119,8 @@ export class VKMessageContext extends BaseMessageContext {
         ownerId: number,
         storage: MessageContextStorage,
         private readonly localizer: FluentLocalizer,
-        private readonly userVk?: VK
+        private readonly userVk?: VK,
+        inputOverride?: VKMessageInputOverride
     ) {
         const message = isMessageContext(context) ? context : undefined;
         const event = message ? undefined : (context as MessageEventContext);
@@ -150,8 +132,11 @@ export class VKMessageContext extends BaseMessageContext {
                 externalSenderId,
                 externalChatId,
                 ownerId,
-                plainText: messageText(message),
-                plainPayload: payloadCommand(message?.messagePayload ?? event?.eventPayload),
+                plainText: inputOverride?.text ?? message?.text,
+                plainPayload:
+                    inputOverride === undefined
+                        ? parseVKPayloadCommand(message?.messagePayload ?? event?.eventPayload)
+                        : inputOverride.payload,
                 replyMessage: replyMessage(message),
                 isInGroupChat: externalChatId >= VK_CHAT_PEER_OFFSET,
                 defaultLanguage: vkLanguage(message),
