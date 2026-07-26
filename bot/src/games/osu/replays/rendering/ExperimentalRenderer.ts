@@ -161,7 +161,7 @@ export class ExperimentalRenderer implements IReplayRenderer {
         throw new Error("Retries exhausted");
     }
 
-    private async waitForRenderCompletion(renderId: number, timeoutMs = 10 * 60 * 1000): Promise<void> {
+    private async waitForRenderCompletion(renderId: number, timeoutMs = 60 * 60 * 1000): Promise<void> {
         const deadline = Date.now() + timeoutMs;
         while (Date.now() < deadline) {
             const data = await this.getStatusWithRetry(renderId, deadline);
