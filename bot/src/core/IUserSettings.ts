@@ -24,4 +24,5 @@ export interface IUserSettings {
     ordr_music_volume: number;
     ordr_effects_volume: number;
     experimental_renderer: boolean;
+    experimental_scroll_speed: number;
 }

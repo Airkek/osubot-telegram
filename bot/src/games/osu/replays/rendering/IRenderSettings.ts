@@ -11,4 +11,5 @@ export interface IRenderSettings {
     masterVolume: number;
     musicVolume: number;
     effectsVolume: number;
+    scrollSpeed: number;
 }

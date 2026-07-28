@@ -8,6 +8,7 @@ master-volume = 主音量
 music-volume = 音乐音量
 effects-volume = 音效音量
 background-dim = 背景暗度
+scroll-speed = 滚动速度
 pp-counter = PP计数器
 ur-counter = UR计数器
 hit-counter = 命中计数器
@@ -43,8 +44,10 @@ custom-skin-removed = 该皮肤已从 o!rdr 删除，请尝试其他皮肤。
 custom-skin-success = 已启用自定义皮肤：{$skin_name}
 
 invalid-percent-value = 数值必须在0到100之间
+invalid-scroll-speed-value = 滚动速度必须在1.0到40.0之间
 
 enter-bgdim-action = 发送0-100的数字调整背景暗度或输入"{$action}"取消操作
+enter-scroll-speed-action = 发送1.0-40.0的数字调整滚动速度或输入"{$action}"取消操作
 enter-master-volume-action = 发送0-100的数字调整主音量或输入"{$action}"取消操作
 enter-music-volume-action = 发送0-100的数字调整音乐音量或输入"{$action}"取消操作
 enter-effects-volume-action = 发送0-100的数字调整音效音量或输入"{$action}"取消操作

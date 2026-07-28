@@ -930,6 +930,15 @@ const migrations: IMigration[] = [
             return true;
         },
     },
+    {
+        version: 37,
+        name: "Add experimental renderer scroll speed",
+        process: async (db) => {
+            await db.run(`ALTER TABLE settings
+                          ADD COLUMN experimental_scroll_speed DOUBLE PRECISION NOT NULL DEFAULT 26`);
+            return true;
+        },
+    },
 ];
 
 export async function applyMigrations(db: ISqlDatabase) {
