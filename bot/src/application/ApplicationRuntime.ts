@@ -347,14 +347,13 @@ export class ApplicationRuntime implements IBotRuntime {
         await this.storage.memberships.userLeft(user.accountId, chat.chatId);
     }
 
-    addCallback(ctx: IMessageContext, callback: PendingCallback): string {
+    addCallback(ctx: IMessageContext, callback: PendingCallback): void {
         const ticket = this.createCallbackTicket(ctx);
         this.pendingCallbacks.set(ticket, callback);
-        return ticket;
     }
 
-    removeCallback(ticket: string): void {
-        this.pendingCallbacks.delete(ticket);
+    removeCallback(ctx: IMessageContext): void {
+        this.pendingCallbacks.delete(this.createCallbackTicket(ctx));
     }
 
     async sendMessage(recipientId: ExternalId, text: string): Promise<void> {
@@ -382,7 +381,7 @@ export class ApplicationRuntime implements IBotRuntime {
             await this.reportContextError(ctx, error, "callback");
         } finally {
             if (shouldRemove) {
-                this.removeCallback(ticket);
+                this.pendingCallbacks.delete(ticket);
             }
         }
     }

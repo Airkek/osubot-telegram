@@ -51,12 +51,146 @@ type GenericSettingsKey =
     | "scroll_speed"
     | "page_number";
 
+type SettingsEvent = "setbool" | "set" | "cancel" | "page";
+
+const MAX_PAYLOAD_TOKEN_LENGTH = 4;
+
+function definePayloadNames<T extends string>(names: Record<T, string>): Readonly<Record<T, string>> {
+    const payloadNames = Object.values(names) as string[];
+    if (payloadNames.some((name) => name.length > MAX_PAYLOAD_TOKEN_LENGTH)) {
+        throw new RangeError(`Settings payload names cannot exceed ${MAX_PAYLOAD_TOKEN_LENGTH} characters`);
+    }
+    if (new Set(payloadNames).size !== payloadNames.length) {
+        throw new Error("Settings payload names must be unique within their token type");
+    }
+    return names;
+}
+
+const SETTINGS_EVENT_PAYLOAD_NAMES = definePayloadNames<SettingsEvent>({
+    setbool: "bool",
+    set: "set",
+    cancel: "cncl",
+    page: "page",
+});
+
+const SETTINGS_PAGE_PAYLOAD_NAMES = definePayloadNames<SettingsPage>({
+    home: "home",
+    render: "rend",
+    render_advanced: "radv",
+    language: "lang",
+    output_type: "outp",
+    skin_sel: "skin",
+});
+
+const TOGGLEABLE_SETTINGS_KEY_PAYLOAD_NAMES = definePayloadNames<ToggleableSettingsKey>({
+    render_enabled: "rend",
+    ordr_video: "vid",
+    ordr_storyboard: "strb",
+    ordr_pp_counter: "pp",
+    ordr_ur_counter: "ur",
+    ordr_hit_counter: "hit",
+    ordr_strain_graph: "strn",
+    notifications_enabled: "noti",
+    experimental_renderer: "expr",
+    lang_russian: "lru",
+    lang_english: "len",
+    lang_chinese: "lzh",
+    lang_auto: "laut",
+    output_oki_cards: "ooki",
+    output_text: "otxt",
+    enable_find: "find",
+});
+
+const GENERIC_SETTINGS_KEY_PAYLOAD_NAMES = definePayloadNames<GenericSettingsKey>({
+    content_output: "cout",
+    ordr_skin: "skin",
+    ordr_bgdim: "dim",
+    ordr_master_volume: "mvol",
+    ordr_music_volume: "uvol",
+    ordr_effects_volume: "evol",
+    scroll_speed: "scrl",
+    page_number: "pnum",
+});
+
+const CHAT_SETTINGS_PAGES = new Set<SettingsPage>(["home", "language"]);
+const CHAT_TOGGLEABLE_SETTINGS_KEYS = new Set<ToggleableSettingsKey>([
+    "render_enabled",
+    "notifications_enabled",
+    "lang_russian",
+    "lang_english",
+    "lang_chinese",
+    "lang_auto",
+]);
+
+function encodePayloadName<T extends string>(names: Readonly<Record<T, string>>, value: T): string {
+    return names[value];
+}
+
+function decodePayloadName<T extends string>(names: Readonly<Record<T, string>>, value?: string): T | undefined {
+    if (!value) {
+        return undefined;
+    }
+    if (Object.prototype.hasOwnProperty.call(names, value)) {
+        return value as T;
+    }
+    for (const [internalName, payloadName] of Object.entries(names)) {
+        if (payloadName === value) {
+            return internalName as T;
+        }
+    }
+    return undefined;
+}
+
+function decodeSettingsEvent(value?: string): SettingsEvent | undefined {
+    return decodePayloadName(SETTINGS_EVENT_PAYLOAD_NAMES, value);
+}
+
+function encodeSettingsPage(page: SettingsPage): string {
+    return encodePayloadName(SETTINGS_PAGE_PAYLOAD_NAMES, page);
+}
+
+function decodeSettingsPage(value?: string): SettingsPage | undefined {
+    return decodePayloadName(SETTINGS_PAGE_PAYLOAD_NAMES, value);
+}
+
+function decodeChatSettingsPage(value?: string): ChatSettingsPage | undefined {
+    const page = decodeSettingsPage(value);
+    return page && CHAT_SETTINGS_PAGES.has(page) ? (page as ChatSettingsPage) : undefined;
+}
+
+function encodeToggleableSettingsKey(key: ToggleableSettingsKey): string {
+    return encodePayloadName(TOGGLEABLE_SETTINGS_KEY_PAYLOAD_NAMES, key);
+}
+
+function decodeToggleableSettingsKey(value?: string): ToggleableSettingsKey | undefined {
+    return decodePayloadName(TOGGLEABLE_SETTINGS_KEY_PAYLOAD_NAMES, value);
+}
+
+function decodeChatToggleableSettingsKey(value?: string): ToggleableChatSettingsKey | undefined {
+    const key = decodeToggleableSettingsKey(value);
+    return key && CHAT_TOGGLEABLE_SETTINGS_KEYS.has(key) ? (key as ToggleableChatSettingsKey) : undefined;
+}
+
+function encodeGenericSettingsKey(key: GenericSettingsKey): string {
+    return encodePayloadName(GENERIC_SETTINGS_KEY_PAYLOAD_NAMES, key);
+}
+
+function decodeGenericSettingsKey(value?: string): GenericSettingsKey | undefined {
+    if (value === "experimental_scroll_speed") {
+        return "scroll_speed";
+    }
+    return decodePayloadName(GENERIC_SETTINGS_KEY_PAYLOAD_NAMES, value);
+}
+
 function buildEvent(userId: number, event: string): string {
     return `osu s ${userId}:${event}`;
 }
 
 function buildToggleEvent(userId: number, page: SettingsPage, key: ToggleableSettingsKey, currValue: boolean) {
-    return buildEvent(userId, `setbool:${page}:${key}:${currValue ? "0" : "1"}`);
+    return buildEvent(
+        userId,
+        `${encodePayloadName(SETTINGS_EVENT_PAYLOAD_NAMES, "setbool")}:${encodeSettingsPage(page)}:${encodeToggleableSettingsKey(key)}:${currValue ? "0" : "1"}`
+    );
 }
 
 function buildChatToggleEvent(
@@ -65,22 +199,35 @@ function buildChatToggleEvent(
     key: ToggleableChatSettingsKey,
     currValue: boolean
 ) {
-    return buildEvent(chatId, `setbool:${page}:${key}:${currValue ? "0" : "1"}`);
+    return buildEvent(
+        chatId,
+        `${encodePayloadName(SETTINGS_EVENT_PAYLOAD_NAMES, "setbool")}:${encodeSettingsPage(page)}:${encodeToggleableSettingsKey(key)}:${currValue ? "0" : "1"}`
+    );
 }
 
 function buildSetEvent(userId: number, page: SettingsPage, key: GenericSettingsKey, value?: string) {
     const valueAdd = value ? `:${value}` : "";
-    return buildEvent(userId, `set:${page}:${key}` + valueAdd);
+    return buildEvent(
+        userId,
+        `${encodePayloadName(SETTINGS_EVENT_PAYLOAD_NAMES, "set")}:${encodeSettingsPage(page)}:${encodeGenericSettingsKey(key)}` +
+            valueAdd
+    );
 }
 
 function buildPageEvent(userId: number, page: SettingsPage, pageNum?: number) {
     const pageNumAdd = pageNum !== undefined ? `:${pageNum}` : "";
-    return buildEvent(userId, `page:${page}` + pageNumAdd);
+    return buildEvent(
+        userId,
+        `${encodePayloadName(SETTINGS_EVENT_PAYLOAD_NAMES, "page")}:${encodeSettingsPage(page)}` + pageNumAdd
+    );
 }
 
 function buildChatPageEvent(userId: number, page: ChatSettingsPage, pageNum?: number) {
     const pageNumAdd = pageNum !== undefined ? `:${pageNum}` : "";
-    return buildEvent(userId, `page:${page}` + pageNumAdd);
+    return buildEvent(
+        userId,
+        `${encodePayloadName(SETTINGS_EVENT_PAYLOAD_NAMES, "page")}:${encodeSettingsPage(page)}` + pageNumAdd
+    );
 }
 
 function buildPageButton(userId: number, page: SettingsPage, text: string, pageNum?: number): IKeyboardButton {
@@ -124,12 +271,15 @@ function buildStartKeyboard(
     return makeKeyboard(rows);
 }
 
-function buildCancelKeyboard(userId: number, page: SettingsPage, ticket: string, l: ILocalizer): IKeyboard {
+function buildCancelKeyboard(userId: number, page: SettingsPage, l: ILocalizer): IKeyboard {
     return [
         [
             {
                 text: l.tr("cancel-button"),
-                command: buildEvent(userId, `cancel:${ticket}:${page}`),
+                command: buildEvent(
+                    userId,
+                    `${encodePayloadName(SETTINGS_EVENT_PAYLOAD_NAMES, "cancel")}:${encodeSettingsPage(page)}`
+                ),
             },
         ],
     ];
@@ -527,6 +677,10 @@ export class SettingsCommand extends Command {
             if (eventParams.length < 2) {
                 return;
             }
+            const event = decodeSettingsEvent(eventParams[1]);
+            if (!event) {
+                return;
+            }
 
             if (ctx.isInGroupChat) {
                 if (!isAdmin) {
@@ -576,10 +730,13 @@ export class SettingsCommand extends Command {
                     await customCtx.editMarkup(answer);
                 };
 
-                switch (eventParams[1]) {
+                switch (event) {
                     case "setbool": {
-                        const page: ChatSettingsPage = eventParams[2] as ChatSettingsPage;
-                        const key = eventParams[3] as ToggleableChatSettingsKey;
+                        const page = decodeChatSettingsPage(eventParams[2]);
+                        const key = decodeChatToggleableSettingsKey(eventParams[3]);
+                        if (!page || !key) {
+                            return;
+                        }
                         const value = Number(eventParams[4]) === 1;
                         let allowUpdate = false;
                         switch (key) {
@@ -614,11 +771,15 @@ export class SettingsCommand extends Command {
                         break;
                     }
                     case "page": {
+                        const targetPage = decodeChatSettingsPage(eventParams[2]);
+                        if (!targetPage) {
+                            return;
+                        }
                         let page: number = undefined;
                         if (eventParams.length > 3) {
                             page = Number(eventParams[3]);
                         }
-                        await showChatPage(eventParams[2] as ChatSettingsPage, page);
+                        await showChatPage(targetPage, page);
                         break;
                     }
                 }
@@ -672,10 +833,13 @@ export class SettingsCommand extends Command {
                 await customCtx.editMarkup(answer);
             };
 
-            switch (eventParams[1]) {
+            switch (event) {
                 case "setbool": {
-                    const page = eventParams[2] as SettingsPage;
-                    const key = eventParams[3] as ToggleableSettingsKey;
+                    const page = decodeSettingsPage(eventParams[2]);
+                    const key = decodeToggleableSettingsKey(eventParams[3]);
+                    if (!page || !key) {
+                        return;
+                    }
                     const value = Number(eventParams[4]) === 1;
 
                     let allowUpdate = false;
@@ -731,8 +895,11 @@ export class SettingsCommand extends Command {
                     break;
                 }
                 case "set": {
-                    const page = eventParams[2] as SettingsPage;
-                    const key = eventParams[3] as GenericSettingsKey;
+                    const page = decodeSettingsPage(eventParams[2]);
+                    const key = decodeGenericSettingsKey(eventParams[3]);
+                    if (!page || !key) {
+                        return;
+                    }
 
                     let allowUpdate = false;
                     let pageNum = undefined as number;
@@ -753,7 +920,7 @@ export class SettingsCommand extends Command {
                             const msg = ctx.tr("select-page-action", {
                                 action: cancelAction,
                             });
-                            const ticket = this.module.bot.addCallback(ctx, async (ctx) => {
+                            this.module.bot.addCallback(ctx, async (ctx) => {
                                 if (!ctx.text) {
                                     await ctx.reply(msg);
                                     return false;
@@ -775,7 +942,7 @@ export class SettingsCommand extends Command {
                             });
 
                             await ctx.edit(msg, {
-                                keyboard: buildCancelKeyboard(settings.account_id, "skin_sel", ticket, ctx),
+                                keyboard: buildCancelKeyboard(settings.account_id, "skin_sel", ctx),
                             });
                             break;
                         }
@@ -793,7 +960,7 @@ export class SettingsCommand extends Command {
                                     action: cancelAction,
                                     ordr_upload_skin_url: "https://ordr.issou.best/skinupload",
                                 });
-                                const ticket = this.module.bot.addCallback(ctx, async (ctx) => {
+                                this.module.bot.addCallback(ctx, async (ctx) => {
                                     if (!ctx.text) {
                                         await ctx.reply(msg);
                                         return false;
@@ -841,7 +1008,7 @@ export class SettingsCommand extends Command {
                                 });
 
                                 await ctx.edit(msg, {
-                                    keyboard: buildCancelKeyboard(settings.account_id, "skin_sel", ticket, ctx),
+                                    keyboard: buildCancelKeyboard(settings.account_id, "skin_sel", ctx),
                                 });
                             }
                             break;
@@ -853,7 +1020,7 @@ export class SettingsCommand extends Command {
                                 action: cancelAction,
                             });
                             const msgError = ctx.tr("invalid-scroll-speed-value");
-                            const ticket = this.module.bot.addCallback(ctx, async (ctx) => {
+                            this.module.bot.addCallback(ctx, async (ctx) => {
                                 if (!ctx.text) {
                                     await ctx.reply(msg);
                                     return false;
@@ -875,7 +1042,7 @@ export class SettingsCommand extends Command {
                                 return true;
                             });
                             await ctx.edit(msg, {
-                                keyboard: buildCancelKeyboard(settings.account_id, page, ticket, ctx),
+                                keyboard: buildCancelKeyboard(settings.account_id, page, ctx),
                             });
                             break;
                         }
@@ -922,7 +1089,7 @@ export class SettingsCommand extends Command {
                                 }
                             }
 
-                            const ticket = this.module.bot.addCallback(ctx, async (ctx) => {
+                            this.module.bot.addCallback(ctx, async (ctx) => {
                                 if (!ctx.text) {
                                     await ctx.reply(msg);
                                     return false;
@@ -949,7 +1116,7 @@ export class SettingsCommand extends Command {
                                 return true;
                             });
                             await ctx.edit(msg, {
-                                keyboard: buildCancelKeyboard(settings.account_id, page, ticket, ctx),
+                                keyboard: buildCancelKeyboard(settings.account_id, page, ctx),
                             });
                             break;
                         }
@@ -962,20 +1129,26 @@ export class SettingsCommand extends Command {
                     break;
                 }
                 case "cancel": {
-                    const ticket = eventParams[2];
-                    const page = eventParams[3] as SettingsPage;
+                    const page = decodeSettingsPage(eventParams[eventParams.length - 1]);
+                    if (!page) {
+                        return;
+                    }
 
-                    this.module.bot.removeCallback(ticket);
+                    this.module.bot.removeCallback(ctx);
                     await ctx.remove();
                     await showPage(page, undefined, true);
                     break;
                 }
                 case "page": {
+                    const targetPage = decodeSettingsPage(eventParams[2]);
+                    if (!targetPage) {
+                        return;
+                    }
                     let page: number = undefined;
                     if (eventParams.length > 3) {
                         page = Number(eventParams[3]);
                     }
-                    await showPage(eventParams[2] as SettingsPage, page);
+                    await showPage(targetPage, page);
                     break;
                 }
             }

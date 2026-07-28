@@ -94,7 +94,7 @@ test("experimental render settings fit the keyboard and link to the advanced pag
     expect(editMarkup).toHaveBeenCalledTimes(1);
     const keyboard = getKeyboard();
     expect(() => validateKeyboard(keyboard)).not.toThrow();
-    expect(keyboard.flat().map((button) => button.command)).toContain("osu s 37666:page:render_advanced");
+    expect(keyboard.flat().map((button) => button.command)).toContain("osu s 37666:page:radv");
 });
 
 test("experimental advanced render settings contain scroll speed and return navigation", async () => {
@@ -108,8 +108,8 @@ test("experimental advanced render settings contain scroll speed and return navi
     const keyboard = getKeyboard();
     expect(() => validateKeyboard(keyboard)).not.toThrow();
     const commands = keyboard.flat().map((button) => button.command);
-    expect(commands).toContain("osu s 37666:set:render_advanced:scroll_speed");
-    expect(commands).toContain("osu s 37666:page:render");
+    expect(commands).toContain("osu s 37666:set:radv:scrl");
+    expect(commands).toContain("osu s 37666:page:rend");
 });
 
 test("Telegram advanced render settings keep callback data within the platform limit", async () => {
@@ -165,5 +165,71 @@ test("Telegram advanced render settings keep callback data within the platform l
     expect(editMessageReplyMarkup).toHaveBeenCalledTimes(1);
     expect(callbackData.length).toBeGreaterThan(0);
     expect(callbackData.every((data) => Buffer.byteLength(data, "utf8") <= 64)).toBe(true);
-    expect(callbackData.some((data) => data.endsWith(":set:render_advanced:scroll_speed"))).toBe(true);
+    expect(callbackData.some((data) => data.endsWith(":set:radv:scrl"))).toBe(true);
+});
+
+test("Telegram scroll speed input keeps its cancel callback within the platform limit", async () => {
+    const accountId = 2_147_483_647;
+    const callbackData: string[] = [];
+    const editMessageText = jest.fn(
+        async (_text: string, params: { reply_markup?: { inline_keyboard: { callback_data?: string }[][] } }) => {
+            callbackData.push(
+                ...(params.reply_markup?.inline_keyboard ?? [])
+                    .flat()
+                    .map((button) => button.callback_data)
+                    .filter((data): data is string => data !== undefined)
+            );
+        }
+    );
+    const storage = createTestStorage({
+        userSettings: {
+            getUserSettings: async () => ({
+                ...settings,
+                user_id: accountId,
+                account_id: accountId,
+            }),
+            updateSettings: async () => {},
+        },
+    });
+    const context = new TelegramMessageContext(
+        {
+            chatId: accountId,
+            chat: { id: accountId, type: "private" },
+            from: { id: accountId, is_bot: false, first_name: "Test", language_code: "ru" },
+            callbackQuery: { data: `^g2^lru^osu s ${accountId}:set:radv:scrl` },
+            editMessageText,
+        } as never,
+        1,
+        { id: 1 } as never,
+        false,
+        storage,
+        new FluentLocalizer(runtimePaths.locales)
+    );
+    context.bindIdentity({
+        user: {
+            accountId,
+            userId: accountId,
+            platform: "telegram",
+            externalId: String(accountId),
+        },
+        chat: {
+            chatId: accountId,
+            platform: "telegram",
+            externalId: String(accountId),
+        },
+    });
+    await context.activateLocalizer();
+    const module = new Module(["osu"], {
+        storage,
+        addCallback: () => `telegram:${accountId}_-100${accountId}`,
+    } as never);
+    const command = new SettingsCommand(module);
+
+    await command.function(context, command, {
+        fullString: `${accountId}:set:radv:scrl`,
+    } as never);
+
+    expect(editMessageText).toHaveBeenCalledTimes(1);
+    expect(callbackData.every((data) => Buffer.byteLength(data, "utf8") <= 64)).toBe(true);
+    expect(callbackData.some((data) => data.endsWith(":cncl:radv"))).toBe(true);
 });

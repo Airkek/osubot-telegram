@@ -28,7 +28,7 @@ export interface IBotRuntime {
     readonly modules: Module[];
     readonly platformBotLinks: readonly IPlatformBotLink[];
 
-    addCallback(context: IMessageContext, callback: PendingCallback): string;
-    removeCallback(ticket: string): void;
+    addCallback(context: IMessageContext, callback: PendingCallback): void;
+    removeCallback(context: IMessageContext): void;
     sendMessage(recipientId: ExternalId, text: string): Promise<void>;
 }
