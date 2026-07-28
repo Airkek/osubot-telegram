@@ -398,45 +398,38 @@ async function buildRenderPage(settings: IUserSettings, l: ILocalizer): Promise<
             ),
         ],
     ];
+    rows.push([
+        buildPageButton(settings.account_id, "render_advanced", l.tr("render-advanced-page")),
+        buildPageButton(settings.account_id, "home", l.tr("previous-page-button")),
+    ]);
+    return makeKeyboard(rows);
+}
+
+function buildAdvancedRenderPage(settings: IUserSettings, l: ILocalizer): IKeyboard {
+    const page: SettingsPage = "render_advanced";
+    const renderValues: IKeyboardButton[] = [
+        genericSetButton(
+            settings.account_id,
+            page,
+            l.tr("background-dim"),
+            "ordr_bgdim",
+            settings.ordr_bgdim.toString() + "%"
+        ),
+    ];
     if (settings.experimental_renderer) {
-        rows.push([
-            genericSetButton(
-                settings.account_id,
-                page,
-                l.tr("background-dim"),
-                "ordr_bgdim",
-                settings.ordr_bgdim.toString() + "%"
-            ),
+        renderValues.push(
             genericSetButton(
                 settings.account_id,
                 page,
                 l.tr("scroll-speed"),
                 "experimental_scroll_speed",
                 settings.experimental_scroll_speed.toFixed(1)
-            ),
-        ]);
-        rows.push([buildPageButton(settings.account_id, "home", l.tr("previous-page-button"))]);
-    } else {
-        rows.push([
-            buildPageButton(settings.account_id, "render_advanced", l.tr("render-advanced-page")),
-            buildPageButton(settings.account_id, "home", l.tr("previous-page-button")),
-        ]);
+            )
+        );
     }
-    return makeKeyboard(rows);
-}
 
-function buildAdvancedRenderPage(settings: IUserSettings, l: ILocalizer): IKeyboard {
-    const page: SettingsPage = "render_advanced";
     return buildLeveledPageKeyboard(settings.account_id, "render", l, [
-        [
-            genericSetButton(
-                settings.account_id,
-                page,
-                l.tr("background-dim"),
-                "ordr_bgdim",
-                settings.ordr_bgdim.toString() + "%"
-            ),
-        ],
+        renderValues,
         [
             toggleableButton(
                 settings.account_id,
