@@ -15,6 +15,7 @@ const VK_UPDATE_CONCURRENCY = 40;
 const VK_UPDATE_QUEUE_CAPACITY = 1000;
 const RATE_LIMIT_WINDOW_MS = 5000;
 const RATE_LIMIT_COMMANDS = 3;
+const MESSAGE_DEDUPLICATION_WINDOW_MS = 5 * 60 * 1000;
 const VK_PAYLOAD_COMMAND_ALIASES: Readonly<Record<string, string>> = {
     start: "osu onboarding",
 };
@@ -27,6 +28,7 @@ export class VKBotAdapter implements IPlatformAdapter {
 
     private readonly userVk?: VK;
     private readonly commandAttempts = new Map<string, number[]>();
+    private readonly handledMessageKeys = new Map<string, number>();
     private runtime?: ApplicationRuntime;
     private dispatcher?: UpdateDispatcher<VKUpdate>;
     private groupId?: number;
@@ -157,7 +159,11 @@ export class VKBotAdapter implements IPlatformAdapter {
 
         const context = this.buildContext(message);
         const alias = this.commandAlias(message.text);
-        if (this.isRateLimited(context, Boolean(alias))) {
+        const isCommand = Boolean(alias) || this.runtime.getRateLimitKey(context).endsWith(":command");
+        if (isCommand && this.isDuplicateMessage(message)) {
+            return;
+        }
+        if (this.isRateLimited(context, isCommand)) {
             await this.runtime.handleRateLimit(context);
             return;
         }
@@ -223,12 +229,7 @@ export class VKBotAdapter implements IPlatformAdapter {
         return target ? { source: match[0], target } : undefined;
     }
 
-    private isRateLimited(context: VKMessageContext, commandAlias: boolean): boolean {
-        if (!this.runtime) {
-            return false;
-        }
-        const runtimeKey = this.runtime.getRateLimitKey(context);
-        const isCommand = commandAlias || runtimeKey.endsWith(":command");
+    private isRateLimited(context: VKMessageContext, isCommand: boolean): boolean {
         if (!isCommand) {
             return false;
         }
@@ -242,6 +243,30 @@ export class VKBotAdapter implements IPlatformAdapter {
         }
         attempts.push(now);
         this.commandAttempts.set(key, attempts);
+        return false;
+    }
+
+    private isDuplicateMessage(context: MessageContext): boolean {
+        const messageId = context.conversationMessageId ?? context.id;
+        if (!Number.isSafeInteger(messageId) || messageId <= 0) {
+            return false;
+        }
+
+        const now = Date.now();
+        for (const [key, handledAt] of this.handledMessageKeys) {
+            if (now - handledAt < MESSAGE_DEDUPLICATION_WINDOW_MS) {
+                break;
+            }
+            this.handledMessageKeys.delete(key);
+        }
+
+        const key = `${context.peerId}:${messageId}`;
+        if (this.handledMessageKeys.has(key)) {
+            global.logger.trace(`Ignoring duplicate VK message update ${key}`);
+            return true;
+        }
+
+        this.handledMessageKeys.set(key, now);
         return false;
     }
 

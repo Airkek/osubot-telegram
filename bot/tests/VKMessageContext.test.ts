@@ -132,6 +132,42 @@ test("VK adapter routes the start payload to the onboarding greeting", async () 
     expect(edit).not.toHaveBeenCalled();
 });
 
+test("VK adapter ignores a link-preview redelivery of the same message", async () => {
+    const storage = createTestStorage({ platform: "vk" });
+    const handleMessage = jest.fn(async () => {});
+    const adapter = new VKBotAdapter({ token: "test", owner: 40 }, new FluentLocalizer(runtimePaths.locales));
+    Reflect.set(adapter, "runtime", {
+        storage,
+        getRateLimitKey: () => "vk:10:command",
+        handleMessage,
+    });
+    Reflect.set(adapter, "groupId", 30);
+
+    const createMessage = (id: number, conversationMessageId: number, withLinkAttachment: boolean) => ({
+        type: "message",
+        id,
+        conversationMessageId,
+        senderId: 10,
+        peerId: 20,
+        text: "https://osu.ppy.sh/beatmaps/123",
+        isOutbox: false,
+        isFromGroup: false,
+        isEvent: false,
+        getAttachments: (type: string) =>
+            type === "link" && withLinkAttachment ? [{ url: "https://osu.ppy.sh/beatmaps/123" }] : [],
+    });
+    const handleUpdate = Reflect.get(adapter, "handleUpdate");
+    if (typeof handleUpdate !== "function") {
+        throw new Error("VK adapter update handler is not available");
+    }
+
+    await Reflect.apply(handleUpdate, adapter, [{ type: "message", context: createMessage(100, 50, false) }]);
+    await Reflect.apply(handleUpdate, adapter, [{ type: "message", context: createMessage(100, 50, true) }]);
+    await Reflect.apply(handleUpdate, adapter, [{ type: "message", context: createMessage(101, 51, true) }]);
+
+    expect(handleMessage).toHaveBeenCalledTimes(2);
+});
+
 test("VK treats the first forwarded message as a reply fallback", () => {
     const storage = createTestStorage({ platform: "vk" });
     const createContext = (reply: unknown, forwards: unknown[]) =>
