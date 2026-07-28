@@ -222,6 +222,7 @@ export class OsuReplay extends Command {
                 masterVolume: settings.ordr_master_volume,
                 musicVolume: settings.ordr_music_volume,
                 effectsVolume: settings.ordr_effects_volume,
+                scrollSpeed: settings.experimental_scroll_speed,
             };
 
             await this.module.bot.storage.telemetry.logRenderStart(ctx, replay.mode, useExperimental);

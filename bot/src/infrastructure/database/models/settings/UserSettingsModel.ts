@@ -79,7 +79,8 @@ export class UserSettingsModel {
                     settings.ordr_master_volume,
                     settings.ordr_music_volume,
                     settings.ordr_effects_volume,
-                    settings.experimental_renderer
+                    settings.experimental_renderer,
+                    settings.experimental_scroll_speed
              FROM settings
              JOIN platform_accounts AS account
                ON account.id = $2
@@ -136,8 +137,9 @@ export class UserSettingsModel {
                  ordr_master_volume    = $11,
                  ordr_music_volume     = $12,
                  ordr_effects_volume   = $13,
-                 experimental_renderer = $14
-             WHERE app_user_id = $15`,
+                 experimental_renderer     = $14,
+                 experimental_scroll_speed = $15
+              WHERE app_user_id = $16`,
             [
                 settings.render_enabled,
                 settings.ordr_skin,
@@ -153,6 +155,7 @@ export class UserSettingsModel {
                 settings.ordr_music_volume,
                 settings.ordr_effects_volume,
                 settings.experimental_renderer,
+                settings.experimental_scroll_speed,
                 settings.user_id,
             ]
         );

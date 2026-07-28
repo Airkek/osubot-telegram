@@ -48,6 +48,7 @@ type GenericSettingsKey =
     | "ordr_master_volume"
     | "ordr_music_volume"
     | "ordr_effects_volume"
+    | "experimental_scroll_speed"
     | "page_number";
 
 function buildEvent(userId: number, event: string): string {
@@ -406,8 +407,15 @@ async function buildRenderPage(settings: IUserSettings, l: ILocalizer): Promise<
                 "ordr_bgdim",
                 settings.ordr_bgdim.toString() + "%"
             ),
-            buildPageButton(settings.account_id, "home", l.tr("previous-page-button")),
+            genericSetButton(
+                settings.account_id,
+                page,
+                l.tr("scroll-speed"),
+                "experimental_scroll_speed",
+                settings.experimental_scroll_speed.toFixed(1)
+            ),
         ]);
+        rows.push([buildPageButton(settings.account_id, "home", l.tr("previous-page-button"))]);
     } else {
         rows.push([
             buildPageButton(settings.account_id, "render_advanced", l.tr("render-advanced-page")),
@@ -843,6 +851,39 @@ export class SettingsCommand extends Command {
                                     keyboard: buildCancelKeyboard(settings.account_id, "skin_sel", ticket, ctx),
                                 });
                             }
+                            break;
+                        }
+
+                        case "experimental_scroll_speed": {
+                            const cancelAction = ctx.tr("cancel-action");
+                            const msg = ctx.tr("enter-scroll-speed-action", {
+                                action: cancelAction,
+                            });
+                            const msgError = ctx.tr("invalid-scroll-speed-value");
+                            const ticket = this.module.bot.addCallback(ctx, async (ctx) => {
+                                if (!ctx.text) {
+                                    await ctx.reply(msg);
+                                    return false;
+                                }
+                                if (ctx.text.trim().toLowerCase() == cancelAction) {
+                                    await showPage(page, undefined, true, ctx);
+                                    return true;
+                                }
+
+                                const num = Number(ctx.text);
+                                if (!Number.isFinite(num) || num < 1 || num > 40) {
+                                    await ctx.reply(msgError);
+                                    return false;
+                                }
+
+                                settings.experimental_scroll_speed = Math.round(num * 10) / 10;
+                                await ctx.updateUserSettings(settings);
+                                await showPage(page, undefined, true, ctx);
+                                return true;
+                            });
+                            await ctx.edit(msg, {
+                                keyboard: buildCancelKeyboard(settings.account_id, page, ticket, ctx),
+                            });
                             break;
                         }
 

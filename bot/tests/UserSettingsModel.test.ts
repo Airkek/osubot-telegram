@@ -47,6 +47,7 @@ function settings(accountId: number, platform: "telegram" | "vk", contentOutput:
         ordr_music_volume: 50,
         ordr_effects_volume: 50,
         experimental_renderer: false,
+        experimental_scroll_speed: 26,
     } satisfies IUserSettings;
 }
 

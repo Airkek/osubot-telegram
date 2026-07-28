@@ -8,6 +8,7 @@ master-volume = Master volume
 music-volume = Music volume
 effects-volume = Effects volume
 background-dim = Background dimming
+scroll-speed = Scroll speed
 pp-counter = PP counter
 ur-counter = UR counter
 hit-counter = Hit counter
@@ -43,8 +44,10 @@ custom-skin-removed = This skin has been deleted from o!rdr. Please try another 
 custom-skin-success = Custom skin applied: {$skin_name}
 
 invalid-percent-value = Number must be between 0 and 100
+invalid-scroll-speed-value = Scroll speed must be between 1.0 and 40.0
 
 enter-bgdim-action = Send a number from 0 to 100 to change background dimming or write "{$action}" to cancel
+enter-scroll-speed-action = Send a number from 1.0 to 40.0 to change scroll speed or write "{$action}" to cancel
 enter-master-volume-action = Send a number from 0 to 100 to change master volume or write "{$action}" to cancel
 enter-music-volume-action = Send a number from 0 to 100 to change music volume or write "{$action}" to cancel
 enter-effects-volume-action = Send a number from 0 to 100 to change effects volume or write "{$action}" to cancel
