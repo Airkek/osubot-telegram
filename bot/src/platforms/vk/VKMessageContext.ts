@@ -403,9 +403,7 @@ export class VKMessageContext extends BaseMessageContext {
 
     getLinks(): ITextLinkEntity[] {
         const links: ITextLinkEntity[] = [];
-        for (const attachment of this.messageContext?.getAttachments("link") ?? []) {
-            links.push({ type: "text_link", offset: 0, length: 0, url: attachment.url });
-        }
+        const seenUrls = new Set<string>();
 
         const text = this.plainText ?? "";
         for (const match of text.matchAll(/https?:\/\/[^\s]+/gi)) {
@@ -417,6 +415,15 @@ export class VKMessageContext extends BaseMessageContext {
                 length: url.length,
                 url,
             });
+            seenUrls.add(url);
+        }
+
+        for (const attachment of this.messageContext?.getAttachments("link") ?? []) {
+            if (seenUrls.has(attachment.url)) {
+                continue;
+            }
+            links.push({ type: "text_link", offset: 0, length: 0, url: attachment.url });
+            seenUrls.add(attachment.url);
         }
         return links;
     }
