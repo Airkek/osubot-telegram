@@ -48,7 +48,7 @@ type GenericSettingsKey =
     | "ordr_master_volume"
     | "ordr_music_volume"
     | "ordr_effects_volume"
-    | "experimental_scroll_speed"
+    | "scroll_speed"
     | "page_number";
 
 function buildEvent(userId: number, event: string): string {
@@ -422,7 +422,7 @@ function buildAdvancedRenderPage(settings: IUserSettings, l: ILocalizer): IKeybo
                 settings.account_id,
                 page,
                 l.tr("scroll-speed"),
-                "experimental_scroll_speed",
+                "scroll_speed",
                 settings.experimental_scroll_speed.toFixed(1)
             )
         );
@@ -847,7 +847,7 @@ export class SettingsCommand extends Command {
                             break;
                         }
 
-                        case "experimental_scroll_speed": {
+                        case "scroll_speed": {
                             const cancelAction = ctx.tr("cancel-action");
                             const msg = ctx.tr("enter-scroll-speed-action", {
                                 action: cancelAction,

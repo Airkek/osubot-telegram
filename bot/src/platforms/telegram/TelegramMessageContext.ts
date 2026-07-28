@@ -12,8 +12,19 @@ import { Language } from "core/Language";
 import { IKeyboard } from "presentation/keyboard/IKeyboard";
 import { validateKeyboard } from "presentation/keyboard/makeKeyboard";
 
+const MAX_CALLBACK_DATA_BYTES = 64;
+
 export type TgContext = FileFlavor<Context>;
 export type TgApi = FileApiFlavor<Api>;
+
+function validateCallbackData(data: string): void {
+    const byteLength = Buffer.byteLength(data, "utf8");
+    if (byteLength > MAX_CALLBACK_DATA_BYTES) {
+        throw new RangeError(
+            `Telegram callback data cannot exceed ${MAX_CALLBACK_DATA_BYTES} bytes (received ${byteLength})`
+        );
+    }
+}
 
 function replyMessage(ctx: TgContext): IReplyMessage | undefined {
     if (!ctx.message?.reply_to_message) {
@@ -327,9 +338,11 @@ export class TelegramMessageContext extends BaseMessageContext {
             rows.map(
                 async (row) =>
                     await Promise.all(
-                        row.map(async (button) =>
-                            InlineKeyboard.text(button.text, await this.prepareButtonPayload(button.command))
-                        )
+                        row.map(async (button) => {
+                            const payload = await this.prepareButtonPayload(button.command);
+                            validateCallbackData(payload);
+                            return InlineKeyboard.text(button.text, payload);
+                        })
                     )
             )
         );

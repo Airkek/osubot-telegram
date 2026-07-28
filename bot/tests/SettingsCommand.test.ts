@@ -1,8 +1,11 @@
 import { expect, jest, test } from "@jest/globals";
 import { Module } from "../src/commands/Module";
 import { SettingsCommand } from "../src/commands/modules/main/SettingsCommand";
+import { runtimePaths } from "../src/application/RuntimePaths";
 import { IMessageContext } from "../src/core/IMessageContext";
 import { IUserSettings } from "../src/core/IUserSettings";
+import { FluentLocalizer } from "../src/localization/FluentLocalizer";
+import { TelegramMessageContext } from "../src/platforms/telegram/TelegramMessageContext";
 import { IKeyboard } from "../src/presentation/keyboard/IKeyboard";
 import { validateKeyboard } from "../src/presentation/keyboard/makeKeyboard";
 import { createTestStorage } from "./fakes/ApplicationStorageFake";
@@ -37,8 +40,7 @@ const settings: IUserSettings = {
     experimental_scroll_speed: 26,
 };
 
-function createSettingsCommand(): SettingsCommand {
-    const storage = createTestStorage();
+function createSettingsCommand(storage = createTestStorage()): SettingsCommand {
     const module = new Module(["osu"], {
         storage,
         addCallback: jest.fn(),
@@ -106,6 +108,62 @@ test("experimental advanced render settings contain scroll speed and return navi
     const keyboard = getKeyboard();
     expect(() => validateKeyboard(keyboard)).not.toThrow();
     const commands = keyboard.flat().map((button) => button.command);
-    expect(commands).toContain("osu s 37666:set:render_advanced:experimental_scroll_speed");
+    expect(commands).toContain("osu s 37666:set:render_advanced:scroll_speed");
     expect(commands).toContain("osu s 37666:page:render");
+});
+
+test("Telegram advanced render settings keep callback data within the platform limit", async () => {
+    const callbackData: string[] = [];
+    const editMessageReplyMarkup = jest.fn(
+        async (params: { reply_markup: { inline_keyboard: { callback_data?: string }[][] } }) => {
+            callbackData.push(
+                ...params.reply_markup.inline_keyboard
+                    .flat()
+                    .map((button) => button.callback_data)
+                    .filter((data): data is string => data !== undefined)
+            );
+        }
+    );
+    const storage = createTestStorage({
+        userSettings: {
+            getUserSettings: async () => ({ ...settings }),
+            updateSettings: async () => {},
+        },
+    });
+    const context = new TelegramMessageContext(
+        {
+            chatId: 37666,
+            chat: { id: 37666, type: "private" },
+            from: { id: 37666, is_bot: false, first_name: "Test", language_code: "ru" },
+            callbackQuery: { data: "^g2^lru^osu s 37666:page:render_advanced" },
+            editMessageReplyMarkup,
+        } as never,
+        1,
+        { id: 1 } as never,
+        false,
+        storage,
+        new FluentLocalizer(runtimePaths.locales)
+    );
+    context.bindIdentity({
+        user: {
+            accountId: 37666,
+            userId: 37666,
+            platform: "telegram",
+            externalId: "37666",
+        },
+        chat: {
+            chatId: 37666,
+            platform: "telegram",
+            externalId: "37666",
+        },
+    });
+    await context.activateLocalizer();
+    const command = createSettingsCommand(storage);
+
+    await command.function(context, command, { fullString: "37666:page:render_advanced" } as never);
+
+    expect(editMessageReplyMarkup).toHaveBeenCalledTimes(1);
+    expect(callbackData.length).toBeGreaterThan(0);
+    expect(callbackData.every((data) => Buffer.byteLength(data, "utf8") <= 64)).toBe(true);
+    expect(callbackData.some((data) => data.endsWith(":set:render_advanced:scroll_speed"))).toBe(true);
 });
