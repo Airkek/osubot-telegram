@@ -165,6 +165,44 @@ test("VK treats the first forwarded message as a reply fallback", () => {
     });
 });
 
+test("VK prefers text links and deduplicates matching link attachments", () => {
+    const textUrl = "https://osu.ppy.sh/beatmaps/123";
+    const attachmentUrl = "https://osu.ppy.sh/scores/456";
+    const getAttachments = jest.fn((type: string) =>
+        type === "link" ? [{ url: textUrl }, { url: attachmentUrl }] : []
+    );
+    const context = new VKMessageContext(
+        {
+            type: "message",
+            id: 1,
+            senderId: 10,
+            peerId: 10,
+            text: `map ${textUrl}.`,
+            getAttachments,
+        } as never,
+        {} as never,
+        30,
+        40,
+        createTestStorage({ platform: "vk" }),
+        new FluentLocalizer(runtimePaths.locales)
+    );
+
+    expect(context.getLinks()).toEqual([
+        {
+            type: "text_link",
+            offset: 4,
+            length: textUrl.length,
+            url: textUrl,
+        },
+        {
+            type: "text_link",
+            offset: 0,
+            length: 0,
+            url: attachmentUrl,
+        },
+    ]);
+});
+
 test("VK retries buffered photo uploads through the community client for the destination peer", async () => {
     const timeout = new Error("upload timeout");
     timeout.name = "AbortError";
