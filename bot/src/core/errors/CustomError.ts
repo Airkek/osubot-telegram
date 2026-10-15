@@ -8,6 +8,7 @@ export type ErrorTranslationKey =
     | "no-scores-found"
     | "no-top-scores"
     | "replay-not-available"
+    | "server-credentials-missing"
     | "user-not-found"
     | "user-statistics-unavailable"
     | "video-send-failed";

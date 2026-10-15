@@ -14,6 +14,7 @@ beatmap-not-found = 无法获取谱面数据！
 card-gen-failed = 无法生成图片卡片，已改用文本回复。
 invalid-game-mode = 不支持此游戏模式。
 leaderboard-not-supported = 此服务器不支持谱面排行榜。
+server-credentials-missing = { $server } 未向机器人开放此请求所需的 API 权限。目前仅支持查询个人资料。
 replay-not-available = 回放不可用。
 user-statistics-unavailable = 此游戏模式下无法获取玩家统计数据。
 video-send-failed = 视频已生成，但 VK 无法发送。请联系机器人管理员。

@@ -21,6 +21,7 @@ import { NoScoresFoundError } from "core/errors/NoScoresFoundError";
 import { NoTopScoresError } from "core/errors/NoTopScoresError";
 import { ReplayNotAvailableError } from "core/errors/ReplayNotAvailableError";
 import { UserNotFoundError } from "core/errors/UserNotFoundError";
+import { ServerCredentialsMissingError } from "core/errors/ServerCredentialsMissingError";
 import { UserStatisticsUnavailableError } from "core/errors/UserStatisticsUnavailableError";
 import { IOsuV2ApiOptions } from "games/osu/server/bancho/IOsuV2ApiOptions";
 import { setTimeout as wait } from "node:timers/promises";
@@ -531,7 +532,7 @@ export class BanchoV2ApiClient implements IGameApi {
             return false;
         }
         if (this.anonymous) {
-            throw new Error(`${this.serverLabel} requires API credentials for this request, but none are configured`);
+            throw new ServerCredentialsMissingError(this.serverLabel);
         }
         return retryAuthentication;
     }

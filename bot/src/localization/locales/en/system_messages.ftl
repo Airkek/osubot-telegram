@@ -14,6 +14,7 @@ beatmap-not-found = Couldn't retrieve beatmap data!
 card-gen-failed = Failed to generate the image card. Falling back to text.
 invalid-game-mode = This game mode is not supported.
 leaderboard-not-supported = This server does not support map leaderboards.
+server-credentials-missing = { $server } has not shared API access for this request. Only profile lookups are available.
 replay-not-available = Replay is not available.
 user-statistics-unavailable = Player statistics are unavailable for this game mode.
 video-send-failed = The video was rendered, but VK could not deliver it. Please notify the bot administrator.
