@@ -22,11 +22,17 @@ import { NoTopScoresError } from "core/errors/NoTopScoresError";
 import { ReplayNotAvailableError } from "core/errors/ReplayNotAvailableError";
 import { UserNotFoundError } from "core/errors/UserNotFoundError";
 import { UserStatisticsUnavailableError } from "core/errors/UserStatisticsUnavailableError";
+import { IOsuV2ApiOptions } from "games/osu/server/bancho/IOsuV2ApiOptions";
 import { setTimeout as wait } from "node:timers/promises";
 
 const MAX_RATE_LIMIT_RETRIES = 3;
 const DEFAULT_RATE_LIMIT_DELAY_MS = 1_000;
 const MAX_RATE_LIMIT_DELAY_MS = 30_000;
+
+const DEFAULT_API_BASE_URL = "https://osu.ppy.sh/api/v2";
+const DEFAULT_OAUTH_TOKEN_URL = "https://osu.ppy.sh/oauth/token";
+const DEFAULT_SERVER_LABEL = "osu!";
+const API_VERSION = "20241130";
 
 type Ruleset = "osu" | "mania" | "taiko" | "fruits";
 
@@ -445,22 +451,49 @@ export class BanchoV2ApiClient implements IGameApi {
     token?: string;
     app_id: number;
     client_secret: string;
+    protected readonly serverLabel: string;
+    protected anonymous = false;
+    private readonly oauthTokenUrl: string;
+    private readonly allowAnonymous: boolean;
     private rateLimitUntil = 0;
-    constructor(appId: number, clientSecret: string) {
+    constructor(appId: number, clientSecret: string, options: IOsuV2ApiOptions = {}) {
         this.api = axios.default.create({
-            baseURL: "https://osu.ppy.sh/api/v2",
+            baseURL: options.apiBaseUrl ?? DEFAULT_API_BASE_URL,
             timeout: 15000,
         });
+        this.oauthTokenUrl = options.oauthTokenUrl ?? DEFAULT_OAUTH_TOKEN_URL;
+        this.allowAnonymous = options.allowAnonymous ?? false;
+        this.serverLabel = options.serverLabel ?? DEFAULT_SERVER_LABEL;
         this.app_id = appId;
         this.client_secret = clientSecret;
 
         this.logged = 0;
     }
 
+    /** Whether OAuth credentials were supplied for this client. */
+    protected get hasCredentials(): boolean {
+        return Number.isFinite(this.app_id) && this.app_id > 0 && !!this.client_secret;
+    }
+
     async login(): Promise<void> {
+        if (!this.hasCredentials) {
+            if (!this.allowAnonymous) {
+                this.logged = -1;
+                throw new Error(`${this.serverLabel} API credentials are not configured`);
+            }
+            this.anonymous = true;
+            this.token = undefined;
+            this.logged = 1;
+            global.logger.warn(
+                `${this.serverLabel} API credentials are not configured; ` +
+                    "continuing anonymously (only publicly readable endpoints will work)"
+            );
+            return;
+        }
+
         try {
             const { data } = await axios.default.post(
-                "https://osu.ppy.sh/oauth/token",
+                this.oauthTokenUrl,
                 {
                     grant_type: "client_credentials",
                     client_id: this.app_id,
@@ -470,8 +503,9 @@ export class BanchoV2ApiClient implements IGameApi {
                 { timeout: 15000 }
             );
             if (typeof data?.access_token !== "string" || !data.access_token) {
-                throw new Error("osu! OAuth response does not contain an access token");
+                throw new Error(`${this.serverLabel} OAuth response does not contain an access token`);
             }
+            this.anonymous = false;
             this.token = data.access_token;
             this.logged = 1;
         } catch (error) {
@@ -480,19 +514,38 @@ export class BanchoV2ApiClient implements IGameApi {
         }
     }
 
+    private requestHeaders(): Record<string, string> {
+        const headers: Record<string, string> = { "x-api-version": API_VERSION };
+        if (this.token) {
+            headers.Authorization = `Bearer ${this.token}`;
+        }
+        return headers;
+    }
+
+    /**
+     * Decides what to do with a 401: anonymous clients cannot recover, so they fail
+     * with a message that names the missing credentials instead of retrying forever.
+     */
+    private shouldReauthenticate(error: unknown, retryAuthentication: boolean): boolean {
+        if (!axios.isAxiosError(error) || error.response?.status !== 401) {
+            return false;
+        }
+        if (this.anonymous) {
+            throw new Error(`${this.serverLabel} requires API credentials for this request, but none are configured`);
+        }
+        return retryAuthentication;
+    }
+
     private async getArrayBuffer(method: string, query?, retryAuthentication = true, rateLimitRetries = 0) {
         await this.waitForRateLimit();
         try {
             const { data } = await this.api.get(`${method}${query ? `?${qs.stringify(query)}` : ""}`, {
-                headers: {
-                    Authorization: `Bearer ${this.token}`,
-                    "x-api-version": "20241130",
-                },
+                headers: this.requestHeaders(),
                 responseType: "arraybuffer",
             });
             return data;
         } catch (e) {
-            if (axios.isAxiosError(e) && e.response?.status === 401 && retryAuthentication) {
+            if (this.shouldReauthenticate(e, retryAuthentication)) {
                 await this.refresh();
                 return this.getArrayBuffer(method, query, false, rateLimitRetries);
             }
@@ -510,14 +563,11 @@ export class BanchoV2ApiClient implements IGameApi {
         await this.waitForRateLimit();
         try {
             const { data } = await this.api.get(`${method}${query ? `?${qs.stringify(query)}` : ""}`, {
-                headers: {
-                    Authorization: `Bearer ${this.token}`,
-                    "x-api-version": "20241130",
-                },
+                headers: this.requestHeaders(),
             });
             return data;
         } catch (e) {
-            if (axios.isAxiosError(e) && e.response?.status === 401 && retryAuthentication) {
+            if (this.shouldReauthenticate(e, retryAuthentication)) {
                 await this.refresh();
                 return this.get(method, query, false, rateLimitRetries);
             }
@@ -535,14 +585,11 @@ export class BanchoV2ApiClient implements IGameApi {
         await this.waitForRateLimit();
         try {
             const { data } = await this.api.post(`${method}`, query, {
-                headers: {
-                    Authorization: `Bearer ${this.token}`,
-                    "x-api-version": "20241130",
-                },
+                headers: this.requestHeaders(),
             });
             return data;
         } catch (e) {
-            if (axios.isAxiosError(e) && e.response?.status === 401 && retryAuthentication) {
+            if (this.shouldReauthenticate(e, retryAuthentication)) {
                 await this.refresh();
                 return this.post(method, query, false, rateLimitRetries);
             }
@@ -565,7 +612,7 @@ export class BanchoV2ApiClient implements IGameApi {
         const jitter = retryAfter > 0 ? Math.floor(Math.random() * 250) : 0;
         this.rateLimitUntil = Math.max(this.rateLimitUntil, Date.now() + retryAfter + jitter);
         global.logger.warn(
-            `osu! API rate limit reached; retrying in ${Math.max(this.rateLimitUntil - Date.now(), 0)}ms ` +
+            `${this.serverLabel} API rate limit reached; retrying in ${Math.max(this.rateLimitUntil - Date.now(), 0)}ms ` +
                 `(attempt ${retryCount + 1}/${MAX_RATE_LIMIT_RETRIES})`
         );
         await this.waitForRateLimit();

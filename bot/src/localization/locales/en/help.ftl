@@ -287,6 +287,10 @@ help-notes-bancho =
     • Bancho is the official server. Use link when available.
     • update shows profile changes between updates.
 
+help-notes-morasooma =
+    • Private osu!lazer server (mosu client). Use nick to save your username.
+    • Beatmaps are shared with osu!, profiles and scores live on morasooma.net.
+
 help-notes-gatari =
     • Community server. Use nick to save your username.
 

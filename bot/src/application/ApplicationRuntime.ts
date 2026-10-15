@@ -1,6 +1,7 @@
 import { IMessageContext } from "core/IMessageContext";
 import { GameApiRegistry } from "games/GameApiRegistry";
 import { BanchoV2ApiClient } from "games/osu/server/bancho/BanchoV2ApiClient";
+import { MorasoomaApiClient } from "games/osu/server/g0v0/MorasoomaApiClient";
 import { OsuBeatmapProvider } from "games/osu/beatmaps/OsuBeatmapProvider";
 import { IBotRuntime } from "core/IBotRuntime";
 import { PendingCallback } from "core/PendingCallback";
@@ -18,6 +19,7 @@ import { Bancho } from "commands/modules/bancho/Bancho";
 import { BeatLeader } from "commands/modules/beatleader/BeatLeader";
 import { Gatari } from "commands/modules/gatari/Gatari";
 import { Main } from "commands/modules/main/Main";
+import { Morasooma } from "commands/modules/morasooma/Morasooma";
 import { Module } from "commands/Module";
 import { Ripple } from "commands/modules/ripple/Ripple";
 import { RippleRelax } from "commands/modules/ripple-relax/RippleRelax";
@@ -45,6 +47,7 @@ import { ModuleBuilderFunc } from "application/ModuleBuilderFunc";
 
 const DEFAULT_MODULE_BUILDERS: ModuleBuilderFunc[] = [
     (runtime) => new Bancho(runtime),
+    (runtime) => new Morasooma(runtime),
     (runtime) => new Gatari(runtime),
     (runtime) => new Ripple(runtime),
     (runtime) => new RippleRelax(runtime),
@@ -173,12 +176,17 @@ export class ApplicationRuntime implements IBotRuntime {
             getPhotoDoc: (url) => currentMediaProvider().getPhotoDoc(url),
         };
         const banchoApi = new BanchoV2ApiClient(config.banchoAppId, config.banchoClientSecret);
+        const morasoomaApi = new MorasoomaApiClient(
+            config.morasoomaApiBase,
+            config.morasoomaAppId,
+            config.morasoomaClientSecret
+        );
         const osuBeatmapProvider = new OsuBeatmapProvider(banchoApi, storage.beatmaps);
         const cards = new OkiCardsGenerator();
 
         return new ApplicationRuntime({
             storage,
-            api: new GameApiRegistry(banchoApi),
+            api: new GameApiRegistry(banchoApi, morasoomaApi),
             osuBeatmapProvider,
             templates: LegacyTextTemplates,
             chatBeatmaps: new ChatBeatmapCache(),
@@ -199,6 +207,12 @@ export class ApplicationRuntime implements IBotRuntime {
         await this.storage.initialize();
         await this.ignored.init();
         await this.api.bancho.login();
+        try {
+            await this.api.morasooma.login();
+        } catch (error) {
+            // Morasooma is a private server; a failed login must not keep the bot down.
+            global.logger.error("Failed to authenticate against the Morasooma API", error);
+        }
         await this.performanceClient?.health();
         this.modules.push(...this.moduleBuilders.map((builder) => builder(this)));
     }

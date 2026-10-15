@@ -248,6 +248,10 @@ help-cmd-admin-clear =
 help-notes-bancho =
     • Bancho 为官方服务器；link 可用时建议使用。
 
+help-notes-morasooma =
+    • 私服 osu!lazer 服务器（mosu 客户端）。使用 nick 保存用户名。
+    • 谱面与 osu! 共用，个人资料与成绩位于 morasooma.net。
+
 help-notes-gatari =
     • 社区服务器。使用 nick 保存用户名。
 

@@ -21,7 +21,15 @@ import { IUserSettingsRepository } from "core/storage/IUserSettingsRepository";
 import { IIdentityRepository } from "core/IIdentityRepository";
 import { Platform } from "core/Platform";
 
-const GAME_SERVERS: GameServerName[] = ["bancho", "gatari", "ripple", "akatsuki", "beatleader", "scoresaber"];
+const GAME_SERVERS: GameServerName[] = [
+    "bancho",
+    "morasooma",
+    "gatari",
+    "ripple",
+    "akatsuki",
+    "beatleader",
+    "scoresaber",
+];
 
 export class PlatformStorage implements IPlatformStorageHost {
     readonly platforms: readonly Platform[];

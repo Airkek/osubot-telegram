@@ -128,6 +128,7 @@ export class PostgresStorage implements IApplicationStorage {
         this.identities = new PostgresIdentityRepository(db, platform);
         this.gameServers = {
             bancho: new PostgresGameUserRepository("bancho", db, platform),
+            morasooma: new PostgresGameUserRepository("morasooma", db, platform),
             gatari: new PostgresGameUserRepository("gatari", db, platform),
             ripple: new PostgresGameUserRepository("ripple", db, platform),
             akatsuki: new PostgresGameUserRepository("akatsuki", db, platform),

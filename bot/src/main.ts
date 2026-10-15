@@ -19,6 +19,9 @@ dotenv.config();
 const runtimeConfig: IRuntimeConfig = {
     banchoAppId: Number(process.env.OSU_V2_APP_ID),
     banchoClientSecret: process.env.OSU_V2_CLIENT_SECRET,
+    morasoomaApiBase: process.env.MORA_API_BASE,
+    morasoomaAppId: process.env.MORA_CLIENT_ID ? Number(process.env.MORA_CLIENT_ID) : undefined,
+    morasoomaClientSecret: process.env.MORA_CLIENT_SECRET,
 };
 
 declare global {
