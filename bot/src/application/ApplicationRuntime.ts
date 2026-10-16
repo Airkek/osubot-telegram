@@ -52,6 +52,9 @@ import { ILocalizer } from "localization/ILocalizer";
 import { MediaFile } from "core/MediaFile";
 import { UserNotFoundError } from "core/errors/UserNotFoundError";
 
+// Below this length an unprefixed query would fan out to every server on each
+// keystroke, so short ones wait until the player name is worth looking up.
+const INLINE_MIN_FANOUT_LENGTH = 3;
 const INLINE_RESULT_CACHE_MS = 30_000;
 const INLINE_RESULT_CACHE_LIMIT = 200;
 
@@ -433,6 +436,9 @@ export class ApplicationRuntime implements IBotRuntime {
         }
         const targets = requested ? [requested] : servers;
         const nickname = words.join(" ");
+        if (!requested && nickname.length > 0 && nickname.length < INLINE_MIN_FANOUT_LENGTH) {
+            return [];
+        }
 
         const identity = nickname ? undefined : await this.storage.identities.resolveUser(externalUserId);
         const settled = await Promise.all(

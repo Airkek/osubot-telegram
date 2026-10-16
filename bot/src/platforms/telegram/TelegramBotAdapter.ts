@@ -141,16 +141,21 @@ export class TelegramBotAdapter implements IPlatformAdapter {
     }
 
     private setupBotMiddleware(): void {
-        this.tg.use(
-            limit({
-                timeFrame: 5000,
-                limit: 3,
-                onLimitExceeded: async (tgCtx: TgContext) => {
-                    await this.runtime.handleRateLimit(this.buildContext(tgCtx));
-                },
-                keyGenerator: (tgCtx: TgContext) => this.runtime.getRateLimitKey(this.buildContext(tgCtx)),
-            })
-        );
+        // Inline queries carry no chat, so a message context cannot be built for
+        // them and the rate limiter would throw before any handler runs. They are
+        // throttled by the runtime's own result cache instead.
+        this.tg
+            .filter((ctx) => !ctx.inlineQuery)
+            .use(
+                limit({
+                    timeFrame: 5000,
+                    limit: 3,
+                    onLimitExceeded: async (tgCtx: TgContext) => {
+                        await this.runtime.handleRateLimit(this.buildContext(tgCtx));
+                    },
+                    keyGenerator: (tgCtx: TgContext) => this.runtime.getRateLimitKey(this.buildContext(tgCtx)),
+                })
+            );
         this.tg.api.config.use(hydrateFiles(this.tg.token));
     }
 
@@ -222,6 +227,11 @@ export class TelegramBotAdapter implements IPlatformAdapter {
                 ],
                 { cache_time: 0, is_personal: true }
             );
+            return;
+        }
+
+        if (results.length === 0) {
+            await ctx.answerInlineQuery([], { cache_time: 0, is_personal: true });
             return;
         }
 
