@@ -44,6 +44,13 @@ import { IRuntimeConfig } from "application/IRuntimeConfig";
 import { IRuntimeDependencies } from "application/IRuntimeDependencies";
 import { IRuntimePlatformServices } from "application/IRuntimePlatformServices";
 import { ModuleBuilderFunc } from "application/ModuleBuilderFunc";
+import { IInlineUserResult } from "application/IInlineUserResult";
+import { InlineCardStore } from "application/InlineCardStore";
+import { ServerModule } from "commands/ServerModule";
+import { IGameUser } from "games/users/IGameUser";
+import { ILocalizer } from "localization/ILocalizer";
+import { MediaFile } from "core/MediaFile";
+import { UserNotFoundError } from "core/errors/UserNotFoundError";
 
 const DEFAULT_MODULE_BUILDERS: ModuleBuilderFunc[] = [
     (runtime) => new Bancho(runtime),
@@ -73,6 +80,7 @@ export class ApplicationRuntime implements IBotRuntime {
     readonly replies: ReplyService;
     readonly version: string;
     readonly modules: Module[] = [];
+    readonly inlineCards = new InlineCardStore();
     readonly platformBotLinks: IPlatformBotLink[] = [];
     startTime = 0;
 
@@ -242,6 +250,7 @@ export class ApplicationRuntime implements IBotRuntime {
         }
         this.stopped = true;
         this.stopStatsLogger();
+        this.inlineCards.stop();
         this.performanceClient?.close();
         await this.storage.close();
     }
@@ -374,6 +383,65 @@ export class ApplicationRuntime implements IBotRuntime {
 
     async sendMessage(recipientId: ExternalId, text: string): Promise<void> {
         await this.sendPlatformMessage(recipientId, text);
+    }
+
+    /**
+     * Resolves an inline query such as "m innerbloom" into a ready profile card.
+     * An unrecognised first word is treated as part of the nickname, and an
+     * empty query falls back to the sender's linked account on that server.
+     */
+    async buildInlineUserCard(
+        platform: Platform,
+        externalUserId: ExternalId,
+        l: ILocalizer,
+        query: string
+    ): Promise<IInlineUserResult> {
+        return await this.runWithPlatform(platform, async () => {
+            const words = query.trim().split(/\s+/).filter(Boolean);
+            const servers = this.modules.filter((module): module is ServerModule => module instanceof ServerModule);
+
+            let server = servers.find((module) => module.name === "Bancho") ?? servers[0];
+            if (words.length > 0) {
+                const requested = servers.find((module) => module.prefix.includes(words[0].toLowerCase()));
+                if (requested) {
+                    server = requested;
+                    words.shift();
+                }
+            }
+            if (!server) {
+                throw new Error("No server modules are registered");
+            }
+
+            const nickname = words.join(" ");
+            let mode = 0;
+            let user: IGameUser;
+            if (nickname) {
+                user = await server.api.getUser(nickname, mode);
+            } else {
+                const identity = await this.storage.identities.resolveUser(externalUserId);
+                const link = await server.db.getUser(identity.userId);
+                if (!link) {
+                    throw new UserNotFoundError();
+                }
+                mode = link.mode ?? 0;
+                user = await server.api.getUserById(link.game_id, mode);
+            }
+
+            let card: MediaFile;
+            try {
+                card = await this.replies.inlineUserCard(l, user);
+            } catch (error) {
+                global.logger.error("Failed to render an inline profile card", error);
+            }
+
+            return {
+                serverName: server.name,
+                nickname: user.nickname,
+                description: `${Math.round(user.pp).toLocaleString()}pp · #${user.rank.total?.toLocaleString() ?? "—"} · ${user.accuracy.toFixed(2)}%`,
+                text: this.replies.userText(l, user, server.link),
+                card,
+            };
+        });
     }
 
     private async prepareContext(ctx: IMessageContext): Promise<void> {

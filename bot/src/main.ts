@@ -114,6 +114,7 @@ async function main(): Promise<void> {
     const storage = new PlatformStorage(PostgresStorage.fromEnvironmentForPlatforms(bots.map((bot) => bot.platform)));
     runtime = ApplicationRuntime.create(runtimeConfig, storage, bots);
     await runtime.initialize();
+    httpServer.registerInlineCards(runtime.inlineCards);
     httpServer.start();
     const started: IPlatformAdapter[] = [];
     try {

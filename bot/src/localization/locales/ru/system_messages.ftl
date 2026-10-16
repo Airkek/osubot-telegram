@@ -18,3 +18,4 @@ server-credentials-missing = { $server } не выдал боту доступ �
 replay-not-available = Реплей недоступен.
 user-statistics-unavailable = Статистика игрока недоступна для этого режима игры.
 video-send-failed = Видео готово, но ВКонтакте не смог его доставить. Сообщите администратору бота.
+inline-lookup-failed = Не удалось получить профиль

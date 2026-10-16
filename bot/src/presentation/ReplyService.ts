@@ -87,6 +87,18 @@ export class ReplyService {
         };
     }
 
+    /**
+     * Renders a profile card for inline results, where there is no chat context
+     * to carry an output preference — the card is the whole point of the result.
+     */
+    async inlineUserCard(l: ILocalizer, user: IGameUser): Promise<MediaFile | undefined> {
+        return await this.cards.generateUserCard(user, l);
+    }
+
+    userText(l: ILocalizer, user: IGameUser, serverBase: string): string {
+        return this.templates.User(l, user, serverBase);
+    }
+
     async topScores(
         l: ILocalizer,
         ctx: IMessageContext,

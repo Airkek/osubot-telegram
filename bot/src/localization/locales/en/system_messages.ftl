@@ -18,3 +18,4 @@ server-credentials-missing = { $server } has not shared API access for this requ
 replay-not-available = Replay is not available.
 user-statistics-unavailable = Player statistics are unavailable for this game mode.
 video-send-failed = The video was rendered, but VK could not deliver it. Please notify the bot administrator.
+inline-lookup-failed = Could not load the profile

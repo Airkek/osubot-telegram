@@ -1,5 +1,6 @@
 import express, { Express, Request, Response } from "express";
 import { Server } from "node:http";
+import { InlineCardStore } from "application/InlineCardStore";
 
 export class ApplicationHttpServer {
     readonly app: Express;
@@ -15,6 +16,22 @@ export class ApplicationHttpServer {
                 uptime: process.uptime(),
                 message: "Service is running",
             });
+        });
+    }
+
+    /**
+     * Serves rendered inline cards. Only the Bot API server fetches these, so
+     * the route stays unauthenticated but the ids are unguessable and expire.
+     */
+    registerInlineCards(store: InlineCardStore): void {
+        this.app.get("/inline-cards/:id.png", (req: Request, res: Response) => {
+            const card = store.get(req.params.id);
+            if (!card) {
+                return res.status(404).end();
+            }
+            res.setHeader("Content-Type", "image/png");
+            res.setHeader("Cache-Control", "no-store");
+            return res.status(200).end(card);
         });
     }
 

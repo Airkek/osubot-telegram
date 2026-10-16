@@ -18,3 +18,4 @@ server-credentials-missing = { $server } 未向机器人开放此请求所需的
 replay-not-available = 回放不可用。
 user-statistics-unavailable = 此游戏模式下无法获取玩家统计数据。
 video-send-failed = 视频已生成，但 VK 无法发送。请联系机器人管理员。
+inline-lookup-failed = 无法获取个人资料

@@ -17,6 +17,23 @@ import { ExternalId } from "core/ExternalId";
 import { IPlatformAdapter } from "core/IPlatformAdapter";
 import { FluentLocalizer } from "localization/FluentLocalizer";
 import { ITelegramBotConfig } from "platforms/telegram/ITelegramBotConfig";
+import { IInlineUserResult } from "application/IInlineUserResult";
+import { MediaFile } from "core/MediaFile";
+import { Language } from "core/Language";
+import { localizeError } from "core/errors/localizeError";
+
+const INLINE_CACHE_SECONDS = 30;
+
+function inlineLanguage(languageCode?: string): Language {
+    const normalized = languageCode?.toLowerCase() ?? "";
+    if (normalized.startsWith("ru")) {
+        return "ru";
+    }
+    if (normalized.startsWith("zh")) {
+        return "zh";
+    }
+    return "en";
+}
 
 const WEBHOOK_UPDATE_CONCURRENCY = 40;
 const WEBHOOK_UPDATE_QUEUE_CAPACITY = 1000;
@@ -175,6 +192,80 @@ export class TelegramBotAdapter implements IPlatformAdapter {
                 await this.runtime.handleMessage(this.buildContext(ctx));
             }
         });
+        this.tg.on("inline_query", async (ctx) => {
+            await this.handleInlineQuery(ctx);
+        });
+    }
+
+    private async handleInlineQuery(ctx: TgContext): Promise<void> {
+        const query = ctx.inlineQuery.query ?? "";
+        const language = inlineLanguage(ctx.inlineQuery.from.language_code);
+        const l = { tr: this.localizer.translator(language) };
+
+        let result: IInlineUserResult;
+        try {
+            result = await this.runtime.buildInlineUserCard(this.platform, ctx.inlineQuery.from.id, l, query);
+        } catch (error) {
+            await ctx.answerInlineQuery(
+                [
+                    {
+                        type: "article",
+                        id: "error",
+                        title: l.tr("inline-lookup-failed"),
+                        description: localizeError(error, l),
+                        input_message_content: { message_text: localizeError(error, l) },
+                    },
+                ],
+                { cache_time: 0, is_personal: true }
+            );
+            return;
+        }
+
+        const title = `${result.nickname} — ${result.serverName}`;
+        const cardUrl = this.inlineCardUrl(result.card);
+        if (cardUrl) {
+            await ctx.answerInlineQuery(
+                [
+                    {
+                        type: "photo",
+                        id: `card:${Date.now()}`,
+                        photo_url: cardUrl,
+                        thumbnail_url: cardUrl,
+                        title,
+                        description: result.description,
+                        caption: result.text,
+                    },
+                ],
+                { cache_time: INLINE_CACHE_SECONDS, is_personal: true }
+            );
+            return;
+        }
+
+        await ctx.answerInlineQuery(
+            [
+                {
+                    type: "article",
+                    id: `text:${Date.now()}`,
+                    title,
+                    description: result.description,
+                    input_message_content: { message_text: result.text },
+                },
+            ],
+            { cache_time: INLINE_CACHE_SECONDS, is_personal: true }
+        );
+    }
+
+    /**
+     * Inline results carry a URL rather than an upload, so the card is parked in
+     * the store and served back over the bot's own HTTP server, which only the
+     * Bot API server needs to reach.
+     */
+    private inlineCardUrl(card?: MediaFile): string | undefined {
+        const base = process.env.INLINE_CARD_BASE_URL?.trim().replace(/\/+$/, "");
+        if (!base || !card || !Buffer.isBuffer(card)) {
+            return undefined;
+        }
+        return `${base}/inline-cards/${this.runtime.inlineCards.put(card)}.png`;
     }
 
     private configureCommandAliases(): void {
