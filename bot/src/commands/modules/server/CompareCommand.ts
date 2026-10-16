@@ -33,12 +33,12 @@ export class CompareCommand extends ServerCommand {
                 }
 
                 const buttons: IKeyboardRow[] = [];
-                if (score.has_replay && score.api_score_id) {
+                if (score.has_replay && score.api_score_id && self.module.api.downloadReplay) {
                     const settingsAllowed = process.env.RENDER_REPLAYS === "true";
                     if (settingsAllowed) {
                         const button = {
                             text: self.ctx.tr("render-replay-button"),
-                            command: `render_bancho:${score.api_score_id}`,
+                            command: `render:${self.module.prefix[0]}:${score.api_score_id}`,
                         };
                         buttons.push([button]);
                     }

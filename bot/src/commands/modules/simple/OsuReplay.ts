@@ -3,6 +3,7 @@ import { MediaFile } from "core/MediaFile";
 import fs from "fs/promises";
 import { Command } from "commands/Command";
 import { SimpleCommandsModule } from "commands/modules/simple/SimpleCommandsModule";
+import { ServerModule } from "commands/ServerModule";
 import { Util } from "shared/Util";
 import { IKeyboard } from "presentation/keyboard/IKeyboard";
 import { makeKeyboard } from "presentation/keyboard/makeKeyboard";
@@ -29,12 +30,31 @@ export class OsuReplay extends Command {
                     return;
                 }
                 switch (messagePayload[0]) {
+                    // Payload kept for buttons sent before the server was encoded.
                     case "render_bancho": {
                         const scoreId = Number(messagePayload[1]);
                         if (isNaN(scoreId)) {
                             return;
                         }
                         file = await this.module.bot.api.bancho.downloadReplay(scoreId);
+                        break;
+                    }
+                    case "render": {
+                        if (messagePayload.length < 3) {
+                            return;
+                        }
+                        const scoreId = Number(messagePayload[2]);
+                        if (isNaN(scoreId)) {
+                            return;
+                        }
+                        const server = this.module.bot.modules.find(
+                            (candidate): candidate is ServerModule =>
+                                candidate instanceof ServerModule && candidate.prefix[0] === messagePayload[1]
+                        );
+                        if (!server?.api.downloadReplay) {
+                            return;
+                        }
+                        file = await server.api.downloadReplay(scoreId);
                         break;
                     }
                     default:
@@ -289,7 +309,8 @@ export class OsuReplay extends Command {
     check(name: string, ctx: IMessageContext): boolean {
         return (
             (ctx.hasFile() && ctx.getFileName()?.endsWith(".osr")) ||
-            (ctx.messagePayload && ctx.messagePayload.startsWith("render_bancho:"))
+            (ctx.messagePayload &&
+                (ctx.messagePayload.startsWith("render_bancho:") || ctx.messagePayload.startsWith("render:")))
         );
     }
 
