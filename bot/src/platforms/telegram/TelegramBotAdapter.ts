@@ -24,6 +24,10 @@ import { localizeError } from "core/errors/localizeError";
 
 const INLINE_CACHE_SECONDS = 30;
 
+// Listing update types explicitly is what makes chat_member arrive, so every
+// other type the bot handles has to be named here too.
+const ALLOWED_UPDATES = ["chat_member", "callback_query", "message", "inline_query"] as const;
+
 function inlineLanguage(languageCode?: string): Language {
     const normalized = languageCode?.toLowerCase() ?? "";
     if (normalized.startsWith("ru")) {
@@ -292,7 +296,7 @@ export class TelegramBotAdapter implements IPlatformAdapter {
         );
         await this.tg.api.setWebhook(endpoint, {
             drop_pending_updates: process.env.IGNORE_OLD_UPDATES === "true",
-            allowed_updates: ["chat_member", "callback_query", "message"],
+            allowed_updates: ALLOWED_UPDATES,
             secret_token: this.webhookSecret,
             max_connections: 100,
         });
@@ -305,7 +309,7 @@ export class TelegramBotAdapter implements IPlatformAdapter {
         this.runner = run(this.tg, {
             runner: {
                 fetch: {
-                    allowed_updates: ["chat_member", "callback_query", "message"],
+                    allowed_updates: ALLOWED_UPDATES,
                 },
             },
         });
