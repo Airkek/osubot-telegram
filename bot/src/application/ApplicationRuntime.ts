@@ -179,7 +179,9 @@ export class ApplicationRuntime implements IBotRuntime {
         const morasoomaApi = new MorasoomaApiClient(
             config.morasoomaApiBase,
             config.morasoomaAppId,
-            config.morasoomaClientSecret
+            config.morasoomaClientSecret,
+            config.morasoomaUsername,
+            config.morasoomaPassword
         );
         const osuBeatmapProvider = new OsuBeatmapProvider(banchoApi, storage.beatmaps);
         const cards = new OkiCardsGenerator();

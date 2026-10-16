@@ -22,6 +22,8 @@ const runtimeConfig: IRuntimeConfig = {
     morasoomaApiBase: process.env.MORA_API_BASE,
     morasoomaAppId: process.env.MORA_CLIENT_ID ? Number(process.env.MORA_CLIENT_ID) : undefined,
     morasoomaClientSecret: process.env.MORA_CLIENT_SECRET,
+    morasoomaUsername: process.env.MORA_USERNAME,
+    morasoomaPassword: process.env.MORA_PASSWORD,
 };
 
 declare global {

@@ -10,4 +10,10 @@ export interface IRuntimeConfig {
 
     /** Morasooma OAuth client secret; omit to use the anonymous, profile-only mode. */
     morasoomaClientSecret?: string;
+
+    /** Morasooma account name; signing in this way is what unlocks score endpoints. */
+    morasoomaUsername?: string;
+
+    /** Password for {@link morasoomaUsername}. */
+    morasoomaPassword?: string;
 }
