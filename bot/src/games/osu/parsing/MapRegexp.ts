@@ -5,6 +5,7 @@ const rs = [
     /(https?:\/\/)?osu\.gatari\.pw\/b\/(?<ID>\d+)/i,
     /(https?:\/\/)?ripple\.moe\/b\/(?<ID>\d+)/i,
     /(https?:\/\/)?akatsuki\.gg\/b\/(?<ID>\d+)/i,
+    /(https?:\/\/)?morasooma\.net\/beatmapsets\/(\d+)#(osu|taiko|fruits|mania)+\/(?<ID>\d+)/i,
     /(https?:\/\/)?morasooma\.net\/b(?:eatmaps)?\/(?<ID>\d+)/i,
 ];
 
