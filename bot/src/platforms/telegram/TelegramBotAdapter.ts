@@ -2,7 +2,7 @@ import { Bot as TelegramBot, BotError, GrammyError, HttpError } from "grammy";
 import { autoRetry } from "@grammyjs/auto-retry";
 import { chatMemberFilter } from "@grammyjs/chat-members";
 import { run, RunnerHandle } from "@grammyjs/runner";
-import { Update, UserFromGetMe } from "@grammyjs/types";
+import { InlineQueryResult, Update, UserFromGetMe } from "@grammyjs/types";
 import { hydrateFiles } from "@grammyjs/files";
 import { limit } from "@grammyjs/ratelimiter";
 import { Express } from "express";
@@ -202,9 +202,9 @@ export class TelegramBotAdapter implements IPlatformAdapter {
         const language = inlineLanguage(ctx.inlineQuery.from.language_code);
         const l = { tr: this.localizer.translator(language) };
 
-        let result: IInlineUserResult;
+        let results: IInlineUserResult[];
         try {
-            result = await this.runtime.buildInlineUserCard(this.platform, ctx.inlineQuery.from.id, l, query);
+            results = await this.runtime.buildInlineUserCards(this.platform, ctx.inlineQuery.from.id, l, query);
         } catch (error) {
             await ctx.answerInlineQuery(
                 [
@@ -221,38 +221,30 @@ export class TelegramBotAdapter implements IPlatformAdapter {
             return;
         }
 
-        const title = `${result.nickname} — ${result.serverName}`;
-        const cardUrl = this.inlineCardUrl(result.card);
-        if (cardUrl) {
-            await ctx.answerInlineQuery(
-                [
-                    {
-                        type: "photo",
-                        id: `card:${Date.now()}`,
-                        photo_url: cardUrl,
-                        thumbnail_url: cardUrl,
-                        title,
-                        description: result.description,
-                        caption: result.text,
-                    },
-                ],
-                { cache_time: INLINE_CACHE_SECONDS, is_personal: true }
-            );
-            return;
-        }
-
-        await ctx.answerInlineQuery(
-            [
-                {
-                    type: "article",
-                    id: `text:${Date.now()}`,
+        const answers: InlineQueryResult[] = results.map((result, index) => {
+            const title = `${result.nickname} — ${result.serverName}`;
+            const cardUrl = this.inlineCardUrl(result.card);
+            if (cardUrl) {
+                return {
+                    type: "photo",
+                    id: `card:${index}:${Date.now()}`,
+                    photo_url: cardUrl,
+                    thumbnail_url: cardUrl,
                     title,
                     description: result.description,
-                    input_message_content: { message_text: result.text },
-                },
-            ],
-            { cache_time: INLINE_CACHE_SECONDS, is_personal: true }
-        );
+                    caption: result.text,
+                };
+            }
+            return {
+                type: "article",
+                id: `text:${index}:${Date.now()}`,
+                title,
+                description: result.description,
+                input_message_content: { message_text: result.text },
+            };
+        });
+
+        await ctx.answerInlineQuery(answers, { cache_time: INLINE_CACHE_SECONDS, is_personal: true });
     }
 
     /**

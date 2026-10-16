@@ -52,6 +52,9 @@ import { ILocalizer } from "localization/ILocalizer";
 import { MediaFile } from "core/MediaFile";
 import { UserNotFoundError } from "core/errors/UserNotFoundError";
 
+const INLINE_RESULT_CACHE_MS = 30_000;
+const INLINE_RESULT_CACHE_LIMIT = 200;
+
 const DEFAULT_MODULE_BUILDERS: ModuleBuilderFunc[] = [
     (runtime) => new Bancho(runtime),
     (runtime) => new Morasooma(runtime),
@@ -81,6 +84,7 @@ export class ApplicationRuntime implements IBotRuntime {
     readonly version: string;
     readonly modules: Module[] = [];
     readonly inlineCards = new InlineCardStore();
+    private readonly inlineResults = new Map<string, { results: IInlineUserResult[]; expiresAt: number }>();
     readonly platformBotLinks: IPlatformBotLink[] = [];
     startTime = 0;
 
@@ -390,38 +394,75 @@ export class ApplicationRuntime implements IBotRuntime {
      * An unrecognised first word is treated as part of the nickname, and an
      * empty query falls back to the sender's linked account on that server.
      */
-    async buildInlineUserCard(
+    async buildInlineUserCards(
         platform: Platform,
         externalUserId: ExternalId,
         l: ILocalizer,
         query: string
-    ): Promise<IInlineUserResult> {
-        return await this.runWithPlatform(platform, async () => {
-            const words = query.trim().split(/\s+/).filter(Boolean);
-            const servers = this.modules.filter((module): module is ServerModule => module instanceof ServerModule);
+    ): Promise<IInlineUserResult[]> {
+        const trimmed = query.trim();
+        const cacheKey = `${platform}:${externalUserId}:${trimmed.toLowerCase()}`;
+        const cached = this.inlineResults.get(cacheKey);
+        if (cached && cached.expiresAt > Date.now()) {
+            return cached.results;
+        }
 
-            let server = servers.find((module) => module.name === "Bancho") ?? servers[0];
-            if (words.length > 0) {
-                const requested = servers.find((module) => module.prefix.includes(words[0].toLowerCase()));
-                if (requested) {
-                    server = requested;
-                    words.shift();
-                }
-            }
-            if (!server) {
-                throw new Error("No server modules are registered");
-            }
+        const results = await this.runWithPlatform(platform, () =>
+            this.resolveInlineUserCards(externalUserId, l, trimmed)
+        );
+        this.rememberInlineResults(cacheKey, results);
+        return results;
+    }
 
-            const nickname = words.join(" ");
+    private async resolveInlineUserCards(
+        externalUserId: ExternalId,
+        l: ILocalizer,
+        query: string
+    ): Promise<IInlineUserResult[]> {
+        const words = query.split(/\s+/).filter(Boolean);
+        const servers = this.modules.filter((module): module is ServerModule => module instanceof ServerModule);
+        if (servers.length === 0) {
+            throw new Error("No server modules are registered");
+        }
+
+        // An explicit prefix pins the lookup to one server; otherwise every
+        // server is asked and whoever answers shows up in the result list.
+        const requested = words.length > 0 && servers.find((module) => module.prefix.includes(words[0].toLowerCase()));
+        if (requested) {
+            words.shift();
+        }
+        const targets = requested ? [requested] : servers;
+        const nickname = words.join(" ");
+
+        const identity = nickname ? undefined : await this.storage.identities.resolveUser(externalUserId);
+        const settled = await Promise.all(
+            targets.map((server) => this.resolveInlineUserCard(server, l, nickname, identity?.userId))
+        );
+        const found = settled.filter((entry): entry is IInlineUserResult => !!entry);
+        if (found.length === 0) {
+            throw new UserNotFoundError();
+        }
+        return found;
+    }
+
+    private async resolveInlineUserCard(
+        server: ServerModule,
+        l: ILocalizer,
+        nickname: string,
+        userId?: number
+    ): Promise<IInlineUserResult | undefined> {
+        try {
             let mode = 0;
             let user: IGameUser;
             if (nickname) {
+                if (!server.api.getUser) {
+                    return undefined;
+                }
                 user = await server.api.getUser(nickname, mode);
             } else {
-                const identity = await this.storage.identities.resolveUser(externalUserId);
-                const link = await server.db.getUser(identity.userId);
+                const link = userId === undefined ? null : await server.db.getUser(userId);
                 if (!link) {
-                    throw new UserNotFoundError();
+                    return undefined;
                 }
                 mode = link.mode ?? 0;
                 user = await server.api.getUserById(link.game_id, mode);
@@ -431,7 +472,7 @@ export class ApplicationRuntime implements IBotRuntime {
             try {
                 card = await this.replies.inlineUserCard(l, user);
             } catch (error) {
-                global.logger.error("Failed to render an inline profile card", error);
+                global.logger.error(`Failed to render an inline profile card for ${server.name}`, error);
             }
 
             return {
@@ -441,7 +482,24 @@ export class ApplicationRuntime implements IBotRuntime {
                 text: this.replies.userText(l, user, server.link),
                 card,
             };
-        });
+        } catch {
+            // A server that does not know this player simply drops out of the list.
+            return undefined;
+        }
+    }
+
+    /** Inline queries arrive on every keystroke, so identical ones are reused. */
+    private rememberInlineResults(key: string, results: IInlineUserResult[]): void {
+        const now = Date.now();
+        for (const [cachedKey, entry] of this.inlineResults) {
+            if (entry.expiresAt <= now) {
+                this.inlineResults.delete(cachedKey);
+            }
+        }
+        if (this.inlineResults.size >= INLINE_RESULT_CACHE_LIMIT) {
+            this.inlineResults.delete(this.inlineResults.keys().next().value);
+        }
+        this.inlineResults.set(key, { results, expiresAt: now + INLINE_RESULT_CACHE_MS });
     }
 
     private async prepareContext(ctx: IMessageContext): Promise<void> {
