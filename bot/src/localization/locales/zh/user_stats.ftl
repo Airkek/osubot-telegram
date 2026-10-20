@@ -8,3 +8,13 @@ player-ranked-play = Ranked Play
 player-ranked-play-rating = 评分
 player-ranked-play-wins = 胜场
 player-ranked-play-games = 场次
+
+card-global-rank = 全球排名
+card-country-rank = 地区排名
+card-accuracy = 准确率
+card-playcount = 游戏次数
+card-playtime = 游戏时间
+card-level = 等级
+card-supporter = 支持者
+card-hour-short = 小时
+card-minute-short = 分

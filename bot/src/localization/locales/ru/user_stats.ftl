@@ -8,3 +8,13 @@ player-ranked-play = Ranked Play
 player-ranked-play-rating = Рейтинг
 player-ranked-play-wins = Победы
 player-ranked-play-games = Игры
+
+card-global-rank = Мировой ранг
+card-country-rank = В стране
+card-accuracy = Точность
+card-playcount = Сыграно
+card-playtime = Время в игре
+card-level = Уровень
+card-supporter = Саппортер
+card-hour-short = ч
+card-minute-short = м

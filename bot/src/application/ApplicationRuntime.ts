@@ -476,7 +476,7 @@ export class ApplicationRuntime implements IBotRuntime {
 
             let card: MediaFile;
             try {
-                card = await this.replies.inlineUserCard(l, user);
+                card = await this.replies.inlineUserCard(l, user, server.name);
             } catch (error) {
                 global.logger.error(`Failed to render an inline profile card for ${server.name}`, error);
             }

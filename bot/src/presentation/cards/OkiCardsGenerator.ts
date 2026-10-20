@@ -18,6 +18,7 @@ import { ScoreSaberBeatmap } from "games/beatsaber/beatmaps/ScoreSaberBeatmap";
 import { downloadRemoteImage } from "infrastructure/http/RemoteImage";
 import { resolveScorePp, shouldDisplayPpEstimate } from "games/osu/performance/PPDisplay";
 import { runtimePaths } from "application/RuntimePaths";
+import { ProfileCardRenderer } from "presentation/cards/satori/ProfileCardRenderer";
 import { IScorePpDisplay } from "games/osu/performance/IScorePpDisplay";
 import { ILeaderboardResult } from "games/leaderboards/ILeaderboardResult";
 
@@ -38,6 +39,7 @@ export class OkiCardsGenerator {
     private readonly assetsDirectory: string;
     private countryCodes: CountryCodes;
     private flagsInited: boolean = false;
+    private readonly profileCard = new ProfileCardRenderer();
 
     constructor() {
         this.assetsDirectory = runtimePaths.assets;
@@ -1335,7 +1337,15 @@ export class OkiCardsGenerator {
         return canvas.toBuffer("image/png");
     }
 
-    async generateUserCard(user: IGameUser, l: ILocalizer): Promise<Buffer> {
+    /**
+     * Профиль рисуется новым рендерером (satori); остальные карточки пока
+     * остаются на canvas.
+     */
+    async generateUserCard(user: IGameUser, l: ILocalizer, serverName: string): Promise<Buffer> {
+        return await this.profileCard.render(user, l, serverName);
+    }
+
+    private async generateUserCardLegacy(user: IGameUser, l: ILocalizer): Promise<Buffer> {
         const canvas = Canvas.createCanvas(1200, user.rankedPlay ? 816 : 624);
         const ctx = canvas.getContext("2d");
 

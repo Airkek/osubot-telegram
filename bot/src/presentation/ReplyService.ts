@@ -66,10 +66,10 @@ export class ReplyService {
         };
     }
 
-    async userData(l: ILocalizer, ctx: IMessageContext, user: IGameUser, serverBase: string) {
+    async userData(l: ILocalizer, ctx: IMessageContext, user: IGameUser, serverBase: string, serverName: string) {
         let templateAddition = "";
         if (await ctx.preferCardsOutput()) {
-            const card = await this.cards.generateUserCard(user, l);
+            const card = await this.cards.generateUserCard(user, l, serverName);
             if (card) {
                 return {
                     text: `${serverBase}/u/${user.id}`,
@@ -91,8 +91,8 @@ export class ReplyService {
      * Renders a profile card for inline results, where there is no chat context
      * to carry an output preference — the card is the whole point of the result.
      */
-    async inlineUserCard(l: ILocalizer, user: IGameUser): Promise<MediaFile | undefined> {
-        return await this.cards.generateUserCard(user, l);
+    async inlineUserCard(l: ILocalizer, user: IGameUser, serverName: string): Promise<MediaFile | undefined> {
+        return await this.cards.generateUserCard(user, l, serverName);
     }
 
     userText(l: ILocalizer, user: IGameUser, serverBase: string): string {

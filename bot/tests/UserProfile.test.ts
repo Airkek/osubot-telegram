@@ -27,7 +27,7 @@ const user: IGameUser = {
     mode: 0,
 };
 
-test("Bancho profile renders Ranked Play in text and expands the card", async () => {
+test("Bancho profile renders Ranked Play in text and a fixed-size card", async () => {
     const rankedUser: IGameUser = {
         ...user,
         rankedPlay: {
@@ -45,10 +45,12 @@ test("Bancho profile renders Ranked Play in text and expands the card", async ()
     expect(text).toContain("player-ranked-play-rating:");
     expect(text).toContain("*");
 
+    // Карточка профиля рисуется satori в фиксированные 1000×400 и отдаётся в 2x,
+    // поэтому Ranked Play больше не меняет её высоту — он остаётся в тексте.
     const generator = new OkiCardsGenerator();
-    const normalCard = await Canvas.loadImage(await generator.generateUserCard(user, localizer));
-    const rankedCard = await Canvas.loadImage(await generator.generateUserCard(rankedUser, localizer));
+    const normalCard = await Canvas.loadImage(await generator.generateUserCard(user, localizer, "Bancho"));
+    const rankedCard = await Canvas.loadImage(await generator.generateUserCard(rankedUser, localizer, "Bancho"));
 
-    expect([normalCard.width, normalCard.height]).toEqual([1200, 624]);
-    expect([rankedCard.width, rankedCard.height]).toEqual([1200, 816]);
+    expect([normalCard.width, normalCard.height]).toEqual([2000, 800]);
+    expect([rankedCard.width, rankedCard.height]).toEqual([2000, 800]);
 });

@@ -8,3 +8,13 @@ player-ranked-play = Ranked Play
 player-ranked-play-rating = Rating
 player-ranked-play-wins = Wins
 player-ranked-play-games = Games
+
+card-global-rank = Global rank
+card-country-rank = Country rank
+card-accuracy = Accuracy
+card-playcount = Play count
+card-playtime = Play time
+card-level = Level
+card-supporter = Supporter
+card-hour-short = h
+card-minute-short = m

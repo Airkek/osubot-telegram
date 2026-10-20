@@ -42,7 +42,13 @@ export class UserCommand extends ServerCommand {
                         : [],
                 ];
 
-                const replyData = await self.module.bot.replies.userData(self.ctx, self.ctx, user, self.module.link);
+                const replyData = await self.module.bot.replies.userData(
+                    self.ctx,
+                    self.ctx,
+                    user,
+                    self.module.link,
+                    self.module.name
+                );
                 await self.reply(replyData.text, {
                     keyboard,
                     photo: replyData.photo,
