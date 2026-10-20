@@ -20,6 +20,7 @@ import { resolveScorePp, shouldDisplayPpEstimate } from "games/osu/performance/P
 import { runtimePaths } from "application/RuntimePaths";
 import { ProfileCardRenderer } from "presentation/cards/satori/ProfileCardRenderer";
 import { ScoreCardRenderer } from "presentation/cards/satori/ScoreCardRenderer";
+import { TopScoresCardRenderer } from "presentation/cards/satori/TopScoresCardRenderer";
 import { SatoriCardContext } from "presentation/cards/satori/SatoriCardContext";
 import { IScorePpDisplay } from "games/osu/performance/IScorePpDisplay";
 import { ILeaderboardResult } from "games/leaderboards/ILeaderboardResult";
@@ -44,6 +45,7 @@ export class OkiCardsGenerator {
     private readonly satori = new SatoriCardContext();
     private readonly profileCard = new ProfileCardRenderer(this.satori);
     private readonly scoreCard = new ScoreCardRenderer(this.satori);
+    private readonly topScoresCard = new TopScoresCardRenderer(this.satori);
 
     constructor() {
         this.assetsDirectory = runtimePaths.assets;
@@ -1252,6 +1254,16 @@ export class OkiCardsGenerator {
     }
 
     async generateTopScoresCard(
+        scores: IGameScore[],
+        maps: IBeatmap[],
+        user: IGameUser,
+        l: ILocalizer,
+        startNumber?: number
+    ): Promise<Buffer> {
+        return await this.topScoresCard.render(scores, maps, user, l, startNumber);
+    }
+
+    private async generateTopScoresCardLegacy(
         scores: IGameScore[],
         maps: IBeatmap[],
         user: IGameUser,

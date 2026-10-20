@@ -110,7 +110,7 @@ export class ReplyService {
     ) {
         let templateAddition = "";
         if (await ctx.preferCardsOutput()) {
-            const card = await this.cards.generateTopScoresCard(scores, maps, user, l);
+            const card = await this.cards.generateTopScoresCard(scores, maps, user, l, startNum);
             if (card) {
                 return {
                     text: "",
