@@ -82,7 +82,7 @@ function Row({ row }: { row: ITopScoresCardRow }) {
             ) : null}
 
             <div style={{ display: "flex", flexDirection: "column", gap: 6, flex: 1, minWidth: 0 }}>
-                <div style={{ display: "flex" }}>
+                <div style={{ display: "flex", overflow: "hidden", minWidth: 0 }}>
                     <span
                         style={{
                             fontSize: titleSize(row.title),
@@ -91,6 +91,8 @@ function Row({ row }: { row: ITopScoresCardRow }) {
                             fontFamily: FONT,
                             lineHeight: 1.1,
                             whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
                         }}
                     >
                         {row.title}
