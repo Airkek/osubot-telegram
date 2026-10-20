@@ -4,10 +4,38 @@ Multi-platform chat bot for osu! and Beat Saber. A single instance can serve Tel
 
 The project originated as a port of OctoDumb's [osubot-old](https://github.com/OctoDumb/osubot-old).
 
+## About this fork
+
+A fork of [Airkek/osubot-telegram](https://github.com/Airkek/osubot-telegram) with three
+additions:
+
+- **Morasooma support.** The private osu!lazer server [morasooma.net](https://morasooma.net)
+  is available as its own server on the `m` prefix, alongside bancho and the rest — profiles,
+  top scores, recent plays, compare, leaderboards and replays, with its own linked nickname.
+- **Redrawn cards.** Every card the bot sends — profile, score, top scores, leaderboard,
+  beatmap and pp — is rendered with [satori](https://github.com/vercel/satori) instead of
+  canvas, in one visual language.
+- **Telegram inline mode.** Typing `@thebot <nickname>` in any chat searches every server at
+  once and offers a profile card per server that knows the player; a server prefix pins the
+  lookup to one of them.
+
+### Extra settings
+
+| Variable | Purpose |
+| --- | --- |
+| `MORA_USERNAME`, `MORA_PASSWORD` | Morasooma account to sign in with. Morasooma issues no OAuth client credentials, so score endpoints need an account; without these the bot stays anonymous and serves profiles only. |
+| `MORA_API_BASE` | Morasooma host, defaults to `https://morasooma.net`. |
+| `MORA_CLIENT_ID`, `MORA_CLIENT_SECRET` | OAuth client credentials, if they ever get issued. |
+| `INLINE_CARD_BASE_URL` | Where the Bot API server fetches rendered inline cards, e.g. `http://osubot:3000`. Without it inline results fall back to text. |
+
+Inline mode also has to be switched on for the bot in [@BotFather](https://t.me/BotFather)
+with `/setinline`.
+
 ## Public bots
 
-- Telegram: https://t.me/osulegacybot
-- VK: https://vk.com/osulegacybot
+- This fork: https://t.me/osureplaybot
+- Upstream Telegram bot: https://t.me/osulegacybot
+- Upstream VK bot: https://vk.com/osulegacybot
 
 ## Features
 
