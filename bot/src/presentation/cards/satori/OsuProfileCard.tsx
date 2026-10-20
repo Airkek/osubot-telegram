@@ -145,7 +145,6 @@ export function OsuProfileCard({ user, labels, serverName, avatar, background }:
                 width: 1000,
                 height: 400,
                 overflow: "hidden",
-                borderRadius: 24,
                 background: P.base,
                 fontFamily: FONT,
             }}

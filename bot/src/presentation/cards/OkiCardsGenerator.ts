@@ -19,6 +19,8 @@ import { downloadRemoteImage } from "infrastructure/http/RemoteImage";
 import { resolveScorePp, shouldDisplayPpEstimate } from "games/osu/performance/PPDisplay";
 import { runtimePaths } from "application/RuntimePaths";
 import { ProfileCardRenderer } from "presentation/cards/satori/ProfileCardRenderer";
+import { ScoreCardRenderer } from "presentation/cards/satori/ScoreCardRenderer";
+import { SatoriCardContext } from "presentation/cards/satori/SatoriCardContext";
 import { IScorePpDisplay } from "games/osu/performance/IScorePpDisplay";
 import { ILeaderboardResult } from "games/leaderboards/ILeaderboardResult";
 
@@ -39,7 +41,9 @@ export class OkiCardsGenerator {
     private readonly assetsDirectory: string;
     private countryCodes: CountryCodes;
     private flagsInited: boolean = false;
-    private readonly profileCard = new ProfileCardRenderer();
+    private readonly satori = new SatoriCardContext();
+    private readonly profileCard = new ProfileCardRenderer(this.satori);
+    private readonly scoreCard = new ScoreCardRenderer(this.satori);
 
     constructor() {
         this.assetsDirectory = runtimePaths.assets;
@@ -849,6 +853,10 @@ export class OkiCardsGenerator {
     }
 
     async generateScoreCard(score: IGameScore, beatmap: IBeatmap, l: ILocalizer): Promise<Buffer> {
+        return await this.scoreCard.render(score, beatmap, l);
+    }
+
+    private async generateScoreCardLegacy(score: IGameScore, beatmap: IBeatmap, l: ILocalizer): Promise<Buffer> {
         const canvas = Canvas.createCanvas(1080, 610);
         const ctx = canvas.getContext("2d");
 
