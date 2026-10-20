@@ -1,9 +1,9 @@
 import type { CSSProperties } from "react";
-import { ITopScoresCardModel } from "presentation/cards/satori/ITopScoresCardModel";
-import { ITopScoresCardRow } from "presentation/cards/satori/ITopScoresCardRow";
+import { IScoreListCardModel } from "presentation/cards/satori/IScoreListCardModel";
+import { IScoreListRow } from "presentation/cards/satori/IScoreListRow";
 
 /*
- * Список топ-скоров для satori → resvg. Ширина 1000, высота считается по числу
+ * Список скоров (топы игрока или лидерборд карты) для satori → resvg. Ширина 1000, высота считается по числу
  * строк. Ограничения те же: только flex, инлайн-стили, display: flex у каждого
  * div с более чем одним ребёнком.
  */
@@ -50,7 +50,7 @@ function titleSize(title: string): number {
     return Math.max(17, Math.min(24, Math.floor(520 / Math.max(units, 1))));
 }
 
-function Row({ row }: { row: ITopScoresCardRow }) {
+function Row({ row }: { row: IScoreListRow }) {
     const gradeColor = GRADE_COLORS[(row.grade ?? "").toUpperCase()] ?? P.text;
 
     return (
@@ -85,7 +85,7 @@ function Row({ row }: { row: ITopScoresCardRow }) {
                 <div style={{ display: "flex", overflow: "hidden", minWidth: 0 }}>
                     <span
                         style={{
-                            fontSize: titleSize(row.title),
+                            fontSize: titleSize(row.primary),
                             fontWeight: 800,
                             color: P.text,
                             fontFamily: FONT,
@@ -95,7 +95,7 @@ function Row({ row }: { row: ITopScoresCardRow }) {
                             textOverflow: "ellipsis",
                         }}
                     >
-                        {row.title}
+                        {row.primary}
                     </span>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -109,7 +109,7 @@ function Row({ row }: { row: ITopScoresCardRow }) {
                             whiteSpace: "nowrap",
                         }}
                     >
-                        {row.version}
+                        {row.secondary}
                     </span>
                     {row.mods ? (
                         <span
@@ -208,7 +208,7 @@ function Row({ row }: { row: ITopScoresCardRow }) {
     );
 }
 
-export function OsuTopScoresCard({ model, height }: { model: ITopScoresCardModel; height: number }) {
+export function OsuScoreListCard({ model, height }: { model: IScoreListCardModel; height: number }) {
     const full: CSSProperties = {
         position: "absolute",
         left: 0,

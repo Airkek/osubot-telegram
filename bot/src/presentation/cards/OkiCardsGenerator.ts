@@ -21,6 +21,7 @@ import { runtimePaths } from "application/RuntimePaths";
 import { ProfileCardRenderer } from "presentation/cards/satori/ProfileCardRenderer";
 import { ScoreCardRenderer } from "presentation/cards/satori/ScoreCardRenderer";
 import { TopScoresCardRenderer } from "presentation/cards/satori/TopScoresCardRenderer";
+import { LeaderboardCardRenderer } from "presentation/cards/satori/LeaderboardCardRenderer";
 import { SatoriCardContext } from "presentation/cards/satori/SatoriCardContext";
 import { IScorePpDisplay } from "games/osu/performance/IScorePpDisplay";
 import { ILeaderboardResult } from "games/leaderboards/ILeaderboardResult";
@@ -46,6 +47,7 @@ export class OkiCardsGenerator {
     private readonly profileCard = new ProfileCardRenderer(this.satori);
     private readonly scoreCard = new ScoreCardRenderer(this.satori);
     private readonly topScoresCard = new TopScoresCardRenderer(this.satori);
+    private readonly leaderboardCard = new LeaderboardCardRenderer(this.satori);
 
     constructor() {
         this.assetsDirectory = runtimePaths.assets;
@@ -1311,6 +1313,14 @@ export class OkiCardsGenerator {
     }
 
     async generateLeaderboardCard(
+        leaderboard: ILeaderboardResult,
+        l: ILocalizer,
+        startNumber: number
+    ): Promise<Buffer> {
+        return await this.leaderboardCard.render(leaderboard, l, startNumber);
+    }
+
+    private async generateLeaderboardCardLegacy(
         leaderboard: ILeaderboardResult,
         l: ILocalizer,
         startNumber: number
