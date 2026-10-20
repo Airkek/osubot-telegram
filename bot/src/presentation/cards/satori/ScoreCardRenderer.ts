@@ -59,7 +59,7 @@ export class ScoreCardRenderer {
             facts.push({ label: "BPM", value: String(Math.round(stats.bpm)) });
         }
         if (stats?.length !== undefined) {
-            facts.push({ label: "⏱", value: Util.minutesToPlaytimeString(stats.length / 60) });
+            facts.push({ label: "LEN", value: Util.formatBeatmapLength(stats.length) });
         }
         for (const [label, value] of [
             ["AR", stats?.ar],
