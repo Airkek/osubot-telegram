@@ -22,6 +22,7 @@ import { ProfileCardRenderer } from "presentation/cards/satori/ProfileCardRender
 import { ScoreCardRenderer } from "presentation/cards/satori/ScoreCardRenderer";
 import { TopScoresCardRenderer } from "presentation/cards/satori/TopScoresCardRenderer";
 import { LeaderboardCardRenderer } from "presentation/cards/satori/LeaderboardCardRenderer";
+import { BeatmapCardRenderer } from "presentation/cards/satori/BeatmapCardRenderer";
 import { SatoriCardContext } from "presentation/cards/satori/SatoriCardContext";
 import { IScorePpDisplay } from "games/osu/performance/IScorePpDisplay";
 import { ILeaderboardResult } from "games/leaderboards/ILeaderboardResult";
@@ -48,6 +49,7 @@ export class OkiCardsGenerator {
     private readonly scoreCard = new ScoreCardRenderer(this.satori);
     private readonly topScoresCard = new TopScoresCardRenderer(this.satori);
     private readonly leaderboardCard = new LeaderboardCardRenderer(this.satori);
+    private readonly beatmapCard = new BeatmapCardRenderer(this.satori);
 
     constructor() {
         this.assetsDirectory = runtimePaths.assets;
@@ -967,6 +969,10 @@ export class OkiCardsGenerator {
     }
 
     async generateBeatmapInfoCard(beatmap: IBeatmap): Promise<Buffer> {
+        return await this.beatmapCard.renderInfo(beatmap);
+    }
+
+    private async generateBeatmapInfoCardLegacy(beatmap: IBeatmap): Promise<Buffer> {
         const canvas = Canvas.createCanvas(1080, 620);
         const ctx = canvas.getContext("2d");
 
@@ -1018,6 +1024,14 @@ export class OkiCardsGenerator {
     }
 
     async generateBeatmapPPCard(beatmap: IBeatmap, l: ILocalizer, args?: IPerformanceRequest): Promise<Buffer> {
+        return await this.beatmapCard.renderPp(beatmap, l, args);
+    }
+
+    private async generateBeatmapPPCardLegacy(
+        beatmap: IBeatmap,
+        l: ILocalizer,
+        args?: IPerformanceRequest
+    ): Promise<Buffer> {
         const canvas = Canvas.createCanvas(1080, 620);
         const ctx = canvas.getContext("2d");
 
