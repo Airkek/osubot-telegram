@@ -12,6 +12,7 @@ import { IssouBestRenderer } from "games/osu/replays/rendering/IssouBestRenderer
 import { OsrReplay } from "games/osu/replays/OsrReplay";
 import { ExperimentalRenderer } from "games/osu/replays/rendering/ExperimentalRenderer";
 import { decodeReplay, readReplayHeader } from "games/osu/performance/OfficialCalculator";
+import { probeRemoteVideoMetadata } from "infrastructure/video/RemoteVideoMetadata";
 
 export class OsuReplay extends Command {
     renderer: IReplayRenderer;
@@ -92,9 +93,10 @@ export class OsuReplay extends Command {
                 !this.renderer.supportGameMode(replay.mode) &&
                 this.experimental_renderer.supportGameMode(replay.mode);
 
-            const useExperimental = settings.experimental_renderer || fallbackToExperimental;
+            let useExperimental = settings.experimental_renderer || fallbackToExperimental;
 
-            const renderer = useExperimental ? this.experimental_renderer : this.renderer;
+            let renderer = useExperimental ? this.experimental_renderer : this.renderer;
+            let rendererSwitched = fallbackToExperimental;
             const canRender =
                 process.env.RENDER_REPLAYS === "true" && settingsAllowed && renderer.supportGameMode(replay.mode);
             let renderAdditional = canRender
@@ -103,10 +105,29 @@ export class OsuReplay extends Command {
                   ? ctx.tr("cant-render")
                   : "";
 
-            if (canRender && useExperimental) {
+            let needRender = canRender;
+            if (needRender && !(await renderer.available())) {
+                const alternative = useExperimental ? this.renderer : this.experimental_renderer;
+                if (alternative.supportGameMode(replay.mode) && (await alternative.available())) {
+                    useExperimental = !useExperimental;
+                    renderer = alternative;
+                    rendererSwitched = true;
+                    renderAdditional +=
+                        "\n" + ctx.tr("renderer-fallback", { renderer: useExperimental ? "experimental" : "o!rdr" });
+                } else {
+                    needRender = false;
+                    renderAdditional =
+                        "\n\n" +
+                        (fallbackToExperimental
+                            ? ctx.tr("experimental-gamemode-unavailable")
+                            : ctx.tr("renderer-unavailable", {
+                                  renderer: useExperimental ? "experimental" : "o!rdr",
+                              }));
+                }
+            }
+            if (needRender && useExperimental) {
                 renderAdditional += "\n" + ctx.tr("experimental-renderer-warning");
             }
-            let needRender = canRender;
             if (
                 needRender &&
                 !(useExperimental && ctx.isFromOwner) // allow admin to use experimental renderer without timeout
@@ -127,25 +148,6 @@ export class OsuReplay extends Command {
                 renderAdditional = "\n\n" + ctx.tr("renderer-no-replay-frames");
                 needRender = false;
                 this.removeLimit(ctx.senderId);
-            }
-
-            if (needRender) {
-                const rendererAvailable = await renderer.available();
-                if (!rendererAvailable) {
-                    needRender = false;
-                    if (fallbackToExperimental) {
-                        renderAdditional = "\n\n" + ctx.tr("experimental-gamemode-unavailable");
-                    } else {
-                        const rendererName = useExperimental ? "experimental" : "o!rdr";
-                        renderAdditional =
-                            "\n\n" +
-                            ctx.tr("renderer-unavailable", {
-                                renderer: rendererName,
-                            });
-                    }
-
-                    this.removeLimit(ctx.senderId);
-                }
             }
 
             const maxSongLengthMinutes = 15;
@@ -226,16 +228,38 @@ export class OsuReplay extends Command {
             };
 
             await this.module.bot.storage.telemetry.logRenderStart(ctx, replay.mode, useExperimental);
-            const replayResponse = await renderer.render(file, renderSettings);
+            let replayResponse = await renderer.render(file, renderSettings);
+            if (
+                !replayResponse.success &&
+                replayResponse.unavailable &&
+                !useExperimental &&
+                !rendererSwitched &&
+                this.experimental_renderer.supportGameMode(replay.mode) &&
+                (await this.experimental_renderer.available())
+            ) {
+                await this.module.bot.storage.telemetry.logRenderFailed(ctx, replay.mode, replayResponse.error, false);
+                renderer = this.experimental_renderer;
+                useExperimental = true;
+                await ctx.reply(
+                    ctx.tr("renderer-fallback", { renderer: "experimental" }) +
+                        "\n" +
+                        ctx.tr("experimental-renderer-warning")
+                );
+                await this.module.bot.storage.telemetry.logRenderStart(ctx, replay.mode, true);
+                replayResponse = await renderer.render(file, renderSettings);
+            }
 
             if (replayResponse.success) {
-                await this.module.bot.storage.telemetry.logRenderSuccess(ctx, replay.mode, useExperimental);
+                const video = replayResponse.video;
+                const metadata = await probeRemoteVideoMetadata(video.url);
+                await this.module.bot.storage.telemetry.logRenderSuccess(ctx, replay.mode, useExperimental, metadata);
                 await ctx.reply("", {
                     video: {
-                        url: replayResponse.video.url,
-                        width: replayResponse.video.width,
-                        height: replayResponse.video.height,
-                        duration: Math.ceil(beatmap.stats.length),
+                        url: video.url,
+                        width: metadata.width ?? video.width,
+                        height: metadata.height ?? video.height,
+                        duration:
+                            metadata.durationSeconds === undefined ? undefined : Math.ceil(metadata.durationSeconds),
                     },
                 });
             } else {

@@ -939,6 +939,16 @@ const migrations: IMigration[] = [
             return true;
         },
     },
+    {
+        version: 38,
+        name: "Record rendered video duration and size",
+        process: async (db) => {
+            await db.run(`ALTER TABLE bot_events_render
+                          ADD COLUMN video_duration_seconds DOUBLE PRECISION,
+                          ADD COLUMN video_size_bytes BIGINT`);
+            return true;
+        },
+    },
 ];
 
 export async function applyMigrations(db: ISqlDatabase) {

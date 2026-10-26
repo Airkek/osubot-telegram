@@ -15,6 +15,7 @@ file-is-too-big-render = The file is too big!
 cant-render = Rendering is unavailable"
 
 render-in-progress = Rendering the replay is in progress...
+renderer-fallback = The selected renderer is unavailable; using {$renderer} instead.
 
 experimental-renderer-warning =
     ⚠️ An experimental renderer is being used. Some features may be unavailable or may not work correctly.

@@ -11,11 +11,11 @@ interface UploadResponse {
     success: boolean;
     renderId?: number;
     error?: string;
+    unavailable?: boolean;
 }
 
 interface Metadata {
     resolution: string;
-    duration: number;
 }
 
 class OrdinalWebSocket {
@@ -89,7 +89,15 @@ export class IssouBestRenderer implements IReplayRenderer {
     }
 
     public async available(): Promise<boolean> {
-        return true; // TODO
+        try {
+            const { data } = await axios.get("https://apis.issou.best/ordr/renders", {
+                params: { pageSize: 1 },
+                timeout: 5000,
+            });
+            return Array.isArray(data?.renders);
+        } catch {
+            return false;
+        }
     }
 
     public supportGameMode(mode: number): boolean {
@@ -105,6 +113,7 @@ export class IssouBestRenderer implements IReplayRenderer {
             return {
                 success: false,
                 error: uploadResponse.error,
+                unavailable: uploadResponse.unavailable,
             };
         }
 
@@ -124,7 +133,6 @@ export class IssouBestRenderer implements IReplayRenderer {
 
         const video: IVideo = {
             url,
-            duration: meta.duration,
             width: 1280,
             height: 720,
         };
@@ -183,6 +191,7 @@ export class IssouBestRenderer implements IReplayRenderer {
             return {
                 success: false,
                 error: err.response?.data?.message || err.message,
+                unavailable: [40, 41].includes(err.response?.data?.errorCode),
             };
         }
     }
@@ -195,7 +204,6 @@ export class IssouBestRenderer implements IReplayRenderer {
         }
 
         return {
-            duration: data.renders[0].mapLength,
             resolution: data.renders[0].resolution,
         };
     }

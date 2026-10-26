@@ -2,6 +2,7 @@ import { ISqlExecutor } from "infrastructure/database/ISqlExecutor";
 import { IBotIdentity } from "core/storage/IBotIdentity";
 import { ICommandEvent } from "core/storage/ICommandEvent";
 import { IEventContext } from "core/storage/IEventContext";
+import { IRenderVideoMetrics } from "core/storage/IRenderVideoMetrics";
 import { Platform } from "core/Platform";
 
 type RenderEvents = "render_start" | "render_success" | "render_failed";
@@ -87,8 +88,13 @@ export class StatisticsModel {
         return await this.logRenderEvent("render_start", ctx, mode, isExperimental);
     }
 
-    public async logRenderSuccess(ctx: IEventContext, mode: number, isExperimental: boolean) {
-        return await this.logRenderEvent("render_success", ctx, mode, isExperimental);
+    public async logRenderSuccess(
+        ctx: IEventContext,
+        mode: number,
+        isExperimental: boolean,
+        video?: IRenderVideoMetrics
+    ) {
+        return await this.logRenderEvent("render_success", ctx, mode, isExperimental, undefined, video);
     }
 
     public async logRenderFailed(ctx: IEventContext, mode: number, errorMessage: string, isExperimental: boolean) {
@@ -129,14 +135,26 @@ export class StatisticsModel {
         ctx: IEventContext,
         mode: number,
         isExperimental: boolean,
-        message?: string
+        message?: string,
+        video?: IRenderVideoMetrics
     ) {
         try {
             await this.db.run(
                 `INSERT INTO bot_events_render
-                     (event_type, platform, platform_account_id, platform_chat_id, experimental, mode, error_message)
-                 VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-                [type, ctx.platform, ctx.senderId, ctx.chatId, isExperimental, mode, message ?? null]
+                     (event_type, platform, platform_account_id, platform_chat_id, experimental, mode, error_message,
+                      video_duration_seconds, video_size_bytes)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+                [
+                    type,
+                    ctx.platform,
+                    ctx.senderId,
+                    ctx.chatId,
+                    isExperimental,
+                    mode,
+                    message ?? null,
+                    video?.durationSeconds ?? null,
+                    video?.sizeBytes ?? null,
+                ]
             );
         } catch (error) {
             global.logger.error("Raw event logging error:", error);
