@@ -15,6 +15,7 @@ file-is-too-big-render = 文件太大！
 cant-render = 渲染功能不可用
 
 render-in-progress = 回放正在渲染中...
+renderer-fallback = 所选渲染器当前不可用，改用 {$renderer}。
 
 experimental-renderer-warning =
     ⚠️ 正在使用实验性渲染器。部分功能可能不可用或工作异常。

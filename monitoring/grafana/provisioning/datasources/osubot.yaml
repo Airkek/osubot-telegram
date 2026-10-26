@@ -1,0 +1,23 @@
+apiVersion: 1
+
+datasources:
+  - name: osu!bot PostgreSQL
+    uid: osubot-postgres
+    type: grafana-postgresql-datasource
+    access: proxy
+    url: osubot_postgres:5432
+    user: $OSUBOT_DB_USERNAME
+    isDefault: false
+    editable: false
+    version: 2
+    jsonData:
+      database: $OSUBOT_DB_DATABASE_NAME
+      sslmode: disable
+      postgresVersion: 1700
+      timescaledb: true
+      maxOpenConns: 2
+      maxIdleConns: 2
+      maxIdleConnsAuto: false
+      connMaxLifetime: 300
+    secureJsonData:
+      password: $OSUBOT_DB_PASSWORD

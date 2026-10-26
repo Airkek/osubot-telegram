@@ -71,7 +71,6 @@ export class ExperimentalRenderer implements IReplayRenderer {
 
         const video: IVideo = {
             url,
-            duration: 60,
             width: 1280,
             height: 720,
         };
