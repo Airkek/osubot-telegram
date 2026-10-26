@@ -20,5 +20,5 @@ ${l.tr("player-playtime")}: ${Util.minutesToPlaytimeString(user.playtime)}`
 PP: ${Math.round(user.pp)?.toLocaleString()}
 ${l.tr("player-accuracy")}: ${user.accuracy.toFixed(2)}%${rankedPlay}
 
-${link}/u/${user.id}`;
+${user.profileUrl ?? `${link}/u/${user.id}`}`;
 }

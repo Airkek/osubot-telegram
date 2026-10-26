@@ -29,12 +29,17 @@ export class OsuReplay extends Command {
                     return;
                 }
                 switch (messagePayload[0]) {
-                    case "render_bancho": {
+                    case "render_bancho":
+                    case "render_morasooma": {
                         const scoreId = Number(messagePayload[1]);
                         if (isNaN(scoreId)) {
                             return;
                         }
-                        file = await this.module.bot.api.bancho.downloadReplay(scoreId);
+                        const api = {
+                            render_bancho: this.module.bot.api.bancho,
+                            render_morasooma: this.module.bot.api.morasooma,
+                        }[messagePayload[0]];
+                        file = await api.downloadReplay(scoreId);
                         break;
                     }
                     default:
@@ -289,7 +294,7 @@ export class OsuReplay extends Command {
     check(name: string, ctx: IMessageContext): boolean {
         return (
             (ctx.hasFile() && ctx.getFileName()?.endsWith(".osr")) ||
-            (ctx.messagePayload && ctx.messagePayload.startsWith("render_bancho:"))
+            (ctx.messagePayload && /^(render_bancho|render_morasooma):/.test(ctx.messagePayload))
         );
     }
 

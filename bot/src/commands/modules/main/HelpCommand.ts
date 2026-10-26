@@ -49,6 +49,7 @@ const formatPrefixes = (prefixes: string[]): string => {
 
 const OSU_SERVER_ORDER: string[] = [
     "bancho",
+    "morasooma",
     "gatari",
     "ripple",
     "ripple_relax",

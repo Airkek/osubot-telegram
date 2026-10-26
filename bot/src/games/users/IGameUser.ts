@@ -19,6 +19,7 @@ export interface IGameUser {
     mode: number;
     grades?: IGameUserGradeCounts;
     is_supporter?: boolean;
+    profileUrl?: string;
     profileBackgroundUrl?: string;
     profileAvatarUrl?: string;
     rankedPlay?: IRankedPlayStatistics;

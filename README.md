@@ -13,6 +13,7 @@ The project originated as a port of OctoDumb's [osubot-old](https://github.com/O
 
 - osu!stable and osu!lazer scores, profiles, recent plays and top scores
 - Gatari, Ripple and Akatsuki support, including their additional play styles
+- Morasooma (`m` / `ь`) support through a shared osu! API v2 client; public tokens are obtained automatically
 - BeatLeader and ScoreSaber support
 - Image cards and text output in English, Russian and Chinese
 - Chat leaderboards and leaderboards for a selected beatmap

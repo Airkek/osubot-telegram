@@ -241,13 +241,13 @@ export class TopCommand extends ServerCommand {
             });
         }
 
-        if (score.has_replay && score.api_score_id) {
+        if (context.module.replayCommand && score.has_replay && score.api_score_id) {
             const settingsAllowed = process.env.RENDER_REPLAYS === "true";
             if (settingsAllowed) {
                 buttons.push([
                     {
                         text: context.ctx.tr("render-replay-button"),
-                        command: `render_bancho:${score.api_score_id}`,
+                        command: `${context.module.replayCommand}:${score.api_score_id}`,
                     },
                 ]);
             }

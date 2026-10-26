@@ -10,6 +10,7 @@ import { MaintenanceTarget } from "core/storage/MaintenanceTarget";
 
 const SERVER_OPTIONS = [
     { id: "bancho", label: "Bancho" },
+    { id: "morasooma", label: "Morasooma" },
     { id: "gatari", label: "Gatari" },
     { id: "ripple", label: "Ripple (+Relax)" },
     { id: "akatsuki", label: "Akatsuki (+Relax/+AP)" },
@@ -298,6 +299,9 @@ export class ClearCommand extends Command {
 
         if (["bancho", "osu"].includes(token)) {
             return "bancho";
+        }
+        if (token === "morasooma") {
+            return token;
         }
         if (["gatari"].includes(token)) {
             return "gatari";

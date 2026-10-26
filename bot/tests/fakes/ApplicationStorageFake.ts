@@ -26,6 +26,7 @@ function createGameServer(): IGameUserRepository {
 }
 
 const gameServers = (): Record<GameServerName, IGameUserRepository> => ({
+    morasooma: createGameServer(),
     bancho: createGameServer(),
     gatari: createGameServer(),
     ripple: createGameServer(),

@@ -17,6 +17,7 @@ export class Bancho extends ServerModule {
         super(["s", "ы"], bot);
 
         this.name = "Bancho";
+        this.replayCommand = "render_bancho";
         this.link = "https://osu.ppy.sh";
         this.api = bot.api.bancho;
         this.beatmapProvider = bot.osuBeatmapProvider;

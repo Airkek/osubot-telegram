@@ -314,3 +314,6 @@ help-notes-scoresaber =
 help-cmd-account =
     • account [link-code]
       Generate a one-time code or link the current platform to an existing bot account.
+
+help-notes-morasooma =
+    • Morasooma runs on g0v0. Save your account with {$prefix} nick <username>.

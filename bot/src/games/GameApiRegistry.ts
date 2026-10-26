@@ -8,7 +8,10 @@ import { BeatLeaderApiClient } from "games/beatsaber/api/BeatLeaderApiClient";
 import { ScoreSaberApiClient } from "games/beatsaber/api/ScoreSaberApiClient";
 import { RippleRelaxApiClient } from "games/osu/server/ripple_based/ripple/RippleRelaxApiClient";
 
+import { G0v0ApiClient } from "games/osu/server/g0v0/G0v0ApiClient";
+
 class GameApiRegistry {
+    readonly morasooma = new G0v0ApiClient("https://morasooma.net");
     readonly bancho: BanchoV2ApiClient;
     readonly gatari: GatariApiClient;
     readonly ripple: RippleApiClient;

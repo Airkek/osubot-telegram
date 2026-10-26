@@ -314,3 +314,6 @@ help-notes-scoresaber =
 help-cmd-account =
     • account [код]
       Создать одноразовый код или привязать текущую платформу к существующему аккаунту бота.
+
+help-notes-morasooma =
+    • Morasooma работает на g0v0. Сохраните аккаунт командой {$prefix} nick <ник>.

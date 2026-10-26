@@ -14,6 +14,7 @@ import { Admin } from "commands/modules/admin/Admin";
 import { Akatsuki } from "commands/modules/akatsuki/Akatsuki";
 import { AkatsukiAutoPilot } from "commands/modules/akatsuki-autopilot/AkatsukiAutoPilot";
 import { AkatsukiRelax } from "commands/modules/akatsuki-relax/AkatsukiRelax";
+import { Morasooma } from "commands/modules/morasooma/Morasooma";
 import { Bancho } from "commands/modules/bancho/Bancho";
 import { BeatLeader } from "commands/modules/beatleader/BeatLeader";
 import { Gatari } from "commands/modules/gatari/Gatari";
@@ -45,6 +46,7 @@ import { ModuleBuilderFunc } from "application/ModuleBuilderFunc";
 
 const DEFAULT_MODULE_BUILDERS: ModuleBuilderFunc[] = [
     (runtime) => new Bancho(runtime),
+    (runtime) => new Morasooma(runtime),
     (runtime) => new Gatari(runtime),
     (runtime) => new Ripple(runtime),
     (runtime) => new RippleRelax(runtime),
