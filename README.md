@@ -80,13 +80,7 @@ To build and test the performance server with .NET 10:
 dotnet test performance-server/OsuPerformanceServer.sln --configuration Release
 ```
 
-Bot sources and runtime assets live under [`bot/`](bot/). The independently deployable gRPC performance service and its NUnit project live under [`performance-server/`](performance-server/); the shared versioned API contract lives under [`contracts/`](contracts/).
-
-The performance server uses osu!lazer `2026.1026.0`. It caches strain-derived difficulty attributes and the compact beatmap/scoring data needed for pp in `strains.db`, keyed by the beatmap MD5, ruleset and canonical mod settings. Cached beatmap attributes and pp calculations reuse these entries without downloading, parsing or processing the map again. Raw `.osu` files are only held in memory on a cache miss or when decoding a replay. Requests without an MD5 or supplied content download the current beatmap before looking up its strains. Mods with an unset random seed are calculated without caching.
-
-Set `OSU_STRAIN_CACHE` to choose the host cache directory in Docker Compose (`STRAIN_CACHE_PATH` when running the server directly). Existing deployments using `OSU_BEATMAP_CACHE` continue to mount that directory until `OSU_STRAIN_CACHE` is set. Old `.osu` cache files are no longer read or written and can be removed after upgrading.
-
-Cache entries have an explicit `valid` flag and a version containing lazer's `DifficultyCalculator.Version` for the requested ruleset and the cache schema version. On startup, outdated entries are marked `valid = 0` for the affected rulesets; each entry is recalculated and marked valid on its next request. Lazer upgrades that preserve the difficulty calculation version reuse existing strains. Pp itself is always calculated using the current lazer performance calculator, so changes to the pp formula do not require invalidating unchanged difficulty attributes. Bump `StrainCache.schemaVersion` when changing the cached calculation format or preparation logic.
+Bot sources and runtime assets live under [`bot/`](bot/). The independently deployable gRPC performance service and its NUnit project live under [`performance-server/`](performance-server/); the shared versioned API contract lives under [`contracts/`](contracts/). The performance server owns the on-disk strain cache, while the bot only keeps beatmap metadata.
 
 ## License
 
