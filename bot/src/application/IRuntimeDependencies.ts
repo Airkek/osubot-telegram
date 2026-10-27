@@ -9,10 +9,12 @@ import { ChatBeatmapCache } from "infrastructure/cache/ChatBeatmapCache";
 import { IgnoreList } from "infrastructure/cache/IgnoreList";
 import { ReplyService } from "presentation/ReplyService";
 import { ITemplateStorage } from "presentation/templates/ITemplateStorage";
+import { LinkServiceClient } from "infrastructure/link/LinkServiceClient";
 
 export interface IRuntimeDependencies {
     storage: IApplicationStorage;
     api: GameApiRegistry;
+    linkService?: LinkServiceClient;
     osuBeatmapProvider: OsuBeatmapProvider;
     templates: ITemplateStorage;
     chatBeatmaps: ChatBeatmapCache;

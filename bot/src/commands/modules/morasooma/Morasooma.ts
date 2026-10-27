@@ -5,7 +5,7 @@ import { TopCommand } from "commands/modules/server/TopCommand";
 import { RecentCommand } from "commands/modules/server/RecentCommand";
 import { ChatCommand } from "commands/modules/server/ChatCommand";
 import { FindCommand } from "commands/modules/server/FindCommand";
-import { NickCommand } from "commands/modules/server/NickCommand";
+import { LinkCommand } from "commands/modules/server/LinkCommand";
 import { ModeCommand } from "commands/modules/server/ModeCommand";
 import { LeaderboardCommand } from "commands/modules/server/LeaderboardCommand";
 import { CompareCommand } from "commands/modules/server/CompareCommand";
@@ -23,7 +23,7 @@ export class Morasooma extends ServerModule {
 
         this.registerCommand([
             new UserCommand(this),
-            new NickCommand(this),
+            new LinkCommand(this, "morasooma"),
             new ModeCommand(this),
             new FindCommand(this),
             new TopCommand(this),

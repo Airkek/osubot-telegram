@@ -71,7 +71,7 @@ link-code-invalid =
     Open: {$url}
     Then send: {$prefix} link <code>
 link-service-unavailable = Link service is temporarily unavailable. Please try again later.
-link-restricted-warning = Warning: your osu! account is restricted. Some features may be unavailable.
+link-restricted-warning = Warning: your account is restricted. Some features may be unavailable.
 
 unknown-username = This user is unknown to the bot!
 

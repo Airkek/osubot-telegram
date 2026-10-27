@@ -42,6 +42,7 @@ import { IApiCredentials } from "games/IApiCredentials";
 import { IRuntimeDependencies } from "application/IRuntimeDependencies";
 import { IRuntimePlatformServices } from "application/IRuntimePlatformServices";
 import { ModuleBuilderFunc } from "application/ModuleBuilderFunc";
+import { LinkServiceClient } from "infrastructure/link/LinkServiceClient";
 
 const DEFAULT_MODULE_BUILDERS: ModuleBuilderFunc[] = [
     (runtime) => new Bancho(runtime),
@@ -62,6 +63,7 @@ const DEFAULT_MODULE_BUILDERS: ModuleBuilderFunc[] = [
 export class ApplicationRuntime implements IBotRuntime {
     readonly storage: IApplicationStorage;
     readonly api: GameApiRegistry;
+    readonly linkService: LinkServiceClient;
     readonly osuBeatmapProvider: OsuBeatmapProvider;
     readonly templates: ITemplateStorage;
     readonly chatBeatmaps: ChatBeatmapCache;
@@ -122,6 +124,7 @@ export class ApplicationRuntime implements IBotRuntime {
     constructor(dependencies: IRuntimeDependencies) {
         this.storage = dependencies.storage;
         this.api = dependencies.api;
+        this.linkService = dependencies.linkService ?? new LinkServiceClient();
         this.osuBeatmapProvider = dependencies.osuBeatmapProvider;
         this.templates = dependencies.templates;
         this.chatBeatmaps = dependencies.chatBeatmaps;
@@ -180,6 +183,7 @@ export class ApplicationRuntime implements IBotRuntime {
         return new ApplicationRuntime({
             storage,
             api,
+            linkService: new LinkServiceClient(process.env.OSU_LINK_API_URL, process.env.OSU_LINK_PAGE_URL),
             osuBeatmapProvider,
             templates: LegacyTextTemplates,
             chatBeatmaps: new ChatBeatmapCache(),
