@@ -106,7 +106,7 @@ help-label-notes = ℹ️ 备注：
 
 help-server-osu-howto =
     使用方法：
-    1) 先设置账号：nick（Bancho 可用 link）。
+    1) 先设置账号：nick（支持绑定时可用 link）。
     2) 之后可省略用户名。
     3) 群聊中 compare/leaderboard 需要先发送谱面/成绩链接，让机器人“看到”谱面。
 
@@ -123,7 +123,7 @@ help-unknown-commands-header = 本模块的其他命令：
 
 help-cmd-link =
     • link / nick / n <code|username>
-      绑定 Bancho 账号：通常 {$prefix} link <code>。若绑定服务不可用，则等同于按用户名设置 nick。
+      绑定此服务器的账号：通常 {$prefix} link <code>。若绑定服务不支持此服务器，则等同于按用户名设置 nick。
 
 help-cmd-nick =
     • nick / n <username>
@@ -275,3 +275,6 @@ help-notes-scoresaber =
 help-cmd-account =
     • account [绑定码]
       生成一次性绑定码，或将当前平台连接到已有机器人账号。
+
+help-notes-morasooma =
+    • 启用绑定时使用 {$prefix} link <code>，否则使用 {$prefix} nick <用户名>。

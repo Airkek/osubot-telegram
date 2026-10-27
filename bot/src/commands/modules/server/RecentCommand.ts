@@ -49,12 +49,12 @@ export class RecentCommand extends ServerCommand {
                         keyboard.push([secondButton]);
                     }
 
-                    if (recent.has_replay && recent.api_score_id) {
+                    if (self.module.replayCommand && recent.has_replay && recent.api_score_id) {
                         const settingsAllowed = process.env.RENDER_REPLAYS === "true";
                         if (settingsAllowed) {
                             const thirdButton = {
                                 text: self.ctx.tr("render-replay-button"),
-                                command: `render_bancho:${recent.api_score_id}`,
+                                command: `${self.module.replayCommand}:${recent.api_score_id}`,
                             };
                             keyboard.push([thirdButton]);
                         }

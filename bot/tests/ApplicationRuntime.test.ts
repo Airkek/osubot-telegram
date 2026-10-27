@@ -1,8 +1,16 @@
-import { expect, test } from "@jest/globals";
+import { afterEach, expect, jest, test } from "@jest/globals";
 import { ApplicationRuntime } from "../src/application/ApplicationRuntime";
 import { IRuntimeDependencies } from "../src/application/IRuntimeDependencies";
 import { IMessageIdentity } from "../src/core/IMessageIdentity";
 import { createTestStorage } from "./fakes/ApplicationStorageFake";
+import { GameApiRegistry } from "../src/games/GameApiRegistry";
+import { PlatformStorage } from "../src/core/PlatformStorage";
+import { IMessageContext } from "../src/core/IMessageContext";
+import { ICommandArgs } from "../src/commands/ICommandArgs";
+import * as cards from "../src/presentation/cards/OkiCardsGenerator";
+import * as renderers from "../src/games/osu/replays/rendering/IssouBestRenderer";
+
+afterEach(() => jest.restoreAllMocks());
 
 global.logger = {
     info() {},
@@ -32,6 +40,61 @@ function createDependencies(overrides: Partial<IRuntimeDependencies> = {}): IRun
         ...overrides,
     } as IRuntimeDependencies;
 }
+
+test.each([
+    ["missing credentials", {}, false],
+    ["missing secret", { morasoomaClientId: 78 }, false],
+    ["missing client ID", { morasoomaClientSecret: "morasooma-client-secret" }, false],
+    ["complete credentials", { morasoomaClientId: 78, morasoomaClientSecret: "morasooma-client-secret" }, true],
+] as const)("runtime enables Morasooma only with complete credentials: %s", async (_name, credentials, enabled) => {
+    jest.spyOn(renderers, "IssouBestRenderer").mockImplementation(() => ({}) as never);
+    const api = new GameApiRegistry({ banchoClientId: 1, banchoClientSecret: "secret", ...credentials });
+    const banchoLogin = jest.spyOn(api.bancho, "login").mockResolvedValue();
+    const runtime = new ApplicationRuntime(createDependencies({ api, moduleBuilders: undefined }));
+
+    await runtime.initialize();
+
+    expect(banchoLogin).toHaveBeenCalledTimes(1);
+    expect(Boolean(api.morasooma)).toBe(enabled);
+    expect(runtime.modules.some((module) => module.name === "Bancho")).toBe(true);
+    expect(runtime.modules.some((module) => module.name === "Morasooma")).toBe(enabled);
+
+    const reply = jest.fn<IMessageContext["reply"]>(async () => {});
+    const ctx = { reply, tr: (key: string) => key, isFromOwner: true } as unknown as IMessageContext;
+    const main = runtime.modules.find((module) => module.name === "Main");
+    const help = main.commands.find((command) => command.name === "help");
+    await help.function(ctx, help, { full: ["osu_servers"] } as ICommandArgs);
+    expect(reply.mock.calls[0][0].includes("Morasooma")).toBe(enabled);
+
+    const admin = runtime.modules.find((module) => module.name === "Admin");
+    const clear = admin.commands.find((command) => command.name === "clear");
+    await clear.function(ctx, clear, { full: ["nick"] } as ICommandArgs);
+    expect(JSON.stringify(reply.mock.calls[1][1].keyboard).includes("morasooma")).toBe(enabled);
+});
+
+test("runtime beatmap provider uses the Bancho client created by its registry", async () => {
+    jest.spyOn(cards, "OkiCardsGenerator").mockImplementation(() => ({}) as never);
+    const storage = new PlatformStorage([createTestStorage()]);
+    const runtime = ApplicationRuntime.create(
+        { banchoClientId: 42, banchoClientSecret: "bancho-client-secret" },
+        storage,
+        [
+            {
+                platform: "telegram",
+                createMediaAttachmentProvider: () => ({ addPhotoDoc: async () => "", getPhotoDoc: async () => "" }),
+                sendMessage: async () => {},
+            },
+        ]
+    );
+    const marker = new Error("Stop before beatmap calculation");
+    const request = jest.spyOn(runtime.api.bancho, "getBeatmap").mockRejectedValue(marker);
+
+    await expect(runtime.osuBeatmapProvider.getBeatmapById(123)).rejects.toBe(marker);
+    await expect(runtime.osuBeatmapProvider.getBeatmapByHash("beatmap-hash")).rejects.toBe(marker);
+    expect(request.mock.calls).toEqual([[123], ["beatmap-hash"]]);
+    expect(runtime.api.bancho.app_id).toBe(42);
+    expect(runtime.api.morasooma).toBeUndefined();
+});
 
 test("runtime initializes injected services and dispatches a matching command", async () => {
     const calls: string[] = [];

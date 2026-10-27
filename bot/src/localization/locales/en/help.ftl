@@ -120,7 +120,7 @@ help-label-notes = ℹ️ Notes:
 
 help-server-osu-howto =
     How to use:
-    1) Set your account once: nick (or link on Bancho).
+    1) Set your account once: nick (or link when supported).
     2) After that you can omit the username — the bot will use the saved one.
     3) In chats, send a beatmap/score link first so the bot “sees” the map for compare/leaderboard.
 
@@ -137,7 +137,7 @@ help-unknown-commands-header = Other commands in this module:
 
 help-cmd-link =
     • link / nick / n <code|username>
-      Link your Bancho account. Usually: {$prefix} link <code>. If linking service is disabled — works like nick by username.
+      Link your account on this server. Usually: {$prefix} link <code>. If the service does not support this server — works like nick by username.
       Examples: {$prefix} link ABCD-1234 | {$prefix} nick mrekk
 
 help-cmd-nick =
@@ -314,3 +314,6 @@ help-notes-scoresaber =
 help-cmd-account =
     • account [link-code]
       Generate a one-time code or link the current platform to an existing bot account.
+
+help-notes-morasooma =
+    • Use {$prefix} link <code> when linking is enabled, or {$prefix} nick <username> otherwise.

@@ -1,7 +1,7 @@
 import { ServerModule } from "commands/ServerModule";
 
 import { IBotRuntime } from "core/IBotRuntime";
-import { BanchoLink } from "commands/modules/bancho/BanchoLink";
+import { LinkCommand } from "commands/modules/server/LinkCommand";
 import { BanchoTrack } from "commands/modules/bancho/BanchoTrack";
 import { UserCommand } from "commands/modules/server/UserCommand";
 import { ModeCommand } from "commands/modules/server/ModeCommand";
@@ -17,6 +17,7 @@ export class Bancho extends ServerModule {
         super(["s", "ы"], bot);
 
         this.name = "Bancho";
+        this.replayCommand = "render_bancho";
         this.link = "https://osu.ppy.sh";
         this.api = bot.api.bancho;
         this.beatmapProvider = bot.osuBeatmapProvider;
@@ -24,7 +25,7 @@ export class Bancho extends ServerModule {
 
         this.registerCommand([
             new UserCommand(this),
-            new BanchoLink(this),
+            new LinkCommand(this, "bancho"),
             new ModeCommand(this),
             new FindCommand(this),
             new TopCommand(this),

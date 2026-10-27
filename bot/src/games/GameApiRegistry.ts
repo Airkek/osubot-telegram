@@ -8,7 +8,11 @@ import { BeatLeaderApiClient } from "games/beatsaber/api/BeatLeaderApiClient";
 import { ScoreSaberApiClient } from "games/beatsaber/api/ScoreSaberApiClient";
 import { RippleRelaxApiClient } from "games/osu/server/ripple_based/ripple/RippleRelaxApiClient";
 
+import { MorasoomaApiClient } from "games/osu/server/morasooma/MorasoomaApiClient";
+import { IApiCredentials } from "games/IApiCredentials";
+
 class GameApiRegistry {
+    readonly morasooma?: MorasoomaApiClient;
     readonly bancho: BanchoV2ApiClient;
     readonly gatari: GatariApiClient;
     readonly ripple: RippleApiClient;
@@ -18,8 +22,15 @@ class GameApiRegistry {
     readonly akatsukiAp: AkatsukiAutopilotApiClient;
     readonly beatleader: BeatLeaderApiClient;
     readonly scoresaber: ScoreSaberApiClient;
-    constructor(bancho: BanchoV2ApiClient) {
-        this.bancho = bancho;
+    constructor(credentials: IApiCredentials) {
+        this.bancho = new BanchoV2ApiClient(credentials.banchoClientId, credentials.banchoClientSecret);
+        if (
+            Number.isSafeInteger(credentials.morasoomaClientId) &&
+            credentials.morasoomaClientId > 0 &&
+            credentials.morasoomaClientSecret?.trim()
+        ) {
+            this.morasooma = new MorasoomaApiClient(credentials.morasoomaClientId, credentials.morasoomaClientSecret);
+        }
         this.gatari = new GatariApiClient();
         this.ripple = new RippleApiClient();
         this.rippleRx = new RippleRelaxApiClient();

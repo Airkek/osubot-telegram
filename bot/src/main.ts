@@ -4,7 +4,7 @@ import { ITelegramBotConfig } from "platforms/telegram/ITelegramBotConfig";
 import { VKBotAdapter } from "platforms/vk/VKBotAdapter";
 import { IVKBotConfig } from "platforms/vk/IVKBotConfig";
 import { ApplicationRuntime } from "application/ApplicationRuntime";
-import { IRuntimeConfig } from "application/IRuntimeConfig";
+import { IApiCredentials } from "games/IApiCredentials";
 import { IPlatformAdapter } from "core/IPlatformAdapter";
 import { PlatformStorage } from "core/PlatformStorage";
 import { ApplicationHttpServer } from "application/ApplicationHttpServer";
@@ -16,9 +16,11 @@ import { PostgresStorage } from "infrastructure/database/PostgresStorage";
 import dotenv from "dotenv";
 dotenv.config();
 
-const runtimeConfig: IRuntimeConfig = {
-    banchoAppId: Number(process.env.OSU_V2_APP_ID),
+const apiCredentials: IApiCredentials = {
+    banchoClientId: Number(process.env.OSU_V2_APP_ID),
     banchoClientSecret: process.env.OSU_V2_CLIENT_SECRET,
+    morasoomaClientId: process.env.MORASOOMA_CLIENT_ID ? Number(process.env.MORASOOMA_CLIENT_ID) : undefined,
+    morasoomaClientSecret: process.env.MORASOOMA_CLIENT_SECRET,
 };
 
 declare global {
@@ -107,7 +109,7 @@ async function main(): Promise<void> {
     localizer.initialize();
     bots = enabledPlatforms().map(createPlatformAdapter);
     const storage = new PlatformStorage(PostgresStorage.fromEnvironmentForPlatforms(bots.map((bot) => bot.platform)));
-    runtime = ApplicationRuntime.create(runtimeConfig, storage, bots);
+    runtime = ApplicationRuntime.create(apiCredentials, storage, bots);
     await runtime.initialize();
     httpServer.start();
     const started: IPlatformAdapter[] = [];

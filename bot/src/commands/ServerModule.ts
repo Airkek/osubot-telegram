@@ -5,6 +5,7 @@ import { IGameApi } from "games/IGameApi";
 
 export class ServerModule extends Module {
     link: string;
+    replayCommand?: string;
     api: IGameApi;
     db: IGameUserRepository;
     beatmapProvider?: IBeatmapProvider;

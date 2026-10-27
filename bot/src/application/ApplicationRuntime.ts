@@ -1,6 +1,5 @@
 import { IMessageContext } from "core/IMessageContext";
 import { GameApiRegistry } from "games/GameApiRegistry";
-import { BanchoV2ApiClient } from "games/osu/server/bancho/BanchoV2ApiClient";
 import { OsuBeatmapProvider } from "games/osu/beatmaps/OsuBeatmapProvider";
 import { IBotRuntime } from "core/IBotRuntime";
 import { PendingCallback } from "core/PendingCallback";
@@ -14,6 +13,7 @@ import { Admin } from "commands/modules/admin/Admin";
 import { Akatsuki } from "commands/modules/akatsuki/Akatsuki";
 import { AkatsukiAutoPilot } from "commands/modules/akatsuki-autopilot/AkatsukiAutoPilot";
 import { AkatsukiRelax } from "commands/modules/akatsuki-relax/AkatsukiRelax";
+import { Morasooma } from "commands/modules/morasooma/Morasooma";
 import { Bancho } from "commands/modules/bancho/Bancho";
 import { BeatLeader } from "commands/modules/beatleader/BeatLeader";
 import { Gatari } from "commands/modules/gatari/Gatari";
@@ -38,13 +38,15 @@ import { Command } from "commands/Command";
 import { ExternalId } from "core/ExternalId";
 import { Platform } from "core/Platform";
 import { performanceClient } from "infrastructure/performance/PerformanceClient";
-import { IRuntimeConfig } from "application/IRuntimeConfig";
+import { IApiCredentials } from "games/IApiCredentials";
 import { IRuntimeDependencies } from "application/IRuntimeDependencies";
 import { IRuntimePlatformServices } from "application/IRuntimePlatformServices";
 import { ModuleBuilderFunc } from "application/ModuleBuilderFunc";
+import { LinkServiceClient } from "infrastructure/link/LinkServiceClient";
 
 const DEFAULT_MODULE_BUILDERS: ModuleBuilderFunc[] = [
     (runtime) => new Bancho(runtime),
+    (runtime) => (runtime.api.morasooma ? new Morasooma(runtime) : undefined),
     (runtime) => new Gatari(runtime),
     (runtime) => new Ripple(runtime),
     (runtime) => new RippleRelax(runtime),
@@ -61,6 +63,7 @@ const DEFAULT_MODULE_BUILDERS: ModuleBuilderFunc[] = [
 export class ApplicationRuntime implements IBotRuntime {
     readonly storage: IApplicationStorage;
     readonly api: GameApiRegistry;
+    readonly linkService: LinkServiceClient;
     readonly osuBeatmapProvider: OsuBeatmapProvider;
     readonly templates: ITemplateStorage;
     readonly chatBeatmaps: ChatBeatmapCache;
@@ -121,6 +124,7 @@ export class ApplicationRuntime implements IBotRuntime {
     constructor(dependencies: IRuntimeDependencies) {
         this.storage = dependencies.storage;
         this.api = dependencies.api;
+        this.linkService = dependencies.linkService ?? new LinkServiceClient();
         this.osuBeatmapProvider = dependencies.osuBeatmapProvider;
         this.templates = dependencies.templates;
         this.chatBeatmaps = dependencies.chatBeatmaps;
@@ -134,7 +138,7 @@ export class ApplicationRuntime implements IBotRuntime {
     }
 
     static create(
-        config: IRuntimeConfig,
+        credentials: IApiCredentials,
         storage: IPlatformStorageHost,
         platforms: IRuntimePlatformServices[]
     ): ApplicationRuntime {
@@ -172,13 +176,14 @@ export class ApplicationRuntime implements IBotRuntime {
             addPhotoDoc: (url) => currentMediaProvider().addPhotoDoc(url),
             getPhotoDoc: (url) => currentMediaProvider().getPhotoDoc(url),
         };
-        const banchoApi = new BanchoV2ApiClient(config.banchoAppId, config.banchoClientSecret);
-        const osuBeatmapProvider = new OsuBeatmapProvider(banchoApi, storage.beatmaps);
+        const api = new GameApiRegistry(credentials);
+        const osuBeatmapProvider = new OsuBeatmapProvider(api, storage.beatmaps);
         const cards = new OkiCardsGenerator();
 
         return new ApplicationRuntime({
             storage,
-            api: new GameApiRegistry(banchoApi),
+            api,
+            linkService: new LinkServiceClient(process.env.OSU_LINK_API_URL, process.env.OSU_LINK_PAGE_URL),
             osuBeatmapProvider,
             templates: LegacyTextTemplates,
             chatBeatmaps: new ChatBeatmapCache(),
@@ -200,7 +205,8 @@ export class ApplicationRuntime implements IBotRuntime {
         await this.ignored.init();
         await this.api.bancho.login();
         await this.performanceClient?.health();
-        this.modules.push(...this.moduleBuilders.map((builder) => builder(this)));
+        const modules = this.moduleBuilders.map((builder) => builder(this));
+        this.modules.push(...modules.filter((module): module is Module => module !== undefined));
     }
 
     async markStarted(platform: Platform, identity: IBotIdentity, publicLink: string): Promise<void> {

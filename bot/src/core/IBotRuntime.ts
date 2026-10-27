@@ -12,10 +12,12 @@ import type { PendingCallback } from "core/PendingCallback";
 import type { ChatBeatmapCache } from "infrastructure/cache/ChatBeatmapCache";
 import type { IgnoreList } from "infrastructure/cache/IgnoreList";
 import type { LeaderboardCache } from "infrastructure/cache/LeaderboardCache";
+import type { LinkServiceClient } from "infrastructure/link/LinkServiceClient";
 
 export interface IBotRuntime {
     readonly storage: IApplicationStorage;
     readonly api: GameApiRegistry;
+    readonly linkService: LinkServiceClient;
     readonly osuBeatmapProvider: OsuBeatmapProvider;
     readonly templates: ITemplateStorage;
     readonly chatBeatmaps: ChatBeatmapCache;

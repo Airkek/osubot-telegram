@@ -10,6 +10,7 @@ import { MaintenanceTarget } from "core/storage/MaintenanceTarget";
 
 const SERVER_OPTIONS = [
     { id: "bancho", label: "Bancho" },
+    { id: "morasooma", label: "Morasooma" },
     { id: "gatari", label: "Gatari" },
     { id: "ripple", label: "Ripple (+Relax)" },
     { id: "akatsuki", label: "Akatsuki (+Relax/+AP)" },
@@ -203,9 +204,10 @@ export class ClearCommand extends Command {
 
     private buildServerSelectionKeyboard(ctx: IMessageContext, target: "nick" | "stats"): IKeyboard {
         const keyboard: IKeyboardRow[] = [];
+        const servers = SERVER_OPTIONS.filter((server) => server.id !== "morasooma" || !!this.module.bot.api.morasooma);
 
-        for (let i = 0; i < SERVER_OPTIONS.length; i += 2) {
-            const row = SERVER_OPTIONS.slice(i, i + 2).map((server) => ({
+        for (let i = 0; i < servers.length; i += 2) {
+            const row = servers.slice(i, i + 2).map((server) => ({
                 text: server.label,
                 command: `admin clear ${target} ${server.id}`,
             }));
@@ -298,6 +300,9 @@ export class ClearCommand extends Command {
 
         if (["bancho", "osu"].includes(token)) {
             return "bancho";
+        }
+        if (token === "morasooma") {
+            return token;
         }
         if (["gatari"].includes(token)) {
             return "gatari";

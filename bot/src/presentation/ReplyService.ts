@@ -72,7 +72,7 @@ export class ReplyService {
             const card = await this.cards.generateUserCard(user, l);
             if (card) {
                 return {
-                    text: `${serverBase}/u/${user.id}`,
+                    text: user.profileUrl ?? `${serverBase}/u/${user.id}`,
                     photo: card,
                 };
             }
