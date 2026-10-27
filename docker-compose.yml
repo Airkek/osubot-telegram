@@ -34,10 +34,12 @@ services:
 
     environment:
       PERFORMANCE_SERVER_PORT: 50051
+      BEATMAP_CACHE_PATH: /var/lib/osu-performance/beatmaps
       STRAIN_CACHE_PATH: /var/lib/osu-performance/strains
 
     volumes:
-      - ${OSU_STRAIN_CACHE:-${OSU_BEATMAP_CACHE:-./strain_cache}}:/var/lib/osu-performance/strains
+      - ${OSU_BEATMAP_CACHE:-./beatmap_cache}:/var/lib/osu-performance/beatmaps
+      - ${OSU_STRAIN_CACHE:-./strain_cache}:/var/lib/osu-performance/strains
 
     healthcheck:
       test: ["CMD-SHELL", "nc -z 127.0.0.1 50051"]

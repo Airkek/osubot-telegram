@@ -4,18 +4,23 @@ using System.Text.RegularExpressions;
 
 namespace OsuPerformanceServer;
 
-internal sealed class BeatmapStore
+internal sealed class BeatmapStore : IDisposable
 {
     private const int maxBeatmapSize = 50 * 1024 * 1024;
     private static readonly Regex md5Pattern = new("^[a-f0-9]{32}$", RegexOptions.Compiled);
 
     private readonly IHttpClientFactory httpClientFactory;
     private readonly ILogger<BeatmapStore> logger;
+    private readonly string cachePath;
+    private readonly SemaphoreSlim[] gates = Enumerable.Range(0, 64).Select(_ => new SemaphoreSlim(1, 1)).ToArray();
 
-    public BeatmapStore(IHttpClientFactory httpClientFactory, ILogger<BeatmapStore> logger)
+    public BeatmapStore(IHttpClientFactory httpClientFactory, IConfiguration configuration, ILogger<BeatmapStore> logger)
     {
         this.httpClientFactory = httpClientFactory;
         this.logger = logger;
+        cachePath = Path.GetFullPath(
+            configuration["BEATMAP_CACHE_PATH"] ?? Path.Combine(AppContext.BaseDirectory, "beatmap-cache"));
+        Directory.CreateDirectory(cachePath);
     }
 
     public async Task<FileWorkingBeatmap> GetAsync(
@@ -25,24 +30,115 @@ internal sealed class BeatmapStore
         CancellationToken cancellationToken)
     {
         string expected = NormalizeMd5(expectedMd5);
-        byte[] content = suppliedContent.Length > 0
-            ? suppliedContent.ToArray()
-            : await DownloadAsync(beatmapId, cancellationToken);
-        string actual = HashContent(content, beatmapId);
-        if (expected.Length > 0 && !string.Equals(expected, actual, StringComparison.Ordinal))
+        string hash = expected;
+        if (suppliedContent.Length > 0)
         {
-            logger.LogWarning(
-                "Beatmap {BeatmapId} hash mismatch: expected {ExpectedHash}, downloaded {ActualHash}",
-                beatmapId,
-                expected,
-                actual);
-            throw new BeatmapHashMismatchException(beatmapId, expected, actual);
+            hash = HashContent(suppliedContent, beatmapId);
+            RequireExpectedHash(beatmapId, expected, hash);
         }
 
-        cancellationToken.ThrowIfCancellationRequested();
+        string lockKey = hash.Length > 0 ? hash : $"id:{beatmapId}";
+        SemaphoreSlim gate = gates[(uint)StringComparer.Ordinal.GetHashCode(lockKey) % gates.Length];
+        await gate.WaitAsync(cancellationToken);
+        try
+        {
+            if (hash.Length > 0 && await ReadCachedAsync(hash, beatmapId, cancellationToken) is { } cached)
+                return cached;
+
+            byte[] content = suppliedContent.Length > 0
+                ? suppliedContent.ToArray()
+                : await DownloadAsync(beatmapId, cancellationToken);
+            string actual = HashContent(content, beatmapId);
+            RequireExpectedHash(beatmapId, expected, actual);
+
+            cancellationToken.ThrowIfCancellationRequested();
+            FileWorkingBeatmap beatmap = Decode(content, actual);
+            await StoreAsync(PathForHash(actual), content, cancellationToken);
+            return beatmap;
+        }
+        finally
+        {
+            gate.Release();
+        }
+    }
+
+    public void Dispose()
+    {
+        foreach (SemaphoreSlim gate in gates)
+            gate.Dispose();
+    }
+
+    private async Task<FileWorkingBeatmap?> ReadCachedAsync(string hash, long beatmapId, CancellationToken cancellationToken)
+    {
+        string path = PathForHash(hash);
+        if (!File.Exists(path))
+            return null;
+
+        byte[] content;
+        try
+        {
+            content = await File.ReadAllBytesAsync(path, cancellationToken);
+        }
+        catch (FileNotFoundException)
+        {
+            return null;
+        }
+
+        try
+        {
+            if (HashContent(content, beatmapId) != hash)
+                throw new InvalidDataException("Cached beatmap checksum does not match its filename");
+        }
+        catch (InvalidDataException error)
+        {
+            logger.LogWarning(error, "Discarding invalid beatmap cache entry {Hash}", hash);
+            File.Delete(path);
+            return null;
+        }
+        return Decode(content, hash);
+    }
+
+    private static FileWorkingBeatmap Decode(byte[] content, string hash)
+    {
         var beatmap = FileWorkingBeatmap.FromBytes(content);
-        beatmap.BeatmapInfo.MD5Hash = actual;
+        beatmap.BeatmapInfo.MD5Hash = hash;
         return beatmap;
+    }
+
+    private string PathForHash(string hash) => Path.Combine(cachePath, $"{hash}.osu");
+
+    private void RequireExpectedHash(long beatmapId, string expected, string actual)
+    {
+        if (expected.Length == 0 || expected == actual)
+            return;
+        logger.LogWarning(
+            "Beatmap {BeatmapId} hash mismatch: expected {ExpectedHash}, downloaded {ActualHash}",
+            beatmapId, expected, actual);
+        throw new BeatmapHashMismatchException(beatmapId, expected, actual);
+    }
+
+    private static async Task StoreAsync(string path, byte[] content, CancellationToken cancellationToken)
+    {
+        if (File.Exists(path))
+            return;
+
+        string temporaryPath = $"{path}.{Guid.NewGuid():N}.tmp";
+        try
+        {
+            await File.WriteAllBytesAsync(temporaryPath, content, cancellationToken);
+            try
+            {
+                File.Move(temporaryPath, path);
+            }
+            catch (IOException) when (File.Exists(path))
+            {
+            }
+        }
+        finally
+        {
+            if (File.Exists(temporaryPath))
+                File.Delete(temporaryPath);
+        }
     }
 
     private async Task<byte[]> DownloadAsync(long beatmapId, CancellationToken cancellationToken)

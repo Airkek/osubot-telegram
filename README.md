@@ -85,7 +85,7 @@ To build and test the performance server with .NET 10:
 dotnet test performance-server/OsuPerformanceServer.sln --configuration Release
 ```
 
-Bot sources and runtime assets live under [`bot/`](bot/). The independently deployable gRPC performance service and its NUnit project live under [`performance-server/`](performance-server/); the shared versioned API contract lives under [`contracts/`](contracts/). The performance server owns the on-disk strain cache, while the bot only keeps beatmap metadata.
+Bot sources and runtime assets live under [`bot/`](bot/). The independently deployable gRPC performance service and its NUnit project live under [`performance-server/`](performance-server/); the shared versioned API contract lives under [`contracts/`](contracts/). The performance server owns the on-disk beatmap and strain caches, while the bot only keeps beatmap metadata.
 
 ## License
 
