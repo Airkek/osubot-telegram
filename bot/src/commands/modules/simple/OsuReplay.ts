@@ -39,6 +39,9 @@ export class OsuReplay extends Command {
                             render_bancho: this.module.bot.api.bancho,
                             render_morasooma: this.module.bot.api.morasooma,
                         }[messagePayload[0]];
+                        if (!api) {
+                            return;
+                        }
                         file = await api.downloadReplay(scoreId);
                         break;
                     }
@@ -294,7 +297,8 @@ export class OsuReplay extends Command {
     check(name: string, ctx: IMessageContext): boolean {
         return (
             (ctx.hasFile() && ctx.getFileName()?.endsWith(".osr")) ||
-            (ctx.messagePayload && /^(render_bancho|render_morasooma):/.test(ctx.messagePayload))
+            ctx.messagePayload?.startsWith("render_bancho:") ||
+            (!!this.module.bot.api.morasooma && ctx.messagePayload?.startsWith("render_morasooma:"))
         );
     }
 

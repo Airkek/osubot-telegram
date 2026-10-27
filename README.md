@@ -13,7 +13,7 @@ The project originated as a port of OctoDumb's [osubot-old](https://github.com/O
 
 - osu!stable and osu!lazer scores, profiles, recent plays and top scores
 - Gatari, Ripple and Akatsuki support, including their additional play styles
-- Morasooma (`m` / `ь`) support through a shared osu! API v2 client; public tokens are obtained automatically
+- Morasooma (`m` / `ь`) support through a shared osu! API v2 client with OAuth client credentials
 - BeatLeader and ScoreSaber support
 - Image cards and text output in English, Russian and Chinese
 - Chat leaderboards and leaderboards for a selected beatmap
@@ -45,6 +45,8 @@ Configure osu! API credentials, PostgreSQL credentials and at least one complete
 - `VK_TOKEN` and `VK_OWNER_ID` for VK
 
 When both sets are present, both adapters start in the same process. `BOT_PLATFORMS` is an optional comma-separated override; when empty, configured platforms are detected automatically. `VK_USER_TOKEN` is optional and is only required for uploading private video attachments to VK.
+
+For Morasooma commands, create an OAuth application in [Morasooma settings](https://morasooma.net/settings#oauth) and configure `MORASOOMA_CLIENT_ID` and `MORASOOMA_CLIENT_SECRET`. The bot obtains and renews access tokens automatically. Morasooma is disabled when either credential is missing.
 
 If the bundled local Telegram Bot API is enabled, also configure `TELEGRAM_APP_API_ID` and `TELEGRAM_APP_API_HASH`. See [.env.example](.env.example) for the remaining settings and comments.
 

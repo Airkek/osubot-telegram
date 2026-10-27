@@ -5,7 +5,6 @@ import { SimpleCommandsModule } from "../src/commands/modules/simple/SimpleComma
 import { IBotRuntime } from "../src/core/IBotRuntime";
 import { IMessageContext } from "../src/core/IMessageContext";
 import { GameApiRegistry } from "../src/games/GameApiRegistry";
-import { BanchoV2ApiClient } from "../src/games/osu/server/bancho/BanchoV2ApiClient";
 import { createTestStorage } from "./fakes/ApplicationStorageFake";
 import { RecentCommand } from "../src/commands/modules/server/RecentCommand";
 import { ICommandArgs } from "../src/commands/ICommandArgs";
@@ -15,7 +14,12 @@ afterEach(() => jest.restoreAllMocks());
 
 function createRuntime(overrides: Partial<IBotRuntime> = {}) {
     return {
-        api: new GameApiRegistry(new BanchoV2ApiClient(1, "secret")),
+        api: new GameApiRegistry({
+            banchoClientId: 1,
+            banchoClientSecret: "secret",
+            morasoomaClientId: 78,
+            morasoomaClientSecret: "morasooma-client-secret",
+        }),
         storage: createTestStorage(),
         osuBeatmapProvider: {},
         ...overrides,
@@ -88,5 +92,20 @@ describe("Morasooma commands", () => {
         await expect(replay.function(ctx, replay, undefined)).rejects.toBe(marker);
         expect(source === "render_bancho" ? official : privateServer).toHaveBeenCalledWith(213468);
         expect(source === "render_bancho" ? privateServer : official).not.toHaveBeenCalled();
+    });
+
+    test("ignores stale Morasooma render buttons when its credentials are missing", async () => {
+        const runtime = createRuntime({
+            api: new GameApiRegistry({ banchoClientId: 1, banchoClientSecret: "secret" }),
+        });
+        const official = jest.spyOn(runtime.api.bancho, "downloadReplay");
+        jest.spyOn(renderers, "IssouBestRenderer").mockImplementation(() => ({}) as never);
+        const replay = new OsuReplay({ bot: runtime } as SimpleCommandsModule);
+        const ctx = { messagePayload: "render_morasooma:213468", hasFile: () => false } as IMessageContext;
+
+        expect(runtime.api.morasooma).toBeUndefined();
+        expect(replay.check("", ctx)).toBe(false);
+        await expect(replay.function(ctx, replay, undefined)).resolves.toBeUndefined();
+        expect(official).not.toHaveBeenCalled();
     });
 });

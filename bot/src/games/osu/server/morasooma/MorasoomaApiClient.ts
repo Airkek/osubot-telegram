@@ -5,16 +5,21 @@ import { IOsuV2Score } from "games/osu/server/v2/IOsuV2Score";
 import { OsuV2ApiClient } from "games/osu/server/v2/OsuV2ApiClient";
 import { IGameUser } from "games/users/IGameUser";
 
-export class G0v0ApiClient extends OsuV2ApiClient {
+const SERVER_URL = "https://morasooma.net";
+
+export class MorasoomaApiClient extends OsuV2ApiClient {
     private tokenExpiresAt = 0;
     private loginPromise?: Promise<void>;
 
-    constructor(private readonly serverUrl: string) {
-        super(`${serverUrl}/api/v2`);
+    constructor(
+        private readonly clientId?: number,
+        private readonly clientSecret?: string
+    ) {
+        super(`${SERVER_URL}/api/v2`);
     }
 
     async login(): Promise<void> {
-        this.loginPromise ??= this.requestPublicToken();
+        this.loginPromise ??= this.requestToken();
         try {
             await this.loginPromise;
         } finally {
@@ -22,14 +27,32 @@ export class G0v0ApiClient extends OsuV2ApiClient {
         }
     }
 
-    private async requestPublicToken(): Promise<void> {
+    private async requestToken(): Promise<void> {
         try {
-            const { data } = await axios.post(`${this.serverUrl}/web-auth/public-token`, undefined, { timeout: 15000 });
-            if (typeof data?.access_token !== "string" || !data.access_token || !(data.expires_in > 0)) {
-                throw new Error("g0v0 public token response is invalid");
+            if (!Number.isSafeInteger(this.clientId) || this.clientId <= 0 || !this.clientSecret?.trim()) {
+                throw new Error("Morasooma OAuth client credentials are not configured");
+            }
+            const { data } = await axios.post(
+                `${SERVER_URL}/oauth/token`,
+                {
+                    grant_type: "client_credentials",
+                    client_id: this.clientId,
+                    client_secret: this.clientSecret,
+                    scope: "public",
+                },
+                { timeout: 15000 }
+            );
+            const expiresIn = Number(data?.expires_in);
+            if (
+                typeof data?.access_token !== "string" ||
+                !data.access_token ||
+                !Number.isFinite(expiresIn) ||
+                expiresIn <= 0
+            ) {
+                throw new Error("Morasooma OAuth token response is invalid");
             }
             this.token = data.access_token;
-            this.tokenExpiresAt = Date.now() + data.expires_in * 1000;
+            this.tokenExpiresAt = Date.now() + expiresIn * 1000;
             this.logged = 1;
         } catch (error) {
             this.token = undefined;
@@ -54,12 +77,12 @@ export class G0v0ApiClient extends OsuV2ApiClient {
     }
 
     private withProfileUrls(user: IGameUser): IGameUser {
-        user.profileUrl = `${this.serverUrl}/users/${user.id}`;
+        user.profileUrl = `${SERVER_URL}/users/${user.id}`;
         if (user.profileAvatarUrl) {
-            user.profileAvatarUrl = new URL(user.profileAvatarUrl, this.serverUrl).href;
+            user.profileAvatarUrl = new URL(user.profileAvatarUrl, SERVER_URL).href;
         }
         if (user.profileBackgroundUrl) {
-            user.profileBackgroundUrl = new URL(user.profileBackgroundUrl, this.serverUrl).href;
+            user.profileBackgroundUrl = new URL(user.profileBackgroundUrl, SERVER_URL).href;
         }
         return user;
     }
@@ -74,14 +97,14 @@ export class G0v0ApiClient extends OsuV2ApiClient {
             return await super.getBeatmapUserScore(uid, beatmapId, mode);
         }
 
-        const scores: IOsuV2Score[] = await this.get(`/beatmaps/${beatmapId}/scores/users/${uid}/all`, {
+        const data: { scores: IOsuV2Score[] } = await this.get(`/beatmaps/${beatmapId}/scores/users/${uid}/all`, {
             ruleset: ["osu", "taiko", "fruits", "mania"][mode ?? 0],
         });
-        if (!scores) {
+        if (!data) {
             throw new NoScoresFoundError();
         }
-        if (!Array.isArray(scores)) {
-            throw new Error("Invalid user scores response from g0v0 API");
+        if (!Array.isArray(data.scores)) {
+            throw new Error("Invalid user scores response from Morasooma API");
         }
 
         const modKey = (value: Mods) =>
@@ -91,7 +114,7 @@ export class G0v0ApiClient extends OsuV2ApiClient {
                 .sort()
                 .join(",");
         const requestedMods = modKey(mods);
-        const score = scores
+        const score = data.scores
             .filter((candidate) => modKey(new Mods(candidate.mods)) === requestedMods)
             .sort((left, right) => right.total_score - left.total_score)[0];
         if (!score) {

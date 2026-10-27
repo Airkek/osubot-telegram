@@ -3,12 +3,20 @@ import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import { NoScoresFoundError } from "../src/core/errors/NoScoresFoundError";
 import { UserNotFoundError } from "../src/core/errors/UserNotFoundError";
 import { Mods } from "../src/games/osu/performance/Mods";
-import { G0v0ApiClient } from "../src/games/osu/server/g0v0/G0v0ApiClient";
+import { GameApiRegistry } from "../src/games/GameApiRegistry";
+import { MorasoomaApiClient } from "../src/games/osu/server/morasooma/MorasoomaApiClient";
 import { BanchoV2ApiClient } from "../src/games/osu/server/bancho/BanchoV2ApiClient";
 import { IOsuV2Score } from "../src/games/osu/server/v2/IOsuV2Score";
 import { formatUser } from "../src/presentation/templates/legacy-text/User";
 
 const server = "https://morasooma.net";
+const clientId = 78;
+const clientSecret = "morasooma-client-secret";
+
+function createClient() {
+    return new MorasoomaApiClient(clientId, clientSecret);
+}
+
 const userData = {
     id: 130,
     username: "player name",
@@ -51,15 +59,15 @@ function httpError(status: number) {
 }
 
 function mockTokens() {
-    return jest.spyOn(axios, "post").mockResolvedValue({ data: { access_token: "public-token", expires_in: 86400 } });
+    return jest.spyOn(axios, "post").mockResolvedValue({ data: { access_token: "oauth-token", expires_in: 3600 } });
 }
 
 afterEach(() => jest.restoreAllMocks());
 
-describe("g0v0 public authentication", () => {
-    test("shares a lazy public token between concurrent profile requests", async () => {
+describe("Morasooma OAuth authentication", () => {
+    test("shares a lazy OAuth token between concurrent profile requests", async () => {
         const tokenRequest = mockTokens();
-        const client = new G0v0ApiClient(server);
+        const client = createClient();
         const request = jest.fn<(...args: unknown[]) => Promise<unknown>>(async () => ({ data: userData }));
         client.api.get = request as never;
 
@@ -68,7 +76,16 @@ describe("g0v0 public authentication", () => {
 
         expect(client.api.defaults.baseURL).toBe(`${server}/api/v2`);
         expect(tokenRequest).toHaveBeenCalledTimes(1);
-        expect(tokenRequest).toHaveBeenCalledWith(`${server}/web-auth/public-token`, undefined, { timeout: 15000 });
+        expect(tokenRequest).toHaveBeenCalledWith(
+            `${server}/oauth/token`,
+            {
+                grant_type: "client_credentials",
+                client_id: clientId,
+                client_secret: clientSecret,
+                scope: "public",
+            },
+            { timeout: 15000 }
+        );
         expect(request.mock.calls).toHaveLength(2);
         expect(byName.nickname).toBe("player name");
         expect(byId.profileAvatarUrl).toBe(`${server}/api/private/default-avatar.png`);
@@ -76,14 +93,66 @@ describe("g0v0 public authentication", () => {
         expect(formatUser({ tr: (key) => key }, byId, server)).toContain(`${server}/users/130`);
     });
 
+    test("keeps Morasooma credentials and tokens separate from Bancho", async () => {
+        const tokenRequest = mockTokens()
+            .mockResolvedValueOnce({ data: { access_token: "morasooma-token", expires_in: 3600 } })
+            .mockResolvedValueOnce({ data: { access_token: "bancho-token" } });
+        const registry = new GameApiRegistry({
+            banchoClientId: 42,
+            banchoClientSecret: "bancho-client-secret",
+            morasoomaClientId: clientId,
+            morasoomaClientSecret: clientSecret,
+        });
+        registry.morasooma.api.get = jest.fn(async () => ({ data: userData })) as never;
+
+        await registry.morasooma.getUserById(130);
+        await registry.bancho.login();
+
+        expect(tokenRequest).toHaveBeenNthCalledWith(
+            1,
+            `${server}/oauth/token`,
+            {
+                grant_type: "client_credentials",
+                client_id: clientId,
+                client_secret: clientSecret,
+                scope: "public",
+            },
+            { timeout: 15000 }
+        );
+        expect(tokenRequest).toHaveBeenNthCalledWith(
+            2,
+            "https://osu.ppy.sh/oauth/token",
+            {
+                grant_type: "client_credentials",
+                client_id: 42,
+                client_secret: "bancho-client-secret",
+                scope: "public",
+            },
+            { timeout: 15000 }
+        );
+        expect(registry.morasooma.token).toBe("morasooma-token");
+        expect(registry.bancho.token).toBe("bancho-token");
+    });
+
+    test("reports missing Morasooma credentials before making requests", async () => {
+        const tokenRequest = mockTokens();
+        const client = new MorasoomaApiClient();
+        const request = jest.fn(async () => ({ data: userData }));
+        client.api.get = request as never;
+
+        await expect(client.getUserById(130)).rejects.toThrow("Morasooma OAuth client credentials are not configured");
+        expect(tokenRequest).not.toHaveBeenCalled();
+        expect(request).not.toHaveBeenCalled();
+    });
+
     test("renews the token before expiry", async () => {
         const tokenRequest = mockTokens();
         const now = jest.spyOn(Date, "now").mockReturnValue(100000);
-        const client = new G0v0ApiClient(server);
+        const client = createClient();
         client.api.get = jest.fn(async () => ({ data: userData })) as never;
 
         await client.getUserById(130);
-        now.mockReturnValue(100000 + 86400 * 1000 - 30000);
+        now.mockReturnValue(100000 + 3600 * 1000 - 30000);
         await client.getUserById(130);
 
         expect(tokenRequest).toHaveBeenCalledTimes(2);
@@ -91,7 +160,7 @@ describe("g0v0 public authentication", () => {
 
     test("refreshes a rejected token and retries replay download on the same server", async () => {
         const tokenRequest = mockTokens();
-        const client = new G0v0ApiClient(server);
+        const client = createClient();
         const replay = Buffer.from("replay data");
         const request = jest
             .fn<(...args: unknown[]) => Promise<{ data: Buffer }>>()
@@ -102,14 +171,14 @@ describe("g0v0 public authentication", () => {
         expect(await client.downloadReplay(213468)).toEqual(replay);
         expect(tokenRequest).toHaveBeenCalledTimes(2);
         expect(request).toHaveBeenLastCalledWith("/scores/213468/download", {
-            headers: { Authorization: "Bearer public-token", "x-api-version": "20241130" },
+            headers: { Authorization: "Bearer oauth-token", "x-api-version": "20241130" },
             responseType: "arraybuffer",
         });
     });
 
     test("does not refresh forever when a server keeps returning HTTP 401", async () => {
         const tokenRequest = mockTokens();
-        const client = new G0v0ApiClient(server);
+        const client = createClient();
         const error = httpError(401);
         const request = jest.fn<(...args: unknown[]) => Promise<unknown>>(async () => {
             throw error;
@@ -123,11 +192,11 @@ describe("g0v0 public authentication", () => {
 
     test("retries authentication after an invalid token response", async () => {
         const tokenRequest = mockTokens().mockResolvedValueOnce({ data: {} });
-        const client = new G0v0ApiClient(server);
+        const client = createClient();
         const request = jest.fn<(...args: unknown[]) => Promise<unknown>>(async () => ({ data: userData }));
         client.api.get = request as never;
 
-        await expect(client.getUserById(130)).rejects.toThrow("public token response is invalid");
+        await expect(client.getUserById(130)).rejects.toThrow("OAuth token response is invalid");
         expect(request).not.toHaveBeenCalled();
         await expect(client.getUserById(130)).resolves.toMatchObject({ id: 130 });
         expect(tokenRequest).toHaveBeenCalledTimes(2);
@@ -135,7 +204,7 @@ describe("g0v0 public authentication", () => {
 
     test("maps missing profiles to the existing user-facing error without refreshing", async () => {
         const tokenRequest = mockTokens();
-        const client = new G0v0ApiClient(server);
+        const client = createClient();
         client.api.get = jest.fn(async () => {
             throw httpError(404);
         }) as never;
@@ -145,22 +214,24 @@ describe("g0v0 public authentication", () => {
     });
 });
 
-describe("g0v0 score selection", () => {
+describe("Morasooma score selection", () => {
     test.each([
         ["NM", 2],
         ["HD", 4],
         ["HDHR", 5],
-    ] as const)("selects exact %s mods from the array response", async (mods, expectedId) => {
+    ] as const)("selects exact %s mods from the wrapped scores response", async (mods, expectedId) => {
         mockTokens();
-        const client = new G0v0ApiClient(server);
+        const client = createClient();
         const request = jest.fn<(...args: unknown[]) => Promise<unknown>>(async () => ({
-            data: [
-                scoreData(1, ["DT"], 900000),
-                scoreData(2, ["CL"], 400000),
-                scoreData(3, ["HD"], 200000),
-                scoreData(4, ["HD"], 300000),
-                scoreData(5, ["HR", "HD"], 500000),
-            ],
+            data: {
+                scores: [
+                    scoreData(1, ["DT"], 900000),
+                    scoreData(2, ["CL"], 400000),
+                    scoreData(3, ["HD"], 200000),
+                    scoreData(4, ["HD"], 300000),
+                    scoreData(5, ["HR", "HD"], 500000),
+                ],
+            },
         }));
         client.api.get = request as never;
 
@@ -175,8 +246,8 @@ describe("g0v0 score selection", () => {
         "reports no score when the requested mods are absent",
         async ({ scores }) => {
             mockTokens();
-            const client = new G0v0ApiClient(server);
-            client.api.get = jest.fn(async () => ({ data: scores })) as never;
+            const client = createClient();
+            client.api.get = jest.fn(async () => ({ data: { scores } })) as never;
             await expect(client.getScoreByUid(255, 1782390, 0, new Mods("HD"))).rejects.toBeInstanceOf(
                 NoScoresFoundError
             );
@@ -185,7 +256,7 @@ describe("g0v0 score selection", () => {
 
     test("keeps the best-score endpoint when no mod filter is requested", async () => {
         mockTokens();
-        const client = new G0v0ApiClient(server);
+        const client = createClient();
         const request = jest.fn<(...args: unknown[]) => Promise<unknown>>(async () => ({
             data: { score: scoreData(6, ["DT"]) },
         }));

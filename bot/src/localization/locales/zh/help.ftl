@@ -277,4 +277,4 @@ help-cmd-account =
       生成一次性绑定码，或将当前平台连接到已有机器人账号。
 
 help-notes-morasooma =
-    • Morasooma 基于 g0v0。使用 {$prefix} nick <用户名> 保存账号。
+    • 使用 {$prefix} nick <用户名> 保存 Morasooma 账号。

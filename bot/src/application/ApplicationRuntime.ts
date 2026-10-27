@@ -1,6 +1,5 @@
 import { IMessageContext } from "core/IMessageContext";
 import { GameApiRegistry } from "games/GameApiRegistry";
-import { BanchoV2ApiClient } from "games/osu/server/bancho/BanchoV2ApiClient";
 import { OsuBeatmapProvider } from "games/osu/beatmaps/OsuBeatmapProvider";
 import { IBotRuntime } from "core/IBotRuntime";
 import { PendingCallback } from "core/PendingCallback";
@@ -39,14 +38,14 @@ import { Command } from "commands/Command";
 import { ExternalId } from "core/ExternalId";
 import { Platform } from "core/Platform";
 import { performanceClient } from "infrastructure/performance/PerformanceClient";
-import { IRuntimeConfig } from "application/IRuntimeConfig";
+import { IApiCredentials } from "games/IApiCredentials";
 import { IRuntimeDependencies } from "application/IRuntimeDependencies";
 import { IRuntimePlatformServices } from "application/IRuntimePlatformServices";
 import { ModuleBuilderFunc } from "application/ModuleBuilderFunc";
 
 const DEFAULT_MODULE_BUILDERS: ModuleBuilderFunc[] = [
     (runtime) => new Bancho(runtime),
-    (runtime) => new Morasooma(runtime),
+    (runtime) => (runtime.api.morasooma ? new Morasooma(runtime) : undefined),
     (runtime) => new Gatari(runtime),
     (runtime) => new Ripple(runtime),
     (runtime) => new RippleRelax(runtime),
@@ -136,7 +135,7 @@ export class ApplicationRuntime implements IBotRuntime {
     }
 
     static create(
-        config: IRuntimeConfig,
+        credentials: IApiCredentials,
         storage: IPlatformStorageHost,
         platforms: IRuntimePlatformServices[]
     ): ApplicationRuntime {
@@ -174,13 +173,13 @@ export class ApplicationRuntime implements IBotRuntime {
             addPhotoDoc: (url) => currentMediaProvider().addPhotoDoc(url),
             getPhotoDoc: (url) => currentMediaProvider().getPhotoDoc(url),
         };
-        const banchoApi = new BanchoV2ApiClient(config.banchoAppId, config.banchoClientSecret);
-        const osuBeatmapProvider = new OsuBeatmapProvider(banchoApi, storage.beatmaps);
+        const api = new GameApiRegistry(credentials);
+        const osuBeatmapProvider = new OsuBeatmapProvider(api, storage.beatmaps);
         const cards = new OkiCardsGenerator();
 
         return new ApplicationRuntime({
             storage,
-            api: new GameApiRegistry(banchoApi),
+            api,
             osuBeatmapProvider,
             templates: LegacyTextTemplates,
             chatBeatmaps: new ChatBeatmapCache(),
@@ -202,7 +201,8 @@ export class ApplicationRuntime implements IBotRuntime {
         await this.ignored.init();
         await this.api.bancho.login();
         await this.performanceClient?.health();
-        this.modules.push(...this.moduleBuilders.map((builder) => builder(this)));
+        const modules = this.moduleBuilders.map((builder) => builder(this));
+        this.modules.push(...modules.filter((module): module is Module => module !== undefined));
     }
 
     async markStarted(platform: Platform, identity: IBotIdentity, publicLink: string): Promise<void> {

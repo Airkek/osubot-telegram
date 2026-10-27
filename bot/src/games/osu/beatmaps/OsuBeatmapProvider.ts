@@ -5,13 +5,14 @@ import { OsuBeatmap } from "games/osu/beatmaps/OsuBeatmap";
 import { BanchoV2ApiClient } from "games/osu/server/bancho/BanchoV2ApiClient";
 import { IBeatmapCacheRepository } from "core/storage/IBeatmapCacheRepository";
 import { IBeatmapMetadata } from "core/storage/IBeatmapMetadata";
+import { GameApiRegistry } from "games/GameApiRegistry";
 
 export class OsuBeatmapProvider implements IBeatmapProvider {
     private api: BanchoV2ApiClient;
     private db: IBeatmapCacheRepository;
 
-    constructor(api: BanchoV2ApiClient, db: IBeatmapCacheRepository) {
-        this.api = api;
+    constructor(api: GameApiRegistry, db: IBeatmapCacheRepository) {
+        this.api = api.bancho;
         this.db = db;
     }
 
