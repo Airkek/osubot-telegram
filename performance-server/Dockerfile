@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM mcr.microsoft.com/dotnet/sdk:8.0-alpine3.24 AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0-alpine3.24 AS build
 
 WORKDIR /src
 
@@ -28,15 +28,15 @@ RUN dotnet publish performance-server/src/OsuPerformanceServer/OsuPerformanceSer
     -p:DebugType=None \
     -p:DebugSymbols=false
 
-FROM mcr.microsoft.com/dotnet/runtime-deps:8.0-alpine3.24 AS runtime
+FROM mcr.microsoft.com/dotnet/runtime-deps:10.0-alpine3.24 AS runtime
 
 WORKDIR /usr/local/lib/osu-performance-server
 
 ENV DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1 \
     PERFORMANCE_SERVER_PORT=50051 \
-    BEATMAP_CACHE_PATH=/var/lib/osu-performance/beatmaps
+    STRAIN_CACHE_PATH=/var/lib/osu-performance/strains
 
-RUN mkdir -p "$BEATMAP_CACHE_PATH"
+RUN mkdir -p "$STRAIN_CACHE_PATH"
 
 COPY --from=build /out/ ./
 RUN command -v nc >/dev/null \

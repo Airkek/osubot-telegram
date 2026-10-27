@@ -1,10 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <LangVersion>12.0</LangVersion>
+    <LazerVersion>2026.1026.0</LazerVersion>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)' == 'Release'">
@@ -18,11 +19,12 @@
     <PackageReference Include="Grpc.AspNetCore" Version="2.80.0" />
     <PackageReference Include="Grpc.Tools" Version="2.80.0" PrivateAssets="All" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
-    <PackageReference Include="ppy.osu.Game" Version="2026.702.1" />
-    <PackageReference Include="ppy.osu.Game.Rulesets.Osu" Version="2026.702.1" />
-    <PackageReference Include="ppy.osu.Game.Rulesets.Taiko" Version="2026.702.1" />
-    <PackageReference Include="ppy.osu.Game.Rulesets.Catch" Version="2026.702.1" />
-    <PackageReference Include="ppy.osu.Game.Rulesets.Mania" Version="2026.702.1" />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.13" />
+    <PackageReference Include="ppy.osu.Game" Version="$(LazerVersion)" />
+    <PackageReference Include="ppy.osu.Game.Rulesets.Osu" Version="$(LazerVersion)" />
+    <PackageReference Include="ppy.osu.Game.Rulesets.Taiko" Version="$(LazerVersion)" />
+    <PackageReference Include="ppy.osu.Game.Rulesets.Catch" Version="$(LazerVersion)" />
+    <PackageReference Include="ppy.osu.Game.Rulesets.Mania" Version="$(LazerVersion)" />
   </ItemGroup>
 
   <ItemGroup>
@@ -35,5 +37,6 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="OsuPerformanceServer.Tests" />
+    <AssemblyMetadata Include="LazerVersion" Value="$(LazerVersion)" />
   </ItemGroup>
 </Project>

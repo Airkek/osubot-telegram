@@ -1,11 +1,14 @@
 using NUnit.Framework;
 using osu.Game.Beatmaps;
 using osu.Game.Beatmaps.Formats;
+using osu.Game.Database;
 using osu.Game.Rulesets;
 using osu.Game.Rulesets.Difficulty;
 using osu.Game.Rulesets.Mods;
 using osu.Game.Rulesets.Scoring;
+using osu.Game.Rulesets.Scoring.Legacy;
 using osu.Game.Scoring;
+using osu.Game.Scoring.Legacy;
 
 namespace OsuPerformanceServer.Tests;
 
@@ -158,11 +161,9 @@ public sealed class CalculatorOperationsTests
         CalculatorContext context = CreateContext();
         ScoreInfo score = CalculatorOperations.BuildScore(
             CreateLegacyInput(combo: 2),
-            context.Beatmap,
+            context.Calculation,
             context.Ruleset,
-            context.Mods,
-            context.Difficulty,
-            context.MaximumStatistics);
+            context.Mods);
 
         Assert.Multiple(() =>
         {
@@ -185,25 +186,19 @@ public sealed class CalculatorOperationsTests
         CalculatorContext context = CreateContext();
         ScoreInfo current = CalculatorOperations.BuildScore(
             CreateLegacyInput(combo: 4),
-            context.Beatmap,
+            context.Calculation,
             context.Ruleset,
-            context.Mods,
-            context.Difficulty,
-            context.MaximumStatistics);
+            context.Mods);
         ScoreInfo fullCombo = CalculatorOperations.BuildFullComboScore(
             current,
-            context.Beatmap,
+            context.Calculation,
             context.Ruleset,
-            context.Mods,
-            context.Difficulty,
-            context.MaximumStatistics);
+            context.Mods);
         ScoreInfo perfect = CalculatorOperations.BuildPerfectScore(
             current,
-            context.Beatmap,
+            context.Calculation,
             context.Ruleset,
-            context.Mods,
-            context.Difficulty,
-            context.MaximumStatistics);
+            context.Mods);
 
         Assert.Multiple(() =>
         {
@@ -258,23 +253,77 @@ public sealed class CalculatorOperationsTests
         };
         ScoreInfo current = CalculatorOperations.BuildScore(
             input,
-            context.Beatmap,
+            context.Calculation,
             context.Ruleset,
-            context.Mods,
-            context.Difficulty,
-            context.MaximumStatistics);
+            context.Mods);
         ScoreInfo fullCombo = CalculatorOperations.BuildFullComboScore(
             current,
-            context.Beatmap,
+            context.Calculation,
             context.Ruleset,
-            context.Mods,
-            context.Difficulty,
-            context.MaximumStatistics);
+            context.Mods);
 
         Assert.Multiple(() =>
         {
             Assert.That(fullCombo.Accuracy, Is.EqualTo(current.Accuracy).Within(1e-12));
             Assert.That(fullCombo.IsLegacyScore, Is.True);
+        });
+    }
+
+    [TestCase(0, 0)]
+    [TestCase(1, 1)]
+    [TestCase(2, 2)]
+    [TestCase(3, 3)]
+    [TestCase(0, 1)]
+    [TestCase(0, 2)]
+    [TestCase(0, 3)]
+    public void CachedLegacyPreparationMatchesOfficialLazerMigration(int sourceMode, int mode)
+    {
+        var beatmap = FileWorkingBeatmap.FromBytes(StrainStoreTests.ContentForMode(sourceMode));
+        Ruleset ruleset = RulesetHelper.FromLegacyId(mode);
+        Mod[] mods = RulesetHelper.ParseMods(ruleset, [new ApiModInput { Acronym = "CL" }]);
+        IBeatmap playable = beatmap.GetPlayableBeatmap(ruleset.RulesetInfo, mods);
+        BeatmapCalculation calculation = CalculatorOperations.PrepareBeatmap(beatmap, ruleset, mods);
+        var statistics = calculation.MaximumStatistics
+            .Where(pair => mode == 2 || pair.Key.IsBasic())
+            .ToDictionary(pair => pair.Key, pair => pair.Value);
+        HitResult topResult = ruleset.GetHitResultsForDisplay().Select(result => result.result)
+            .Where(result => result.IsBasic()).MaxBy(ruleset.CreateScoreProcessor().GetBaseScoreForResult);
+        statistics[topResult]--;
+        statistics[HitResult.Miss] = 1;
+        var expected = new ScoreInfo(beatmap.BeatmapInfo, ruleset.RulesetInfo)
+        {
+            Accuracy = 0.1,
+            MaxCombo = calculation.Difficulty.MaxCombo - 1,
+            TotalScore = 600_000,
+            LegacyTotalScore = 600_000,
+            IsLegacyScore = true,
+            Mods = mods,
+            Statistics = Statistics.FromWire(Statistics.ToWire(statistics))
+        };
+        LegacyScoreDecoder.PopulateMaximumStatistics(expected, beatmap);
+        StandardisedScoreMigrationTools.UpdateFromLegacy(expected, ruleset,
+            LegacyBeatmapConversionDifficultyInfo.FromBeatmap(playable),
+            ((ILegacyRuleset)ruleset).CreateLegacyScoreSimulator().Simulate(beatmap, playable));
+
+        ScoreInfo actual = CalculatorOperations.BuildScore(new ScoreInput
+        {
+            Accuracy = 0.1,
+            Combo = calculation.Difficulty.MaxCombo - 1,
+            TotalScore = 600_000,
+            Legacy = true,
+            Statistics = Statistics.ToWire(statistics)
+        }, calculation, ruleset, mods);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(actual.Statistics, Is.EquivalentTo(expected.Statistics));
+            Assert.That(actual.MaximumStatistics, Is.EquivalentTo(expected.MaximumStatistics));
+            Assert.That(actual.Accuracy, Is.EqualTo(expected.Accuracy));
+            Assert.That(actual.TotalScore, Is.EqualTo(expected.TotalScore));
+            Assert.That(actual.TotalScoreWithoutMods, Is.EqualTo(expected.TotalScoreWithoutMods));
+            double actualPp = ruleset.CreatePerformanceCalculator()!.Calculate(actual, calculation.Difficulty).Total;
+            double expectedPp = ruleset.CreatePerformanceCalculator()!.Calculate(expected, calculation.Difficulty).Total;
+            Assert.That(actualPp, Is.EqualTo(expectedPp).Within(1e-10));
         });
     }
 
@@ -315,11 +364,8 @@ public sealed class CalculatorOperationsTests
         var beatmap = new FileWorkingBeatmap(FixturePath(fixture));
         Ruleset ruleset = RulesetHelper.FromLegacyId(mode);
         Mod[] mods = RulesetHelper.ParseMods(ruleset, [new ApiModInput { Acronym = "CL" }]);
-        IBeatmap playableBeatmap = beatmap.GetPlayableBeatmap(ruleset.RulesetInfo, mods);
-        DifficultyAttributes difficulty = ruleset.CreateDifficultyCalculator(beatmap).Calculate(mods);
-        Dictionary<HitResult, int> maximumStatistics =
-            CalculatorOperations.GetMaximumStatistics(ruleset, playableBeatmap, mods);
-        return new CalculatorContext(beatmap, ruleset, mods, difficulty, maximumStatistics);
+        BeatmapCalculation calculation = CalculatorOperations.PrepareBeatmap(beatmap, ruleset, mods);
+        return new CalculatorContext(calculation, ruleset, mods);
     }
 
     private static string BeatmapPath => FixturePath("official-calculator.osu");
@@ -330,9 +376,12 @@ public sealed class CalculatorOperationsTests
         fixture);
 
     private sealed record CalculatorContext(
-        FileWorkingBeatmap Beatmap,
+        BeatmapCalculation Calculation,
         Ruleset Ruleset,
-        Mod[] Mods,
-        DifficultyAttributes Difficulty,
-        Dictionary<HitResult, int> MaximumStatistics);
+        Mod[] Mods)
+    {
+        public DifficultyAttributes Difficulty => Calculation.Difficulty;
+
+        public Dictionary<HitResult, int> MaximumStatistics => Calculation.MaximumStatistics;
+    }
 }

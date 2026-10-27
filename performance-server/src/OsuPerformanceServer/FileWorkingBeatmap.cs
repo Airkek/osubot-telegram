@@ -17,8 +17,11 @@ internal sealed class FileWorkingBeatmap : WorkingBeatmap
     }
 
     public static FileWorkingBeatmap FromText(string content)
+        => FromBytes(System.Text.Encoding.UTF8.GetBytes(content));
+
+    public static FileWorkingBeatmap FromBytes(byte[] content)
     {
-        using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(content), false);
+        using var stream = new MemoryStream(content, false);
         return new FileWorkingBeatmap(ReadFromStream(stream));
     }
 
