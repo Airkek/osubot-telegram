@@ -19,7 +19,7 @@ FROM alpine:3.24 AS runtime
 
 WORKDIR /usr/osubot
 
-RUN apk add --no-cache dumb-init libstdc++
+RUN apk add --no-cache dumb-init libstdc++ ffmpeg
 
 ENV NODE_ENV=production
 

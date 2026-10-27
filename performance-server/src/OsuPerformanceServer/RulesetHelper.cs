@@ -5,6 +5,7 @@ using osu.Game.Rulesets.Mania;
 using osu.Game.Rulesets.Mods;
 using osu.Game.Rulesets.Osu;
 using osu.Game.Rulesets.Taiko;
+using osu.Game.Scoring;
 
 namespace OsuPerformanceServer;
 
@@ -25,6 +26,7 @@ internal static class RulesetHelper
             Acronym = input.Acronym,
             Settings = input.Settings
         }.ToMod(ruleset))
+        .OrderBy(mod => mod.Acronym, StringComparer.Ordinal)
         .ToArray();
 }
 

@@ -4,4 +4,5 @@ export interface IRenderResponse {
     success: boolean;
     video?: IVideo;
     error?: string;
+    unavailable?: boolean;
 }

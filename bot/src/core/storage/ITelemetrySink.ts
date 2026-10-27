@@ -1,13 +1,19 @@
 import { IBotIdentity } from "core/storage/IBotIdentity";
 import { ICommandEvent } from "core/storage/ICommandEvent";
 import { IEventContext } from "core/storage/IEventContext";
+import { IRenderVideoMetrics } from "core/storage/IRenderVideoMetrics";
 
 export interface ITelemetrySink {
     logUserCount(): Promise<void>;
     logChatCount(): Promise<void>;
     logBeatmapMetadataCacheCount(): Promise<void>;
     logRenderStart(context: IEventContext, mode: number, isExperimental: boolean): Promise<unknown>;
-    logRenderSuccess(context: IEventContext, mode: number, isExperimental: boolean): Promise<unknown>;
+    logRenderSuccess(
+        context: IEventContext,
+        mode: number,
+        isExperimental: boolean,
+        video?: IRenderVideoMetrics
+    ): Promise<unknown>;
     logRenderFailed(
         context: IEventContext,
         mode: number,

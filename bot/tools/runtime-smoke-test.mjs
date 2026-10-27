@@ -1,12 +1,15 @@
 import { createRequire } from "node:module";
 import path from "node:path";
 import process from "node:process";
+import { execFileSync } from "node:child_process";
 
 const runtimeRequire = createRequire(path.join(process.cwd(), "runtime-smoke-test.cjs"));
 const Canvas = runtimeRequire("@napi-rs/canvas");
 const sharp = runtimeRequire("sharp");
 
 async function main() {
+    execFileSync("ffprobe", ["-version"], { timeout: 5000, stdio: "ignore" });
+
     globalThis.logger = {
         fatal(message) {
             throw message instanceof Error ? message : new Error(String(message));

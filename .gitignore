@@ -5,6 +5,7 @@
 **/bin
 **/obj
 /beatmap_cache
+/strain_cache
 /osubot_postgres
 /osubot_data
 /data

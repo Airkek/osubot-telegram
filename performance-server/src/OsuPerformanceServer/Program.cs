@@ -45,8 +45,11 @@ internal static class Program
             client.Timeout = TimeSpan.FromSeconds(15);
         });
         builder.Services.AddSingleton<BeatmapStore>();
+        builder.Services.AddSingleton<StrainCache>();
+        builder.Services.AddSingleton<StrainStore>();
 
         WebApplication app = builder.Build();
+        _ = app.Services.GetRequiredService<StrainCache>();
         app.MapGrpcService<PerformanceGrpcService>();
         app.Logger.LogInformation("osu! performance server listening on port {Port}", port);
         await app.RunAsync();

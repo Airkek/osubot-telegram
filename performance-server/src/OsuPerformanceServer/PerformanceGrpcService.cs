@@ -4,7 +4,7 @@ using Contract = OsuPerformanceServer.Grpc.V1;
 
 namespace OsuPerformanceServer;
 
-internal sealed class PerformanceGrpcService(BeatmapStore beatmaps, ILogger<PerformanceGrpcService> logger)
+internal sealed class PerformanceGrpcService(BeatmapStore beatmaps, StrainStore strains, ILogger<PerformanceGrpcService> logger)
     : Contract.PerformanceService.PerformanceServiceBase
 {
     public override Task<Contract.HealthResponse> Health(
@@ -19,9 +19,9 @@ internal sealed class PerformanceGrpcService(BeatmapStore beatmaps, ILogger<Perf
         Contract.CalculateBeatmapRequest request,
         ServerCallContext context) => ExecuteAsync(async () =>
     {
-        FileWorkingBeatmap beatmap = await ResolveBeatmapAsync(request.Beatmap, context.CancellationToken);
-        BeatmapResult result = CalculatorOperations.CalculateBeatmap(beatmap, request.Mode, GrpcMapper.ToDomain(request.Mods));
-        return GrpcMapper.ToContract(result);
+        BeatmapCalculation calculation = await ResolveStrainsAsync(
+            request.Beatmap, request.Mode, GrpcMapper.ToDomain(request.Mods), context.CancellationToken);
+        return GrpcMapper.ToContract(calculation.Beatmap);
     }, context);
 
     public override Task<Contract.PerformanceAttributes> CalculatePerformance(
@@ -30,11 +30,11 @@ internal sealed class PerformanceGrpcService(BeatmapStore beatmaps, ILogger<Perf
     {
         if (request.Score == null)
             throw new ArgumentException("score is required");
-        FileWorkingBeatmap beatmap = await ResolveBeatmapAsync(request.Beatmap, context.CancellationToken);
+        ApiModInput[] mods = GrpcMapper.ToDomain(request.Mods);
+        BeatmapCalculation calculation = await ResolveStrainsAsync(request.Beatmap, request.Mode, mods, context.CancellationToken);
         PerformanceResult result = CalculatorOperations.CalculatePerformance(
-            beatmap,
-            request.Mode,
-            GrpcMapper.ToDomain(request.Mods),
+            calculation,
+            mods,
             GrpcMapper.ToDomain(request.Score));
         return GrpcMapper.ToContract(result);
     }, context);
@@ -67,6 +67,17 @@ internal sealed class PerformanceGrpcService(BeatmapStore beatmaps, ILogger<Perf
             reference.ExpectedMd5,
             reference.Content.Memory,
             cancellationToken);
+    }
+
+    private async Task<BeatmapCalculation> ResolveStrainsAsync(
+        Contract.BeatmapReference? reference,
+        int mode,
+        ApiModInput[] mods,
+        CancellationToken cancellationToken)
+    {
+        if (reference == null)
+            throw new ArgumentException("beatmap is required");
+        return await strains.GetAsync(reference.BeatmapId, reference.ExpectedMd5, reference.Content.Memory, mode, mods, cancellationToken);
     }
 
     private async Task<T> ExecuteAsync<T>(Func<Task<T>> operation, ServerCallContext context)
