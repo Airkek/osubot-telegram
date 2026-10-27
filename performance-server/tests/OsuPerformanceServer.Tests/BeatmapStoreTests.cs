@@ -1,6 +1,5 @@
 using System.Net;
 using System.Security.Cryptography;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 using NUnit.Framework;
 
@@ -9,20 +8,8 @@ namespace OsuPerformanceServer.Tests;
 [TestFixture]
 public sealed class BeatmapStoreTests
 {
-    private string cachePath = null!;
-
-    [SetUp]
-    public void SetUp() => cachePath = Path.Combine(Path.GetTempPath(), $"osubot-beatmap-cache-{Guid.NewGuid():N}");
-
-    [TearDown]
-    public void TearDown()
-    {
-        if (Directory.Exists(cachePath))
-            Directory.Delete(cachePath, true);
-    }
-
     [Test]
-    public async Task DownloadsOnceAndReusesContentAddressedCache()
+    public async Task DownloadsAndDecodesBeatmapsInMemory()
     {
         byte[] content = await File.ReadAllBytesAsync(FixturePath("official-calculator.osu"));
         string hash = Convert.ToHexString(MD5.HashData(content)).ToLowerInvariant();
@@ -36,39 +23,27 @@ public sealed class BeatmapStoreTests
         {
             Assert.That(first.BeatmapInfo.OnlineID, Is.EqualTo(0));
             Assert.That(second.BeatmapInfo.OnlineID, Is.EqualTo(0));
-            Assert.That(handler.RequestCount, Is.EqualTo(1));
-            Assert.That(File.Exists(Path.Combine(cachePath, $"{hash}.osu")), Is.True);
+            Assert.That(first.BeatmapInfo.MD5Hash, Is.EqualTo(hash));
+            Assert.That(second.BeatmapInfo.MD5Hash, Is.EqualTo(hash));
+            Assert.That(handler.RequestCount, Is.EqualTo(2));
         });
     }
 
     [Test]
-    public void HashMismatchStoresActualRevisionButDoesNotReturnIt()
+    public void HashMismatchDoesNotReturnAnotherRevision()
     {
         byte[] content = File.ReadAllBytes(FixturePath("official-calculator.osu"));
-        string actual = Convert.ToHexString(MD5.HashData(content)).ToLowerInvariant();
         string expected = new('0', 32);
         var store = CreateStore(new CountingHandler(content));
 
         Assert.That(
             async () => await store.GetAsync(1, expected, ReadOnlyMemory<byte>.Empty, CancellationToken.None),
             Throws.TypeOf<BeatmapHashMismatchException>());
-        Assert.Multiple(() =>
-        {
-            Assert.That(File.Exists(Path.Combine(cachePath, $"{actual}.osu")), Is.True);
-            Assert.That(File.Exists(Path.Combine(cachePath, $"{expected}.osu")), Is.False);
-        });
     }
 
-    private BeatmapStore CreateStore(HttpMessageHandler handler)
-    {
-        var configuration = new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string?> { ["BEATMAP_CACHE_PATH"] = cachePath })
-            .Build();
-        return new BeatmapStore(
-            new StaticHttpClientFactory(new HttpClient(handler) { BaseAddress = new Uri("http://beatmaps/") }),
-            configuration,
-            NullLogger<BeatmapStore>.Instance);
-    }
+    private static BeatmapStore CreateStore(HttpMessageHandler handler) => new(
+        new StaticHttpClientFactory(new HttpClient(handler) { BaseAddress = new Uri("http://beatmaps/") }),
+        NullLogger<BeatmapStore>.Instance);
 
     private static string FixturePath(string fixture) => Path.Combine(
         TestContext.CurrentContext.TestDirectory,

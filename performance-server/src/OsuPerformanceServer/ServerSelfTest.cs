@@ -1,3 +1,5 @@
+using Microsoft.Data.Sqlite;
+
 namespace OsuPerformanceServer;
 
 internal static class ServerSelfTest
@@ -12,6 +14,8 @@ internal static class ServerSelfTest
 
     public static void Run()
     {
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        connection.Open();
         foreach (ModeFixture fixture in fixtures)
         {
             var workingBeatmap = FileWorkingBeatmap.FromText(fixture.Beatmap);
