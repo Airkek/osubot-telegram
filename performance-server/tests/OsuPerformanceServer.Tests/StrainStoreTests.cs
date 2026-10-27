@@ -30,12 +30,15 @@ public sealed class StrainStoreTests
     }
 
     [Test]
-    public async Task CachedStrainsSurviveRestartAndAvoidDownloads()
+    public async Task CachedStrainsSurviveRestartAndAvoidBeatmapAccess()
     {
         byte[] content = ContentForMode(0);
         string hash = Hash(content);
         var handler = new CountingHandler(content);
         BeatmapCalculation first = await GetAsync(CreateStore(handler), hash);
+        string beatmapPath = Path.Combine(cachePath, "beatmaps", $"{hash}.osu");
+        Assert.That(File.Exists(beatmapPath), Is.True);
+        File.Delete(beatmapPath);
         handler.FailRequests = true;
         BeatmapCalculation cached = await GetAsync(CreateStore(handler), hash.ToUpperInvariant());
 
@@ -166,6 +169,7 @@ public sealed class StrainStoreTests
             Assert.That(fast.Beatmap.ClockRate, Is.GreaterThan(slow.Beatmap.ClockRate));
             Assert.That(adjusted.Beatmap.CircleSize, Is.Not.EqualTo(baseline.Beatmap.CircleSize));
             Assert.That(Scalar("SELECT COUNT(*) FROM strains"), Is.EqualTo(5));
+            Assert.That(handler.RequestCount, Is.EqualTo(1));
         });
     }
 
@@ -187,6 +191,46 @@ public sealed class StrainStoreTests
     }
 
     [Test]
+    public async Task DifferentDtRatesReuseBeatmapAfterRestart()
+    {
+        byte[] content = ContentForMode(0);
+        var handler = new CountingHandler(content);
+        StrainStore first = CreateStore(handler);
+        await GetAsync(first, Hash(content), mods:
+            [new ApiModInput { Acronym = "DT", Settings = new() { ["speed_change"] = 1.11 } }]);
+
+        handler.FailRequests = true;
+        StrainStore restarted = CreateStore(handler);
+        for (int i = 12; i <= 20; i++)
+        {
+            double rate = 1 + i / 100.0;
+            BeatmapCalculation calculation = await GetAsync(restarted, Hash(content), mods:
+                [new ApiModInput { Acronym = "DT", Settings = new() { ["speed_change"] = rate } }]);
+            Assert.That(calculation.Beatmap.ClockRate, Is.EqualTo(rate).Within(1e-12));
+        }
+
+        Assert.That(handler.RequestCount, Is.EqualTo(1));
+        Assert.That(Scalar("SELECT COUNT(*) FROM strains"), Is.EqualTo(10));
+        Assert.That(Directory.GetFiles(Path.Combine(cachePath, "beatmaps"), "*.osu"), Has.Length.EqualTo(1));
+    }
+
+    [Test]
+    public async Task ConcurrentDifferentDtRatesDownloadOneBeatmap()
+    {
+        byte[] content = ContentForMode(0);
+        var handler = new CountingHandler(content);
+        StrainStore store = CreateStore(handler);
+        BeatmapCalculation[] calculations = await Task.WhenAll(Enumerable.Range(11, 16)
+            .Select(i => GetAsync(store, Hash(content), mods:
+                [new ApiModInput { Acronym = "DT", Settings = new() { ["speed_change"] = 1 + i / 100.0 } }])));
+
+        Assert.That(calculations, Has.Length.EqualTo(16));
+        Assert.That(handler.RequestCount, Is.EqualTo(1));
+        Assert.That(Scalar("SELECT COUNT(*) FROM strains"), Is.EqualTo(16));
+        Assert.That(Directory.GetFiles(Path.Combine(cachePath, "beatmaps"), "*.osu"), Has.Length.EqualTo(1));
+    }
+
+    [Test]
     public async Task RandomWithoutSeedIsNotPersisted()
     {
         byte[] content = ContentForMode(0);
@@ -195,7 +239,7 @@ public sealed class StrainStoreTests
         ApiModInput[] mods = [new ApiModInput { Acronym = "RD" }];
         await GetAsync(store, Hash(content), mods: mods);
         await GetAsync(store, Hash(content), mods: mods);
-        Assert.That(handler.RequestCount, Is.EqualTo(2));
+        Assert.That(handler.RequestCount, Is.EqualTo(1));
         Assert.That(Scalar("SELECT COUNT(*) FROM strains"), Is.Zero);
     }
 
@@ -211,7 +255,7 @@ public sealed class StrainStoreTests
         await GetAsync(store, Hash(content), mods: secondMods);
         BeatmapCalculation cached = await GetAsync(store, Hash(content), mods: firstMods);
         Assert.That(cached.Beatmap.StarRating, Is.EqualTo(first.Beatmap.StarRating));
-        Assert.That(handler.RequestCount, Is.EqualTo(2));
+        Assert.That(handler.RequestCount, Is.EqualTo(1));
         Assert.That(Scalar("SELECT COUNT(*) FROM strains"), Is.EqualTo(2));
     }
 
@@ -238,15 +282,14 @@ public sealed class StrainStoreTests
             if (mode != affectedMode)
                 await GetAsync(updated, Hash(content), mode);
         }
-        Assert.That(handler.RequestCount, Is.EqualTo(5));
+        Assert.That(handler.RequestCount, Is.EqualTo(1));
 
-        handler.FailRequests = false;
         await GetAsync(updated, Hash(content), affectedMode);
         Assert.Multiple(() =>
         {
             Assert.That(Scalar("SELECT COUNT(*) FROM strains WHERE valid = 1"), Is.EqualTo(4));
             Assert.That(Scalar("SELECT COUNT(*) FROM strains WHERE valid = 0"), Is.EqualTo(1));
-            Assert.That(handler.RequestCount, Is.EqualTo(6));
+            Assert.That(handler.RequestCount, Is.EqualTo(1));
         });
     }
 
@@ -259,8 +302,9 @@ public sealed class StrainStoreTests
         Execute("UPDATE strains SET version = '2026.702.1:1:1'");
         StrainStore updated = CreateStore(handler);
         Assert.That(Scalar("SELECT valid FROM strains"), Is.Zero);
+        handler.FailRequests = true;
         await GetAsync(updated, Hash(content));
-        Assert.That(handler.RequestCount, Is.EqualTo(2));
+        Assert.That(handler.RequestCount, Is.EqualTo(1));
     }
 
     [Test]
@@ -271,8 +315,9 @@ public sealed class StrainStoreTests
         StrainStore store = CreateStore(handler);
         await GetAsync(store, Hash(content));
         Execute("UPDATE strains SET valid = 0");
+        handler.FailRequests = true;
         await GetAsync(store, Hash(content));
-        Assert.That(handler.RequestCount, Is.EqualTo(2));
+        Assert.That(handler.RequestCount, Is.EqualTo(1));
         Assert.That(Scalar("SELECT valid FROM strains"), Is.EqualTo(1));
     }
 
@@ -284,6 +329,7 @@ public sealed class StrainStoreTests
         StrainStore store = CreateStore(handler);
         BeatmapCalculation first = await GetAsync(store, Hash(content));
         Execute("UPDATE strains SET payload = '{}'");
+        File.Delete(Path.Combine(cachePath, "beatmaps", $"{Hash(content)}.osu"));
         handler.FailRequests = true;
         Assert.That(async () => await GetAsync(store, Hash(content)), Throws.TypeOf<HttpRequestException>());
         Assert.That(Scalar("SELECT valid FROM strains"), Is.Zero);
@@ -355,13 +401,15 @@ public sealed class StrainStoreTests
     {
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
         {
-            ["STRAIN_CACHE_PATH"] = cachePath
+            ["STRAIN_CACHE_PATH"] = cachePath,
+            ["BEATMAP_CACHE_PATH"] = Path.Combine(cachePath, "beatmaps")
         }).Build();
         var cache = new StrainCache(configuration, NullLogger<StrainCache>.Instance);
         resources.Add(cache);
         var client = new HttpClient(handler, disposeHandler: false) { BaseAddress = new Uri("http://beatmaps/") };
         resources.Add(client);
-        var beatmaps = new BeatmapStore(new StaticHttpClientFactory(client), NullLogger<BeatmapStore>.Instance);
+        var beatmaps = new BeatmapStore(new StaticHttpClientFactory(client), configuration, NullLogger<BeatmapStore>.Instance);
+        resources.Add(beatmaps);
         var store = new StrainStore(beatmaps, cache);
         resources.Add(store);
         return store;

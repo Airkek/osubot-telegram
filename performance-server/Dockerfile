@@ -34,9 +34,10 @@ WORKDIR /usr/local/lib/osu-performance-server
 
 ENV DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1 \
     PERFORMANCE_SERVER_PORT=50051 \
+    BEATMAP_CACHE_PATH=/var/lib/osu-performance/beatmaps \
     STRAIN_CACHE_PATH=/var/lib/osu-performance/strains
 
-RUN mkdir -p "$STRAIN_CACHE_PATH"
+RUN mkdir -p "$BEATMAP_CACHE_PATH" "$STRAIN_CACHE_PATH"
 
 COPY --from=build /out/ ./
 RUN command -v nc >/dev/null \
