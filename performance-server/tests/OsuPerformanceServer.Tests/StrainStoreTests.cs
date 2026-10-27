@@ -215,28 +215,43 @@ public sealed class StrainStoreTests
         Assert.That(Scalar("SELECT COUNT(*) FROM strains"), Is.EqualTo(2));
     }
 
-    [Test]
-    public async Task PpRevisionMarksAllEntriesInvalidBeforeLazyRecalculation()
+    [TestCase(0)]
+    [TestCase(1)]
+    [TestCase(2)]
+    [TestCase(3)]
+    public async Task DifficultyVersionChangeInvalidatesOnlyAffectedRuleset(int affectedMode)
     {
         byte[] content = ContentForMode(0);
         var handler = new CountingHandler(content);
         StrainStore old = CreateStore(handler);
-        await GetAsync(old, Hash(content));
-        await GetAsync(old, Hash(content), mods: [new ApiModInput { Acronym = "DT" }]);
-        StrainStore updated = CreateStore(handler, revision: "2");
+        for (int mode = 0; mode < 4; mode++)
+            await GetAsync(old, Hash(content), mode);
+        await GetAsync(old, Hash(content), affectedMode, [new ApiModInput { Acronym = "DT" }]);
+        Execute($"UPDATE strains SET version = '1:0' WHERE mode = {affectedMode}");
+        StrainStore updated = CreateStore(handler);
         Assert.That(Scalar("SELECT COUNT(*) FROM strains WHERE valid = 0"), Is.EqualTo(2));
+        Assert.That(Scalar("SELECT COUNT(*) FROM strains WHERE valid = 1"), Is.EqualTo(3));
 
-        await GetAsync(updated, Hash(content));
+        handler.FailRequests = true;
+        for (int mode = 0; mode < 4; mode++)
+        {
+            if (mode != affectedMode)
+                await GetAsync(updated, Hash(content), mode);
+        }
+        Assert.That(handler.RequestCount, Is.EqualTo(5));
+
+        handler.FailRequests = false;
+        await GetAsync(updated, Hash(content), affectedMode);
         Assert.Multiple(() =>
         {
-            Assert.That(Scalar("SELECT COUNT(*) FROM strains WHERE valid = 1"), Is.EqualTo(1));
+            Assert.That(Scalar("SELECT COUNT(*) FROM strains WHERE valid = 1"), Is.EqualTo(4));
             Assert.That(Scalar("SELECT COUNT(*) FROM strains WHERE valid = 0"), Is.EqualTo(1));
-            Assert.That(handler.RequestCount, Is.EqualTo(3));
+            Assert.That(handler.RequestCount, Is.EqualTo(6));
         });
     }
 
     [Test]
-    public async Task PreviousLazerVersionIsInvalidatedOnStartup()
+    public async Task PreviousCacheVersionIsInvalidatedOnStartup()
     {
         byte[] content = ContentForMode(0);
         var handler = new CountingHandler(content);
@@ -336,12 +351,11 @@ public sealed class StrainStoreTests
         });
     }
 
-    private StrainStore CreateStore(CountingHandler handler, string revision = "1")
+    private StrainStore CreateStore(CountingHandler handler)
     {
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
         {
-            ["STRAIN_CACHE_PATH"] = cachePath,
-            ["PP_SYSTEM_VERSION"] = revision
+            ["STRAIN_CACHE_PATH"] = cachePath
         }).Build();
         var cache = new StrainCache(configuration, NullLogger<StrainCache>.Instance);
         resources.Add(cache);

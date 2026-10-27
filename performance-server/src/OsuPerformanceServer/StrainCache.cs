@@ -1,8 +1,8 @@
-using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
 using Microsoft.Data.Sqlite;
+using osu.Game.Beatmaps;
 using osu.Game.Rulesets.Catch.Difficulty;
 using osu.Game.Rulesets.Difficulty;
 using osu.Game.Rulesets.Mania.Difficulty;
@@ -16,7 +16,7 @@ internal sealed class StrainCache : IDisposable
     private const int schemaVersion = 1;
     private static readonly JsonSerializerOptions jsonOptions = CreateJsonOptions();
     private readonly string connectionString;
-    private readonly string version;
+    private readonly string[] versions;
     private readonly ILogger<StrainCache> logger;
 
     public StrainCache(IConfiguration configuration, ILogger<StrainCache> logger)
@@ -29,9 +29,12 @@ internal sealed class StrainCache : IDisposable
         {
             DataSource = Path.Combine(cachePath, "strains.db")
         }.ToString();
-        string lazerVersion = typeof(StrainCache).Assembly.GetCustomAttributes<AssemblyMetadataAttribute>()
-            .Single(attribute => attribute.Key == "LazerVersion").Value!;
-        version = $"{lazerVersion}:{schemaVersion}:{configuration["PP_SYSTEM_VERSION"] ?? "1"}";
+        var beatmap = new FlatWorkingBeatmap(new Beatmap());
+        versions = Enumerable.Range(0, 4).Select(mode =>
+        {
+            int difficultyVersion = RulesetHelper.FromLegacyId(mode).CreateDifficultyCalculator(beatmap).Version;
+            return $"{schemaVersion}:{difficultyVersion}";
+        }).ToArray();
 
         using var connection = new SqliteConnection(connectionString);
         connection.Open();
@@ -47,11 +50,24 @@ internal sealed class StrainCache : IDisposable
                 payload TEXT NOT NULL,
                 PRIMARY KEY (md5, mode, mods)
             );
-            UPDATE strains SET valid = 0 WHERE version <> $version AND valid = 1;
             """;
-        command.Parameters.AddWithValue("$version", version);
-        int invalidated = command.ExecuteNonQuery();
-        logger.LogInformation("Strain cache version {Version}: invalidated {Count} stale entries", version, invalidated);
+        command.ExecuteNonQuery();
+
+        using var transaction = connection.BeginTransaction();
+        command.Transaction = transaction;
+        command.CommandText = """
+            UPDATE strains SET valid = 0 WHERE mode = $mode AND version <> $version AND valid = 1
+            """;
+        SqliteParameter modeParameter = command.Parameters.Add("$mode", SqliteType.Integer);
+        SqliteParameter versionParameter = command.Parameters.Add("$version", SqliteType.Text);
+        for (int mode = 0; mode < versions.Length; mode++)
+        {
+            modeParameter.Value = mode;
+            versionParameter.Value = versions[mode];
+            int invalidated = command.ExecuteNonQuery();
+            logger.LogInformation("Strain cache mode {Mode} version {Version}: invalidated {Count} stale entries", mode, versions[mode], invalidated);
+        }
+        transaction.Commit();
     }
 
     public async Task<BeatmapCalculation?> GetAsync(string md5, int mode, string mods, CancellationToken cancellationToken)
@@ -121,7 +137,7 @@ internal sealed class StrainCache : IDisposable
         command.Parameters.AddWithValue("$md5", md5);
         command.Parameters.AddWithValue("$mode", mode);
         command.Parameters.AddWithValue("$mods", mods);
-        command.Parameters.AddWithValue("$version", version);
+        command.Parameters.AddWithValue("$version", versions[mode]);
     }
 
     private static JsonSerializerOptions CreateJsonOptions()

@@ -37,6 +37,5 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="OsuPerformanceServer.Tests" />
-    <AssemblyMetadata Include="LazerVersion" Value="$(LazerVersion)" />
   </ItemGroup>
 </Project>

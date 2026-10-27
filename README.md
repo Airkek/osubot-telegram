@@ -86,7 +86,7 @@ The performance server uses osu!lazer `2026.1026.0`. It caches strain-derived di
 
 Set `OSU_STRAIN_CACHE` to choose the host cache directory in Docker Compose (`STRAIN_CACHE_PATH` when running the server directly). Existing deployments using `OSU_BEATMAP_CACHE` continue to mount that directory until `OSU_STRAIN_CACHE` is set. Old `.osu` cache files are no longer read or written and can be removed after upgrading.
 
-Cache entries have an explicit `valid` flag and a version containing the lazer package version, cache schema version and pp-system revision. On startup, entries from another version are marked `valid = 0`; each entry is recalculated and marked valid on its next request. Lazer upgrades invalidate entries automatically. Increment `OSU_PP_SYSTEM_VERSION` for other pp-system changes (`PP_SYSTEM_VERSION` when running the server directly), and bump `StrainCache.schemaVersion` when changing the cached calculation format or preparation logic.
+Cache entries have an explicit `valid` flag and a version containing lazer's `DifficultyCalculator.Version` for the requested ruleset and the cache schema version. On startup, outdated entries are marked `valid = 0` for the affected rulesets; each entry is recalculated and marked valid on its next request. Lazer upgrades that preserve the difficulty calculation version reuse existing strains. Pp itself is always calculated using the current lazer performance calculator, so changes to the pp formula do not require invalidating unchanged difficulty attributes. Bump `StrainCache.schemaVersion` when changing the cached calculation format or preparation logic.
 
 ## License
 

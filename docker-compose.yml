@@ -35,7 +35,6 @@ services:
     environment:
       PERFORMANCE_SERVER_PORT: 50051
       STRAIN_CACHE_PATH: /var/lib/osu-performance/strains
-      PP_SYSTEM_VERSION: ${OSU_PP_SYSTEM_VERSION:-1}
 
     volumes:
       - ${OSU_STRAIN_CACHE:-${OSU_BEATMAP_CACHE:-./strain_cache}}:/var/lib/osu-performance/strains
