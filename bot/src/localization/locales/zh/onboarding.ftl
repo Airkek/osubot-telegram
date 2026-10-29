@@ -3,7 +3,15 @@ onboarding-text-greeting = 你好！在开始前，我们先确认一些细节�
 onboarding-text-step-language = 请选择与机器人交流的语言（自动模式会在可用时使用平台界面语言）
 onboarding-text-step-output-style = 你希望以什么形式接收机器人的回复？
 onboarding-text-step-automatic-render = 是否要自动渲染你发送的回放文件？
-onboarding-text-step-experimental-renderer = 请选择回放渲染器：
+onboarding-text-step-experimental-renderer =
+    请选择回放渲染器：
+
+    orv — 基于 osu!lazer 的渲染器，由机器人开发者维护
+    GitHub: https://github.com/Airkek/osu-replay-viewer-continued
+
+    o!rdr — 基于 danser 的回放渲染服务
+    网站: https://ordr.issou.best/
+
 onboarding-text-step-final =
     初始设置已完成。
     如果你在多个平台使用机器人，请在私聊中使用 osu account 将它们绑定到同一个账号。
