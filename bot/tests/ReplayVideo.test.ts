@@ -74,7 +74,8 @@ async function renderVideo(experimental: boolean, metadata: VideoMetadata, optio
         messagePayload: "render_bancho:123",
         isInGroupChat: false,
         isFromOwner: true,
-        tr: (key: string) => key,
+        tr: (key: string, params?: { renderer?: string }) =>
+            key === "renderer-in-use" ? `${key}:${params?.renderer}` : key,
         userSettings: async () => ({ render_enabled: true, experimental_renderer: experimental }),
         reply,
     } as unknown as IMessageContext;
@@ -90,6 +91,7 @@ describe("rendered replay delivery", () => {
 
         expect(probe).toHaveBeenCalledWith("https://renderer.example/video.mp4");
         expect(success).toHaveBeenCalledWith(context, 0, experimental, metadata);
+        expect(reply.mock.calls[0][0]).toContain(`renderer-in-use:${experimental ? "orv" : "o!rdr"}`);
         expect(reply).toHaveBeenLastCalledWith("", {
             video: { url: "https://renderer.example/video.mp4", width: 640, height: 360, duration: 13 },
         });
@@ -120,7 +122,8 @@ describe("rendered replay delivery", () => {
         expect(preferred ? renderer.render : experimentalRenderer.render).toHaveBeenCalledTimes(1);
         expect(success).toHaveBeenCalledWith(context, 0, !preferred, metadata);
         expect(reply.mock.calls[0][0]).toContain("renderer-fallback");
-        expect(reply.mock.calls[0][0].includes("experimental-renderer-warning")).toBe(!preferred);
+        expect(reply.mock.calls[0][0]).toContain(`renderer-in-use:${preferred ? "o!rdr" : "orv"}`);
+        expect(reply.mock.calls[0][0]).not.toContain("experimental-renderer-warning");
     });
 
     test("does not submit when both renderers are unavailable", async () => {
@@ -158,13 +161,19 @@ describe("rendered replay delivery", () => {
 
     test("falls back once when o!rdr explicitly refuses new render jobs", async () => {
         const metadata = { durationSeconds: 12.25, sizeBytes: 123456 };
-        const { renderer, experimentalRenderer, start, failed, success, context } = await renderVideo(false, metadata, {
-            ordrResponse: { success: false, unavailable: true, error: "Service is not accepting jobs" },
-        });
+        const { renderer, experimentalRenderer, start, failed, success, context, reply } = await renderVideo(
+            false,
+            metadata,
+            {
+                ordrResponse: { success: false, unavailable: true, error: "Service is not accepting jobs" },
+            }
+        );
 
         expect(renderer.render).toHaveBeenCalledTimes(1);
         expect(experimentalRenderer.render).toHaveBeenCalledTimes(1);
         expect(start.mock.calls.map((call) => call[2])).toEqual([false, true]);
+        expect(reply.mock.calls[0][0]).toContain("renderer-in-use:o!rdr");
+        expect(reply.mock.calls[1][0]).toContain("renderer-in-use:orv");
         expect(failed).toHaveBeenCalledWith(context, 0, "Service is not accepting jobs", false);
         expect(success).toHaveBeenCalledWith(context, 0, true, metadata);
     });

@@ -84,9 +84,10 @@ function createContext(page: "render" | "render_advanced"): {
     };
 }
 
-test("experimental render settings fit the keyboard and link to the advanced page", async () => {
+test.each([true, false])("orv is listed first in render settings with preference=%s", async (preferred) => {
     const command = createSettingsCommand();
     const { context, editMarkup, reply, getKeyboard } = createContext("render");
+    context.userSettings = async () => ({ ...settings, experimental_renderer: preferred });
 
     await command.function(context, command, { fullString: "37666:page:render" } as never);
 
@@ -94,6 +95,9 @@ test("experimental render settings fit the keyboard and link to the advanced pag
     expect(editMarkup).toHaveBeenCalledTimes(1);
     const keyboard = getKeyboard();
     expect(() => validateKeyboard(keyboard)).not.toThrow();
+    const rendererButton = keyboard.flat().find((button) => button.command.includes(":expr:"));
+    expect(rendererButton?.text).toBe(preferred ? "✅ orv / o!rdr" : "orv / ✅ o!rdr");
+    expect(rendererButton?.command).toBe(`osu s 37666:bool:rend:expr:${preferred ? "0" : "1"}`);
     expect(keyboard.flat().map((button) => button.command)).toContain("osu s 37666:page:radv");
 });
 

@@ -13,7 +13,6 @@ pp-counter = PP counter
 ur-counter = UR counter
 hit-counter = Hit counter
 difficulty-graph = Difficulty graph
-prefer-experimental-renderer = Prefer experimental renderer
 enter-custom-skin-id = Enter custom skin ID
 
 render-page = 🎥Replay rendering

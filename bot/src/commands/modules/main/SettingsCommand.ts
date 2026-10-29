@@ -505,13 +505,15 @@ async function buildRenderPage(settings: IUserSettings, l: ILocalizer): Promise<
     const rows: IKeyboardRow[] = [
         [
             toggleableButton(settings.account_id, page, l.tr("auto-render"), "render_enabled", settings.render_enabled),
-            toggleableButton(
-                settings.account_id,
-                page,
-                l.tr("prefer-experimental-renderer"),
-                "experimental_renderer",
-                settings.experimental_renderer
-            ),
+            {
+                text: settings.experimental_renderer ? "✅ orv / o!rdr" : "orv / ✅ o!rdr",
+                command: buildToggleEvent(
+                    settings.account_id,
+                    page,
+                    "experimental_renderer",
+                    settings.experimental_renderer
+                ),
+            },
         ],
         [
             toggleableButton(settings.account_id, page, l.tr("background-video"), "ordr_video", settings.ordr_video),

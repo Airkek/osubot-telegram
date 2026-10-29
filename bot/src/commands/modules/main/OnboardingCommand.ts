@@ -13,8 +13,9 @@ import { isContentOutputSupported } from "core/ContentOutput";
 
 type LanguageStep = "language";
 type OutputStyleStep = "output-style";
-type OnboardingStepsWithCustomParams = LanguageStep | OutputStyleStep;
-type OnboardingStepsYesNo = "automatic-render" | "experimental-renderer";
+type RendererStep = "experimental-renderer";
+type OnboardingStepsWithCustomParams = LanguageStep | OutputStyleStep | RendererStep;
+type OnboardingStepsYesNo = "automatic-render";
 type OnboardingStepsWithSetters = OnboardingStepsWithCustomParams | OnboardingStepsYesNo;
 type OnboardingSteps = OnboardingStepsWithSetters | "final";
 
@@ -167,9 +168,24 @@ function stepAutoRender(userId: number, l: ILocalizer): StepData {
     return stepBoolean(userId, step, l.tr("onboarding-text-step-automatic-render"), l);
 }
 
+type RendererParams = "orv" | "ordr";
+
+function buildRendererButton(userId: number, renderer: RendererParams): IKeyboardButton {
+    const step: RendererStep = "experimental-renderer";
+    const action: Actions = "set";
+    return {
+        text: renderer === "orv" ? "orv" : "o!rdr",
+        command: buildEvent(userId, `${step}:${action}:${renderer}`),
+    };
+}
+
 function stepExperimentalRender(userId: number, l: ILocalizer): StepData {
-    const step: OnboardingStepsYesNo = "experimental-renderer";
-    return stepBoolean(userId, step, l.tr("onboarding-text-step-experimental-renderer"), l);
+    const step: RendererStep = "experimental-renderer";
+    return {
+        step,
+        text: l.tr("onboarding-text-step-experimental-renderer"),
+        buttons: [[buildRendererButton(userId, "orv")], [buildRendererButton(userId, "ordr")]],
+    };
 }
 
 function stepFinal(userId: number, l: ILocalizer): StepData {
@@ -242,7 +258,7 @@ export class OnboardingCommand extends Command {
                 await this.applyAutoRenderSet(step, value as BoolParams, ctx);
                 break;
             case "experimental-renderer":
-                await this.applyExperimentalRenderSet(step, value as BoolParams, ctx);
+                await this.applyExperimentalRenderSet(step, value as RendererParams | BoolParams, ctx);
                 break;
         }
 
@@ -255,9 +271,9 @@ export class OnboardingCommand extends Command {
         await ctx.updateUserSettings(settings);
     }
 
-    async applyExperimentalRenderSet(step: OnboardingStepsYesNo, value: BoolParams, ctx: IMessageContext) {
+    async applyExperimentalRenderSet(step: RendererStep, value: RendererParams | BoolParams, ctx: IMessageContext) {
         const settings = await ctx.userSettings();
-        settings.experimental_renderer = extractBoolFromParam(value);
+        settings.experimental_renderer = value === "orv" || value === "yes";
         await ctx.updateUserSettings(settings);
     }
 

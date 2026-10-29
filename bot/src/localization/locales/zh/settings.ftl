@@ -13,7 +13,6 @@ pp-counter = PP计数器
 ur-counter = UR计数器
 hit-counter = 命中计数器
 difficulty-graph = 难度曲线图
-prefer-experimental-renderer = 优先使用实验性渲染器
 enter-custom-skin-id = 输入自定义皮肤ID
 
 render-page = 🎥回放渲染

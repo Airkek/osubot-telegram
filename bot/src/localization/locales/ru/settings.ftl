@@ -13,7 +13,6 @@ pp-counter = Счётчик PP
 ur-counter = Счётчик UR
 hit-counter = Счётчик попаданий
 difficulty-graph = График сложности
-prefer-experimental-renderer = Предпочитать экспериментальный рендерер
 enter-custom-skin-id = Указать id кастомного скина
 
 render-page = 🎥Рендер реплеев

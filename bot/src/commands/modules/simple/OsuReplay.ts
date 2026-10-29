@@ -121,7 +121,7 @@ export class OsuReplay extends Command {
                     renderer = alternative;
                     rendererSwitched = true;
                     renderAdditional +=
-                        "\n" + ctx.tr("renderer-fallback", { renderer: useExperimental ? "experimental" : "o!rdr" });
+                        "\n" + ctx.tr("renderer-fallback", { renderer: useExperimental ? "orv" : "o!rdr" });
                 } else {
                     needRender = false;
                     renderAdditional =
@@ -129,12 +129,12 @@ export class OsuReplay extends Command {
                         (fallbackToExperimental
                             ? ctx.tr("experimental-gamemode-unavailable")
                             : ctx.tr("renderer-unavailable", {
-                                  renderer: useExperimental ? "experimental" : "o!rdr",
+                                  renderer: useExperimental ? "orv" : "o!rdr",
                               }));
                 }
             }
-            if (needRender && useExperimental) {
-                renderAdditional += "\n" + ctx.tr("experimental-renderer-warning");
+            if (needRender) {
+                renderAdditional += "\n" + ctx.tr("renderer-in-use", { renderer: useExperimental ? "orv" : "o!rdr" });
             }
             if (
                 needRender &&
@@ -249,9 +249,9 @@ export class OsuReplay extends Command {
                 renderer = this.experimental_renderer;
                 useExperimental = true;
                 await ctx.reply(
-                    ctx.tr("renderer-fallback", { renderer: "experimental" }) +
+                    ctx.tr("renderer-fallback", { renderer: "orv" }) +
                         "\n" +
-                        ctx.tr("experimental-renderer-warning")
+                        ctx.tr("renderer-in-use", { renderer: "orv" })
                 );
                 await this.module.bot.storage.telemetry.logRenderStart(ctx, replay.mode, true);
                 replayResponse = await renderer.render(file, renderSettings);
@@ -292,7 +292,7 @@ export class OsuReplay extends Command {
                 } else if (replayResponse.error.includes("This player is banned from o!rdr")) {
                     await ctx.reply(ctx.tr("ordr-ban-warning"));
                 } else if (replayResponse.error.includes("o!rdr is not ready to take render jobs at the moment")) {
-                    const rendererName = useExperimental ? "experimental" : "o!rdr";
+                    const rendererName = useExperimental ? "orv" : "o!rdr";
                     await ctx.reply(
                         ctx.tr("renderer-unavailable", {
                             renderer: rendererName,
