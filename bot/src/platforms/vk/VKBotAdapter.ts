@@ -225,6 +225,9 @@ export class VKBotAdapter implements IPlatformAdapter {
             return undefined;
         }
         const command = match[0].slice(1).split("@")[0].toLowerCase();
+        if (command === "topicbot") {
+            return undefined;
+        }
         const target = this.runtime.commandAliases[command];
         return target ? { source: match[0], target } : undefined;
     }
