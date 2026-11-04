@@ -949,6 +949,20 @@ const migrations: IMigration[] = [
             return true;
         },
     },
+    {
+        version: 39,
+        name: "Add per-topic chat settings",
+        process: async (db) => {
+            await db.run(`CREATE TABLE chat_topic_settings
+                          (
+                              chat_id  BIGINT NOT NULL REFERENCES platform_chats (id) ON DELETE CASCADE,
+                              topic_id BIGINT NOT NULL,
+                              enabled  BOOLEAN NOT NULL DEFAULT true,
+                              PRIMARY KEY (chat_id, topic_id)
+                          )`);
+            return true;
+        },
+    },
 ];
 
 export async function applyMigrations(db: ISqlDatabase) {

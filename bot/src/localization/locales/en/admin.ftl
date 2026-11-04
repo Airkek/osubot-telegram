@@ -15,6 +15,21 @@ admin-feature-list =
 admin-feature-enabled = Feature {$feature} has been enabled.
 admin-feature-disabled = Feature {$feature} has been disabled.
 
+admin-topic-telegram-only = Topic settings are only available in Telegram groups.
+admin-topic-admin-required = Only group administrators can change topic settings.
+admin-topic-unknown = not in a topic
+admin-topic-none = none
+admin-topic-status =
+    Current topic ID: {$topic}
+    Topics where the bot is disabled: {$blocked}
+    Use “/topicbot deny [topic_id]” or “/topicbot allow [topic_id]”. Without an ID, the current topic is used.
+admin-topic-usage = Use “/topicbot deny [topic_id]”, “/topicbot allow [topic_id]”, or “/topicbot list”.
+admin-topic-id-required = Provide a topic ID or run this command inside the topic.
+admin-topic-invalid-id = Invalid topic ID. It must be a positive integer.
+admin-topic-state-enabled = enabled
+admin-topic-state-disabled = disabled
+admin-topic-updated = Bot replies in topic {$topic} are now {$state}. Use /topicbot allow or /topicbot deny to change this.
+
 admin-error-not-found = No error with this code was found.
 admin-error-details =
     Error {$code}:

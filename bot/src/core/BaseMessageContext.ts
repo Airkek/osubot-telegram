@@ -31,6 +31,7 @@ interface BaseMessageContextOptions {
     platform: Platform;
     externalChatId: ExternalId;
     externalSenderId: ExternalId;
+    topicId?: number;
     ownerId: ExternalId;
     plainText?: string;
     plainPayload?: string;
@@ -55,6 +56,7 @@ export abstract class BaseMessageContext implements IMessageContext {
     readonly platform: Platform;
     readonly externalChatId: ExternalId;
     readonly externalSenderId: ExternalId;
+    readonly topicId?: number;
     readonly plainText?: string;
     readonly plainPayload?: string;
     readonly replyMessage?: IReplyMessage;
@@ -85,6 +87,7 @@ export abstract class BaseMessageContext implements IMessageContext {
         this.platform = options.platform;
         this.externalChatId = options.externalChatId;
         this.externalSenderId = options.externalSenderId;
+        this.topicId = options.topicId;
         this.ownerId = options.ownerId;
         this.plainText = options.plainText;
         this.plainPayload = options.plainPayload;

@@ -153,6 +153,106 @@ test("runtime initializes injected services and dispatches a matching command", 
     expect(calls).toEqual(["database", "ignored", "api", "context", "stats", "command"]);
 });
 
+test.each([
+    ["enabled", true, 1],
+    ["disabled", false, 0],
+] as const)("runtime handles messages in a Telegram topic when it is %s", async (_state, enabled, expectedRuns) => {
+    const storage = createTestStorage();
+    const isTopicEnabled = jest.fn(async () => enabled);
+    storage.chatSettings.isTopicEnabled = isTopicEnabled;
+    const commandProcess = jest.fn(async () => {});
+    const command = { name: "test", process: commandProcess };
+    const runtime = new ApplicationRuntime(
+        createDependencies({
+            storage,
+            moduleBuilders: [
+                () =>
+                    ({
+                        name: "Test",
+                        commands: [command],
+                        checkContext: () => ({ command }),
+                    }) as never,
+            ],
+        })
+    );
+    await runtime.initialize();
+
+    await runtime.handleMessage({
+        platform: "telegram",
+        externalSenderId: 1,
+        externalChatId: 2,
+        senderId: 1,
+        userId: 1,
+        chatId: 2,
+        topicId: 44,
+        isInGroupChat: true,
+        bindIdentity() {},
+        ensureUserInfoUpdated: async () => {},
+        checkFeature: async () => false,
+    } as never);
+
+    expect(isTopicEnabled).toHaveBeenCalledWith(2, 44);
+    expect(commandProcess).toHaveBeenCalledTimes(expectedRuns);
+});
+
+test("runtime allows /topicbot commands in disabled topics", async () => {
+    const commandProcess = jest.fn(async () => {});
+    const topicCommand = { name: "topic", process: commandProcess };
+    let text = "/topicbot allow 44";
+    const runtime = new ApplicationRuntime(
+        createDependencies({
+            storage: createTestStorage({
+                chatSettings: {
+                    getChatSettings: async () => null,
+                    updateSettings: async () => {},
+                    isTopicEnabled: async () => false,
+                    getDisabledTopicIds: async () => [44],
+                    setTopicEnabled: async () => {},
+                },
+            }),
+            moduleBuilders: [
+                () =>
+                    ({
+                        name: "Admin",
+                        commands: [topicCommand],
+                        checkContext: () =>
+                            text.startsWith("admin topic") ? { command: topicCommand } : null,
+                    }) as never,
+            ],
+        })
+    );
+    await runtime.initialize();
+
+    await runtime.handleCommandAlias(
+        {
+            platform: "telegram",
+            externalSenderId: 1,
+            externalChatId: 2,
+            senderId: 1,
+            userId: 1,
+            chatId: 2,
+            topicId: 44,
+            isInGroupChat: true,
+            bindIdentity() {},
+            ensureUserInfoUpdated: async () => {},
+            checkFeature: async () => false,
+            applyTextOverrides(aliases: Record<string, string>) {
+                for (const [source, replacement] of Object.entries(aliases)) {
+                    if (text.startsWith(source)) {
+                        text = `${replacement}${text.slice(source.length)}`;
+                    }
+                }
+            },
+            isSenderAdmin: async () => true,
+        } as never,
+        "/topicbot",
+        "admin topic"
+    );
+
+    expect(text).toBe("admin topic allow 44");
+    expect(commandProcess).toHaveBeenCalledTimes(1);
+});
+
 test("completed callbacks are removed from the shared runtime", async () => {
     const runtime = new ApplicationRuntime(createDependencies());
     await runtime.initialize();

@@ -8,6 +8,7 @@ import { NotifyCommand } from "commands/modules/admin/NotifyCommand";
 import { ListFeature } from "commands/modules/admin/ListFeature";
 import { EnableFeature } from "commands/modules/admin/EnableFeature";
 import { DisableFeature } from "commands/modules/admin/DisableFeature";
+import { TopicCommand } from "commands/modules/admin/TopicCommand";
 
 export class Admin extends Module {
     constructor(bot: IBotRuntime) {
@@ -24,6 +25,7 @@ export class Admin extends Module {
             new ListFeature(this),
             new EnableFeature(this),
             new DisableFeature(this),
+            new TopicCommand(this),
         ]);
     }
 }

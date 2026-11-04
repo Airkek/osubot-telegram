@@ -80,6 +80,7 @@ export class ApplicationRuntime implements IBotRuntime {
         start: "osu onboarding",
         help: "osu help",
         settings: "osu settings",
+        topicbot: "admin topic",
         user: "s u",
         recent: "s r",
         top_scores: "s t",
@@ -250,6 +251,9 @@ export class ApplicationRuntime implements IBotRuntime {
         if (await ctx.checkFeature("plaintext-overrides")) {
             ctx.applyTextOverrides(this.textAliases);
         }
+        if (!(await this.isTopicEnabled(ctx)) && !(await this.isTopicAdministrationCommand(ctx))) {
+            return;
+        }
 
         this.totalMessages++;
         await this.storage.telemetry.logMessage(ctx);
@@ -270,6 +274,10 @@ export class ApplicationRuntime implements IBotRuntime {
 
     private async handleCallbackQueryInPlatform(ctx: IMessageContext): Promise<boolean> {
         await this.prepareContext(ctx);
+        if (!(await this.isTopicEnabled(ctx))) {
+            await ctx.acknowledge();
+            return true;
+        }
         await ctx.ensureUserInfoUpdated();
         await this.storage.telemetry.logMessage(ctx);
         return await this.processCommands(ctx);
@@ -287,6 +295,9 @@ export class ApplicationRuntime implements IBotRuntime {
         await this.prepareContext(ctx);
         await ctx.ensureUserInfoUpdated();
         ctx.applyTextOverrides({ [sourceCommand]: alias });
+        if (!(await this.isTopicEnabled(ctx)) && !(await this.isTopicAdministrationCommand(ctx))) {
+            return;
+        }
         await this.storage.telemetry.logMessage(ctx);
         await this.processCommands(ctx);
     }
@@ -297,6 +308,9 @@ export class ApplicationRuntime implements IBotRuntime {
 
     private async handleRateLimitInPlatform(ctx: IMessageContext): Promise<void> {
         await this.prepareContext(ctx);
+        if (!(await this.isTopicEnabled(ctx))) {
+            return;
+        }
         await ctx.ensureUserInfoUpdated();
         await ctx.activateLocalizer();
         await this.storage.telemetry.logMessage(ctx);
@@ -375,6 +389,28 @@ export class ApplicationRuntime implements IBotRuntime {
                 : Promise.resolve(undefined),
         ]);
         ctx.bindIdentity({ user, chat, replyUser });
+    }
+
+    private async isTopicEnabled(ctx: IMessageContext): Promise<boolean> {
+        if (ctx.platform !== "telegram" || !ctx.isInGroupChat || ctx.topicId === undefined) {
+            return true;
+        }
+        return await this.storage.chatSettings.isTopicEnabled(ctx.chatId, ctx.topicId);
+    }
+
+    private async isTopicAdministrationCommand(ctx: IMessageContext): Promise<boolean> {
+        if (ctx.platform !== "telegram" || !ctx.isInGroupChat) {
+            return false;
+        }
+        for (const module of this.modules) {
+            if (module.name !== "Admin") {
+                continue;
+            }
+            if (module.checkContext(ctx)?.command.name === "topic") {
+                return await ctx.isSenderAdmin();
+            }
+        }
+        return false;
     }
 
     private async processCallback(ctx: IMessageContext, ticket: string, callback: PendingCallback): Promise<void> {

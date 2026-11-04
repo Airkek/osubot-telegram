@@ -17,6 +17,7 @@ The project originated as a port of OctoDumb's [osubot-old](https://github.com/O
 - BeatLeader and ScoreSaber support
 - Image cards and text output in English, Russian and Chinese
 - Chat leaderboards and leaderboards for a selected beatmap
+- Telegram group administrators can manage replies in forum topics with `/topicbot deny [topic_id]`, `/topicbot allow [topic_id]` and `/topicbot list`; replies are enabled everywhere by default
 - Accounts that can be linked across supported bot platforms
 - Replay rendering through [o!rdr](https://ordr.issou.best/) or [osu-replay-viewer-continued](https://github.com/Airkek/osu-replay-viewer-continued/) via [osubot-orv-runner](https://github.com/Airkek/osubot-orv-runner)
 

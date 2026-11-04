@@ -15,6 +15,7 @@ export interface IMessageContext extends ILocalizer {
     readonly platform: Platform;
     readonly externalSenderId: ExternalId;
     readonly externalChatId: ExternalId;
+    readonly topicId?: number;
     readonly userId: number;
     readonly chatId: number;
     readonly senderId: number;

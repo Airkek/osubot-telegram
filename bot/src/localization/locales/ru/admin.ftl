@@ -15,6 +15,21 @@ admin-feature-list =
 admin-feature-enabled = Фича {$feature} включена.
 admin-feature-disabled = Фича {$feature} выключена.
 
+admin-topic-telegram-only = Настройки тем доступны только в группах Telegram.
+admin-topic-admin-required = Менять настройки тем могут только администраторы группы.
+admin-topic-unknown = команда не в теме
+admin-topic-none = нет
+admin-topic-status =
+    ID текущей темы: {$topic}
+    Темы, в которых бот отключён: {$blocked}
+    Используйте «/topicbot deny [ID_темы]» или «/topicbot allow [ID_темы]». Без ID настраивается текущая тема.
+admin-topic-usage = Используйте «/topicbot deny [ID_темы]», «/topicbot allow [ID_темы]» или «/topicbot list».
+admin-topic-id-required = Укажите ID темы или вызовите команду внутри темы.
+admin-topic-invalid-id = Некорректный ID темы. Требуется положительное целое число.
+admin-topic-state-enabled = включён
+admin-topic-state-disabled = выключен
+admin-topic-updated = Ответы бота в теме {$topic} теперь {$state}. Используйте /topicbot allow или /topicbot deny, чтобы изменить настройку.
+
 admin-error-not-found = Ошибка с таким кодом не найдена.
 admin-error-details =
     Ошибка {$code}:
