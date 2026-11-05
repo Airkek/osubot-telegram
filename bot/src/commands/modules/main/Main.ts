@@ -8,6 +8,7 @@ import { ClearCommand } from "commands/modules/main/ClearCommand";
 import { SettingsCommand } from "commands/modules/main/SettingsCommand";
 import { OnboardingCommand } from "commands/modules/main/OnboardingCommand";
 import { AccountCommand } from "commands/modules/main/AccountCommand";
+import { TopicCommand } from "commands/modules/main/TopicCommand";
 
 export class Main extends Module {
     constructor(bot: IBotRuntime) {
@@ -24,6 +25,7 @@ export class Main extends Module {
             new SettingsCommand(this),
             new OnboardingCommand(this),
             new AccountCommand(this),
+            new TopicCommand(this),
         ]);
     }
 }

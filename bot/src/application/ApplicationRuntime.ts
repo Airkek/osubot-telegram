@@ -80,7 +80,7 @@ export class ApplicationRuntime implements IBotRuntime {
         start: "osu onboarding",
         help: "osu help",
         settings: "osu settings",
-        topicbot: "admin topic",
+        topicbot: "osu topic",
         user: "s u",
         recent: "s r",
         top_scores: "s t",
@@ -251,7 +251,7 @@ export class ApplicationRuntime implements IBotRuntime {
         if (await ctx.checkFeature("plaintext-overrides")) {
             ctx.applyTextOverrides(this.textAliases);
         }
-        if (!(await this.isTopicEnabled(ctx)) && !(await this.isTopicAdministrationCommand(ctx))) {
+        if (!(await this.isTopicEnabled(ctx)) && !(await this.isTopicControlCommand(ctx))) {
             return;
         }
 
@@ -295,7 +295,7 @@ export class ApplicationRuntime implements IBotRuntime {
         await this.prepareContext(ctx);
         await ctx.ensureUserInfoUpdated();
         ctx.applyTextOverrides({ [sourceCommand]: alias });
-        if (!(await this.isTopicEnabled(ctx)) && !(await this.isTopicAdministrationCommand(ctx))) {
+        if (!(await this.isTopicEnabled(ctx)) && !(await this.isTopicControlCommand(ctx))) {
             return;
         }
         await this.storage.telemetry.logMessage(ctx);
@@ -398,12 +398,12 @@ export class ApplicationRuntime implements IBotRuntime {
         return await this.storage.chatSettings.isTopicEnabled(ctx.chatId, ctx.topicId);
     }
 
-    private async isTopicAdministrationCommand(ctx: IMessageContext): Promise<boolean> {
+    private async isTopicControlCommand(ctx: IMessageContext): Promise<boolean> {
         if (ctx.platform !== "telegram" || !ctx.isInGroupChat) {
             return false;
         }
         for (const module of this.modules) {
-            if (module.name !== "Admin") {
+            if (module.name !== "Main") {
                 continue;
             }
             if (module.checkContext(ctx)?.command.name === "topic") {

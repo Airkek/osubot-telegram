@@ -17,9 +17,14 @@ The project originated as a port of OctoDumb's [osubot-old](https://github.com/O
 - BeatLeader and ScoreSaber support
 - Image cards and text output in English, Russian and Chinese
 - Chat leaderboards and leaderboards for a selected beatmap
-- Telegram group administrators can manage replies in forum topics with `/topicbot deny [topic_id]`, `/topicbot allow [topic_id]` and `/topicbot list`; replies are enabled everywhere by default
 - Accounts that can be linked across supported bot platforms
 - Replay rendering through [o!rdr](https://ordr.issou.best/) or [osu-replay-viewer-continued](https://github.com/Airkek/osu-replay-viewer-continued/) via [osubot-orv-runner](https://github.com/Airkek/osubot-orv-runner)
+
+### Telegram forum topics
+
+By default, the bot replies in every topic. Group administrators can disable replies in a specific topic without affecting other topics—for example, to keep a topic focused on discussion while still using the bot elsewhere in the group.
+
+Use `/topicbot deny` in a topic to disable replies there, or `/topicbot allow` to restore them. Add a topic ID to either command to change a different topic. `/topicbot list` shows the current topic and topics where replies are disabled. Only Telegram group administrators can change these settings.
 
 ## Run with Docker Compose
 

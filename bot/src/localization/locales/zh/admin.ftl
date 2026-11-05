@@ -15,21 +15,6 @@ admin-feature-list =
 admin-feature-enabled = 已启用功能 {$feature}。
 admin-feature-disabled = 已禁用功能 {$feature}。
 
-admin-topic-telegram-only = 话题设置仅适用于 Telegram 群组。
-admin-topic-admin-required = 只有群组管理员可以更改话题设置。
-admin-topic-unknown = 当前不在话题中
-admin-topic-none = 无
-admin-topic-status =
-    当前话题 ID：{$topic}
-    已禁用机器人的话题：{$blocked}
-    使用“/topicbot deny [topic_id]”或“/topicbot allow [topic_id]”。不填写 ID 时使用当前话题。
-admin-topic-usage = 使用“/topicbot deny [topic_id]”、“/topicbot allow [topic_id]”或“/topicbot list”。
-admin-topic-id-required = 请提供话题 ID，或在话题中运行此命令。
-admin-topic-invalid-id = 话题 ID 无效，必须为正整数。
-admin-topic-state-enabled = 已启用
-admin-topic-state-disabled = 已禁用
-admin-topic-updated = 话题 {$topic} 中的机器人回复现已{$state}。使用 /topicbot allow 或 /topicbot deny 可更改设置。
-
 admin-error-not-found = 未找到该错误代码。
 admin-error-details =
     错误 {$code}：

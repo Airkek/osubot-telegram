@@ -195,7 +195,10 @@ test.each([
     expect(commandProcess).toHaveBeenCalledTimes(expectedRuns);
 });
 
-test("runtime allows /topicbot commands in disabled topics", async () => {
+test.each([
+    ["group administrator", true, 1],
+    ["regular group member", false, 0],
+] as const)("runtime allows /topicbot in disabled topics for a %s only", async (_role, isAdmin, expectedRuns) => {
     const commandProcess = jest.fn(async () => {});
     const topicCommand = { name: "topic", process: commandProcess };
     let text = "/topicbot allow 44";
@@ -213,15 +216,16 @@ test("runtime allows /topicbot commands in disabled topics", async () => {
             moduleBuilders: [
                 () =>
                     ({
-                        name: "Admin",
+                        name: "Main",
                         commands: [topicCommand],
-                        checkContext: () =>
-                            text.startsWith("admin topic") ? { command: topicCommand } : null,
+                        checkContext: () => (text.startsWith("osu topic") ? { command: topicCommand } : null),
                     }) as never,
             ],
         })
     );
     await runtime.initialize();
+
+    expect(runtime.commandAliases.topicbot).toBe("osu topic");
 
     await runtime.handleCommandAlias(
         {
@@ -243,14 +247,14 @@ test("runtime allows /topicbot commands in disabled topics", async () => {
                     }
                 }
             },
-            isSenderAdmin: async () => true,
+            isSenderAdmin: async () => isAdmin,
         } as never,
         "/topicbot",
-        "admin topic"
+        "osu topic"
     );
 
-    expect(text).toBe("admin topic allow 44");
-    expect(commandProcess).toHaveBeenCalledTimes(1);
+    expect(text).toBe("osu topic allow 44");
+    expect(commandProcess).toHaveBeenCalledTimes(expectedRuns);
 });
 
 test("completed callbacks are removed from the shared runtime", async () => {
