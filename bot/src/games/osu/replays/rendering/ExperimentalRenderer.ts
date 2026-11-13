@@ -71,8 +71,6 @@ export class ExperimentalRenderer implements IReplayRenderer {
 
         const video: IVideo = {
             url,
-            width: 1280,
-            height: 720,
         };
 
         global.logger.info(`Experimental render worker: render done in ${timer.ms}`);
