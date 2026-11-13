@@ -158,7 +158,7 @@ test.each([
     ["disabled", false, 0],
 ] as const)("runtime handles messages in a Telegram topic when it is %s", async (_state, enabled, expectedRuns) => {
     const storage = createTestStorage();
-    const isTopicEnabled = jest.fn(async () => enabled);
+    const isTopicEnabled = jest.fn<(chatId: number, topicId: number) => Promise<boolean>>(async () => enabled);
     storage.chatSettings.isTopicEnabled = isTopicEnabled;
     const commandProcess = jest.fn(async () => {});
     const command = { name: "test", process: commandProcess };
