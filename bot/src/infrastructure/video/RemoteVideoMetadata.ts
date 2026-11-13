@@ -1,12 +1,6 @@
 import { execFile } from "node:child_process";
 import axios from "axios";
-
-interface IRemoteVideoMetadata {
-    durationSeconds?: number;
-    sizeBytes?: number;
-    width?: number;
-    height?: number;
-}
+import { IVideoMeasurements } from "core/IVideoMeasurements";
 
 interface ProbeResponse {
     format?: { duration?: unknown; size?: unknown };
@@ -26,7 +20,7 @@ function positiveInteger(value: unknown): number | undefined {
     return Number.isSafeInteger(number) ? number : undefined;
 }
 
-async function probe(url: string): Promise<IRemoteVideoMetadata> {
+async function probe(url: string): Promise<IVideoMeasurements> {
     const stdout = await new Promise<string>((resolve, reject) => {
         execFile(
             "ffprobe",
@@ -86,8 +80,8 @@ async function readSize(url: string): Promise<number | undefined> {
     return positiveInteger(response.headers["content-length"]);
 }
 
-export async function probeRemoteVideoMetadata(url: string): Promise<IRemoteVideoMetadata> {
-    let metadata: IRemoteVideoMetadata = {};
+export async function probeRemoteVideoMetadata(url: string): Promise<IVideoMeasurements> {
+    let metadata: IVideoMeasurements = {};
     try {
         const parsed = new URL(url);
         if (!["http:", "https:"].includes(parsed.protocol) || parsed.username || parsed.password) {

@@ -14,10 +14,6 @@ interface UploadResponse {
     unavailable?: boolean;
 }
 
-interface Metadata {
-    resolution: string;
-}
-
 class OrdinalWebSocket {
     private static instance: OrdinalWebSocket;
     private socket: Socket | null = null;
@@ -128,20 +124,11 @@ export class IssouBestRenderer implements IReplayRenderer {
             };
         }
 
-        const meta = await this.fetchRenderMetadata(uploadResponse.renderId!);
         const url = await this.getVideoUrl(uploadResponse.renderId!);
 
         const video: IVideo = {
             url,
-            width: 1280,
-            height: 720,
         };
-
-        const resSplit = meta.resolution?.split("x");
-        if (resSplit?.length === 2) {
-            video.width = parseInt(resSplit[0], 10);
-            video.height = parseInt(resSplit[1], 10);
-        }
 
         global.logger.info(`Render worker: render done in ${timer.ms}`);
 
@@ -196,20 +183,32 @@ export class IssouBestRenderer implements IReplayRenderer {
         }
     }
 
-    private async fetchRenderMetadata(renderId: number): Promise<Metadata> {
-        const { data } = await axios.get(`https://apis.issou.best/ordr/renders?renderID=${renderId}`);
-
-        if (!data.renders?.[0]) {
-            throw new Error("Render metadata not found");
-        }
-
-        return {
-            resolution: data.renders[0].resolution,
-        };
-    }
-
     private async getVideoUrl(renderId: number): Promise<string> {
-        const { data } = await axios.get(`https://apis.issou.best/dynlink/ordr/gen?id=${renderId}`);
-        return data.url;
+        let retryDelay = 1000;
+        for (;;) {
+            try {
+                const { data } = await axios.get(`https://apis.issou.best/dynlink/ordr/gen?id=${renderId}`, {
+                    timeout: 10000,
+                    signal: AbortSignal.timeout(10000),
+                });
+                if (typeof data?.url === "string" && data.url.trim()) {
+                    return data.url;
+                }
+                global.logger.warn(`Render worker: video URL for completed render ${renderId} is not ready`);
+            } catch (error) {
+                const status = axios.isAxiosError(error) ? error.response?.status : undefined;
+                const retryable =
+                    axios.isAxiosError(error) &&
+                    (status === undefined || [404, 408, 429].includes(status) || status >= 500);
+                if (!retryable) {
+                    throw error;
+                }
+                global.logger.warn(
+                    `Render worker: retrying video URL for completed render ${renderId} (${error.code || status || error.name})`
+                );
+            }
+            await new Promise((resolve) => setTimeout(resolve, retryDelay));
+            retryDelay = Math.min(retryDelay * 2, 30000);
+        }
     }
 }

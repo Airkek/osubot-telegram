@@ -1,6 +1,9 @@
 import { IMessageContext } from "core/IMessageContext";
 import { IReplyMessage } from "core/IReplyMessage";
 import { ISendOptions } from "core/ISendOptions";
+import { IVideoMetadata } from "core/IVideoMetadata";
+import { IVideoMeasurements } from "core/IVideoMeasurements";
+import { probeRemoteVideoMetadata } from "infrastructure/video/RemoteVideoMetadata";
 import { ITextLinkEntity } from "core/ITextLinkEntity";
 import fs from "node:fs/promises";
 import { TranslateFunction } from "localization/ILocalizer";
@@ -253,6 +256,24 @@ export abstract class BaseMessageContext implements IMessageContext {
         } catch {
             global.logger.fatal(`Failed to remove file: ${this.tmpFile}`);
         }
+    }
+
+    async replyVideo(
+        text: string,
+        video: IVideoMetadata,
+        options?: Omit<ISendOptions, "video" | "photo">
+    ): Promise<IVideoMeasurements> {
+        const metadata = await probeRemoteVideoMetadata(video.url);
+        await this.reply(text, {
+            ...options,
+            video: {
+                ...video,
+                width: metadata.width ?? video.width,
+                height: metadata.height ?? video.height,
+                duration: metadata.durationSeconds === undefined ? video.duration : Math.ceil(metadata.durationSeconds),
+            },
+        });
+        return metadata;
     }
 
     protected abstract createTranslate(language?: Language): Promise<TranslateFunction>;

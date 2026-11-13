@@ -7,6 +7,8 @@ import { IMessageIdentity } from "core/IMessageIdentity";
 import { Platform } from "core/Platform";
 import { IReplyMessage } from "core/IReplyMessage";
 import { ISendOptions } from "core/ISendOptions";
+import { IVideoMetadata } from "core/IVideoMetadata";
+import { IVideoMeasurements } from "core/IVideoMeasurements";
 import { ITextLinkEntity } from "core/ITextLinkEntity";
 import { ILocalizer } from "localization/ILocalizer";
 import { IKeyboard } from "presentation/keyboard/IKeyboard";
@@ -40,6 +42,11 @@ export interface IMessageContext extends ILocalizer {
     updateUserSettings(settings: IUserSettings): Promise<void>;
     updateChatSettings(settings: IChatSettings): Promise<void>;
     reply(text: string, options?: ISendOptions): Promise<unknown>;
+    replyVideo(
+        text: string,
+        video: IVideoMetadata,
+        options?: Omit<ISendOptions, "video" | "photo">
+    ): Promise<IVideoMeasurements>;
     send(text: string, options?: ISendOptions, replyTo?: number): Promise<unknown>;
     remove(): Promise<unknown>;
     edit(text: string, options?: ISendOptions): Promise<void>;

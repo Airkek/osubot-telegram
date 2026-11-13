@@ -12,7 +12,6 @@ import { IssouBestRenderer } from "games/osu/replays/rendering/IssouBestRenderer
 import { OsrReplay } from "games/osu/replays/OsrReplay";
 import { ExperimentalRenderer } from "games/osu/replays/rendering/ExperimentalRenderer";
 import { decodeReplay, readReplayHeader } from "games/osu/performance/OfficialCalculator";
-import { probeRemoteVideoMetadata } from "infrastructure/video/RemoteVideoMetadata";
 
 export class OsuReplay extends Command {
     renderer: IReplayRenderer;
@@ -258,18 +257,8 @@ export class OsuReplay extends Command {
             }
 
             if (replayResponse.success) {
-                const video = replayResponse.video;
-                const metadata = await probeRemoteVideoMetadata(video.url);
+                const metadata = await ctx.replyVideo("", replayResponse.video);
                 await this.module.bot.storage.telemetry.logRenderSuccess(ctx, replay.mode, useExperimental, metadata);
-                await ctx.reply("", {
-                    video: {
-                        url: video.url,
-                        width: metadata.width ?? video.width,
-                        height: metadata.height ?? video.height,
-                        duration:
-                            metadata.durationSeconds === undefined ? undefined : Math.ceil(metadata.durationSeconds),
-                    },
-                });
             } else {
                 await this.module.bot.storage.telemetry.logRenderFailed(
                     ctx,

@@ -2,7 +2,10 @@ import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import { OsuReplay } from "../src/commands/modules/simple/OsuReplay";
 import { SimpleCommandsModule } from "../src/commands/modules/simple/SimpleCommandsModule";
 import { IMessageContext } from "../src/core/IMessageContext";
+import { BaseMessageContext } from "../src/core/BaseMessageContext";
 import { IRenderResponse } from "../src/games/osu/replays/rendering/IRenderResponse";
+import { IReplayRenderer } from "../src/games/osu/replays/rendering/IReplayRenderer";
+import axios, { AxiosError } from "axios";
 import * as calculator from "../src/games/osu/performance/OfficialCalculator";
 import * as replays from "../src/games/osu/replays/OsrReplay";
 import * as renderers from "../src/games/osu/replays/rendering/IssouBestRenderer";
@@ -13,6 +16,7 @@ const previousRenderReplays = process.env.RENDER_REPLAYS;
 type VideoMetadata = Awaited<ReturnType<typeof videos.probeRemoteVideoMetadata>>;
 
 afterEach(() => {
+    jest.useRealTimers();
     jest.restoreAllMocks();
     if (previousRenderReplays === undefined) delete process.env.RENDER_REPLAYS;
     else process.env.RENDER_REPLAYS = previousRenderReplays;
@@ -23,18 +27,19 @@ interface RenderOptions {
     experimentalAvailable?: boolean;
     mode?: number;
     ordrResponse?: IRenderResponse;
+    ordrRender?: IReplayRenderer["render"];
 }
 
 async function renderVideo(experimental: boolean, metadata: VideoMetadata, options: RenderOptions = {}) {
     process.env.RENDER_REPLAYS = "true";
     const response = {
         success: true,
-        video: { url: "https://renderer.example/video.mp4", width: 1280, height: 720 },
+        video: { url: "https://renderer.example/video.mp4" },
     };
     const renderer = {
         supportGameMode: (mode: number) => mode === 0,
         available: jest.fn(async () => options.ordrAvailable ?? true),
-        render: jest.fn(async () => options.ordrResponse ?? response),
+        render: jest.fn(options.ordrRender ?? (async () => options.ordrResponse ?? response)),
     };
     const experimentalRenderer = {
         supportGameMode: () => true,
@@ -79,12 +84,44 @@ async function renderVideo(experimental: boolean, metadata: VideoMetadata, optio
         userSettings: async () => ({ render_enabled: true, experimental_renderer: experimental }),
         reply,
     } as unknown as IMessageContext;
+    context.replyVideo = BaseMessageContext.prototype.replyVideo.bind(context);
 
     await command.function(context, command, undefined);
-    return { probe, success, start, failed, reply, context, renderer, experimentalRenderer };
+    return { command, probe, success, start, failed, reply, context, renderer, experimentalRenderer };
 }
 
 describe("rendered replay delivery", () => {
+    test("delivers the completed o!rdr video after network recovery and keeps the cooldown", async () => {
+        jest.useFakeTimers();
+        global.logger = { info: jest.fn(), warn: jest.fn() } as unknown as typeof global.logger;
+        const uploadReplay = jest.fn<() => Promise<{ success: boolean; renderId: number }>>().mockResolvedValue({
+            success: true,
+            renderId: 123,
+        });
+        const recoveredRenderer: IReplayRenderer = Object.assign(Object.create(renderers.IssouBestRenderer.prototype), {
+            uploadReplay,
+            wsClient: { waitForRenderCompletion: async () => {} },
+        });
+        jest.spyOn(axios, "get")
+            .mockRejectedValueOnce(AxiosError.from(new AggregateError([]), "ETIMEDOUT"))
+            .mockRejectedValueOnce(new AxiosError("Connection reset", "ECONNRESET"))
+            .mockResolvedValue({ data: { url: "https://renderer.example/video.mp4" } });
+
+        const delivery = renderVideo(false, {}, { ordrRender: recoveredRenderer.render.bind(recoveredRenderer) });
+        await jest.advanceTimersByTimeAsync(3000);
+        const { command, context, reply, renderer, failed, success } = await delivery;
+
+        expect(reply).toHaveBeenLastCalledWith("", {
+            video: expect.objectContaining({ url: "https://renderer.example/video.mp4" }),
+        });
+        expect(failed).not.toHaveBeenCalled();
+        expect(success).toHaveBeenCalledTimes(1);
+        await command.function(context, command, undefined);
+        expect(reply.mock.calls.at(-1)[0]).toBe("render-timeout-warning-minutes");
+        expect(renderer.render).toHaveBeenCalledTimes(1);
+        expect(uploadReplay).toHaveBeenCalledTimes(1);
+    });
+
     test.each([false, true])("uses actual video metadata for renderer experimental=%s", async (experimental) => {
         const metadata = { durationSeconds: 12.25, sizeBytes: 123456, width: 640, height: 360 };
         const { probe, success, reply, context } = await renderVideo(experimental, metadata);
@@ -97,15 +134,15 @@ describe("rendered replay delivery", () => {
         });
     });
 
-    test("still sends video without a fake duration when metadata is unavailable", async () => {
+    test("still sends video without fake dimensions or duration when metadata is unavailable", async () => {
         const { success, reply, context } = await renderVideo(false, {});
 
         expect(success).toHaveBeenCalledWith(context, 0, false, {});
         expect(reply).toHaveBeenLastCalledWith("", {
             video: {
                 url: "https://renderer.example/video.mp4",
-                width: 1280,
-                height: 720,
+                width: undefined,
+                height: undefined,
                 duration: undefined,
             },
         });
