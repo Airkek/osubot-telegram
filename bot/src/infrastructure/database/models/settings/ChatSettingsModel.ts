@@ -42,4 +42,43 @@ export class ChatSettingsModel {
             [settings.render_enabled, settings.notifications_enabled, settings.language_override, settings.chat_id]
         );
     }
+
+    async isTopicEnabled(chatId: number, topicId: number): Promise<boolean> {
+        const result = await this.db.get<{ enabled: boolean }>(
+            `SELECT enabled
+             FROM chat_topic_settings
+             WHERE chat_id = $1 AND topic_id = $2`,
+            [chatId, topicId]
+        );
+        return result?.enabled ?? true;
+    }
+
+    async getDisabledTopicIds(chatId: number): Promise<number[]> {
+        const topics = await this.db.all<{ topic_id: number }>(
+            `SELECT topic_id
+             FROM chat_topic_settings
+             WHERE chat_id = $1 AND enabled = false
+             ORDER BY topic_id`,
+            [chatId]
+        );
+        return topics.map(({ topic_id }) => Number(topic_id));
+    }
+
+    async setTopicEnabled(chatId: number, topicId: number, enabled: boolean): Promise<void> {
+        if (enabled) {
+            await this.db.run(
+                `DELETE FROM chat_topic_settings
+                 WHERE chat_id = $1 AND topic_id = $2`,
+                [chatId, topicId]
+            );
+            return;
+        }
+
+        await this.db.run(
+            `INSERT INTO chat_topic_settings (chat_id, topic_id, enabled)
+             VALUES ($1, $2, false)
+             ON CONFLICT (chat_id, topic_id) DO UPDATE SET enabled = false`,
+            [chatId, topicId]
+        );
+    }
 }

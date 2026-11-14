@@ -168,6 +168,9 @@ export function createTestStorage(overrides: Partial<IApplicationStorage> = {}):
         chatSettings: {
             getChatSettings: async () => null,
             updateSettings: async () => {},
+            isTopicEnabled: async () => true,
+            getDisabledTopicIds: async () => [],
+            setTopicEnabled: async () => {},
         },
         notificationAudience: notificationAudience(),
         featureFlags: featureFlags(),

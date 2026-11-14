@@ -69,11 +69,15 @@ export class TelegramMessageContext extends BaseMessageContext {
         storage: MessageContextStorage,
         private readonly localizer: FluentLocalizer
     ) {
+        const callbackMessage = tgCtx.callbackQuery?.message;
+        const callbackTopicId =
+            callbackMessage && "message_thread_id" in callbackMessage ? callbackMessage.message_thread_id : undefined;
         super(
             {
                 platform: "telegram",
                 externalChatId: tgCtx.chatId,
                 externalSenderId: tgCtx.from.id,
+                topicId: tgCtx.message?.message_thread_id ?? callbackTopicId,
                 ownerId,
                 plainText: tgCtx.message?.text ?? tgCtx.message?.caption,
                 plainPayload: tgCtx.callbackQuery?.data,
