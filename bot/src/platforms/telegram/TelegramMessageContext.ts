@@ -57,6 +57,16 @@ function telegramLanguage(languageCode?: string): Language {
     return "en";
 }
 
+function telegramTopicId(
+    message: { message_thread_id?: number; is_topic_message?: boolean } | undefined,
+    isSupergroup: boolean
+): number | undefined {
+    if (message?.message_thread_id !== undefined) {
+        return message.message_thread_id;
+    }
+    return isSupergroup && message?.is_topic_message === true ? 1 : undefined;
+}
+
 export class TelegramMessageContext extends BaseMessageContext {
     private userInfoUpdated = false;
     private callbackAnswered = false;
@@ -70,14 +80,13 @@ export class TelegramMessageContext extends BaseMessageContext {
         private readonly localizer: FluentLocalizer
     ) {
         const callbackMessage = tgCtx.callbackQuery?.message;
-        const callbackTopicId =
-            callbackMessage && "message_thread_id" in callbackMessage ? callbackMessage.message_thread_id : undefined;
+        const isSupergroup = tgCtx.chat.type === "supergroup";
         super(
             {
                 platform: "telegram",
                 externalChatId: tgCtx.chatId,
                 externalSenderId: tgCtx.from.id,
-                topicId: tgCtx.message?.message_thread_id ?? callbackTopicId,
+                topicId: telegramTopicId(tgCtx.message, isSupergroup) ?? telegramTopicId(callbackMessage, isSupergroup),
                 ownerId,
                 plainText: tgCtx.message?.text ?? tgCtx.message?.caption,
                 plainPayload: tgCtx.callbackQuery?.data,
